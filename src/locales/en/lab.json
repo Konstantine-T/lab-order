@@ -1,0 +1,393 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "profile": "Lab profile",
+    "services": "Services",
+    "forms": "Forms",
+    "orders": "Orders",
+    "invoices": "Invoices",
+    "debts": "Debts",
+    "platformBilling": "Platform billing"
+  },
+  "formFields": {
+    "treatments": "Treatments (tooth chart)",
+    "shade": "Shade",
+    "gingivalContouring": "Gingival Contouring",
+    "verticalDimension": "Vertical Dimension for Occlusion",
+    "maxLengthOfCentrals": "Max Preferred Length of Centrals",
+    "checkDesign": "Check Design",
+    "occlusalContact": "Occlusal Contact",
+    "rxNotes": "Notes"
+  },
+  "cnbForm": {
+    "sections": {
+      "treatments": "Add Treatment",
+      "shade": "What color should it be?",
+      "gingivalContouring": "Gingival Contouring",
+      "verticalDimension": "Vertical Dimension for Occlusion",
+      "maxLengthOfCentrals": "Max Preferred Length of Centrals",
+      "checkDesign": "Check Design?",
+      "occlusalContact": "Occlusal Contact",
+      "rxNotes": "Notes"
+    },
+    "builder": {
+      "material": "Material",
+      "selectTooth": "Select Tooth",
+      "notesPlaceholder": "for example: specify which teeth should have bridge in",
+      "noMaterials": "No materials configured for this service. The lab must add at least one material in the service's Pricing tab before doctors can place orders."
+    },
+    "mmPlaceholder": "Desired length in mm",
+    "options": {
+      "Yes": "Yes",
+      "No": "No",
+      "Keep Existing": "Keep existing",
+      "Open Bite": "Open bite",
+      "Make Ideal": "Make ideal",
+      "Ideal": "Ideal",
+      "Other": "Other",
+      "Tight": "Tight",
+      "Zero": "Zero",
+      "Relief": "Relief",
+      "Universal": "Universal",
+      "FDI": "FDI"
+    }
+  },
+  "services": {
+    "title": "Services",
+    "subtitle": "Each service has its own order form. Doctors can place orders only on services with a published form.",
+    "addNew": "Add service",
+    "empty": "No services yet. Add your first one to start receiving orders.",
+    "active": "Active",
+    "inactive": "Inactive",
+    "formPublished": "Form published",
+    "formDraft": "Form draft",
+    "orderable": "Orderable",
+    "noLinkedForm": "No form",
+    "fields": {
+      "name": "Service name",
+      "shortDescription": "Short description",
+      "averageTurnaroundDays": "Average turnaround (days)",
+      "averageTurnaroundLabel": "Turnaround label (e.g. \"5–7 days\")",
+      "coverImageUrl": "Cover image URL",
+      "servicePhaseType": "Service phase",
+      "isActive": "Active"
+    },
+    "phaseOptions": {
+      "STANDALONE": "Standalone",
+      "TEMPORARY": "Temporary",
+      "FINAL": "Final"
+    },
+    "basics": {
+      "title": "Service basics",
+      "subtitle": "Name, description, turnaround and visibility."
+    },
+    "create": {
+      "title": "Create service",
+      "pickTemplate": "Choose an order form template",
+      "pickTemplateHelp": "Pick a starting point. You can enable/disable individual fields and set pricing in the next section.",
+      "customize": "Customize the {{template}} form",
+      "customizeHelp": "Toggle which fields doctors must fill in, and set the unit or fixed price.",
+      "saveAsDraft": "Save as draft",
+      "publish": "Publish service",
+      "pricingRequiredForPublish": "Set a price (and at least one material with a unit price for Crown & Bridge) before publishing this service."
+    },
+    "edit": {
+      "title": "Edit service",
+      "template": "Template",
+      "templateLocked": "Locked — historical orders depend on this template.",
+      "customize": "Order form",
+      "publish": "Publish",
+      "saveSuccess": "Saved.",
+      "cnbFieldsLocked": "Crown & Bridge uses a structured form — its fields are fixed. Configure pricing in the Pricing tab."
+    },
+    "deleteConfirm": {
+      "title": "Delete this service?",
+      "body": "Existing orders for this service are not affected. The service will simply disappear from your catalog."
+    }
+  },
+  "forms": {
+    "title": "Order forms",
+    "subtitle": "Create a form per service so doctors can place structured orders.",
+    "addNew": "Create form",
+    "empty": "No forms yet. Create your first one from a platform template.",
+    "columns": {
+      "title": "Title",
+      "template": "Template",
+      "service": "Service",
+      "status": "Status",
+      "version": "Version",
+      "actions": ""
+    },
+    "create": {
+      "title": "Create order form",
+      "step1": "Pick a template",
+      "step2": "Set basics",
+      "templateLabel": "Platform template",
+      "formTitleLabel": "Form title",
+      "linkedServiceLabel": "Link to service (optional)",
+      "create": "Create"
+    },
+    "editor": {
+      "tabs": { "fields": "Fields", "pricing": "Pricing", "preview": "Preview" },
+      "livePreview": "Live Preview",
+      "fieldsTitle": "Field configuration",
+      "fieldsHelp": "Toggle fields on/off, mark as required, and add helper text.",
+      "addCustomQuestion": "Add question",
+      "field": {
+        "enabled": "Enabled",
+        "required": "Required",
+        "helperText": "Helper text",
+        "affectsPrice": "Affects price (count drives unit pricing)",
+        "questionPlaceholder": "Type your question…"
+      },
+      "pricing": {
+        "title": "Pricing",
+        "model": "Pricing model",
+        "models": {
+          "UNIT_BASED": "Unit price × tooth count",
+          "FIXED_PRICE": "Fixed price"
+        },
+        "unitPrice": "Unit price (GEL)",
+        "fixedPrice": "Fixed price (GEL)",
+        "materialsTitle": "Material variants",
+        "materialsHelp": "Define up to 5 materials. Each material has its own unit price. The doctor picks one material per tooth; the total adds up the selected materials' prices.",
+        "addMaterial": "Add material",
+        "materialName": "Material name",
+        "materialUnitPrice": "Unit price",
+        "rushType": "Rush surcharge",
+        "rushNone": "None",
+        "rushPercent": "% of subtotal",
+        "rushFixed": "Fixed amount",
+        "rushValue": "Rush value",
+        "rushTurnaroundDays": "Rush turnaround (days)",
+        "rushTurnaroundDaysHelp": "Faster turnaround when the doctor pays the rush surcharge.",
+        "rushTurnaroundDaysMax_one": "Up to 1 day (your service's average turnaround).",
+        "rushTurnaroundDaysMax_other": "Up to {{count}} days (your service's average turnaround)."
+      },
+      "publish": "Publish",
+      "unpublish": "Unpublish",
+      "publishConfirm": {
+        "title": "Publish this form?",
+        "body": "Once published, doctors can use this form to place orders. Each subsequent edit creates a new immutable version — historical orders keep using the version they were submitted with."
+      },
+      "publishedNotice": "This form is published. Saving will create a new version.",
+      "saved": "Saved.",
+      "published": "Published."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "welcome": "Welcome, {{name}}",
+    "comingSoon": "Order intake will appear here once your laboratory is approved.",
+    "openOrders": "Open orders",
+    "viewOrders": "View orders",
+    "overdue": "Overdue",
+    "overdueHint": "Past due date — action required",
+    "dueSoon": "Due Soon",
+    "dueSoonHint": "Due within 2 days"
+  },
+  "ordersDashboard": {
+    "title": "Orders",
+    "empty": "No orders received yet.",
+    "count_one": "1 order",
+    "count_other": "{{count}} orders",
+    "countFiltered": "{{count}} of {{total}} orders",
+    "dueOn": "Due {{date}}",
+    "filters": {
+      "search": "Search by order, doctor, service…",
+      "status": "Status",
+      "from": "Due from",
+      "to": "Due to",
+      "clear": "Clear filters",
+      "noResults": "No orders match your filters."
+    },
+    "columns": {
+      "code": "Order",
+      "doctor": "Doctor",
+      "patient": "Patient",
+      "service": "Service",
+      "status": "Status",
+      "total": "Total",
+      "due": "Due",
+      "created": "Created"
+    }
+  },
+  "orderSheet": {
+    "back": "Back to orders",
+    "doctor": "Doctor",
+    "doctorPhone": "Doctor phone",
+    "service": "Service",
+    "status": "Status",
+    "createdAt": "Created",
+    "dueDate": "Requested due",
+    "confirmedDueDate": "Confirmed due",
+    "answers": "Order details",
+    "files": "Files",
+    "noFiles": "No files attached.",
+    "actions": "Actions",
+    "moveTo": "Mark as",
+    "confirmDue": "Confirm due date",
+    "setFinalPrice": "Set final price",
+    "finalPriceLabel": "Final total (GEL)",
+    "finalPriceMin": "Minimum allowed: {{min}} (50% of estimate)",
+    "finalPriceTooLow": "Final price cannot be lower than {{min}} (50% of the estimated total).",
+    "save": "Save",
+    "statusTitle": "Order status",
+    "statusHelp": "Pick the new status and click Save. The doctor sees the change immediately."
+  },
+  "approvalBanner": {
+    "PENDING_APPROVAL": {
+      "title": "Pending approval",
+      "body": "Complete your laboratory profile and submit it for approval. You will become visible to doctors after a platform admin approves your laboratory."
+    },
+    "CHANGES_REQUESTED": {
+      "title": "Changes requested",
+      "body": "The platform admin requested changes:"
+    },
+    "REJECTED": {
+      "title": "Registration rejected",
+      "body": "Your laboratory registration was rejected. Please contact support."
+    },
+    "SUSPENDED": {
+      "title": "Laboratory suspended",
+      "body": "Your laboratory has been suspended and cannot receive new orders. Please contact support."
+    }
+  },
+  "profile": {
+    "title": "Laboratory profile",
+    "subtitle": "Complete the following information before submitting for approval.",
+    "sections": {
+      "public": "Public profile",
+      "legal": "Legal information",
+      "billing": "Billing information",
+      "contact": "Contact information"
+    },
+    "fields": {
+      "publicName": "Public laboratory name",
+      "logoUrl": "Logo URL",
+      "shortDescription": "Short description",
+      "legalName": "Legal company name",
+      "identificationCode": "Tax / identification code",
+      "legalAddress": "Legal address",
+      "workingAddress": "Working address",
+      "city": "City",
+      "country": "Country",
+      "contactPersonName": "Contact person",
+      "contactPhone": "Contact phone",
+      "contactEmail": "Contact email",
+      "bankName": "Bank name",
+      "bankAccountIban": "Bank account / IBAN",
+      "paymentInstructions": "Payment instructions"
+    },
+    "submitForApproval": "Submit for approval",
+    "alreadySubmitted": "Submitted for approval. The platform admin will review your laboratory.",
+    "approved": "Your laboratory is approved and visible to doctors.",
+    "saveSuccess": "Laboratory profile saved.",
+    "submitSuccess": "Submitted for approval.",
+    "incompleteWarning": "All fields are required before submitting for approval.",
+    "approvalNote": "Note from platform admin"
+  },
+  "sgForm": {
+    "fieldsLocked": "Surgical Guide uses a structured order form. Add custom questions below if needed. Configure pricing in the Pricing tab.",
+    "guideProtocol": {
+      "label": "What type of surgical guide protocol do you need?",
+      "PILOT": "Pilot Guide",
+      "FULL_PROTOCOL": "Full Protocol Guide"
+    },
+    "jaw": {
+      "label": "Which jaw is this surgical guide for?",
+      "UPPER": "Upper jaw",
+      "LOWER": "Lower jaw",
+      "BOTH": "Both jaws",
+      "upperLabel": "Upper jaw",
+      "lowerLabel": "Lower jaw"
+    },
+    "jawCondition": {
+      "label": "What is the condition of this jaw?",
+      "HAS_TEETH": "Has teeth",
+      "PARTIALLY_EDENTULOUS": "Partially edentulous",
+      "FULLY_EDENTULOUS": "Fully edentulous / no teeth"
+    },
+    "implantPositions": {
+      "label": "Planned implant positions",
+      "count": "{{count}} implant position(s) selected",
+      "sleeves": "{{count}} sleeve(s) required (same brand as implants)"
+    },
+    "allOn": {
+      "label": "Full-arch protocol shortcut (optional)",
+      "hint": "Select a preset to pre-fill the chart — you can adjust positions manually after.",
+      "ALL_ON_4": "All-on-4",
+      "ALL_ON_5": "All-on-5",
+      "ALL_ON_6": "All-on-6",
+      "ALL_ON_8": "All-on-8",
+      "CUSTOM": "Custom / manual"
+    },
+    "guideSupport": {
+      "label": "What type of surgical guide support is needed?",
+      "TOOTH_SUPPORTED": "Tooth-supported guide",
+      "MUCOSA_SUPPORTED": "Mucosa-supported guide",
+      "BONE_SUPPORTED": "Bone-supported guide",
+      "STACKABLE": "Stackable guide",
+      "CUSTOM": "Custom / other"
+    },
+    "implantSystem": {
+      "label": "Implant system details",
+      "sameSystem": "Same implant system for all selected positions",
+      "allPositionsLabel": "All positions — shared implant system",
+      "applyAll": "Apply to all positions",
+      "brand": "Implant brand",
+      "system": "Implant system",
+      "diameter": "Diameter",
+      "length": "Length",
+      "notes": "Notes",
+      "position": "Position {{num}}"
+    },
+    "abutment": {
+      "label": "Which abutment type will be used?",
+      "CEMENTED": "Cemented abutment",
+      "MULTI_UNIT": "Multi-unit abutment",
+      "LAB_DECIDES": "Lab should decide / confirm later",
+      "OTHER_CUSTOM": "Other / custom",
+      "multiUnitNote": "Multi-unit abutment selected — no additional abutment fields required."
+    },
+    "restoration": {
+      "label": "Will direct temporary restoration be needed after surgery?",
+      "YES": "Yes",
+      "NO": "No",
+      "shadeLabel": "Temporary crown shade",
+      "customShadePlaceholder": "Enter custom shade",
+      "teethLabel": "Temporary crown tooth positions",
+      "teethHint": "Select teeth that will receive temporary crowns (separate from implant positions).",
+      "tempCount": "{{count}} temporary crown(s) selected",
+      "notesLabel": "Temporary restoration notes",
+      "notesHint": "Tooth shape, smile line, gingiva design, occlusion, emergence profile, special clinical notes…"
+    },
+    "edentulous": {
+      "sectionLabel": "Fully edentulous — additional information",
+      "occlusionGuide": "Does the doctor need an occlusion guide?",
+      "prostheticSetup": "Is there a prosthetic setup / wax-up / try-in available?",
+      "prostheticSetup_DIGITAL": "Yes, digital file will be uploaded",
+      "prostheticSetup_PHYSICAL": "Yes, physical setup will be sent",
+      "prostheticSetup_NONE": "No",
+      "prostheticSetup_LAB_DESIGN": "I need the lab to design it",
+      "jawRelation": "How should jaw relation be transferred?",
+      "existingDenture": "Does the patient have an existing denture?",
+      "existingDenture_UPPER": "Yes, upper denture",
+      "existingDenture_LOWER": "Yes, lower denture",
+      "existingDenture_BOTH": "Yes, both",
+      "existingDenture_NONE": "No",
+      "useExistingRef": "Should the existing denture be used as reference?",
+      "planFuture": "Should final guide planning be based on future prosthetic teeth position?",
+      "YES": "Yes",
+      "NO": "No",
+      "LAB_DECIDES": "Lab should decide"
+    },
+    "pricing": {
+      "pilotUnitPrice": "Pilot Guide — price per implant (GEL)",
+      "fullProtocolUnitPrice": "Full Protocol Guide — price per implant (GEL)",
+      "supportFeesTitle": "Guide support type surcharges",
+      "supportFeesHelp": "Optional extra fee per guide support type. Leave blank for no surcharge.",
+      "supportFeeLabel": "Extra fee (GEL)"
+    }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "zod": {
+    "invalid_type": "Invalid value.",
+    "invalid_string": "Invalid format.",
+    "too_small": "Too short.",
+    "too_big": "Too long.",
+    "invalid_enum_value": "Invalid option.",
+    "custom": "Invalid value."
+  }
+}

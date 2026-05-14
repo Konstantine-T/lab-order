@@ -1,0 +1,181 @@
+{
+  "nav": {
+    "home": "Home",
+    "marketplace": "Labs",
+    "orders": "Orders",
+    "patients": "Patients",
+    "invoices": "Invoices",
+    "debts": "Debts",
+    "profile": "Profile",
+    "workLocations": "Work locations"
+  },
+  "home": {
+    "welcome": "Welcome, {{name}}",
+    "comingSoon": "More features are coming soon."
+  },
+  "marketplace": {
+    "title": "Approved laboratories",
+    "subtitle": "Browse approved labs and place a new order.",
+    "empty": "No labs are available yet. Please check back later.",
+    "search": "Search labs"
+  },
+  "labProfile": {
+    "back": "Back to labs",
+    "services": "Services",
+    "noServices": "This lab has not published any services yet.",
+    "orderCta": "Order",
+    "orderDisabled": "No published form",
+    "turnaround": "{{days}} day(s)"
+  },
+  "orderCreate": {
+    "title": "New order",
+    "changeLabService": "Change lab / service",
+    "steps": { "patient": "Patient", "labService": "Lab & service", "form": "Order form", "filesAndDue": "Files & due date", "review": "Review & submit" },
+    "patient": {
+      "header": "Patient information",
+      "firstName": "First name",
+      "lastName": "Last name",
+      "dateOfBirth": "Date of birth",
+      "gender": "Gender (optional)",
+      "genderPlaceholder": "Select gender",
+      "genderOptions": {
+        "male": "Male",
+        "female": "Female",
+        "other": "Other"
+      },
+      "continuingExisting": "Continuing with existing patient.",
+      "match": {
+        "title": "Existing patient found",
+        "body": "A patient with this name and date of birth already exists in your records.",
+        "continue": "Continue with existing patient",
+        "createNew": "Create as new patient"
+      }
+    },
+    "labService": {
+      "selectLab": "Select a laboratory",
+      "selectService": "Select a service",
+      "noPublishedForm": "This service has no published order form."
+    },
+    "filesAndDue": {
+      "files": "Files",
+      "uploadHint": "Allowed: STL, ZIP, JPG, PNG, PDF, MP4 (up to 100 MB)",
+      "filesComingSoon": "File uploads will be available in the next phase.",
+      "addFile": "Add file",
+      "noFiles": "No files added.",
+      "dueDate": "Requested due date",
+      "dueDateHint_one": "The lab needs at least 1 day for this service.",
+      "dueDateHint_other": "The lab needs at least {{count}} days for this service.",
+      "rush": "Rush order",
+      "rushToggle": "Request rush turnaround",
+      "rushUnavailable": "This lab does not offer rush turnaround for this service.",
+      "rushSurchargePercent": "+{{value}}% surcharge",
+      "rushSurchargeFixed": "+{{amount}} surcharge",
+      "rushTurnaroundOne": "Turnaround drops to 1 day.",
+      "rushTurnaroundOther": "Turnaround drops to {{count}} days.",
+      "workLocation": "Work location"
+    },
+    "review": {
+      "header": "Review and submit",
+      "invoiceRecipient": "Invoice recipient",
+      "invoiceDoctor": "Invoice me (doctor)",
+      "invoiceClinic": "Invoice the clinic",
+      "submit": "Submit order",
+      "submitSuccess": "Order submitted!",
+      "fields": {
+        "lab": "Lab",
+        "service": "Service",
+        "patient": "Patient",
+        "workLocation": "Work location",
+        "dueDate": "Due date"
+      },
+      "clinicCodeWarning": "This work location does not have a clinic identification code. The invoice cannot be issued to the clinic without one. Either add the code in your work location settings or invoice yourself."
+    }
+  },
+  "orders": {
+    "title": "My orders",
+    "empty": "No orders yet. Place your first one from the marketplace.",
+    "newOrder": "New order",
+    "count_one": "1 order",
+    "count_other": "{{count}} orders",
+    "countFiltered": "{{count}} of {{total}} orders",
+    "dueOn": "Due {{date}}",
+    "filters": {
+      "search": "Search by order, patient, lab…",
+      "status": "Status",
+      "from": "Due from",
+      "to": "Due to",
+      "clear": "Clear filters",
+      "noResults": "No orders match your filters."
+    },
+    "columns": {
+      "code": "Order",
+      "lab": "Lab",
+      "patient": "Patient",
+      "service": "Service",
+      "status": "Status",
+      "payment": "Payment",
+      "total": "Total",
+      "due": "Due",
+      "created": "Created"
+    }
+  },
+  "orderDetail": {
+    "back": "Back to orders",
+    "service": "Service",
+    "status": "Status",
+    "patient": "Patient",
+    "lab": "Lab",
+    "workLocation": "Work location",
+    "createdAt": "Created",
+    "dueDate": "Requested due",
+    "confirmedDueDate": "Confirmed due",
+    "answers": "Order details",
+    "files": "Files",
+    "noFiles": "No files attached.",
+    "snapshot": "(snapshot at submission)"
+  },
+  "profile": {
+    "title": "My profile",
+    "personalInfo": "Personal information",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "phone": "Phone",
+    "email": "Email",
+    "personalIdNumber": "Personal ID number",
+    "specialty": "Specialty",
+    "licenseNumber": "License number",
+    "preferences": "Preferences",
+    "language": "Language",
+    "colorMode": "Color mode",
+    "modeOptions": { "light": "Light", "dark": "Dark", "system": "System" },
+    "saveSuccess": "Profile updated."
+  },
+  "workLocations": {
+    "title": "Work locations",
+    "subtitle": "Manage the clinics or branches where you practice.",
+    "empty": "No work locations yet. Add your first one to start placing orders.",
+    "addNew": "Add work location",
+    "default": "Default",
+    "makeDefault": "Make default",
+    "fields": {
+      "clinicName": "Clinic name",
+      "branchName": "Branch name",
+      "address": "Address",
+      "city": "City",
+      "clinicIdentificationCode": "Clinic identification code",
+      "clinicInvoiceEmail": "Clinic invoice email",
+      "phone": "Phone",
+      "isDefault": "Set as default"
+    },
+    "fieldHelp": {
+      "clinicIdentificationCode": "Required if you bill the clinic for orders.",
+      "clinicInvoiceEmail": "If provided, dental work invoices for this clinic will be sent here too."
+    },
+    "createDialog": { "title": "Add work location" },
+    "editDialog": { "title": "Edit work location" },
+    "archiveConfirm": {
+      "title": "Archive this work location?",
+      "body": "Archived locations cannot be selected for new orders. Existing orders are unaffected."
+    }
+  }
+}

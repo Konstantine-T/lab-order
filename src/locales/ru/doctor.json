@@ -1,0 +1,191 @@
+{
+  "nav": {
+    "home": "Главная",
+    "marketplace": "Лаборатории",
+    "orders": "Заказы",
+    "patients": "Пациенты",
+    "invoices": "Счета",
+    "debts": "Задолженности",
+    "profile": "Профиль",
+    "workLocations": "Места работы"
+  },
+  "home": {
+    "welcome": "Здравствуйте, {{name}}",
+    "comingSoon": "Скоро появится больше функций."
+  },
+  "marketplace": {
+    "title": "Одобренные лаборатории",
+    "subtitle": "Выберите лабораторию и оформите новый заказ.",
+    "empty": "Пока нет доступных лабораторий. Загляните позже.",
+    "search": "Поиск лабораторий"
+  },
+  "labProfile": {
+    "back": "Назад к лабораториям",
+    "services": "Услуги",
+    "noServices": "У этой лаборатории пока нет опубликованных услуг.",
+    "orderCta": "Заказать",
+    "orderDisabled": "Форма не опубликована",
+    "turnaround": "{{days}} дн."
+  },
+  "orderCreate": {
+    "title": "Новый заказ",
+    "changeLabService": "Сменить лабораторию / услугу",
+    "steps": {
+      "patient": "Пациент",
+      "labService": "Лаборатория и услуга",
+      "form": "Форма заказа",
+      "filesAndDue": "Файлы и срок",
+      "review": "Проверка и отправка"
+    },
+    "patient": {
+      "header": "Информация о пациенте",
+      "firstName": "Имя",
+      "lastName": "Фамилия",
+      "dateOfBirth": "Дата рождения",
+      "gender": "Пол (необязательно)",
+      "genderPlaceholder": "Выберите пол",
+      "genderOptions": {
+        "male": "Мужской",
+        "female": "Женский",
+        "other": "Другое"
+      },
+      "continuingExisting": "Продолжаем с существующим пациентом.",
+      "match": {
+        "title": "Найден существующий пациент",
+        "body": "Пациент с таким именем и датой рождения уже есть в ваших записях.",
+        "continue": "Продолжить с существующим",
+        "createNew": "Создать как нового"
+      }
+    },
+    "labService": {
+      "selectLab": "Выберите лабораторию",
+      "selectService": "Выберите услугу",
+      "noPublishedForm": "У этой услуги нет опубликованной формы заказа."
+    },
+    "filesAndDue": {
+      "files": "Файлы",
+      "uploadHint": "Разрешено: STL, ZIP, JPG, PNG, PDF, MP4 (до 100 МБ)",
+      "filesComingSoon": "Загрузка файлов будет доступна на следующем этапе.",
+      "addFile": "Добавить файл",
+      "noFiles": "Файлов нет.",
+      "dueDate": "Желаемый срок",
+      "dueDateHint_one": "Для этой услуги лаборатории нужен минимум 1 день.",
+      "dueDateHint_few": "Для этой услуги лаборатории нужно минимум {{count}} дня.",
+      "dueDateHint_many": "Для этой услуги лаборатории нужно минимум {{count}} дней.",
+      "dueDateHint_other": "Для этой услуги лаборатории нужно минимум {{count}} дней.",
+      "rush": "Срочный заказ",
+      "rushToggle": "Запросить срочный заказ",
+      "rushUnavailable": "Эта лаборатория не предлагает срочный заказ для этой услуги.",
+      "rushSurchargePercent": "+{{value}}% надбавка",
+      "rushSurchargeFixed": "+{{amount}} надбавка",
+      "rushTurnaroundOne": "Срок сокращается до 1 дня.",
+      "rushTurnaroundOther": "Срок сокращается до {{count}} дней.",
+      "workLocation": "Место работы"
+    },
+    "review": {
+      "header": "Проверка и отправка",
+      "invoiceRecipient": "Получатель счёта",
+      "invoiceDoctor": "Счёт мне (врач)",
+      "invoiceClinic": "Счёт клинике",
+      "submit": "Отправить заказ",
+      "submitSuccess": "Заказ отправлен!",
+      "fields": {
+        "lab": "Лаборатория",
+        "service": "Услуга",
+        "patient": "Пациент",
+        "workLocation": "Место работы",
+        "dueDate": "Срок"
+      },
+      "clinicCodeWarning": "У этого места работы нет идентификационного кода клиники. Без него невозможно выписать счёт на клинику. Добавьте код в настройках или выпишите счёт на себя."
+    }
+  },
+  "orders": {
+    "title": "Мои заказы",
+    "empty": "Пока нет заказов. Оформите первый из каталога лабораторий.",
+    "newOrder": "Новый заказ",
+    "count_one": "1 заказ",
+    "count_few": "{{count}} заказа",
+    "count_many": "{{count}} заказов",
+    "count_other": "{{count}} заказов",
+    "countFiltered": "{{count}} из {{total}} заказов",
+    "dueOn": "Срок: {{date}}",
+    "filters": {
+      "search": "Поиск по заказу, пациенту, лаборатории…",
+      "status": "Статус",
+      "from": "Срок с",
+      "to": "Срок по",
+      "clear": "Сбросить фильтры",
+      "noResults": "По вашему фильтру заказов не найдено."
+    },
+    "columns": {
+      "code": "Заказ",
+      "lab": "Лаборатория",
+      "patient": "Пациент",
+      "service": "Услуга",
+      "status": "Статус",
+      "payment": "Оплата",
+      "total": "Итого",
+      "due": "Срок",
+      "created": "Создан"
+    }
+  },
+  "orderDetail": {
+    "back": "Назад к заказам",
+    "service": "Услуга",
+    "status": "Статус",
+    "patient": "Пациент",
+    "lab": "Лаборатория",
+    "workLocation": "Место работы",
+    "createdAt": "Создан",
+    "dueDate": "Желаемый срок",
+    "confirmedDueDate": "Подтверждённый срок",
+    "answers": "Детали заказа",
+    "files": "Файлы",
+    "noFiles": "Файлов не приложено.",
+    "snapshot": "(снимок на момент отправки)"
+  },
+  "profile": {
+    "title": "Мой профиль",
+    "personalInfo": "Личная информация",
+    "firstName": "Имя",
+    "lastName": "Фамилия",
+    "phone": "Телефон",
+    "email": "Email",
+    "personalIdNumber": "Личный ID",
+    "specialty": "Специальность",
+    "licenseNumber": "Номер лицензии",
+    "preferences": "Настройки",
+    "language": "Язык",
+    "colorMode": "Тема",
+    "modeOptions": { "light": "Светлая", "dark": "Тёмная", "system": "Системная" },
+    "saveSuccess": "Профиль обновлён."
+  },
+  "workLocations": {
+    "title": "Места работы",
+    "subtitle": "Управляйте клиниками или филиалами, где вы практикуете.",
+    "empty": "Пока нет мест работы. Добавьте первое, чтобы начать оформлять заказы.",
+    "addNew": "Добавить место работы",
+    "default": "Основное",
+    "makeDefault": "Сделать основным",
+    "fields": {
+      "clinicName": "Название клиники",
+      "branchName": "Филиал",
+      "address": "Адрес",
+      "city": "Город",
+      "clinicIdentificationCode": "ID код клиники",
+      "clinicInvoiceEmail": "Email клиники для счетов",
+      "phone": "Телефон",
+      "isDefault": "Сделать основным"
+    },
+    "fieldHelp": {
+      "clinicIdentificationCode": "Обязательно, если счёт выставляется на клинику.",
+      "clinicInvoiceEmail": "Если указано, счета будут отправляться и сюда."
+    },
+    "createDialog": { "title": "Добавить место работы" },
+    "editDialog": { "title": "Редактировать место работы" },
+    "archiveConfirm": {
+      "title": "Архивировать место работы?",
+      "body": "Архивированные места нельзя выбрать для новых заказов. Существующие заказы не затрагиваются."
+    }
+  }
+}

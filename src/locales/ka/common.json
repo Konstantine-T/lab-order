@@ -1,0 +1,129 @@
+{
+  "app": { "name": "Lab Order" },
+  "actions": {
+    "save": "შენახვა",
+    "cancel": "გაუქმება",
+    "submit": "გაგზავნა",
+    "back": "უკან",
+    "next": "შემდეგი",
+    "create": "დამატება",
+    "edit": "რედაქტირება",
+    "delete": "წაშლა",
+    "archive": "არქივში გადატანა",
+    "unarchive": "არქივიდან აღდგენა",
+    "approve": "დამტკიცება",
+    "reject": "უარყოფა",
+    "requestChanges": "ცვლილების მოთხოვნა",
+    "suspend": "შეჩერება",
+    "reactivate": "აქტივაცია",
+    "loading": "იტვირთება...",
+    "saving": "ინახება...",
+    "viewDetails": "დეტალების ნახვა",
+    "signOut": "გასვლა",
+    "close": "დახურვა"
+  },
+  "labApprovalStatus": {
+    "PENDING_APPROVAL": "დამტკიცების მოლოდინში",
+    "CHANGES_REQUESTED": "მოთხოვნილია ცვლილება",
+    "APPROVED_ACTIVE": "დამტკიცებული",
+    "REJECTED": "უარყოფილი",
+    "SUSPENDED": "შეჩერებული"
+  },
+  "orderStatus": {
+    "SUBMITTED": "გაგზავნილი",
+    "RECEIVED": "მიღებული",
+    "NEEDS_CLARIFICATION": "საჭიროებს დაზუსტებას",
+    "IN_PROGRESS": "მიმდინარე",
+    "READY_FOR_DELIVERY": "მზადაა მიწოდებისთვის",
+    "SENT_TO_CLINIC": "გაგზავნილი კლინიკაში",
+    "RECEIVED_BY_CLINIC": "მიიღო კლინიკამ",
+    "TRY_IN_PHASE": "მოსინჯვის ეტაპი",
+    "COMPLETED": "დასრულებული",
+    "CANCELLED": "გაუქმებული"
+  },
+  "paymentStatus": {
+    "UNPAID": "გადაუხდელი",
+    "PARTIALLY_PAID": "ნაწილობრივ გადახდილი",
+    "PAID": "გადახდილი"
+  },
+  "priceBreakdown": {
+    "subtotal": "ჯამი",
+    "rushSurcharge": "სასწრაფო დანამატი",
+    "estimatedTotal": "სავარაუდო ჯამი",
+    "labFinalTotal": "ლაბორატორიის საბოლოო ჯამი"
+  },
+  "toothMap": {
+    "upper": "ზედა",
+    "lower": "ქვედა",
+    "total": "სულ",
+    "ariaLabel": "კბილების რუკა",
+    "notation": "ნუმერაცია"
+  },
+  "rush": {
+    "none": "არა",
+    "percent": "%",
+    "fixed": "ფიქსირებული"
+  },
+  "roles": {
+    "DOCTOR": "ექიმი",
+    "LAB_MAIN_ADMIN": "ლაბორატორიის ადმინი",
+    "PLATFORM_ADMIN": "პლატფორმის ადმინი",
+    "CLINIC_ADMIN": "კლინიკის ადმინი"
+  },
+  "theme": {
+    "toggle": "გარემოს გადართვა",
+    "switchToDark": "მუქი რეჟიმი",
+    "switchToLight": "ღია რეჟიმი"
+  },
+  "language": { "label": "ენა" },
+  "pagination": {
+    "showing": "ნაჩვენებია {{from}}–{{to}} / {{total}}"
+  },
+  "templates": {
+    "CROWN_AND_BRIDGE": {
+      "name": "გვირგვინი და ხიდი",
+      "description": "გვირგვინები, ხიდები, პონტიკები, ვინირები, ინლეი და ონლეი."
+    },
+    "TEMPORARY_CROWN": {
+      "name": "დროებითი გვირგვინი",
+      "description": "დროებითი გვირგვინი ან ხიდი."
+    },
+    "ZIRCONIA_ON_IMPLANT": {
+      "name": "ცირკონიუმი იმპლანტზე",
+      "description": "იმპლანტზე დაყრდნობილი ცირკონიუმის რესტავრაცია."
+    },
+    "TEMPORARY_ON_IMPLANT": {
+      "name": "დროებითი იმპლანტზე",
+      "description": "იმპლანტზე დაყრდნობილი დროებითი."
+    },
+    "MOCKUP_WAXUP": {
+      "name": "მოკაპი / ვაქს-აპი",
+      "description": "დიაგნოსტიკური მოკაპი ან ვაქს-აპი."
+    },
+    "SURGICAL_GUIDE": {
+      "name": "ქირურგიული გიდი",
+      "description": "იმპლანტის ქირურგიული გიდი."
+    },
+    "REMOVABLE_PROSTHESIS": {
+      "name": "მოსახსნელი პროთეზი",
+      "description": "ნაწილობრივი ან სრული მოსახსნელი პროთეზი."
+    },
+    "OTHER_CUSTOM": {
+      "name": "სხვა / ინდივიდუალური შეკვეთა",
+      "description": "ინდივიდუალური შემთხვევა."
+    }
+  },
+  "errors": {
+    "generic": "შეცდომა. სცადეთ თავიდან.",
+    "loadFailed": "მონაცემები ვერ ჩაიტვირთა.",
+    "saveFailed": "ვერ შეინახა.",
+    "notFound": "ვერ მოიძებნა.",
+    "forbidden": "თქვენ ამ გვერდზე წვდომა არ გაქვთ.",
+    "required": "ეს ველი სავალდებულოა."
+  },
+  "notFound": {
+    "title": "გვერდი ვერ მოიძებნა",
+    "body": "თქვენ მიერ მოთხოვნილი გვერდი არ არსებობს.",
+    "goHome": "მთავარ გვერდზე დაბრუნება"
+  }
+}

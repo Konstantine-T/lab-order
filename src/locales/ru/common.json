@@ -1,0 +1,129 @@
+{
+  "app": { "name": "Lab Order" },
+  "actions": {
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "submit": "Отправить",
+    "back": "Назад",
+    "next": "Далее",
+    "create": "Создать",
+    "edit": "Редактировать",
+    "delete": "Удалить",
+    "archive": "В архив",
+    "unarchive": "Из архива",
+    "approve": "Одобрить",
+    "reject": "Отклонить",
+    "requestChanges": "Запросить изменения",
+    "suspend": "Приостановить",
+    "reactivate": "Восстановить",
+    "loading": "Загрузка...",
+    "saving": "Сохранение...",
+    "viewDetails": "Подробнее",
+    "signOut": "Выйти",
+    "close": "Закрыть"
+  },
+  "labApprovalStatus": {
+    "PENDING_APPROVAL": "Ожидает одобрения",
+    "CHANGES_REQUESTED": "Запрошены изменения",
+    "APPROVED_ACTIVE": "Одобрено",
+    "REJECTED": "Отклонено",
+    "SUSPENDED": "Приостановлено"
+  },
+  "orderStatus": {
+    "SUBMITTED": "Отправлен",
+    "RECEIVED": "Принят",
+    "NEEDS_CLARIFICATION": "Требует уточнения",
+    "IN_PROGRESS": "В работе",
+    "READY_FOR_DELIVERY": "Готов к отправке",
+    "SENT_TO_CLINIC": "Отправлен в клинику",
+    "RECEIVED_BY_CLINIC": "Получен клиникой",
+    "TRY_IN_PHASE": "Этап примерки",
+    "COMPLETED": "Завершён",
+    "CANCELLED": "Отменён"
+  },
+  "paymentStatus": {
+    "UNPAID": "Не оплачено",
+    "PARTIALLY_PAID": "Частично оплачено",
+    "PAID": "Оплачено"
+  },
+  "priceBreakdown": {
+    "subtotal": "Подытог",
+    "rushSurcharge": "Срочная надбавка",
+    "estimatedTotal": "Предварительный итог",
+    "labFinalTotal": "Итог лаборатории"
+  },
+  "toothMap": {
+    "upper": "Верх",
+    "lower": "Низ",
+    "total": "Всего",
+    "ariaLabel": "Карта зубов",
+    "notation": "Нумерация"
+  },
+  "rush": {
+    "none": "Нет",
+    "percent": "%",
+    "fixed": "Фиксированная"
+  },
+  "roles": {
+    "DOCTOR": "Врач",
+    "LAB_MAIN_ADMIN": "Админ лаборатории",
+    "PLATFORM_ADMIN": "Админ платформы",
+    "CLINIC_ADMIN": "Админ клиники"
+  },
+  "theme": {
+    "toggle": "Переключить тему",
+    "switchToDark": "Тёмная тема",
+    "switchToLight": "Светлая тема"
+  },
+  "language": { "label": "Язык" },
+  "pagination": {
+    "showing": "Показаны {{from}}–{{to}} из {{total}}"
+  },
+  "templates": {
+    "CROWN_AND_BRIDGE": {
+      "name": "Коронка и мост",
+      "description": "Коронки, мосты, понтики, виниры, инлеи и онлеи."
+    },
+    "TEMPORARY_CROWN": {
+      "name": "Временная коронка",
+      "description": "Временная коронка или мост."
+    },
+    "ZIRCONIA_ON_IMPLANT": {
+      "name": "Циркониевая на импланте",
+      "description": "Циркониевая реставрация на импланте."
+    },
+    "TEMPORARY_ON_IMPLANT": {
+      "name": "Временная на импланте",
+      "description": "Временная реставрация на импланте."
+    },
+    "MOCKUP_WAXUP": {
+      "name": "Мок-ап / воск-ап",
+      "description": "Диагностический мок-ап или воск-ап."
+    },
+    "SURGICAL_GUIDE": {
+      "name": "Хирургический шаблон",
+      "description": "Хирургический шаблон для импланта."
+    },
+    "REMOVABLE_PROSTHESIS": {
+      "name": "Съёмный протез",
+      "description": "Частичный или полный съёмный протез."
+    },
+    "OTHER_CUSTOM": {
+      "name": "Другое / Индивидуальный заказ",
+      "description": "Индивидуальный случай."
+    }
+  },
+  "errors": {
+    "generic": "Что-то пошло не так. Попробуйте снова.",
+    "loadFailed": "Не удалось загрузить данные.",
+    "saveFailed": "Не удалось сохранить.",
+    "notFound": "Не найдено.",
+    "forbidden": "У вас нет доступа к этой странице.",
+    "required": "Обязательное поле."
+  },
+  "notFound": {
+    "title": "Страница не найдена",
+    "body": "Запрошенная страница не существует.",
+    "goHome": "На главную"
+  }
+}

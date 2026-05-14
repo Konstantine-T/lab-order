@@ -1,0 +1,66 @@
+{
+  "nav": {
+    "home": "Home",
+    "labs": "Laboratories",
+    "reviews": "Reviews",
+    "clinicAdmins": "Clinic admins",
+    "users": "Users",
+    "billingSettings": "Billing settings",
+    "billingInvoices": "Billing invoices",
+    "stats": "Statistics"
+  },
+  "home": {
+    "title": "Platform admin",
+    "pendingLabs": "Pending laboratories",
+    "openQueue": "Open approval queue"
+  },
+  "labs": {
+    "queueTitle": "Lab approval queue",
+    "filters": {
+      "all": "All",
+      "pending": "Pending",
+      "changesRequested": "Changes requested",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "suspended": "Suspended"
+    },
+    "columns": {
+      "publicName": "Lab name",
+      "legalName": "Legal name",
+      "city": "City",
+      "contactEmail": "Contact email",
+      "status": "Status",
+      "submittedAt": "Created",
+      "actions": "Actions"
+    },
+    "review": {
+      "title": "Review laboratory",
+      "viewProfile": "Profile",
+      "viewLegal": "Legal & billing",
+      "approveConfirm": {
+        "title": "Approve this laboratory?",
+        "body": "Approving makes the laboratory visible to doctors and able to receive orders."
+      },
+      "rejectConfirm": {
+        "title": "Reject this laboratory?",
+        "body": "Rejected laboratories are hidden and cannot receive orders."
+      },
+      "requestChangesDialog": {
+        "title": "Request changes",
+        "noteLabel": "Note for the laboratory",
+        "noteHelp": "This note is shown to the lab admin so they can correct the issues.",
+        "submit": "Send request"
+      },
+      "suspendDialog": {
+        "title": "Suspend laboratory",
+        "noteLabel": "Reason",
+        "submit": "Suspend"
+      },
+      "approveSuccess": "Laboratory approved.",
+      "rejectSuccess": "Laboratory rejected.",
+      "changesRequestedSuccess": "Change request sent.",
+      "suspendedSuccess": "Laboratory suspended.",
+      "incomplete": "This laboratory has not yet completed its mandatory legal/billing information."
+    }
+  }
+}
