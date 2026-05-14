@@ -54,7 +54,7 @@ function effectiveRush(
   if (!rushRequested) return { type: 'NONE', value: 0 };
   const r = pricing?.rush;
   if (!r || r.type === 'NONE') return { type: 'NONE', value: 0 };
-  return { type: r.type, value: r.value };
+  return { type: r.type, value: r.value ?? 0 };
 }
 
 /** Minimum number of days between today and the doctor's requested due date.
@@ -391,7 +391,6 @@ function PatientStep({
   doctorId: string;
 }) {
   const { t } = useTranslation('doctor');
-  const { t: tc } = useTranslation('common');
   const [match, setMatch] = useState<PatientRow | null>(null);
   const [matchOpen, setMatchOpen] = useState(false);
 
@@ -661,7 +660,7 @@ function FilesAndDueStep({
                           value: labRush!.value,
                         })
                       : t('orderCreate.filesAndDue.rushSurchargeFixed', {
-                          amount: formatGEL(labRush!.value),
+                          amount: formatGEL(labRush!.value ?? 0),
                         })}
                   </Typography>
                   {labRush!.turnaround_days != null && labRush!.turnaround_days > 0 && (
