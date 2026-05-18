@@ -287,6 +287,44 @@
     "incompleteWarning": "All fields are required before submitting for approval.",
     "approvalNote": "Note from platform admin"
   },
+  "modelForm": {
+    "fieldsLocked": "Model uses a structured order form. Add custom questions below if needed. Configure pricing in the Pricing tab.",
+    "modelType": {
+      "label": "Type of model?",
+      "BASE_MODEL": "Base Model",
+      "IMPLANT_MODEL": "Implant Model",
+      "ORTHO_MODEL": "Ortho Model"
+    },
+    "articulatorAlignment": {
+      "label": "Alignment on Semi-Adjustable Articulator?"
+    },
+    "arch": {
+      "label": "Arch?",
+      "UPPER": "Upper",
+      "LOWER": "Lower",
+      "BOTH": "Both"
+    },
+    "markings": {
+      "label": "Should We Add Markings on the Models?",
+      "placeholder": "Describe any markings needed…"
+    },
+    "baseType": {
+      "label": "Type of base?",
+      "HOLLOW": "Hollow",
+      "SOLID": "Solid"
+    },
+    "preparedDies": {
+      "label": "Prepared Dies? (removable model)"
+    },
+    "notes": {
+      "label": "Notes",
+      "placeholder": "Any additional notes…"
+    },
+    "yesNo": {
+      "YES": "Yes",
+      "NO": "No"
+    }
+  },
   "sgForm": {
     "fieldsLocked": "Surgical Guide uses a structured order form. Add custom questions below if needed. Configure pricing in the Pricing tab.",
     "guideProtocol": {

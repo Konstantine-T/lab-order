@@ -19,6 +19,7 @@ import { FieldRenderer } from '@/components/DynamicForm';
 import { ToothMap } from '@/components/ToothMap';
 import { SHADE_GROUPS, TEMPLATE_CODE_CNB } from '@/features/orderForms/cnbTypes';
 import { TEMPLATE_CODE_SG } from '@/features/orderForms/sgTypes';
+import { TEMPLATE_CODE_MODEL } from '@/features/orderForms/modelTypes';
 import type { FieldConfig, FormConfiguration } from '@/types/database';
 
 export function FieldsPanel({
@@ -30,7 +31,9 @@ export function FieldsPanel({
 }) {
   const { t } = useTranslation('lab');
   const isStructured =
-    config._templateCode === TEMPLATE_CODE_CNB || config._templateCode === TEMPLATE_CODE_SG;
+    config._templateCode === TEMPLATE_CODE_CNB ||
+    config._templateCode === TEMPLATE_CODE_SG ||
+    config._templateCode === TEMPLATE_CODE_MODEL;
 
   const updateField = (i: number, patch: Partial<FieldConfig>) => {
     onChange({
@@ -63,6 +66,8 @@ export function FieldsPanel({
         <Alert severity="info">
           {config._templateCode === TEMPLATE_CODE_SG
             ? t('sgForm.fieldsLocked')
+            : config._templateCode === TEMPLATE_CODE_MODEL
+            ? t('modelForm.fieldsLocked')
             : t('services.edit.cnbFieldsLocked')}
         </Alert>
       )}

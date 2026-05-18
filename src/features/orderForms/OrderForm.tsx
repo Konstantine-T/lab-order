@@ -15,6 +15,13 @@ import {
   type SgAnswers,
 } from './SurgicalGuideForm';
 import { TEMPLATE_CODE_SG, emptySgAnswers } from './sgTypes';
+import {
+  ModelForm,
+  coerceModelAnswers,
+  validateModel,
+  type ModelAnswers,
+} from './ModelForm';
+import { TEMPLATE_CODE_MODEL, emptyModelAnswers } from './modelTypes';
 
 export type OrderFormValue = Record<string, unknown>;
 
@@ -91,6 +98,33 @@ export function OrderForm({
     );
   }
 
+  if (configuration._templateCode === TEMPLATE_CODE_MODEL) {
+    const model = coerceModelAnswers(values);
+    const customFields = configuration.fields.filter(
+      (f) => f.type === 'custom_question' && f.enabled,
+    );
+    return (
+      <Stack spacing={4}>
+        <ModelForm
+          configuration={configuration}
+          pricing={pricing}
+          value={model}
+          onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
+          readOnly={readOnly}
+          showErrors={showErrors}
+        />
+        {customFields.length > 0 && (
+          <DynamicForm
+            configuration={{ ...configuration, fields: customFields }}
+            values={values}
+            onChange={onChange}
+            readOnly={readOnly}
+          />
+        )}
+      </Stack>
+    );
+  }
+
   return (
     <DynamicForm
       configuration={configuration}
@@ -115,8 +149,12 @@ export function isOrderFormValid(
     const sg = coerceSgAnswers(values);
     return Object.keys(validateSg(sg)).length === 0;
   }
+  if (configuration._templateCode === TEMPLATE_CODE_MODEL) {
+    const model = coerceModelAnswers(values);
+    return Object.keys(validateModel(model)).length === 0;
+  }
   return true;
 }
 
-export { emptyCnbAnswers, emptySgAnswers };
-export type { CnbAnswers, SgAnswers };
+export { emptyCnbAnswers, emptySgAnswers, emptyModelAnswers };
+export type { CnbAnswers, SgAnswers, ModelAnswers };
