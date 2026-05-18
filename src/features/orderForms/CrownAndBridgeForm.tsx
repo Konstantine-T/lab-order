@@ -24,6 +24,8 @@ type Props = {
   readOnly?: boolean;
   /** When true, validation errors are surfaced inline (red borders / helpers). */
   showErrors?: boolean;
+  /** Teeth to display with a filled dot marker (e.g. implant positions on an implant order). */
+  markedTeeth?: number[];
 };
 
 export { coerceCnbAnswers, validateCnb };
@@ -36,6 +38,7 @@ export function CrownAndBridgeForm({
   onChange,
   readOnly,
   showErrors,
+  markedTeeth,
 }: Props) {
   const { t } = useTranslation('lab');
   const errors: CnbErrors = showErrors ? validateCnb(value, configuration) : {};
@@ -70,6 +73,7 @@ export function CrownAndBridgeForm({
             onNotesChange={(notes) => set({ notes })}
             readOnly={readOnly}
             error={errors.treatments}
+            markedTeeth={markedTeeth}
           />
         </NumberedSection>
       )}

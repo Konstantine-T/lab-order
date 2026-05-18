@@ -84,33 +84,9 @@
       "name": "Crown & Bridge",
       "description": "Crowns, bridges, pontics, veneers, inlays and onlays."
     },
-    "TEMPORARY_CROWN": {
-      "name": "Temporary Crown",
-      "description": "Temporary crown or bridge."
-    },
-    "ZIRCONIA_ON_IMPLANT": {
-      "name": "Zirconia on Implant",
-      "description": "Implant-supported zirconia restoration."
-    },
-    "TEMPORARY_ON_IMPLANT": {
-      "name": "Temporary on Implant",
-      "description": "Implant-supported temporary."
-    },
-    "MOCKUP_WAXUP": {
-      "name": "Mock-up / Wax-up",
-      "description": "Diagnostic mock-up or wax-up."
-    },
     "SURGICAL_GUIDE": {
       "name": "Surgical Guide",
       "description": "Implant surgical guide."
-    },
-    "REMOVABLE_PROSTHESIS": {
-      "name": "Removable Prosthesis",
-      "description": "Partial or full removable prosthesis."
-    },
-    "OTHER_CUSTOM": {
-      "name": "Other / Custom Order",
-      "description": "Custom case."
     }
   },
   "errors": {

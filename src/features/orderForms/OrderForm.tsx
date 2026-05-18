@@ -22,6 +22,29 @@ import {
   type ModelAnswers,
 } from './ModelForm';
 import { TEMPLATE_CODE_MODEL, emptyModelAnswers } from './modelTypes';
+import {
+  EspForm,
+  coerceEspAnswers,
+  validateEsp,
+  type EspAnswers,
+} from './EspForm';
+import { TEMPLATE_CODE_ESP, emptyEspAnswers } from './espTypes';
+import {
+  ImplantRestorationForm,
+  coerceImplantAnswers,
+  validateImplantRestoration,
+  emptyImplantAnswers,
+  TEMPLATE_CODE_IMPLANT,
+  type ImplantRestorationAnswers,
+} from './ImplantRestorationForm';
+import {
+  GingivalReductionGuideForm,
+  coerceGrgAnswers,
+  validateGrg,
+  emptyGrgAnswers,
+  type GrgAnswers,
+} from './GingivalReductionGuideForm';
+import { TEMPLATE_CODE_GRG } from './grgTypes';
 
 export type OrderFormValue = Record<string, unknown>;
 
@@ -98,6 +121,87 @@ export function OrderForm({
     );
   }
 
+  if (configuration._templateCode === TEMPLATE_CODE_IMPLANT) {
+    const implant = coerceImplantAnswers(values);
+    const customFields = configuration.fields.filter(
+      (f) => f.type === 'custom_question' && f.enabled,
+    );
+    return (
+      <Stack spacing={4}>
+        <ImplantRestorationForm
+          configuration={configuration}
+          pricing={pricing}
+          value={implant}
+          onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
+          readOnly={readOnly}
+          showErrors={showErrors}
+        />
+        {customFields.length > 0 && (
+          <DynamicForm
+            configuration={{ ...configuration, fields: customFields }}
+            values={values}
+            onChange={onChange}
+            readOnly={readOnly}
+          />
+        )}
+      </Stack>
+    );
+  }
+
+  if (configuration._templateCode === TEMPLATE_CODE_GRG) {
+    const grg = coerceGrgAnswers(values);
+    const customFields = configuration.fields.filter(
+      (f) => f.type === 'custom_question' && f.enabled,
+    );
+    return (
+      <Stack spacing={4}>
+        <GingivalReductionGuideForm
+          configuration={configuration}
+          pricing={pricing}
+          value={grg}
+          onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
+          readOnly={readOnly}
+          showErrors={showErrors}
+        />
+        {customFields.length > 0 && (
+          <DynamicForm
+            configuration={{ ...configuration, fields: customFields }}
+            values={values}
+            onChange={onChange}
+            readOnly={readOnly}
+          />
+        )}
+      </Stack>
+    );
+  }
+
+  if (configuration._templateCode === TEMPLATE_CODE_ESP) {
+    const esp = coerceEspAnswers(values);
+    const customFields = configuration.fields.filter(
+      (f) => f.type === 'custom_question' && f.enabled,
+    );
+    return (
+      <Stack spacing={4}>
+        <EspForm
+          configuration={configuration}
+          pricing={pricing}
+          value={esp}
+          onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
+          readOnly={readOnly}
+          showErrors={showErrors}
+        />
+        {customFields.length > 0 && (
+          <DynamicForm
+            configuration={{ ...configuration, fields: customFields }}
+            values={values}
+            onChange={onChange}
+            readOnly={readOnly}
+          />
+        )}
+      </Stack>
+    );
+  }
+
   if (configuration._templateCode === TEMPLATE_CODE_MODEL) {
     const model = coerceModelAnswers(values);
     const customFields = configuration.fields.filter(
@@ -149,12 +253,24 @@ export function isOrderFormValid(
     const sg = coerceSgAnswers(values);
     return Object.keys(validateSg(sg)).length === 0;
   }
+  if (configuration._templateCode === TEMPLATE_CODE_ESP) {
+    const esp = coerceEspAnswers(values);
+    return Object.keys(validateEsp(esp, configuration)).length === 0;
+  }
   if (configuration._templateCode === TEMPLATE_CODE_MODEL) {
     const model = coerceModelAnswers(values);
-    return Object.keys(validateModel(model)).length === 0;
+    return Object.keys(validateModel(model, configuration)).length === 0;
+  }
+  if (configuration._templateCode === TEMPLATE_CODE_IMPLANT) {
+    const implant = coerceImplantAnswers(values);
+    return Object.keys(validateImplantRestoration(implant)).length === 0;
+  }
+  if (configuration._templateCode === TEMPLATE_CODE_GRG) {
+    const grg = coerceGrgAnswers(values);
+    return Object.keys(validateGrg(grg, configuration)).length === 0;
   }
   return true;
 }
 
-export { emptyCnbAnswers, emptySgAnswers, emptyModelAnswers };
-export type { CnbAnswers, SgAnswers, ModelAnswers };
+export { emptyCnbAnswers, emptySgAnswers, emptyModelAnswers, emptyEspAnswers, emptyImplantAnswers, emptyGrgAnswers };
+export type { CnbAnswers, SgAnswers, ModelAnswers, EspAnswers, ImplantRestorationAnswers, GrgAnswers };

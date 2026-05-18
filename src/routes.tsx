@@ -20,6 +20,8 @@ import { LabPublicProfilePage } from '@/pages/doctor/LabPublicProfilePage';
 import { OrderCreateWizard } from '@/pages/doctor/OrderCreateWizard';
 import { OrdersListPage } from '@/pages/doctor/OrdersListPage';
 import { OrderDetailPage } from '@/pages/doctor/OrderDetailPage';
+import { PatientsPage } from '@/pages/doctor/PatientsPage';
+import { PatientOrdersPage } from '@/pages/doctor/PatientOrdersPage';
 
 import { LabLayout } from '@/layouts/LabLayout';
 import { LabDashboardPage } from '@/pages/lab/LabDashboardPage';
@@ -68,6 +70,8 @@ export function AppRoutes() {
         <Route path="orders" element={<OrdersListPage />} />
         <Route path="orders/new" element={<OrderCreateWizard />} />
         <Route path="orders/:orderId" element={<OrderDetailPage />} />
+        <Route path="patients" element={<PatientsPage />} />
+        <Route path="patients/:patientId" element={<PatientOrdersPage />} />
       </Route>
 
       {/* Lab */}

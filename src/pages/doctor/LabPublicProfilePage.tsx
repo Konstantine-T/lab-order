@@ -6,6 +6,7 @@ import {
   Card,
   CardActionArea,
   CardContent,
+  CardMedia,
   Chip,
   CircularProgress,
   Grid,
@@ -17,7 +18,10 @@ import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
-import type { LabFormRow, LabRow, LabServiceRow } from '@/types/database';
+import type { LabRow, LabServiceRow } from '@/types/database';
+import type { FormStatus } from '@/types/database';
+import { templateName } from '@/features/lab/forms/templateLabels';
+import { serviceImageUrl } from '@/utils/serviceDefaults';
 
 export function LabPublicProfilePage() {
   const { labId } = useParams<{ labId: string }>();
@@ -66,16 +70,22 @@ export function LabPublicProfilePage() {
     .map((s) => s.linked_lab_form_id)
     .filter((x): x is string => !!x);
 
+  type FormWithTemplate = {
+    id: string;
+    status: FormStatus;
+    platform_form_templates: { code: string; name: string } | null;
+  };
+
   const { data: forms = [] } = useQuery({
     queryKey: ['public-lab-forms', labId, linkedFormIds.join(',')],
     enabled: linkedFormIds.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('lab_forms')
-        .select('*')
+        .select('id, status, platform_form_templates(code, name)')
         .in('id', linkedFormIds);
       if (error) throw error;
-      return (data ?? []) as LabFormRow[];
+      return (data ?? []) as FormWithTemplate[];
     },
   });
 
@@ -139,24 +149,43 @@ export function LabPublicProfilePage() {
             {services.map((s) => {
               const linked = s.linked_lab_form_id ? formsById.get(s.linked_lab_form_id) : null;
               const orderable = !!linked && linked.status === 'PUBLISHED';
+              const tplCode = linked?.platform_form_templates?.code;
+              const tplName = templateName(tc, tplCode);
+              const imgUrl = serviceImageUrl(s.cover_image_url, tplCode);
               return (
-                <Grid key={s.id} item xs={12} sm={6} md={4}>
-                  <Card>
+                <Grid key={s.id} item xs={12} sm={6} md={4} sx={{ display: 'flex' }}>
+                  <Card sx={{ width: '100%', display: 'flex', flexDirection: 'column' }}>
                     <CardActionArea
                       disabled={!orderable}
                       onClick={() =>
                         navigate(`/doctor/orders/new?lab=${lab.id}&service=${s.id}`)
                       }
+                      sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
                     >
-                      <CardContent>
-                        <Stack spacing={1}>
-                          <Typography variant="h6">{s.name}</Typography>
+                      {imgUrl && (
+                        <CardMedia
+                          component="img"
+                          height={160}
+                          image={imgUrl}
+                          alt={s.name}
+                          sx={{ objectFit: 'cover' }}
+                        />
+                      )}
+                      <CardContent sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                        <Stack spacing={1} sx={{ flexGrow: 1 }}>
+                          {tplName && (
+                            <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                              {tplName}
+                            </Typography>
+                          )}
+                          <Typography variant="h6" sx={{ lineHeight: 1.3 }}>{s.name}</Typography>
                           {s.short_description && (
                             <Typography variant="body2" color="text.secondary">
                               {s.short_description}
                             </Typography>
                           )}
-                          <Stack direction="row" spacing={1} alignItems="center">
+                          <Box sx={{ flexGrow: 1 }} />
+                          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
                             {(s.average_turnaround_days || s.average_turnaround_label) && (
                               <Chip
                                 size="small"

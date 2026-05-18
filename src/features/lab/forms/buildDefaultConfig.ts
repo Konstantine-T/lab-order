@@ -3,6 +3,7 @@ import type {
   PlatformTemplateFieldRow,
   PricingConfig,
 } from '@/types/database';
+import { DEFAULT_IMPLANT_PRICE_CONFIG } from '@/features/orderForms/implantTypes';
 
 export function buildDefaultConfig(
   templateFields: PlatformTemplateFieldRow[],
@@ -32,10 +33,14 @@ export function buildDefaultConfig(
 
   const toothField = fields.find((f) => f.type === 'tooth_selection');
   const isSg = templateCode === 'SURGICAL_GUIDE';
+  const isEsp = templateCode === 'EVIDENT_SMILE';
+  const isImplant = templateCode === 'CONSTRUCTIONS_ON_IMPLANTS';
   const pricing: PricingConfig = {
-    model: toothField || isSg ? 'UNIT_BASED' : 'FIXED_PRICE',
-    materials: templateCode === 'CROWN_AND_BRIDGE' ? [] : undefined,
+    model: toothField || isSg || isEsp || isImplant ? 'UNIT_BASED' : 'FIXED_PRICE',
+    materials: templateCode === 'CROWN_AND_BRIDGE' || isEsp ? [] : undefined,
     sg_support_fees: isSg ? [] : undefined,
+    implant_price_config: isImplant ? DEFAULT_IMPLANT_PRICE_CONFIG : undefined,
+    implant_crown_materials: isImplant ? [] : undefined,
     rush: { type: 'NONE' },
   };
 

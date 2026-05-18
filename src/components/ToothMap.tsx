@@ -86,6 +86,8 @@ type Props = {
   notation?: 'Universal' | 'FDI';
   /** When provided, teeth NOT in this set are dimmed and non-interactive. */
   restrictToTeeth?: Set<number>;
+  /** Teeth to show with a filled dot instead of the number label (e.g. implant positions). */
+  markedTeeth?: number[];
 };
 
 export function ToothMap({
@@ -96,6 +98,7 @@ export function ToothMap({
   readOnly,
   notation = 'Universal',
   restrictToTeeth,
+  markedTeeth,
 }: Props) {
   const theme = useTheme();
   const { t } = useTranslation('common');
@@ -207,12 +210,27 @@ export function ToothMap({
             );
           })}
 
-          {/* Tooth number labels */}
+          {/* Tooth number labels (or implant marker dot) */}
           {TEETH.map((t) => {
             const pos = LABELS[t.num];
             if (!pos) return null;
             const isSel = selected.has(t.num);
             const hasColor = !!toothColors?.[t.num];
+            const isMarked = markedTeeth?.includes(t.num) ?? false;
+
+            if (isMarked && !hasColor) {
+              return (
+                <circle
+                  key={`label-${t.num}`}
+                  cx={pos.x}
+                  cy={pos.y}
+                  r={5}
+                  fill={isSel ? theme.palette.primary.contrastText : labelColor}
+                  style={{ pointerEvents: 'none' }}
+                />
+              );
+            }
+
             return (
               <text
                 key={`label-${t.num}`}

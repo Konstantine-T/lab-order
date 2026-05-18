@@ -28,11 +28,9 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { validateFormAnswers } from '@/components/DynamicForm';
 import { OrderForm, isOrderFormValid } from '@/features/orderForms/OrderForm';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { calculatePrice, formatGEL } from '@/utils/pricing';
-import { TEMPLATE_CODE_CNB } from '@/features/orderForms/cnbTypes';
 import type {
   DoctorWorkLocationRow,
   LabFormVersionRow,
@@ -200,14 +198,11 @@ export function OrderCreateWizard() {
       }
     }
     if (step === 1 && version) {
-      const isCnb = version.configuration_json._templateCode === TEMPLATE_CODE_CNB;
-      const ok = isCnb
-        ? isOrderFormValid(
-            version.configuration_json,
-            state.answers,
-            version.pricing_configuration_json,
-          )
-        : Object.keys(validateFormAnswers(version.configuration_json, state.answers)).length === 0;
+      const ok = isOrderFormValid(
+        version.configuration_json,
+        state.answers,
+        version.pricing_configuration_json,
+      );
       if (!ok) {
         setSubmitAttempted(true);
         setError(tc('errors.required'));
@@ -569,6 +564,7 @@ function FormStep({
       <PriceBreakdown
         pricing={version.pricing_configuration_json}
         answers={state.answers}
+        rush={{ type: 'NONE', value: 0 }}
       />
     </Stack>
   );
@@ -776,6 +772,24 @@ function ReviewStep({
           </RadioGroup>
         </CardContent>
       </Card>
+
+      {/* Show order form answers in read-only mode */}
+      {version.configuration_json._templateCode && (
+        <Card>
+          <CardContent>
+            <Typography variant="h6" sx={{ mb: 2 }}>
+              {t('orderCreate.review.formAnswers')}
+            </Typography>
+            <OrderForm
+              configuration={version.configuration_json}
+              pricing={version.pricing_configuration_json}
+              values={state.answers}
+              onChange={() => {}}
+              readOnly
+            />
+          </CardContent>
+        </Card>
+      )}
 
       <PriceBreakdown
         pricing={version.pricing_configuration_json}

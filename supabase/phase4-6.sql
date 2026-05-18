@@ -665,52 +665,22 @@ begin
   return v_version_id;
 end $$;
 
--- ---------- 6) Seed: 8 platform form templates ------------------------------
+-- ---------- 6) Seed: platform form templates --------------------------------
 do $$
 declare
   v_zirconia_crown      uuid;
-  v_temporary_crown     uuid;
-  v_zirconia_implant    uuid;
-  v_temporary_implant   uuid;
-  v_mockup              uuid;
   v_surgical_guide      uuid;
-  v_removable           uuid;
-  v_other               uuid;
 begin
   -- Insert templates (idempotent on code)
   insert into public.platform_form_templates (code, name, description) values
     ('ZIRCONIA_CROWN',       'Zirconia Crown',         'Zirconia crowns / bridges')
   on conflict (code) do nothing;
   insert into public.platform_form_templates (code, name, description) values
-    ('TEMPORARY_CROWN',      'Temporary Crown',        'Temporary crown / bridge')
-  on conflict (code) do nothing;
-  insert into public.platform_form_templates (code, name, description) values
-    ('ZIRCONIA_ON_IMPLANT',  'Zirconia on Implant',    'Implant-supported zirconia restoration')
-  on conflict (code) do nothing;
-  insert into public.platform_form_templates (code, name, description) values
-    ('TEMPORARY_ON_IMPLANT', 'Temporary on Implant',   'Implant-supported temporary')
-  on conflict (code) do nothing;
-  insert into public.platform_form_templates (code, name, description) values
-    ('MOCKUP_WAXUP',         'Mock-up / Wax-up',       'Diagnostic mock-up or wax-up')
-  on conflict (code) do nothing;
-  insert into public.platform_form_templates (code, name, description) values
     ('SURGICAL_GUIDE',       'Surgical Guide',         'Implant surgical guide')
-  on conflict (code) do nothing;
-  insert into public.platform_form_templates (code, name, description) values
-    ('REMOVABLE_PROSTHESIS', 'Removable Prosthesis',   'Partial or full removable prosthesis')
-  on conflict (code) do nothing;
-  insert into public.platform_form_templates (code, name, description) values
-    ('OTHER_CUSTOM',         'Other / Custom Order',   'Custom case')
   on conflict (code) do nothing;
 
   select id into v_zirconia_crown    from public.platform_form_templates where code = 'ZIRCONIA_CROWN';
-  select id into v_temporary_crown   from public.platform_form_templates where code = 'TEMPORARY_CROWN';
-  select id into v_zirconia_implant  from public.platform_form_templates where code = 'ZIRCONIA_ON_IMPLANT';
-  select id into v_temporary_implant from public.platform_form_templates where code = 'TEMPORARY_ON_IMPLANT';
-  select id into v_mockup            from public.platform_form_templates where code = 'MOCKUP_WAXUP';
   select id into v_surgical_guide    from public.platform_form_templates where code = 'SURGICAL_GUIDE';
-  select id into v_removable         from public.platform_form_templates where code = 'REMOVABLE_PROSTHESIS';
-  select id into v_other             from public.platform_form_templates where code = 'OTHER_CUSTOM';
 
   -- Helper to upsert template fields
   -- (Unique by template_id+field_code so re-running does not duplicate)
@@ -720,32 +690,9 @@ begin
     (v_zirconia_crown,    'shade',          'shade_picker',    'Shade',                 '{}'::jsonb, 20),
     (v_zirconia_crown,    'material',       'material_select', 'Material',              '{}'::jsonb, 30),
     (v_zirconia_crown,    'design_notes',   'textarea',        'Design notes',          '{}'::jsonb, 40),
-    -- Temporary Crown
-    (v_temporary_crown,   'teeth',          'tooth_selection', 'Teeth (FDI)',           '{"affects_price": true}'::jsonb, 10),
-    (v_temporary_crown,   'shade',          'shade_picker',    'Shade',                 '{}'::jsonb, 20),
-    (v_temporary_crown,   'design_notes',   'textarea',        'Design notes',          '{}'::jsonb, 30),
-    -- Zirconia on Implant
-    (v_zirconia_implant,  'teeth',          'tooth_selection', 'Teeth (FDI)',           '{"affects_price": true}'::jsonb, 10),
-    (v_zirconia_implant,  'shade',          'shade_picker',    'Shade',                 '{}'::jsonb, 20),
-    (v_zirconia_implant,  'implant_system', 'text',            'Implant system / brand','{}'::jsonb, 30),
-    (v_zirconia_implant,  'platform',       'text',            'Platform / connection', '{}'::jsonb, 40),
-    (v_zirconia_implant,  'design_notes',   'textarea',        'Design notes',          '{}'::jsonb, 50),
-    -- Temporary on Implant
-    (v_temporary_implant, 'teeth',          'tooth_selection', 'Teeth (FDI)',           '{"affects_price": true}'::jsonb, 10),
-    (v_temporary_implant, 'implant_system', 'text',            'Implant system / brand','{}'::jsonb, 20),
-    (v_temporary_implant, 'design_notes',   'textarea',        'Design notes',          '{}'::jsonb, 30),
-    -- Mock-up / Wax-up
-    (v_mockup,            'teeth',          'tooth_selection', 'Teeth (FDI)',           '{}'::jsonb, 10),
-    (v_mockup,            'design_notes',   'textarea',        'Design notes',          '{}'::jsonb, 20),
     -- Surgical Guide
     (v_surgical_guide,    'implant_sites',  'text',            'Implant sites',         '{}'::jsonb, 10),
-    (v_surgical_guide,    'design_notes',   'textarea',        'Design notes',          '{}'::jsonb, 20),
-    -- Removable Prosthesis
-    (v_removable,         'arch',           'select',          'Arch',                  '{"options":["upper","lower","both"]}'::jsonb, 10),
-    (v_removable,         'shade',          'shade_picker',    'Shade',                 '{}'::jsonb, 20),
-    (v_removable,         'design_notes',   'textarea',        'Design notes',          '{}'::jsonb, 30),
-    -- Other / Custom
-    (v_other,             'description',    'textarea',        'Order description',     '{}'::jsonb, 10)
+    (v_surgical_guide,    'design_notes',   'textarea',        'Design notes',          '{}'::jsonb, 20)
   on conflict (template_id, field_code) do nothing;
 end $$;
 

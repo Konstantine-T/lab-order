@@ -37,6 +37,8 @@ export function ServiceBasicsForm() {
             name="average_turnaround_days"
             type="number"
             label={t('services.fields.averageTurnaroundDays')}
+            required
+            inputProps={{ min: 1 }}
           />
           <RHFTextField name="cover_image_url" label={t('services.fields.coverImageUrl')} />
 

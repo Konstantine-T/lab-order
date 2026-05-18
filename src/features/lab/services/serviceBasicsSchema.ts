@@ -5,9 +5,8 @@ export const serviceBasicsSchema = z.object({
   short_description: z.string().optional().or(z.literal('')),
   average_turnaround_days: z
     .string()
-    .regex(/^\d*$/, 'Enter a non-negative integer')
-    .optional()
-    .or(z.literal('')),
+    .regex(/^\d+$/, 'Enter a positive integer')
+    .refine((v) => Number(v) >= 1, 'Must be at least 1 day'),
   cover_image_url: z.string().url().optional().or(z.literal('')),
   is_active: z.boolean(),
 });
@@ -17,7 +16,7 @@ export type ServiceBasicsInput = z.infer<typeof serviceBasicsSchema>;
 export const emptyServiceBasics: ServiceBasicsInput = {
   name: '',
   short_description: '',
-  average_turnaround_days: '',
+  average_turnaround_days: '1',
   cover_image_url: '',
   is_active: true,
 };

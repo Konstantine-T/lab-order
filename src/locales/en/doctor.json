@@ -88,7 +88,8 @@
         "workLocation": "Work location",
         "dueDate": "Due date"
       },
-      "clinicCodeWarning": "This work location does not have a clinic identification code. The invoice cannot be issued to the clinic without one. Either add the code in your work location settings or invoice yourself."
+      "clinicCodeWarning": "This work location does not have a clinic identification code. The invoice cannot be issued to the clinic without one. Either add the code in your work location settings or invoice yourself.",
+      "formAnswers": "Order details"
     }
   },
   "orders": {
@@ -149,6 +150,20 @@
     "colorMode": "Color mode",
     "modeOptions": { "light": "Light", "dark": "Dark", "system": "System" },
     "saveSuccess": "Profile updated."
+  },
+  "patients": {
+    "title": "Patients",
+    "search": "Search patients…",
+    "empty": "No patients yet. Patients are created when you place an order.",
+    "noResults": "No patients match your search.",
+    "orders_one": "1 order",
+    "orders_other": "{{count}} orders",
+    "noOrders": "No orders yet"
+  },
+  "patientOrders": {
+    "back": "Back to patients",
+    "title": "Orders",
+    "empty": "No orders for this patient yet."
   },
   "workLocations": {
     "title": "Work locations",

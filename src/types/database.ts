@@ -178,6 +178,22 @@ export type SgSupportFee = {
   extra_fee: number;
 };
 
+export type ImplantPricingMode =
+  | 'fixed'
+  | 'per_implant'
+  | 'per_bar_implant'
+  | 'base_plus_per_implant';
+
+export type ImplantPriceItem = {
+  key: string;
+  label: string;
+  price: number;
+  pricingMode: ImplantPricingMode;
+  basePrice?: number;
+  perImplantPrice?: number;
+  enabled: boolean;
+};
+
 export type PricingConfig = {
   model: PricingModel;
   /** Used by non-CnB UNIT_BASED forms (single global unit price × tooth count). */
@@ -191,6 +207,14 @@ export type PricingConfig = {
   sg_full_protocol_unit_price?: number;
   /** Surgical Guide — optional extra fee per guide support type. */
   sg_support_fees?: SgSupportFee[];
+  /** Evident Smile Package — extra fee when doctor opts for gingival reduction guide. */
+  esp_gingival_reduction_price?: number;
+  /** Constructions on Implants — lab-configured implant brands. */
+  implant_brands?: { id: string; name: string }[];
+  /** Constructions on Implants — per-item price config for the connection tree. */
+  implant_price_config?: Record<string, ImplantPriceItem>;
+  /** Constructions on Implants — lab-defined final crown materials (name + price per tooth). */
+  implant_crown_materials?: MaterialOption[];
   /**
    * Rush surcharge config.
    *  - type=NONE means rush is disabled — doctor can't pick rush.

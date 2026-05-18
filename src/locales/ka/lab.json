@@ -12,22 +12,41 @@
   "formFields": {
     "treatments": "კბილების ასარჩევი რუკა",
     "shade": "ფერის ასარჩევი",
-    "gingivalContouring": "ღრძილის კონტურირება",
-    "verticalDimension": "ვერტიკალური განზომილება ოკლუზიისთვის",
+    "gingivalContouring": "ღრძილის ფორმირება",
+    "verticalDimension": "თანკბილვის სიმაღლე",
     "maxLengthOfCentrals": "ცენტრალური კბილების მაქს. სიგრძე",
     "checkDesign": "დიზაინის შემოწმება",
-    "occlusalContact": "ოკლუზიური კონტაქტი",
-    "rxNotes": "შენიშვნები"
+    "occlusalContact": "ოკლუზია/კონტაქტი",
+    "rxNotes": "შენიშვნები",
+    "esp_treatments": "კბილების რუკა",
+    "esp_misalignment": "რკალის გასწორება",
+    "esp_gingival": "ღრძილის ფორმირება",
+    "esp_vertical_dimension": "თანკბილვის სიმაღლე",
+    "esp_max_length": "ცენტრალური კბილების მაქსიმალური სიგრძე",
+    "esp_shade": "ფერი",
+    "esp_smile_type": "ღიმილის ტიპი",
+    "esp_notes": "შენიშვნები",
+    "model_type": "მოდელის ტიპი",
+    "model_articulator": "გასწორება ნახევრად რეგულირებად არტიკულატორზე",
+    "model_arch": "ყბა",
+    "model_markings": "ნიშანდება მოდელებზე",
+    "model_base_type": "ბაზის ტიპი",
+    "model_prepared_dies": "დასაშლელი მოდელი",
+    "model_notes": "შენიშვნები",
+    "grg_teeth": "კბილების მონიშვნა",
+    "grg_additive_wax_up": "ეს არის ადიტიური ვაქს-აფი?",
+    "grg_approval_needed": "ექიმს სჭირდება დამტკიცება?",
+    "grg_notes": "შენიშვნები"
   },
   "cnbForm": {
     "sections": {
       "treatments": "მკურნალობის დამატება",
       "shade": "აირჩიეთ ფერი",
-      "gingivalContouring": "ღრძილის კონტურირება",
-      "verticalDimension": "ვერტიკალური განზომილება ოკლუზიისთვის",
+      "gingivalContouring": "ღრძილის ფორმირება",
+      "verticalDimension": "თანკბილვის სიმაღლე",
       "maxLengthOfCentrals": "ცენტრალური კბილების მაქს. სიგრძე",
       "checkDesign": "დიზაინის შემოწმება",
-      "occlusalContact": "ოკლუზიური კონტაქტი",
+      "occlusalContact": "ოკლუზია/კონტაქტი",
       "rxNotes": "შენიშვნები"
     },
     "builder": {
@@ -41,12 +60,12 @@
       "Yes": "კი",
       "No": "არა",
       "Keep Existing": "შენარჩუნება",
-      "Open Bite": "ღია კბილთშეტყობა",
+      "Open Bite": "ცვლილება",
       "Make Ideal": "იდეალური",
       "Ideal": "იდეალური",
       "Other": "სხვა",
       "Tight": "მჭიდრო",
-      "Zero": "ნული",
+      "Zero": "გათიშული",
       "Relief": "შესუსტებული",
       "Universal": "Universal",
       "FDI": "FDI"
@@ -94,7 +113,7 @@
       "customize": "შეკვეთის ფორმა",
       "publish": "გამოქვეყნება",
       "saveSuccess": "შენახული.",
-      "cnbFieldsLocked": "Crown & Bridge იყენებს სტრუქტურირებულ ფორმას — ველები ფიქსირებულია. ფასი დააკონფიგურირეთ Pricing ჩანართში."
+      "cnbFieldsLocked": "'გვირგვინი და ხიდი' იყენებს სტრუქტურირებულ ფორმას — ველები ფიქსირებულია. ფასი დააკონფიგურირეთ ფასების გრაფაში."
     },
     "deleteConfirm": {
       "title": "წავშალო სერვისი?",
@@ -272,8 +291,61 @@
     "incompleteWarning": "ყველა ველი სავალდებულოა დამტკიცებაზე გაგზავნამდე.",
     "approvalNote": "შენიშვნა პლატფორმის ადმინისგან"
   },
+  "espForm": {
+    "fieldsLocked": "'ღიმილის დაგეგმარება' იყენებს სტრუქტურირებულ ფორმას. ჩართეთ/გამორთეთ თითოეული ველი და მონიშნეთ სავალდებულოდ. ქვემოთ შეგიძლიათ დაამატოთ დამატებითი კითხვები.",
+    "misalignment": {
+      "label": "რკალის გასწორება?",
+      "AS_MUCH_AS_POSSIBLE": "რამდენადაც შესაძლებელია",
+      "OTHER": "სხვა",
+      "otherPlaceholder": "გთხოვთ, დააზუსტოთ"
+    },
+    "gingival": {
+      "label": "ღრძილის ფორმირება?",
+      "reductionGuideLabel": "გჭირდებათ ღრძილის კონტურირების გიდი?",
+      "reductionGuidePrice": "დამატებით {{amount}}"
+    },
+    "verticalDimension": {
+      "label": "თანკბილვის სიმაღლე?",
+      "KEEP_EXISTING": "დატოვე არსებული",
+      "OPEN_BITE": "ღია კბენა",
+      "MAKE_IDEAL": "გახადე იდეალური",
+      "mmPlaceholder": "მიუთითეთ მმ (შეიძლება უარყოფითი)"
+    },
+    "maxLength": {
+      "label": "ცენტრალური კბილების სასურველი მაქსიმალური სიგრძე?",
+      "IDEAL": "იდეალური",
+      "OTHER": "სხვა",
+      "otherPlaceholder": "გთხოვთ, დააზუსტოთ"
+    },
+    "smileType": {
+      "label": "ღიმილის ტიპი?",
+      "HIGH_SMILE_LINE": "მაღალი ღიმილის ხაზი",
+      "MEDIUM_SMILE_LINE": "საშუალო ღიმილის ხაზი",
+      "LOW_SMILE_LINE": "დაბალი ღიმილის ხაზი",
+      "GUMMY_SMILE": "ღრძილოვანი ღიმილი",
+      "DUCHENNE_SMILE": "დიუშენის ღიმილი",
+      "NON_DUCHENNE_SMILE": "არადიუშენის ღიმილი",
+      "COMMISSURE_SMILE": "კომისურული ღიმილი",
+      "CUSPID_SMILE": "ეშვის ღიმილი",
+      "COMPLEX_SMILE": "კომპლექსური ღიმილი",
+      "MONA_LISA_SMILE": "მონა ლიზას ღიმილი",
+      "CANINE_SMILE": "კანინის ღიმილი",
+      "FULL_DENTURE_SMILE": "სრული პროთეზის ღიმილი"
+    },
+    "notes": {
+      "label": "შენიშვნები",
+      "placeholder": "დამატებითი შენიშვნები…"
+    },
+    "yesNo": {
+      "YES": "კი",
+      "NO": "არა"
+    },
+    "pricing": {
+      "gingivalReductionPrice": "ღრძილის ფორმირების გიდი — დამატებითი საფასური (GEL)"
+    }
+  },
   "modelForm": {
-    "fieldsLocked": "მოდელი იყენებს სტრუქტურირებულ ფორმას. საჭიროების შემთხვევაში დაამატეთ კითხვები ქვემოთ. ფასი — Pricing ჩანართში.",
+    "fieldsLocked": "მოდელი იყენებს სტრუქტურირებულ ფორმას. ჩართეთ/გამორთეთ თითოეული ველი და მონიშნეთ სავალდებულოდ. ქვემოთ შეგიძლიათ დაამატოთ დამატებითი კითხვები.",
     "modelType": {
       "label": "მოდელის ტიპი?",
       "BASE_MODEL": "საბაზო მოდელი",
@@ -411,6 +483,159 @@
       "supportFeesTitle": "გიდის მხარდაჭერის ტიპის დამატებითი საფასური",
       "supportFeesHelp": "არასავალდებულო დანამატი. თუ არარის, დაუტოვეთ ცარიელი.",
       "supportFeeLabel": "დანამატი (GEL)"
+    }
+  },
+  "implantForm": {
+    "fieldsLocked": "იმპლანტების კონსტრუქციებს გამოიყენება სტრუქტურირებული ფორმა. საჭიროების შემთხვევაში დაამატეთ კითხვები ქვემოთ. ფასები კონფიგურირდება Pricing-ის ჩანართში.",
+    "brand": {
+      "label": "იმპლანტის ბრენდი",
+      "custom": "სხვა (სახელის მითითება)",
+      "customPlaceholder": "მიუთითეთ ბრენდი"
+    },
+    "sections": {
+      "positions": "იმპლანტის პოზიციების მონიშვნა",
+      "configure": "თითოეული იმპლანტის კონფიგურაცია",
+      "bar": "ბარის რესტავრაცია",
+      "crownRestoration": "გვირგვინი და ხიდი"
+    },
+    "notation": "ნოტაცია",
+    "positions": {
+      "chipHint": "დააჭირეთ კონფიგურაციისთვის · × — ამოსაღებად",
+      "deleteConfirm": "ამოიღება?"
+    },
+    "configure": {
+      "selectHint": "ზემოთ კბილის ჩიფზე დააჭირეთ კონფიგურაციისთვის.",
+      "editingOne": "კონფიგურაცია — #{{pos}}",
+      "editingMany": "{{count}} იმპლანტის კონფიგურაცია (ერთობლივი)",
+      "abutmentStatus": {
+        "label": "დამონტაჟებულია აბატმენტი?",
+        "existingAbutment": "უკვე პირში",
+        "noAbutment": "გეგმა საჭიროა",
+        "labDecides": "ლაბ. გადაწყვეტს"
+      },
+      "labDecidesNote": "ლაბორატორია განსაზღვრავს ყველაზე შესაფერ კომპონენტებს.",
+      "gingivalHeight": {
+        "label": "ღრძილის სიმაღლე",
+        "manual": "მიუთითე სიმაღლე",
+        "labDetermines": "ლაბ. განსაზღვრავს",
+        "mmPlaceholder": "მაგ. 3.5"
+      },
+      "abutmentType": {
+        "label": "აბატმენტის ტიპი",
+        "individual": "ინდივიდუალური",
+        "multiunit": "Multi-Unit (MUA)",
+        "tibase": "Ti-Base",
+        "factory": "ქარხნული"
+      },
+      "indMaterial": {
+        "label": "აბატმენტის მასალა",
+        "titanium": "ტიტანი",
+        "cocr": "Co-Cr",
+        "zirconia": "ციკონია"
+      },
+      "indShape": {
+        "label": "აბატმენტის ფორმა",
+        "concave": "კონკავური",
+        "straight": "სწორი",
+        "convex": "კონვექსური"
+      },
+      "retention": {
+        "label": "ფიქსაციის ტიპი",
+        "cement": "ცემენტით",
+        "screw": "ჭანჭიკით"
+      },
+      "muaHex": {
+        "label": "ჰექს ტიპი",
+        "hex": "Hex",
+        "nonHex": "Non-Hex"
+      },
+      "muaUpperConn": {
+        "label": "ზედა კავშირი",
+        "cups": "Cups (Locator)",
+        "rosen": "Rosen Screw",
+        "screwForBar": "ბარისთვის ჭანჭიკი"
+      },
+      "tibaseNote": "Ti-Base ჭანჭიკით ფიქსირდება. გადადით საბოლოო მასალის არჩევაზე.",
+      "finalMaterial": {
+        "label": "საბოლოო რესტავრაციის მასალა",
+        "noMaterials": "მასალები არ არის კონფიგურირებული — დაამატეთ Pricing-ის ჩანართში."
+      }
+    },
+    "bar": {
+      "needsBar": {
+        "label": "საჭიროა ბარის რესტავრაცია?",
+        "yes": "დიახ, საჭიროა ბარი",
+        "no": "ბარი არ სჭირდება"
+      },
+      "barMaterial": {
+        "label": "ბარის მასალა",
+        "titaniumBar": "ტიტანი",
+        "cocrMilled": "Co-Cr ფრეზირებული",
+        "cocrPrinted": "Co-Cr 3D ბეჭდვა",
+        "zirconiaBar": "ციკონია",
+        "peekBar": "PEEK"
+      },
+      "tryIn": {
+        "label": "Try-in ტიპი",
+        "pmma": "PMMA",
+        "printed": "ბეჭდვითი მასალა"
+      },
+      "barTeeth": {
+        "label": "ბარში შემავალი კბილები",
+        "hint": "მონიშნეთ რომელი პოზიციები ბარის ქვეშ ხვდება"
+      }
+    },
+    "provisionalNote": "ნაჩვენები ფასი სავარაუდოა — ზოგიერთ კომპონენტს ლაბ. განსაზღვრავს.",
+    "incompleteError": "შეავსეთ კონფიგურაცია შემდეგი პოზიციებისთვის: {{positions}}",
+    "summary": {
+      "notConfigured": "არ არის კონფიგურირებული",
+      "complete": "დასრულებულია",
+      "incomplete": "არ არის დასრულებული",
+      "labDecides": "ლაბ. გადაწყვეტს",
+      "existingAbutment": "არსებული აბატმენტი"
+    },
+    "pricing": {
+      "sectionTitle": "იმპლანტის ფასები",
+      "sectionHelp": "მიუთითეთ ფასი თითოეულ კომპონენტზე. არსებული აბატმენტის შემთხვევაში კომპონენტები გამოტოვდება.",
+      "pricePerImplant": "ფასი / იმპლანტი (GEL)",
+      "fixedPrice": "ფიქსირებული ფასი (GEL)",
+      "basePrice": "საბაზო ფასი (GEL)",
+      "perImplantPrice": "თითო იმპლანტი (GEL)",
+      "brandsHelp": "დაამატეთ ბრენდები, რომლებთანაც ლაბ. მუშაობს. ექიმი ირჩევს ბრენდს შეკვეთის დროს.",
+      "brandName": "ბრენდის სახელი",
+      "addBrand": "ბრენდის დამატება",
+      "groups": {
+        "brands": "იმპლანტის ბრენდები",
+        "crownMaterials": "გვირგვინის მასალები (საბოლოო)",
+        "abutmentType": "აბატმენტის ტიპი",
+        "indMaterial": "ინდ. აბატმენტის მასალა",
+        "shape": "აბატმენტის ფორმა",
+        "retention": "ფიქსაცია",
+        "muaHex": "MUA ჰექს ტიპი",
+        "muaUpperConn": "MUA ზედა კავშირი",
+        "barMaterial": "ბარის მასალა"
+      },
+      "crownMaterialsHelp": "განსაზღვრეთ გვირგვინის მასალები. ფასი — თითო კბილზე.",
+      "addCrownMaterial": "მასალის დამატება"
+    }
+  },
+  "grgForm": {
+    "yesNo": {
+      "YES": "დიახ",
+      "NO": "არა"
+    },
+    "teeth": {
+      "label": "კბილების მონიშვნა"
+    },
+    "additiveWaxUp": {
+      "label": "ეს არის ადიტიური ვაქს-აფი?"
+    },
+    "approvalNeeded": {
+      "label": "ექიმს სჭირდება დამტკიცება?"
+    },
+    "notes": {
+      "label": "შენიშვნები",
+      "placeholder": "დამატებითი ინსტრუქციები…"
     }
   }
 }

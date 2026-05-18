@@ -17,7 +17,26 @@
     "maxLengthOfCentrals": "Макс. длина центральных",
     "checkDesign": "Проверка дизайна",
     "occlusalContact": "Окклюзионный контакт",
-    "rxNotes": "Заметки"
+    "rxNotes": "Заметки",
+    "esp_treatments": "Лечение (карта зубов)",
+    "esp_misalignment": "Коррекция неровных зубов",
+    "esp_gingival": "Контурирование десны",
+    "esp_vertical_dimension": "Вертикальное измерение для окклюзии",
+    "esp_max_length": "Макс. предпочтительная длина центральных",
+    "esp_shade": "Цвет",
+    "esp_smile_type": "Тип улыбки",
+    "esp_notes": "Примечания",
+    "model_type": "Тип модели",
+    "model_articulator": "Монтаж на полурегулируемый артикулятор",
+    "model_arch": "Зубная дуга",
+    "model_markings": "Маркировка на моделях",
+    "model_base_type": "Тип основания",
+    "model_prepared_dies": "Разборная модель",
+    "model_notes": "Примечания",
+    "grg_teeth": "Выбор зубов",
+    "grg_additive_wax_up": "Это аддитивный воск-ап?",
+    "grg_approval_needed": "Требуется ли одобрение врача?",
+    "grg_notes": "Примечания"
   },
   "cnbForm": {
     "sections": {
@@ -72,7 +91,11 @@
       "servicePhaseType": "Этап",
       "isActive": "Активна"
     },
-    "phaseOptions": { "STANDALONE": "Самостоятельная", "TEMPORARY": "Временная", "FINAL": "Итоговая" },
+    "phaseOptions": {
+      "STANDALONE": "Самостоятельная",
+      "TEMPORARY": "Временная",
+      "FINAL": "Итоговая"
+    },
     "basics": {
       "title": "Основные сведения",
       "subtitle": "Название, описание, срок и видимость."
@@ -276,8 +299,61 @@
     "incompleteWarning": "Все поля обязательны перед отправкой на одобрение.",
     "approvalNote": "Заметка от админа платформы"
   },
+  "espForm": {
+    "fieldsLocked": "Smile Package использует структурированную форму. Включайте/отключайте каждое поле и отмечайте обязательные. Дополнительные вопросы можно добавить ниже.",
+    "misalignment": {
+      "label": "Коррекция неровных зубов?",
+      "AS_MUCH_AS_POSSIBLE": "По максимуму",
+      "OTHER": "Другое",
+      "otherPlaceholder": "Укажите, пожалуйста"
+    },
+    "gingival": {
+      "label": "Контурирование десны?",
+      "reductionGuideLabel": "Требуется ли гид по иссечению десны?",
+      "reductionGuidePrice": "Дополнительно {{amount}}"
+    },
+    "verticalDimension": {
+      "label": "Вертикальное измерение для окклюзии?",
+      "KEEP_EXISTING": "Сохранить существующее",
+      "OPEN_BITE": "Открытый прикус",
+      "MAKE_IDEAL": "Сделать идеальным",
+      "mmPlaceholder": "Укажите в мм (может быть отрицательным)"
+    },
+    "maxLength": {
+      "label": "Макс. предпочтительная длина центральных зубов?",
+      "IDEAL": "Идеальная",
+      "OTHER": "Другое",
+      "otherPlaceholder": "Укажите, пожалуйста"
+    },
+    "smileType": {
+      "label": "Тип улыбки?",
+      "HIGH_SMILE_LINE": "Высокая линия улыбки",
+      "MEDIUM_SMILE_LINE": "Средняя линия улыбки",
+      "LOW_SMILE_LINE": "Низкая линия улыбки",
+      "GUMMY_SMILE": "Дёсенная улыбка",
+      "DUCHENNE_SMILE": "Улыбка Дюшена",
+      "NON_DUCHENNE_SMILE": "Улыбка не-Дюшена",
+      "COMMISSURE_SMILE": "Комиссуральная улыбка",
+      "CUSPID_SMILE": "Бугорковая улыбка",
+      "COMPLEX_SMILE": "Сложная улыбка",
+      "MONA_LISA_SMILE": "Улыбка Моны Лизы",
+      "CANINE_SMILE": "Клыковая улыбка",
+      "FULL_DENTURE_SMILE": "Улыбка с полным протезом"
+    },
+    "notes": {
+      "label": "Примечания",
+      "placeholder": "Дополнительные примечания…"
+    },
+    "yesNo": {
+      "YES": "Да",
+      "NO": "Нет"
+    },
+    "pricing": {
+      "gingivalReductionPrice": "Гид по иссечению десны — доп. плата (GEL)"
+    }
+  },
   "modelForm": {
-    "fieldsLocked": "Модель использует структурированную форму. При необходимости добавьте вопросы ниже. Настройте цены во вкладке Pricing.",
+    "fieldsLocked": "Модель использует структурированную форму. Включайте/отключайте каждое поле и отмечайте обязательные. Дополнительные вопросы можно добавить ниже.",
     "modelType": {
       "label": "Тип модели?",
       "BASE_MODEL": "Базовая модель",
@@ -415,6 +491,159 @@
       "supportFeesTitle": "Надбавка по типу фиксации гида",
       "supportFeesHelp": "Необязательная надбавка по типу. Оставьте пустым, если не применяется.",
       "supportFeeLabel": "Надбавка (GEL)"
+    }
+  },
+  "implantForm": {
+    "fieldsLocked": "Конструкции на имплантах используют структурированную форму. При необходимости добавьте вопросы ниже. Настройте цены во вкладке Pricing.",
+    "brand": {
+      "label": "Бренд импланта",
+      "custom": "Другой (указать вручную)",
+      "customPlaceholder": "Введите название бренда"
+    },
+    "sections": {
+      "positions": "Выберите позиции имплантов",
+      "configure": "Настройте каждый имплант",
+      "bar": "Балочная реставрация",
+      "crownRestoration": "Коронки и мосты"
+    },
+    "notation": "Нотация",
+    "positions": {
+      "chipHint": "Нажмите для настройки · × для удаления",
+      "deleteConfirm": "Удалить?"
+    },
+    "configure": {
+      "selectHint": "Нажмите на фишку позиции выше для настройки.",
+      "editingOne": "Настройка зуба #{{pos}}",
+      "editingMany": "Настройка {{count}} имплантов (общие параметры)",
+      "abutmentStatus": {
+        "label": "Абатмент уже установлен?",
+        "existingAbutment": "Уже во рту",
+        "noAbutment": "Нужно планировать",
+        "labDecides": "Лаборатория решит"
+      },
+      "labDecidesNote": "Лаборатория определит наиболее подходящие компоненты.",
+      "gingivalHeight": {
+        "label": "Высота десны (манжетная высота)",
+        "manual": "Указать высоту",
+        "labDetermines": "Лаб. определит",
+        "mmPlaceholder": "напр. 3.5"
+      },
+      "abutmentType": {
+        "label": "Тип абатмента",
+        "individual": "Индивидуальный",
+        "multiunit": "Multi-Unit (MUA)",
+        "tibase": "Ti-Base",
+        "factory": "Заводской"
+      },
+      "indMaterial": {
+        "label": "Материал абатмента",
+        "titanium": "Титан",
+        "cocr": "Co-Cr",
+        "zirconia": "Цирконий"
+      },
+      "indShape": {
+        "label": "Форма абатмента",
+        "concave": "Вогнутая",
+        "straight": "Прямая",
+        "convex": "Выпуклая"
+      },
+      "retention": {
+        "label": "Тип фиксации",
+        "cement": "На цемент",
+        "screw": "На винт"
+      },
+      "muaHex": {
+        "label": "Тип хекса",
+        "hex": "Hex",
+        "nonHex": "Non-Hex"
+      },
+      "muaUpperConn": {
+        "label": "Верхнее соединение",
+        "cups": "Cups (Локатор)",
+        "rosen": "Розен-винт",
+        "screwForBar": "Винт под балку"
+      },
+      "tibaseNote": "Ti-Base — фиксация на винт. Перейдите к выбору финального материала.",
+      "finalMaterial": {
+        "label": "Финальный материал реставрации",
+        "noMaterials": "Материалы не настроены — добавьте их во вкладке Pricing."
+      }
+    },
+    "bar": {
+      "needsBar": {
+        "label": "Нужна балочная конструкция?",
+        "yes": "Да, нужна балка",
+        "no": "Без балки"
+      },
+      "barMaterial": {
+        "label": "Материал балки",
+        "titaniumBar": "Титан",
+        "cocrMilled": "Co-Cr фрезерованный",
+        "cocrPrinted": "Co-Cr 3D печать",
+        "zirconiaBar": "Цирконий",
+        "peekBar": "PEEK"
+      },
+      "tryIn": {
+        "label": "Тип примерки",
+        "pmma": "PMMA",
+        "printed": "Печатный материал"
+      },
+      "barTeeth": {
+        "label": "Зубы под балкой",
+        "hint": "Выберите, какие позиции входят в балочную конструкцию"
+      }
+    },
+    "provisionalNote": "Цена приблизительная — некоторые компоненты определит лаборатория.",
+    "incompleteError": "Завершите конфигурацию для позиций: {{positions}}",
+    "summary": {
+      "notConfigured": "Не настроено",
+      "complete": "Завершено",
+      "incomplete": "Не завершено",
+      "labDecides": "Лаб. решит",
+      "existingAbutment": "Существующий абатмент"
+    },
+    "pricing": {
+      "sectionTitle": "Ценообразование на импланты",
+      "sectionHelp": "Установите цены для каждого компонента. При существующем абатменте компоненты пропускаются.",
+      "pricePerImplant": "Цена / имплант (GEL)",
+      "fixedPrice": "Фиксированная цена (GEL)",
+      "basePrice": "Базовая цена (GEL)",
+      "perImplantPrice": "За имплант (GEL)",
+      "brandsHelp": "Добавьте бренды имплантов, с которыми работает лаборатория. Врач выбирает бренд при заказе.",
+      "brandName": "Название бренда",
+      "addBrand": "Добавить бренд",
+      "groups": {
+        "brands": "Бренды имплантов",
+        "crownMaterials": "Материалы коронки (финальная реставрация)",
+        "abutmentType": "Тип абатмента",
+        "indMaterial": "Материал индив. абатмента",
+        "shape": "Форма абатмента",
+        "retention": "Фиксация",
+        "muaHex": "Тип хекса MUA",
+        "muaUpperConn": "Верхнее соединение MUA",
+        "barMaterial": "Материал балки"
+      },
+      "crownMaterialsHelp": "Определите материалы коронки. Цена указывается за зуб.",
+      "addCrownMaterial": "Добавить материал коронки"
+    }
+  },
+  "grgForm": {
+    "yesNo": {
+      "YES": "Да",
+      "NO": "Нет"
+    },
+    "teeth": {
+      "label": "Выбор зубов"
+    },
+    "additiveWaxUp": {
+      "label": "Это аддитивный воск-ап?"
+    },
+    "approvalNeeded": {
+      "label": "Требуется ли одобрение врача?"
+    },
+    "notes": {
+      "label": "Примечания",
+      "placeholder": "Дополнительные инструкции…"
     }
   }
 }

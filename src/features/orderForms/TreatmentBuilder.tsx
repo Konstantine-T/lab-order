@@ -24,6 +24,8 @@ type Props = {
   onNotesChange: (s: string) => void;
   readOnly?: boolean;
   error?: string;
+  /** Teeth to display with a filled dot instead of the number (e.g. implant positions). */
+  markedTeeth?: number[];
 };
 
 export function TreatmentBuilder({
@@ -38,6 +40,7 @@ export function TreatmentBuilder({
   onNotesChange,
   readOnly,
   error,
+  markedTeeth,
 }: Props) {
   const { t } = useTranslation('lab');
   const { t: tc } = useTranslation('common');
@@ -182,6 +185,7 @@ export function TreatmentBuilder({
           toothColors={toothColors}
           readOnly={readOnly}
           notation={notation}
+          markedTeeth={markedTeeth}
         />
       </Stack>
 

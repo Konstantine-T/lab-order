@@ -17,7 +17,26 @@
     "maxLengthOfCentrals": "Max Preferred Length of Centrals",
     "checkDesign": "Check Design",
     "occlusalContact": "Occlusal Contact",
-    "rxNotes": "Notes"
+    "rxNotes": "Notes",
+    "esp_treatments": "Treatments (tooth chart)",
+    "esp_misalignment": "Misaligned Teeth Correction",
+    "esp_gingival": "Gingival Contouring",
+    "esp_vertical_dimension": "Vertical Dimension for Occlusion",
+    "esp_max_length": "Max Preferred Length of Centrals",
+    "esp_shade": "Shade",
+    "esp_smile_type": "Smile Type",
+    "esp_notes": "Notes",
+    "model_type": "Type of model",
+    "model_articulator": "Alignment on Semi-Adjustable Articulator",
+    "model_arch": "Arch",
+    "model_markings": "Markings on the models",
+    "model_base_type": "Type of base",
+    "model_prepared_dies": "Prepared Dies",
+    "model_notes": "Notes",
+    "grg_teeth": "Select Teeth",
+    "grg_additive_wax_up": "Is This an Additive Wax Up?",
+    "grg_approval_needed": "Does Doctor Need to Approve?",
+    "grg_notes": "Notes"
   },
   "cnbForm": {
     "sections": {
@@ -287,8 +306,61 @@
     "incompleteWarning": "All fields are required before submitting for approval.",
     "approvalNote": "Note from platform admin"
   },
+  "espForm": {
+    "fieldsLocked": "'Smile Package' uses a structured order form. Toggle each field on/off and mark it required as needed. Add extra custom questions below.",
+    "misalignment": {
+      "label": "Misaligned Teeth Correction?",
+      "AS_MUCH_AS_POSSIBLE": "As much as possible",
+      "OTHER": "Other",
+      "otherPlaceholder": "Please, specify"
+    },
+    "gingival": {
+      "label": "Gingival Contouring?",
+      "reductionGuideLabel": "Do you need a Gingival Reduction Guide?",
+      "reductionGuidePrice": "Additional {{amount}}"
+    },
+    "verticalDimension": {
+      "label": "Vertical Dimension for Occlusion?",
+      "KEEP_EXISTING": "Keep Existing",
+      "OPEN_BITE": "Open Bite",
+      "MAKE_IDEAL": "Make Ideal",
+      "mmPlaceholder": "Specify mm (can be negative)"
+    },
+    "maxLength": {
+      "label": "Max Preferred Length of Centrals?",
+      "IDEAL": "Ideal",
+      "OTHER": "Other",
+      "otherPlaceholder": "Please, specify"
+    },
+    "smileType": {
+      "label": "Smile Type?",
+      "HIGH_SMILE_LINE": "High Smile Line",
+      "MEDIUM_SMILE_LINE": "Medium Smile Line",
+      "LOW_SMILE_LINE": "Low Smile Line",
+      "GUMMY_SMILE": "Gummy Smile",
+      "DUCHENNE_SMILE": "Duchenne Smile",
+      "NON_DUCHENNE_SMILE": "Non-Duchenne Smile",
+      "COMMISSURE_SMILE": "Commissure Smile",
+      "CUSPID_SMILE": "Cuspid Smile",
+      "COMPLEX_SMILE": "Complex Smile",
+      "MONA_LISA_SMILE": "Mona Lisa Smile",
+      "CANINE_SMILE": "Canine Smile",
+      "FULL_DENTURE_SMILE": "Full Denture Smile"
+    },
+    "notes": {
+      "label": "Notes",
+      "placeholder": "Any additional notes…"
+    },
+    "yesNo": {
+      "YES": "Yes",
+      "NO": "No"
+    },
+    "pricing": {
+      "gingivalReductionPrice": "Gingival Reduction Guide — extra fee (GEL)"
+    }
+  },
   "modelForm": {
-    "fieldsLocked": "Model uses a structured order form. Add custom questions below if needed. Configure pricing in the Pricing tab.",
+    "fieldsLocked": "Model uses a structured order form. Toggle each field on/off and mark it required as needed. Add extra custom questions below.",
     "modelType": {
       "label": "Type of model?",
       "BASE_MODEL": "Base Model",
@@ -426,6 +498,159 @@
       "supportFeesTitle": "Guide support type surcharges",
       "supportFeesHelp": "Optional extra fee per guide support type. Leave blank for no surcharge.",
       "supportFeeLabel": "Extra fee (GEL)"
+    }
+  },
+  "implantForm": {
+    "fieldsLocked": "Constructions on Implants uses a structured order form. Add custom questions below if needed. Configure pricing in the Pricing tab.",
+    "brand": {
+      "label": "Implant brand",
+      "custom": "Other (custom)",
+      "customPlaceholder": "Enter brand name"
+    },
+    "sections": {
+      "positions": "Select implant positions",
+      "configure": "Configure each implant",
+      "bar": "Bar restoration",
+      "crownRestoration": "Crown & Bridge restoration"
+    },
+    "notation": "Notation",
+    "positions": {
+      "chipHint": "Click to configure · Click × to remove",
+      "deleteConfirm": "Remove?"
+    },
+    "configure": {
+      "selectHint": "Click an implant position chip above to configure it.",
+      "editingOne": "Configuring tooth #{{pos}}",
+      "editingMany": "Configuring {{count}} implants (shared settings)",
+      "abutmentStatus": {
+        "label": "Is there an abutment in place?",
+        "existingAbutment": "Already in Mouth",
+        "noAbutment": "Need to Plan",
+        "labDecides": "Lab Decides"
+      },
+      "labDecidesNote": "Lab will determine the most appropriate components.",
+      "gingivalHeight": {
+        "label": "Gingival height (cuff height)",
+        "manual": "Specify Height",
+        "labDetermines": "Lab Determines",
+        "mmPlaceholder": "e.g. 3.5"
+      },
+      "abutmentType": {
+        "label": "Abutment type",
+        "individual": "Individual Abutment",
+        "multiunit": "Multi-Unit (MUA)",
+        "tibase": "Ti-Base",
+        "factory": "Factory Abutment"
+      },
+      "indMaterial": {
+        "label": "Abutment material",
+        "titanium": "Titanium",
+        "cocr": "Co-Cr",
+        "zirconia": "Zirconia"
+      },
+      "indShape": {
+        "label": "Abutment shape",
+        "concave": "Concave",
+        "straight": "Straight",
+        "convex": "Convex"
+      },
+      "retention": {
+        "label": "Retention type",
+        "cement": "Cement-Retained",
+        "screw": "Screw-Retained"
+      },
+      "muaHex": {
+        "label": "Hex type",
+        "hex": "Hex",
+        "nonHex": "Non-Hex"
+      },
+      "muaUpperConn": {
+        "label": "Upper connection",
+        "cups": "On Cups (Locator)",
+        "rosen": "Rosen Screw",
+        "screwForBar": "Screw for Bar"
+      },
+      "tibaseNote": "Ti-Base is screw-retained. Proceed to select the final restoration material.",
+      "finalMaterial": {
+        "label": "Final restoration material",
+        "noMaterials": "No crown materials configured — set them in the Pricing tab."
+      }
+    },
+    "bar": {
+      "needsBar": {
+        "label": "Bar restoration needed?",
+        "yes": "Yes, Need Bar",
+        "no": "No Bar"
+      },
+      "barMaterial": {
+        "label": "Bar material",
+        "titaniumBar": "Titanium",
+        "cocrMilled": "Co-Cr Milled",
+        "cocrPrinted": "Co-Cr 3D Printed",
+        "zirconiaBar": "Zirconia",
+        "peekBar": "PEEK"
+      },
+      "tryIn": {
+        "label": "Try-in type",
+        "pmma": "PMMA",
+        "printed": "Printed Material"
+      },
+      "barTeeth": {
+        "label": "Teeth included in bar",
+        "hint": "Select which implant positions are connected by the bar"
+      }
+    },
+    "provisionalNote": "The price shown is approximate — some components will be determined by the lab.",
+    "incompleteError": "Complete the configuration for implant positions: {{positions}}",
+    "summary": {
+      "notConfigured": "Not configured",
+      "complete": "Complete",
+      "incomplete": "Incomplete",
+      "labDecides": "Lab decides",
+      "existingAbutment": "Existing abutment"
+    },
+    "pricing": {
+      "sectionTitle": "Implant pricing",
+      "sectionHelp": "Set prices for each selectable component. Components are skipped when an existing abutment is in place.",
+      "pricePerImplant": "Price / implant (GEL)",
+      "fixedPrice": "Fixed price (GEL)",
+      "basePrice": "Base price (GEL)",
+      "perImplantPrice": "Per implant (GEL)",
+      "brandsHelp": "Add the implant brands your lab supports. Doctors select the brand when placing an order.",
+      "brandName": "Brand name",
+      "addBrand": "Add brand",
+      "groups": {
+        "brands": "Implant brands",
+        "crownMaterials": "Crown materials (final restoration)",
+        "abutmentType": "Abutment type",
+        "indMaterial": "Individual abutment material",
+        "shape": "Abutment shape",
+        "retention": "Retention",
+        "muaHex": "MUA hex type",
+        "muaUpperConn": "MUA upper connection",
+        "barMaterial": "Bar material"
+      },
+      "crownMaterialsHelp": "Define the final crown materials doctors can choose from. Price is per tooth.",
+      "addCrownMaterial": "Add crown material"
+    }
+  },
+  "grgForm": {
+    "yesNo": {
+      "YES": "Yes",
+      "NO": "No"
+    },
+    "teeth": {
+      "label": "Select teeth"
+    },
+    "additiveWaxUp": {
+      "label": "Is This an Additive Wax Up?"
+    },
+    "approvalNeeded": {
+      "label": "Does Doctor Need to Approve?"
+    },
+    "notes": {
+      "label": "Notes",
+      "placeholder": "Any additional instructions…"
     }
   }
 }

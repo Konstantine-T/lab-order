@@ -676,6 +676,7 @@ function EdentulousSubSection({
   const opt = (ns: string, v: string) => t(`sgForm.${ns}.${v}`, { defaultValue: v });
 
   const yesNoLab: ('YES' | 'NO' | 'LAB_DECIDES')[] = ['YES', 'NO', 'LAB_DECIDES'];
+  const noDenture = jawData.existingDenture === 'NONE';
 
   return (
     <Stack spacing={3}>
@@ -746,27 +747,27 @@ function EdentulousSubSection({
       </Stack>
 
       {/* Use existing as reference */}
-      <Stack spacing={1}>
+      <Stack spacing={1} sx={{ opacity: noDenture ? 0.4 : 1, pointerEvents: noDenture ? 'none' : 'auto', transition: 'opacity 0.2s' }}>
         <Typography variant="subtitle2">{sg('edentulous.useExistingRef')}</Typography>
         <PillGroup<SgYesNoLab>
           value={jawData.useExistingDentureRef}
           options={yesNoLab}
           getLabel={(o) => opt('edentulous', o)}
           onChange={(v) => onChange({ useExistingDentureRef: v })}
-          readOnly={readOnly}
+          readOnly={readOnly || noDenture}
           size="small"
         />
       </Stack>
 
       {/* Plan based on future prosthetics */}
-      <Stack spacing={1}>
+      <Stack spacing={1} sx={{ opacity: noDenture ? 0.4 : 1, pointerEvents: noDenture ? 'none' : 'auto', transition: 'opacity 0.2s' }}>
         <Typography variant="subtitle2">{sg('edentulous.planFuture')}</Typography>
         <PillGroup<SgYesNoLab>
           value={jawData.planOnFutureProsthetics}
           options={yesNoLab}
           getLabel={(o) => opt('edentulous', o)}
           onChange={(v) => onChange({ planOnFutureProsthetics: v })}
-          readOnly={readOnly}
+          readOnly={readOnly || noDenture}
           size="small"
         />
       </Stack>

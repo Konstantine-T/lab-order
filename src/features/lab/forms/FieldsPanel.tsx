@@ -20,6 +20,8 @@ import { ToothMap } from '@/components/ToothMap';
 import { SHADE_GROUPS, TEMPLATE_CODE_CNB } from '@/features/orderForms/cnbTypes';
 import { TEMPLATE_CODE_SG } from '@/features/orderForms/sgTypes';
 import { TEMPLATE_CODE_MODEL } from '@/features/orderForms/modelTypes';
+import { TEMPLATE_CODE_ESP } from '@/features/orderForms/espTypes';
+import { TEMPLATE_CODE_IMPLANT } from '@/features/orderForms/implantTypes';
 import type { FieldConfig, FormConfiguration } from '@/types/database';
 
 export function FieldsPanel({
@@ -33,7 +35,9 @@ export function FieldsPanel({
   const isStructured =
     config._templateCode === TEMPLATE_CODE_CNB ||
     config._templateCode === TEMPLATE_CODE_SG ||
-    config._templateCode === TEMPLATE_CODE_MODEL;
+    config._templateCode === TEMPLATE_CODE_MODEL ||
+    config._templateCode === TEMPLATE_CODE_ESP ||
+    config._templateCode === TEMPLATE_CODE_IMPLANT;
 
   const updateField = (i: number, patch: Partial<FieldConfig>) => {
     onChange({
@@ -68,6 +72,10 @@ export function FieldsPanel({
             ? t('sgForm.fieldsLocked')
             : config._templateCode === TEMPLATE_CODE_MODEL
             ? t('modelForm.fieldsLocked')
+            : config._templateCode === TEMPLATE_CODE_ESP
+            ? t('espForm.fieldsLocked')
+            : config._templateCode === TEMPLATE_CODE_IMPLANT
+            ? t('implantForm.fieldsLocked')
             : t('services.edit.cnbFieldsLocked')}
         </Alert>
       )}
@@ -181,15 +189,6 @@ function FieldCard({
           {/* ── Config: helper text + required toggle ── */}
           <Box sx={{ px: 2, py: 2 }}>
             <Stack spacing={1.5}>
-              {!isCustom && (
-                <TextField
-                  label={t('forms.editor.field.helperText')}
-                  value={field.helper_text ?? ''}
-                  onChange={(e) => onUpdate({ helper_text: e.target.value })}
-                  size="small"
-                  fullWidth
-                />
-              )}
               <Stack direction="row" spacing={3} flexWrap="wrap">
                 <FormControlLabel
                   control={
@@ -266,6 +265,103 @@ function FieldPreview({ field }: { field: FieldConfig }) {
         <TextField
           multiline
           minRows={3}
+          fullWidth
+          disabled
+          placeholder="Notes…"
+          InputProps={{ readOnly: true }}
+        />
+      );
+
+    case 'esp_treatments':
+      return <ToothMap value={[]} readOnly />;
+
+    case 'esp_shade':
+      return (
+        <Stack spacing={1.5}>
+          {SHADE_GROUPS.map((g) => (
+            <Stack key={g.family} direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {g.shades.map((s) => (
+                <Chip
+                  key={s}
+                  label={s}
+                  variant="outlined"
+                  size="small"
+                  sx={{ borderRadius: 999, fontWeight: 600, fontSize: 13 }}
+                />
+              ))}
+            </Stack>
+          ))}
+        </Stack>
+      );
+
+    case 'esp_misalignment':
+      return <OptionPills options={['As much as possible', 'Other']} />;
+
+    case 'esp_gingival':
+      return <OptionPills options={['Yes', 'No']} />;
+
+    case 'esp_vertical_dimension':
+      return <OptionPills options={['Keep Existing', 'Open Bite', 'Make Ideal']} />;
+
+    case 'esp_max_length':
+      return <OptionPills options={['Ideal', 'Other']} />;
+
+    case 'esp_smile_type':
+      return (
+        <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+          {['High Smile Line', 'Medium Smile Line', 'Low Smile Line', 'Gummy Smile', 'Duchenne Smile', 'Non-Duchenne Smile', 'Commissure Smile', 'Cuspid Smile', 'Complex Smile', 'Mona Lisa Smile', 'Canine Smile', 'Full Denture Smile'].map((s) => (
+            <Chip key={s} label={s} variant="outlined" size="small" sx={{ borderRadius: 999, fontWeight: 500 }} />
+          ))}
+        </Stack>
+      );
+
+    case 'esp_notes':
+      return (
+        <TextField
+          multiline
+          minRows={2}
+          fullWidth
+          disabled
+          placeholder="Notes…"
+          InputProps={{ readOnly: true }}
+        />
+      );
+
+    case 'model_type':
+      return <OptionPills options={['Base Model', 'Implant Model', 'Ortho Model']} />;
+
+    case 'model_articulator':
+    case 'model_prepared_dies':
+      return <OptionPills options={['Yes', 'No']} />;
+
+    case 'model_arch':
+      return <OptionPills options={['Upper', 'Lower', 'Both']} />;
+
+    case 'model_base_type':
+      return <OptionPills options={['Hollow', 'Solid']} />;
+
+    case 'model_markings':
+    case 'model_notes':
+      return (
+        <TextField
+          multiline
+          minRows={2}
+          fullWidth
+          disabled
+          placeholder={field.type === 'model_notes' ? 'Notes…' : 'Describe any markings…'}
+          InputProps={{ readOnly: true }}
+        />
+      );
+
+    case 'grg_additive_wax_up':
+    case 'grg_approval_needed':
+      return <OptionPills options={['Yes', 'No']} />;
+
+    case 'grg_notes':
+      return (
+        <TextField
+          multiline
+          minRows={2}
           fullWidth
           disabled
           placeholder="Notes…"

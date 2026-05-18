@@ -4,10 +4,12 @@ import {
   Card,
   CardContent,
   Divider,
+  FormControlLabel,
   IconButton,
   InputAdornment,
   MenuItem,
   Stack,
+  Switch,
   TextField,
   Typography,
 } from '@mui/material';
@@ -28,7 +30,9 @@ import {
   TEMPLATE_CODE_CNB,
 } from '@/features/orderForms/cnbTypes';
 import { TEMPLATE_CODE_SG, SG_SUPPORT_TYPES } from '@/features/orderForms/sgTypes';
-import type { SgSupportFee } from '@/types/database';
+import { TEMPLATE_CODE_ESP } from '@/features/orderForms/espTypes';
+import { TEMPLATE_CODE_IMPLANT, DEFAULT_IMPLANT_PRICE_CONFIG } from '@/features/orderForms/implantTypes';
+import type { SgSupportFee, ImplantPriceItem } from '@/types/database';
 
 function makeId(): string {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -57,6 +61,8 @@ export function PricingPanel({
   const { t } = useTranslation('lab');
   const isCnb = templateCode === TEMPLATE_CODE_CNB;
   const isSg = templateCode === TEMPLATE_CODE_SG;
+  const isEsp = templateCode === TEMPLATE_CODE_ESP;
+  const isImplant = templateCode === TEMPLATE_CODE_IMPLANT;
 
   const setMaterials = (next: MaterialOption[]) =>
     onChange({ ...pricing, materials: next });
@@ -98,8 +104,8 @@ export function PricingPanel({
             </MenuItem>
           </TextField>
 
-          {/* CnB UNIT_BASED — materials editor */}
-          {pricing.model === 'UNIT_BASED' && isCnb && (
+          {/* CnB / ESP UNIT_BASED — materials editor */}
+          {pricing.model === 'UNIT_BASED' && (isCnb || isEsp) && (
             <Stack spacing={2}>
               <Stack>
                 <Typography variant="subtitle2">
@@ -173,6 +179,24 @@ export function PricingPanel({
                   {(pricing.materials ?? []).length} / {MAX_MATERIALS}
                 </Typography>
               </Box>
+
+              {/* ESP: gingival reduction guide extra fee */}
+              {isEsp && (
+                <>
+                  <Divider />
+                  <NumberField
+                    label={t('espForm.pricing.gingivalReductionPrice')}
+                    value={pricing.esp_gingival_reduction_price}
+                    onChange={(v) => onChange({ ...pricing, esp_gingival_reduction_price: v ?? undefined })}
+                    decimal
+                    min={0}
+                    InputProps={{
+                      endAdornment: <InputAdornment position="end">GEL</InputAdornment>,
+                    }}
+                    fullWidth
+                  />
+                </>
+              )}
             </Stack>
           )}
 
@@ -251,8 +275,21 @@ export function PricingPanel({
             </Stack>
           )}
 
+          {/* Constructions on Implants — brands + crown materials + per-item price grid */}
+          {pricing.model === 'UNIT_BASED' && isImplant && (
+            <ImplantPricingSection
+              config={pricing.implant_price_config ?? DEFAULT_IMPLANT_PRICE_CONFIG}
+              onChange={(next) => onChange({ ...pricing, implant_price_config: next })}
+              brands={pricing.implant_brands ?? []}
+              onBrandsChange={(next) => onChange({ ...pricing, implant_brands: next })}
+              crownMaterials={pricing.implant_crown_materials ?? []}
+              onCrownMaterialsChange={(next) => onChange({ ...pricing, implant_crown_materials: next })}
+              t={t}
+            />
+          )}
+
           {/* Generic UNIT_BASED — single global unit price */}
-          {pricing.model === 'UNIT_BASED' && !isCnb && !isSg && (
+          {pricing.model === 'UNIT_BASED' && !isCnb && !isSg && !isEsp && !isImplant && (
             <NumberField
               label={t('forms.editor.pricing.unitPrice')}
               value={pricing.unit_price}
@@ -349,5 +386,291 @@ export function PricingPanel({
         </Stack>
       </CardContent>
     </Card>
+  );
+}
+
+// ─── Implant Pricing Section ──────────────────────────────────────────────────
+
+type ImplantPriceGroup = {
+  titleKey: string;
+  keys: string[];
+};
+
+const IMPLANT_PRICE_GROUPS: ImplantPriceGroup[] = [
+  { titleKey: 'implantForm.pricing.groups.abutmentType',    keys: ['individual', 'multiunit', 'tibase', 'factory'] },
+  { titleKey: 'implantForm.pricing.groups.indMaterial',     keys: ['titanium', 'cocr', 'zirconia'] },
+  { titleKey: 'implantForm.pricing.groups.shape',           keys: ['concave', 'straight', 'convex'] },
+  { titleKey: 'implantForm.pricing.groups.retention',       keys: ['cement', 'screw'] },
+  { titleKey: 'implantForm.pricing.groups.muaHex',          keys: ['hex', 'nonHex'] },
+  { titleKey: 'implantForm.pricing.groups.muaUpperConn',    keys: ['cups', 'rosen', 'screwForBar'] },
+  { titleKey: 'implantForm.pricing.groups.barMaterial',     keys: ['titaniumBar', 'cocrMilled', 'cocrPrinted', 'zirconiaBar', 'peekBar'] },
+];
+
+function ImplantPricingSection({
+  config,
+  onChange,
+  brands,
+  onBrandsChange,
+  crownMaterials,
+  onCrownMaterialsChange,
+  t,
+}: {
+  config: Record<string, ImplantPriceItem>;
+  onChange: (next: Record<string, ImplantPriceItem>) => void;
+  brands: { id: string; name: string }[];
+  onBrandsChange: (next: { id: string; name: string }[]) => void;
+  crownMaterials: MaterialOption[];
+  onCrownMaterialsChange: (next: MaterialOption[]) => void;
+  t: ReturnType<typeof useTranslation>['t'];
+}) {
+  const updateItem = (key: string, patch: Partial<ImplantPriceItem>) => {
+    const item = config[key] ?? DEFAULT_IMPLANT_PRICE_CONFIG[key];
+    if (!item) return;
+    onChange({ ...config, [key]: { ...item, ...patch } });
+  };
+
+  const addBrand = () => {
+    onBrandsChange([...brands, { id: makeId(), name: '' }]);
+  };
+  const updateBrand = (id: string, name: string) => {
+    onBrandsChange(brands.map((b) => (b.id === id ? { ...b, name } : b)));
+  };
+  const removeBrand = (id: string) => {
+    onBrandsChange(brands.filter((b) => b.id !== id));
+  };
+
+  const addCrownMaterial = () => {
+    if (crownMaterials.length >= MAX_MATERIALS) return;
+    onCrownMaterialsChange([...crownMaterials, { id: makeId(), name: '' }]);
+  };
+
+  const updateCrownMaterial = (id: string, patch: Partial<MaterialOption>) => {
+    onCrownMaterialsChange(crownMaterials.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+  };
+
+  const removeCrownMaterial = (id: string) => {
+    onCrownMaterialsChange(crownMaterials.filter((m) => m.id !== id));
+  };
+
+  return (
+    <Stack spacing={3}>
+      <Stack>
+        <Typography variant="subtitle2">{t('implantForm.pricing.sectionTitle')}</Typography>
+        <Typography variant="caption" color="text.secondary">
+          {t('implantForm.pricing.sectionHelp')}
+        </Typography>
+      </Stack>
+
+      {/* Implant brands */}
+      <Box>
+        <Typography
+          variant="overline"
+          sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 1 }}
+        >
+          {t('implantForm.pricing.groups.brands')}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+          {t('implantForm.pricing.brandsHelp')}
+        </Typography>
+        <Stack spacing={1}>
+          {brands.map((brand) => (
+            <Stack
+              key={brand.id}
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1.5}
+              alignItems={{ sm: 'center' }}
+            >
+              <TextField
+                label={t('implantForm.pricing.brandName')}
+                value={brand.name}
+                onChange={(e) => updateBrand(brand.id, e.target.value)}
+                size="small"
+                sx={{ flex: 1 }}
+              />
+              <IconButton onClick={() => removeBrand(brand.id)} size="small">
+                <DeleteOutlineIcon fontSize="small" />
+              </IconButton>
+            </Stack>
+          ))}
+        </Stack>
+        <Box mt={1}>
+          <Button
+            startIcon={<AddIcon />}
+            variant="outlined"
+            onClick={addBrand}
+            size="small"
+          >
+            {t('implantForm.pricing.addBrand')}
+          </Button>
+        </Box>
+      </Box>
+
+      <Divider />
+
+      {/* Crown materials — lab-defined */}
+      <Box>
+        <Typography
+          variant="overline"
+          sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 1 }}
+        >
+          {t('implantForm.pricing.groups.crownMaterials')}
+        </Typography>
+        <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+          {t('implantForm.pricing.crownMaterialsHelp')}
+        </Typography>
+        <Stack spacing={1}>
+          {crownMaterials.map((mat, i) => {
+            const color = MATERIAL_COLORS[i % MATERIAL_COLORS.length];
+            return (
+              <Stack
+                key={mat.id}
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1.5}
+                alignItems={{ sm: 'center' }}
+              >
+                <Box
+                  sx={{
+                    width: 18,
+                    height: 18,
+                    borderRadius: '50%',
+                    bgcolor: color,
+                    flexShrink: 0,
+                    border: 1,
+                    borderColor: 'divider',
+                  }}
+                />
+                <TextField
+                  label={t('forms.editor.pricing.materialName')}
+                  value={mat.name}
+                  onChange={(e) => updateCrownMaterial(mat.id, { name: e.target.value })}
+                  size="small"
+                  sx={{ flex: 1 }}
+                />
+                <NumberField
+                  label={t('implantForm.pricing.pricePerImplant')}
+                  value={mat.unit_price}
+                  onChange={(v) => updateCrownMaterial(mat.id, { unit_price: v })}
+                  decimal
+                  min={0}
+                  InputProps={{
+                    endAdornment: <InputAdornment position="end">GEL</InputAdornment>,
+                  }}
+                  size="small"
+                  sx={{ width: 200 }}
+                />
+                <IconButton onClick={() => removeCrownMaterial(mat.id)} size="small">
+                  <DeleteOutlineIcon fontSize="small" />
+                </IconButton>
+              </Stack>
+            );
+          })}
+        </Stack>
+        <Box mt={1}>
+          <Button
+            startIcon={<AddIcon />}
+            variant="outlined"
+            onClick={addCrownMaterial}
+            disabled={crownMaterials.length >= MAX_MATERIALS}
+            size="small"
+          >
+            {t('implantForm.pricing.addCrownMaterial')}
+          </Button>
+          <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
+            {crownMaterials.length} / {MAX_MATERIALS}
+          </Typography>
+        </Box>
+      </Box>
+
+      <Divider />
+
+      {IMPLANT_PRICE_GROUPS.map((group) => (
+        <Box key={group.titleKey}>
+          <Typography
+            variant="overline"
+            sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 1 }}
+          >
+            {t(group.titleKey)}
+          </Typography>
+          <Stack spacing={1} mt={1}>
+            {group.keys.map((key) => {
+              const item: ImplantPriceItem = config[key] ?? DEFAULT_IMPLANT_PRICE_CONFIG[key];
+              if (!item) return null;
+              return (
+                <Stack
+                  key={key}
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={1.5}
+                  alignItems={{ sm: 'center' }}
+                >
+                  <Typography variant="body2" sx={{ flex: 1, minWidth: 180 }}>
+                    {item.label}
+                  </Typography>
+
+                  {item.pricingMode === 'base_plus_per_implant' ? (
+                    <>
+                      <NumberField
+                        label={t('implantForm.pricing.basePrice')}
+                        value={item.basePrice}
+                        onChange={(v) => updateItem(key, { basePrice: v ?? 0 })}
+                        decimal
+                        min={0}
+                        InputProps={{ endAdornment: <InputAdornment position="end">GEL</InputAdornment> }}
+                        size="small"
+                        sx={{ width: 160 }}
+                        disabled={!item.enabled}
+                      />
+                      <NumberField
+                        label={t('implantForm.pricing.perImplantPrice')}
+                        value={item.perImplantPrice}
+                        onChange={(v) => updateItem(key, { perImplantPrice: v ?? 0 })}
+                        decimal
+                        min={0}
+                        InputProps={{ endAdornment: <InputAdornment position="end">GEL</InputAdornment> }}
+                        size="small"
+                        sx={{ width: 160 }}
+                        disabled={!item.enabled}
+                      />
+                    </>
+                  ) : (
+                    <NumberField
+                      label={
+                        item.pricingMode === 'per_implant'
+                          ? t('implantForm.pricing.pricePerImplant')
+                          : t('implantForm.pricing.fixedPrice')
+                      }
+                      value={item.price}
+                      onChange={(v) => updateItem(key, { price: v ?? 0 })}
+                      decimal
+                      min={0}
+                      InputProps={{ endAdornment: <InputAdornment position="end">GEL</InputAdornment> }}
+                      size="small"
+                      sx={{ width: 200 }}
+                      disabled={!item.enabled}
+                    />
+                  )}
+
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        size="small"
+                        checked={item.enabled}
+                        onChange={(e) => updateItem(key, { enabled: e.target.checked })}
+                      />
+                    }
+                    label={
+                      <Typography variant="caption" color="text.secondary">
+                        {t('forms.editor.field.enabled')}
+                      </Typography>
+                    }
+                    labelPlacement="start"
+                    sx={{ mr: 0, gap: 0.5, flexShrink: 0 }}
+                  />
+                </Stack>
+              );
+            })}
+          </Stack>
+        </Box>
+      ))}
+    </Stack>
   );
 }

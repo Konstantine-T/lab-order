@@ -21,6 +21,7 @@ export function TemplateGrid({ selectedTemplateId, onSelect, disabled }: Props) 
       const { data, error } = await supabase
         .from('platform_form_templates')
         .select('*')
+        .not('code', 'in', '(TEMPORARY_CROWN,ZIRCONIA_ON_IMPLANT,TEMPORARY_ON_IMPLANT,MOCKUP_WAXUP,REMOVABLE_PROSTHESIS,OTHER_CUSTOM)')
         .order('name');
       if (error) throw error;
       return data as PlatformFormTemplateRow[];
