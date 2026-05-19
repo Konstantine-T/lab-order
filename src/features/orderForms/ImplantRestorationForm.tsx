@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -46,6 +46,11 @@ import {
 export { coerceImplantAnswers, validateImplantRestoration, emptyImplantAnswers };
 export type { ImplantRestorationAnswers };
 export { TEMPLATE_CODE_IMPLANT };
+
+// ─── Brand colors ─────────────────────────────────────────────────────────────
+
+const BRAND_COLORS = ['#6366F1', '#F59E0B', '#10B981', '#EC4899', '#0EA5E9', '#EF4444'] as const;
+const CUSTOM_BRAND_COLOR = '#9E9E9E';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -175,11 +180,28 @@ export function ImplantRestorationForm({
     });
   };
 
+  // ── Brand colors ─────────────────────────────────────────────────────────
+
+  const brandColorById = useMemo(() => {
+    const m: Record<string, string> = {};
+    labBrands.forEach((b, i) => { m[b.id] = BRAND_COLORS[i % BRAND_COLORS.length]; });
+    m['custom'] = CUSTOM_BRAND_COLOR;
+    return m;
+  }, [labBrands]);
+
+  const positionToothColors = useMemo(() => {
+    const m: Record<number, string> = {};
+    for (const pos of a.implantPositions) {
+      const brand = a.configsByPosition[String(pos)]?.brand;
+      if (brand) { const c = brandColorById[brand]; if (c) m[pos] = c; }
+    }
+    return m;
+  }, [a.implantPositions, a.configsByPosition, brandColorById]);
+
   // ── Section numbering ─────────────────────────────────────────────────────
 
   let sn = 0;
   const ns = () => ++sn;
-  const brandSn = labBrands.length > 0 ? ns() : null;
   const positionSn = ns();
   const configureSn = ns();
   const barSn = ns();
@@ -194,43 +216,39 @@ export function ImplantRestorationForm({
   return (
     <Stack spacing={3}>
 
-      {/* 1. Brand */}
-      {labBrands.length > 0 && brandSn !== null && (
-        <NumberedSection number={brandSn} label={t('implantForm.brand.label')}>
-          <Stack spacing={1.5}>
-            <PillGroup
-              value={a.brand ?? ''}
-              options={[...labBrands.map((b) => b.id), 'custom'] as const}
-              getLabel={(id) => {
-                if (id === 'custom') return t('implantForm.brand.custom');
-                return labBrands.find((b) => b.id === id)?.name ?? id;
-              }}
-              onChange={(v) => set({ brand: v, brandCustom: v !== 'custom' ? undefined : a.brandCustom })}
-              readOnly={readOnly}
-            />
-            {a.brand === 'custom' && (
-              <TextField
-                placeholder={t('implantForm.brand.customPlaceholder')}
-                value={a.brandCustom ?? ''}
-                onChange={(e) => set({ brandCustom: e.target.value })}
-                size="small"
-                sx={{ maxWidth: 320 }}
-                InputProps={{ readOnly }}
-              />
-            )}
-          </Stack>
-        </NumberedSection>
-      )}
-
-      {/* 2. Implant positions */}
+      {/* 1. Implant positions */}
       <NumberedSection number={positionSn} label={`${t('implantForm.sections.positions')} *`}>
         <Stack spacing={1.5}>
           <ToothMap
             value={a.implantPositions}
+            toothColors={positionToothColors}
             onChange={readOnly ? undefined : handlePositionsChange}
             readOnly={readOnly}
             notation={a.notation}
           />
+
+          {/* Brand legend — shows which color = which brand for assigned positions */}
+          {labBrands.length > 0 && (() => {
+            const items: Array<{ label: string; color: string }> = [];
+            for (const b of labBrands) {
+              if (a.implantPositions.some((pos) => a.configsByPosition[String(pos)]?.brand === b.id)) {
+                items.push({ label: b.name, color: brandColorById[b.id] });
+              }
+            }
+            const hasCustom = a.implantPositions.some((pos) => a.configsByPosition[String(pos)]?.brand === 'custom');
+            if (hasCustom) items.push({ label: t('implantForm.brand.custom'), color: CUSTOM_BRAND_COLOR });
+            if (items.length === 0) return null;
+            return (
+              <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
+                {items.map((item) => (
+                  <Stack key={item.label} direction="row" alignItems="center" spacing={0.75}>
+                    <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: item.color, flexShrink: 0 }} />
+                    <Typography variant="caption" color="text.secondary">{item.label}</Typography>
+                  </Stack>
+                ))}
+              </Stack>
+            );
+          })()}
 
           <Stack direction="row" spacing={1} alignItems="center">
             <Typography variant="caption" color="text.secondary">
@@ -321,6 +339,8 @@ export function ImplantRestorationForm({
               positions={a.implantPositions}
               configsByPosition={a.configsByPosition}
               notation={a.notation}
+              labBrands={labBrands}
+              brandColorById={brandColorById}
               t={t}
             />
           ) : (
@@ -339,6 +359,67 @@ export function ImplantRestorationForm({
                     </Typography>
 
                     <Stack spacing={2.5} mt={2}>
+
+                      {/* Brand */}
+                      {labBrands.length > 0 && (
+                        <Stack spacing={1}>
+                          <Typography variant="body2" fontWeight={600}>
+                            {t('implantForm.brand.label')}
+                          </Typography>
+                          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                            {[...labBrands.map((b, i) => ({ id: b.id, name: b.name, color: BRAND_COLORS[i % BRAND_COLORS.length] })),
+                              { id: 'custom', name: t('implantForm.brand.custom'), color: CUSTOM_BRAND_COLOR }
+                            ].map((b) => {
+                              const isSel = representativeCfg.brand === b.id;
+                              return (
+                                <Box
+                                  key={b.id}
+                                  role="button"
+                                  aria-pressed={isSel}
+                                  tabIndex={readOnly ? -1 : 0}
+                                  onClick={() => !readOnly && updateEditGroup({
+                                    brand: b.id,
+                                    brandCustom: b.id !== 'custom' ? undefined : representativeCfg.brandCustom,
+                                  })}
+                                  onKeyDown={(e) => {
+                                    if (readOnly) return;
+                                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); updateEditGroup({ brand: b.id, brandCustom: b.id !== 'custom' ? undefined : representativeCfg.brandCustom }); }
+                                  }}
+                                  sx={{
+                                    display: 'inline-flex', alignItems: 'center', gap: 0.75,
+                                    px: 1.75, py: 0.75, borderRadius: 999, border: 2,
+                                    borderColor: isSel ? b.color : 'divider',
+                                    bgcolor: isSel ? b.color : 'background.paper',
+                                    color: isSel ? '#fff' : 'text.primary',
+                                    fontWeight: 500, fontSize: 13,
+                                    cursor: readOnly ? 'default' : 'pointer',
+                                    userSelect: 'none',
+                                    transition: 'border-color 0.15s',
+                                    '&:hover': readOnly ? {} : { borderColor: b.color },
+                                  }}
+                                >
+                                  <Box sx={{
+                                    width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+                                    bgcolor: isSel ? 'rgba(255,255,255,0.75)' : b.color,
+                                    border: 1, borderColor: 'rgba(0,0,0,0.12)',
+                                  }} />
+                                  {b.name}
+                                </Box>
+                              );
+                            })}
+                          </Stack>
+                          {representativeCfg.brand === 'custom' && (
+                            <TextField
+                              placeholder={t('implantForm.brand.customPlaceholder')}
+                              value={representativeCfg.brandCustom ?? ''}
+                              onChange={(e) => updateEditGroup({ brandCustom: e.target.value })}
+                              size="small"
+                              sx={{ maxWidth: 320 }}
+                              InputProps={{ readOnly }}
+                            />
+                          )}
+                        </Stack>
+                      )}
 
                       {/* Abutment status */}
                       <Stack spacing={1}>
@@ -511,6 +592,8 @@ export function ImplantRestorationForm({
                   positions={a.implantPositions}
                   configsByPosition={a.configsByPosition}
                   notation={a.notation}
+                  labBrands={labBrands}
+                  brandColorById={brandColorById}
                   incompleteConfigs={errors.incompleteConfigs}
                   t={t}
                 />
@@ -654,11 +737,15 @@ function PositionDetailList({
   positions,
   configsByPosition,
   notation,
+  labBrands,
+  brandColorById,
   t,
 }: {
   positions: number[];
   configsByPosition: Record<string, ImplantConfig>;
   notation: 'Universal' | 'FDI';
+  labBrands: Array<{ id: string; name: string }>;
+  brandColorById: Record<string, string>;
   t: ReturnType<typeof import('react-i18next').useTranslation>['t'];
 }) {
   return (
@@ -667,8 +754,17 @@ function PositionDetailList({
         const cfg: ImplantConfig = configsByPosition[String(pos)] ?? {};
         const label = posLabel(pos, notation);
         const complete = isImplantConfigComplete(cfg);
+        const brandColor = cfg.brand ? brandColorById[cfg.brand] : undefined;
 
         const rows: Array<{ label: string; value: string }> = [];
+
+        // Brand row
+        if (labBrands.length > 0 && cfg.brand) {
+          const brandName = cfg.brand === 'custom'
+            ? (cfg.brandCustom?.trim() || t('implantForm.brand.custom'))
+            : (labBrands.find((b) => b.id === cfg.brand)?.name ?? cfg.brand);
+          rows.push({ label: t('implantForm.brand.label'), value: brandName });
+        }
 
         if (cfg.abutmentStatus) {
           rows.push({
@@ -713,13 +809,20 @@ function PositionDetailList({
         }
 
         return (
-          <Paper key={pos} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden' }}>
+          <Paper key={pos} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', borderColor: brandColor ?? 'divider' }}>
             <Stack
               direction="row"
               alignItems="center"
               spacing={1.5}
-              sx={{ px: 2.5, py: 1.5, bgcolor: 'action.hover', borderBottom: 1, borderColor: 'divider' }}
+              sx={{
+                px: 2.5, py: 1.5,
+                bgcolor: brandColor ? `${brandColor}18` : 'action.hover',
+                borderBottom: 1, borderColor: 'divider',
+              }}
             >
+              {brandColor && (
+                <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: brandColor, flexShrink: 0 }} />
+              )}
               <Typography variant="subtitle2" fontWeight={700}>#{label}</Typography>
               <Box sx={{ flex: 1 }} />
               <Typography
@@ -764,31 +867,34 @@ function PositionSummary({
   positions,
   configsByPosition,
   notation,
+  labBrands,
+  brandColorById,
   incompleteConfigs,
   t,
 }: {
   positions: number[];
   configsByPosition: Record<string, ImplantConfig>;
   notation: 'Universal' | 'FDI';
+  labBrands: Array<{ id: string; name: string }>;
+  brandColorById: Record<string, string>;
   incompleteConfigs?: number[];
   t: ReturnType<typeof import('react-i18next').useTranslation>['t'];
 }) {
   if (positions.length === 0) return null;
 
   return (
-    <Box
-      sx={{
-        borderRadius: 1,
-        border: 1,
-        borderColor: 'divider',
-        overflow: 'hidden',
-      }}
-    >
+    <Box sx={{ borderRadius: 1, border: 1, borderColor: 'divider', overflow: 'hidden' }}>
       {positions.map((pos, i) => {
         const cfg: ImplantConfig = configsByPosition[String(pos)] ?? {};
         const complete = isImplantConfigComplete(cfg);
         const hasError = incompleteConfigs?.includes(pos);
         const label = posLabel(pos, notation);
+        const brandColor = cfg.brand ? brandColorById[cfg.brand] : undefined;
+        const brandName = cfg.brand
+          ? cfg.brand === 'custom'
+            ? (cfg.brandCustom?.trim() || t('implantForm.brand.custom'))
+            : (labBrands.find((b) => b.id === cfg.brand)?.name ?? cfg.brand)
+          : null;
 
         return (
           <Stack
@@ -808,7 +914,10 @@ function PositionSummary({
               ? <CheckCircleOutlineIcon sx={{ fontSize: 16, color: 'success.main', flexShrink: 0 }} />
               : <RadioButtonUncheckedIcon sx={{ fontSize: 16, color: hasError ? 'error.main' : 'warning.main', flexShrink: 0 }} />
             }
-            <Typography variant="body2" fontWeight={600} sx={{ minWidth: 40 }}>
+            {brandColor && (
+              <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: brandColor, flexShrink: 0 }} />
+            )}
+            <Typography variant="body2" fontWeight={600} sx={{ minWidth: 36 }}>
               #{label}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
@@ -820,6 +929,11 @@ function PositionSummary({
                     ? t(`implantForm.configure.abutmentType.${cfg.abutmentType}`, { defaultValue: cfg.abutmentType })
                     : t('implantForm.summary.notConfigured')}
             </Typography>
+            {brandName && (
+              <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0 }}>
+                {brandName}
+              </Typography>
+            )}
             <Typography
               variant="caption"
               color={complete ? 'success.main' : hasError ? 'error.main' : 'text.secondary'}

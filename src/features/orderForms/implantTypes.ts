@@ -72,6 +72,9 @@ export type AbutmentType = 'individual' | 'multiunit' | 'tibase' | 'factory';
 export type GingivalHeightMode = 'manual' | 'labDetermines';
 
 export type ImplantConfig = {
+  // Brand (per-implant)
+  brand?: string;
+  brandCustom?: string;
   abutmentStatus?: AbutmentStatus;
   // When noAbutment: gingival height
   gingivalHeightMode?: GingivalHeightMode;
@@ -97,8 +100,6 @@ export type ImplantBarAnswers = {
 };
 
 export type ImplantRestorationAnswers = {
-  brand?: string;
-  brandCustom?: string;
   implantPositions: number[];
   notation: 'Universal' | 'FDI';
   configsByPosition: Record<string, ImplantConfig>;
@@ -137,8 +138,6 @@ export function coerceImplantAnswers(raw: unknown): ImplantRestorationAnswers {
     : {};
 
   return {
-    brand: typeof r.brand === 'string' ? r.brand : undefined,
-    brandCustom: typeof r.brandCustom === 'string' ? r.brandCustom : undefined,
     implantPositions: toNumArray(r.implantPositions),
     notation: r.notation === 'FDI' ? 'FDI' : 'Universal',
     configsByPosition: coercedConfigs,

@@ -16,7 +16,6 @@ import {
   type EspMisalignment,
   type EspVerticalDimension,
   type EspMaxLength,
-  type EspSmileType,
 } from './espTypes';
 import { formatGEL } from '@/utils/pricing';
 import type { FormConfiguration, PricingConfig } from '@/types/database';

@@ -85,7 +85,7 @@ export function LabPublicProfilePage() {
         .select('id, status, platform_form_templates(code, name)')
         .in('id', linkedFormIds);
       if (error) throw error;
-      return (data ?? []) as FormWithTemplate[];
+      return (data ?? []) as unknown as FormWithTemplate[];
     },
   });
 
