@@ -80,7 +80,9 @@
       "rushSurchargeFixed": "+{{amount}} надбавка",
       "rushTurnaroundOne": "Срок сокращается до 1 дня.",
       "rushTurnaroundOther": "Срок сокращается до {{count}} дней.",
-      "workLocation": "Место работы"
+      "workLocation": "Место работы",
+      "noLocations": "У вас пока нет рабочих адресов. Добавьте один, чтобы продолжить.",
+      "addLocation": "Добавить адрес"
     },
     "review": {
       "header": "Проверка и отправка",
@@ -109,6 +111,12 @@
     "count_other": "{{count}} заказов",
     "countFiltered": "{{count}} из {{total}} заказов",
     "dueOn": "Срок: {{date}}",
+    "draft": {
+      "title": "У вас есть незавершённый заказ. Хотите продолжить?",
+      "label": "Черновик",
+      "continue": "Продолжить",
+      "discard": "Отменить"
+    },
     "filters": {
       "search": "Поиск по заказу, пациенту, лаборатории…",
       "status": "Статус",

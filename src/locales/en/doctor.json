@@ -72,7 +72,9 @@
       "rushSurchargeFixed": "+{{amount}} surcharge",
       "rushTurnaroundOne": "Turnaround drops to 1 day.",
       "rushTurnaroundOther": "Turnaround drops to {{count}} days.",
-      "workLocation": "Work location"
+      "workLocation": "Work location",
+      "noLocations": "You have no work locations yet. Add one to continue.",
+      "addLocation": "Add work location"
     },
     "review": {
       "header": "Review and submit",
@@ -100,6 +102,12 @@
     "count_other": "{{count}} orders",
     "countFiltered": "{{count}} of {{total}} orders",
     "dueOn": "Due {{date}}",
+    "draft": {
+      "title": "You have an unfinished order. Would you like to continue?",
+      "label": "Draft",
+      "continue": "Continue",
+      "discard": "Discard"
+    },
     "filters": {
       "search": "Search by order, patient, lab…",
       "status": "Status",

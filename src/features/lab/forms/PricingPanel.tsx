@@ -394,12 +394,13 @@ export function PricingPanel({
 type ImplantPriceGroup = {
   titleKey: string;
   keys: string[];
+  hidePrice?: boolean;
 };
 
 const IMPLANT_PRICE_GROUPS: ImplantPriceGroup[] = [
   { titleKey: 'implantForm.pricing.groups.abutmentType',    keys: ['individual', 'multiunit', 'tibase', 'factory'] },
   { titleKey: 'implantForm.pricing.groups.indMaterial',     keys: ['titanium', 'cocr', 'zirconia'] },
-  { titleKey: 'implantForm.pricing.groups.shape',           keys: ['concave', 'straight', 'convex'] },
+  { titleKey: 'implantForm.pricing.groups.shape',           keys: ['concave', 'straight', 'convex'], hidePrice: true },
   { titleKey: 'implantForm.pricing.groups.retention',       keys: ['cement', 'screw'] },
   { titleKey: 'implantForm.pricing.groups.muaHex',          keys: ['hex', 'nonHex'] },
   { titleKey: 'implantForm.pricing.groups.muaUpperConn',    keys: ['cups', 'rosen', 'screwForBar'] },
@@ -606,47 +607,49 @@ function ImplantPricingSection({
                     {item.label}
                   </Typography>
 
-                  {item.pricingMode === 'base_plus_per_implant' ? (
-                    <>
+                  {!group.hidePrice && (
+                    item.pricingMode === 'base_plus_per_implant' ? (
+                      <>
+                        <NumberField
+                          label={t('implantForm.pricing.basePrice')}
+                          value={item.basePrice}
+                          onChange={(v) => updateItem(key, { basePrice: v ?? 0 })}
+                          decimal
+                          min={0}
+                          InputProps={{ endAdornment: <InputAdornment position="end">GEL</InputAdornment> }}
+                          size="small"
+                          sx={{ width: 160 }}
+                          disabled={!item.enabled}
+                        />
+                        <NumberField
+                          label={t('implantForm.pricing.perImplantPrice')}
+                          value={item.perImplantPrice}
+                          onChange={(v) => updateItem(key, { perImplantPrice: v ?? 0 })}
+                          decimal
+                          min={0}
+                          InputProps={{ endAdornment: <InputAdornment position="end">GEL</InputAdornment> }}
+                          size="small"
+                          sx={{ width: 160 }}
+                          disabled={!item.enabled}
+                        />
+                      </>
+                    ) : (
                       <NumberField
-                        label={t('implantForm.pricing.basePrice')}
-                        value={item.basePrice}
-                        onChange={(v) => updateItem(key, { basePrice: v ?? 0 })}
+                        label={
+                          item.pricingMode === 'per_implant'
+                            ? t('implantForm.pricing.pricePerImplant')
+                            : t('implantForm.pricing.fixedPrice')
+                        }
+                        value={item.price}
+                        onChange={(v) => updateItem(key, { price: v ?? 0 })}
                         decimal
                         min={0}
                         InputProps={{ endAdornment: <InputAdornment position="end">GEL</InputAdornment> }}
                         size="small"
-                        sx={{ width: 160 }}
+                        sx={{ width: 200 }}
                         disabled={!item.enabled}
                       />
-                      <NumberField
-                        label={t('implantForm.pricing.perImplantPrice')}
-                        value={item.perImplantPrice}
-                        onChange={(v) => updateItem(key, { perImplantPrice: v ?? 0 })}
-                        decimal
-                        min={0}
-                        InputProps={{ endAdornment: <InputAdornment position="end">GEL</InputAdornment> }}
-                        size="small"
-                        sx={{ width: 160 }}
-                        disabled={!item.enabled}
-                      />
-                    </>
-                  ) : (
-                    <NumberField
-                      label={
-                        item.pricingMode === 'per_implant'
-                          ? t('implantForm.pricing.pricePerImplant')
-                          : t('implantForm.pricing.fixedPrice')
-                      }
-                      value={item.price}
-                      onChange={(v) => updateItem(key, { price: v ?? 0 })}
-                      decimal
-                      min={0}
-                      InputProps={{ endAdornment: <InputAdornment position="end">GEL</InputAdornment> }}
-                      size="small"
-                      sx={{ width: 200 }}
-                      disabled={!item.enabled}
-                    />
+                    )
                   )}
 
                   <FormControlLabel

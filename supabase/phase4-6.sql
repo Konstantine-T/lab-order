@@ -158,7 +158,7 @@ create table if not exists public.patients (
 );
 
 create index if not exists patients_doctor_match_idx
-  on public.patients (doctor_id, lower(first_name), lower(last_name), date_of_birth);
+  on public.patients (doctor_id, lower(first_name), lower(last_name), lower(gender), date_of_birth);
 
 create table if not exists public.patient_cases (
   id          uuid primary key default gen_random_uuid(),
@@ -494,20 +494,23 @@ create policy order_files_lab_insert on public.order_files
 
 -- ---------- 5) RPCs ---------------------------------------------------------
 
--- find_matching_patient: return existing patients matching first/last/dob.
+-- find_matching_patient: return existing patients matching first/last/gender[/dob].
+-- When p_dob is supplied all four fields must match; when p_dob is NULL the
+-- date_of_birth column is ignored and only name + gender are compared.
 create or replace function public.find_matching_patient(
-  p_first text, p_last text, p_dob date
+  p_first text, p_last text, p_dob date, p_gender text
 )
 returns table (
-  id uuid, first_name text, last_name text, date_of_birth date, created_at timestamptz
+  id uuid, first_name text, last_name text, date_of_birth date, gender text, created_at timestamptz
 )
 language sql stable security definer set search_path = public as $$
-  select p.id, p.first_name, p.last_name, p.date_of_birth, p.created_at
+  select p.id, p.first_name, p.last_name, p.date_of_birth, p.gender, p.created_at
   from public.patients p
   where p.doctor_id = public.current_doctor_id()
     and lower(p.first_name) = lower(p_first)
     and lower(p.last_name)  = lower(p_last)
-    and (p.date_of_birth = p_dob or (p_dob is null and p.date_of_birth is null));
+    and lower(p.gender)     = lower(p_gender)
+    and (p_dob is null or p.date_of_birth = p_dob);
 $$;
 
 -- submit_order: atomically validate, snapshot, and insert an order + answers.
@@ -529,15 +532,19 @@ create or replace function public.submit_order(
 returns uuid
 language plpgsql security definer set search_path = public as $$
 declare
-  v_doctor_id   uuid;
-  v_lab         public.labs;
-  v_service     public.lab_services;
-  v_loc         public.doctor_work_locations;
-  v_user_row    public.users;
-  v_patient_id  uuid;
-  v_existing_pid uuid;
-  v_order_id    uuid;
+  v_doctor_id          uuid;
+  v_lab                public.labs;
+  v_service            public.lab_services;
+  v_loc                public.doctor_work_locations;
+  v_user_row           public.users;
+  v_patient_id         uuid;
+  v_existing_pid       uuid;
+  v_order_id           uuid;
   v_recipient_snapshot jsonb;
+  v_p_first            text;
+  v_p_last             text;
+  v_p_dob              date;
+  v_p_gender           text;
 begin
   select dp.id into v_doctor_id from public.doctor_profiles dp where dp.user_id = auth.uid();
   if v_doctor_id is null then
@@ -571,23 +578,38 @@ begin
 
   select * into v_user_row from public.users where id = auth.uid();
 
+  v_p_first  := p_patient->>'first_name';
+  v_p_last   := p_patient->>'last_name';
+  v_p_dob    := nullif(p_patient->>'date_of_birth', '')::date;
+  v_p_gender := nullif(p_patient->>'gender', '');
+
   v_existing_pid := nullif(p_patient->>'existing_id', '')::uuid;
   if v_existing_pid is not null then
+    -- Doctor explicitly chose an existing patient record.
     select id into v_patient_id from public.patients
       where id = v_existing_pid and doctor_id = v_doctor_id;
     if v_patient_id is null then
       raise exception 'Patient not found';
     end if;
   else
-    insert into public.patients (doctor_id, first_name, last_name, date_of_birth, gender)
-    values (
-      v_doctor_id,
-      p_patient->>'first_name',
-      p_patient->>'last_name',
-      nullif(p_patient->>'date_of_birth', '')::date,
-      nullif(p_patient->>'gender', '')
-    )
-    returning id into v_patient_id;
+    -- Auto-deduplicate: reuse an existing patient whose name + gender match
+    -- (and date of birth if one was provided).  When either side has a NULL
+    -- gender we still treat it as a candidate match so that older records
+    -- without a stored gender are not duplicated unnecessarily.
+    select id into v_patient_id
+    from public.patients
+    where doctor_id = v_doctor_id
+      and lower(first_name) = lower(v_p_first)
+      and lower(last_name)  = lower(v_p_last)
+      and (v_p_gender is null or gender is null or lower(gender) = lower(v_p_gender))
+      and (v_p_dob is null or date_of_birth = v_p_dob)
+    limit 1;
+
+    if not found then
+      insert into public.patients (doctor_id, first_name, last_name, date_of_birth, gender)
+      values (v_doctor_id, v_p_first, v_p_last, v_p_dob, v_p_gender)
+      returning id into v_patient_id;
+    end if;
   end if;
 
   if p_invoice_recipient_type = 'DOCTOR' then

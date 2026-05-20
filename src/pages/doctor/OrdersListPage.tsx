@@ -3,7 +3,12 @@ import {
   Box,
   Button,
   Checkbox,
+  Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   FormControl,
   InputAdornment,
   InputLabel,
@@ -30,6 +35,7 @@ import { OrderRowCard } from '@/features/orders/OrderRowCard';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { OrdersPaginator } from '@/features/orders/OrdersPaginator';
 import type { OrderRow, OrderStatus } from '@/types/database';
+import { loadDraft, clearDraft, type DraftData } from '@/features/doctor/orderCreate/draftStorage';
 
 const ALL_STATUSES: readonly OrderStatus[] = [
   'SUBMITTED',
@@ -65,6 +71,17 @@ export function OrdersListPage() {
   const [statuses, setStatuses] = useState<OrderStatus[]>([]);
   const [dateFrom, setDateFrom] = useState<Dayjs | null>(null);
   const [dateTo, setDateTo] = useState<Dayjs | null>(null);
+
+  const [draft, setDraft] = useState<DraftData | null>(null);
+  const [draftModalOpen, setDraftModalOpen] = useState(false);
+
+  useEffect(() => {
+    const d = loadDraft();
+    if (d) {
+      setDraft(d);
+      setDraftModalOpen(true);
+    }
+  }, []);
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['doctor-orders', doctorId],
@@ -144,8 +161,43 @@ export function OrdersListPage() {
     setDateTo(null);
   };
 
+  const handleDraftContinue = () => {
+    if (!draft) return;
+    setDraftModalOpen(false);
+    navigate(`/doctor/orders/new?lab=${draft.state.lab_id}&service=${draft.state.lab_service_id}`);
+  };
+
+  const handleDraftDiscard = () => {
+    clearDraft();
+    setDraft(null);
+    setDraftModalOpen(false);
+  };
+
+  const draftPatientName = draft
+    ? `${draft.state.patient.first_name} ${draft.state.patient.last_name}`.trim() || '—'
+    : '';
+
   return (
     <Stack spacing={3}>
+      {/* Draft resume modal */}
+      <Dialog open={draftModalOpen} onClose={() => setDraftModalOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>{t('orders.draft.title')}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={0.5} sx={{ mt: 0.5 }}>
+            <Typography variant="body2" fontWeight={600}>{draftPatientName}</Typography>
+            {draft && (
+              <Typography variant="body2" color="text.secondary">
+                {[draft.labName, draft.serviceName].filter(Boolean).join(' · ')}
+              </Typography>
+            )}
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleDraftDiscard} color="inherit">{t('orders.draft.discard')}</Button>
+          <Button variant="contained" onClick={handleDraftContinue}>{t('orders.draft.continue')}</Button>
+        </DialogActions>
+      </Dialog>
+
       <Stack
         direction={{ xs: 'column', sm: 'row' }}
         justifyContent="space-between"
@@ -242,6 +294,30 @@ export function OrdersListPage() {
             </Button>
           )}
         </Stack>
+      )}
+
+      {/* Draft row — always visible at top when a saved draft exists */}
+      {draft && !isLoading && (
+        <OrderRowCard
+          code="—"
+          primary={draftPatientName}
+          secondary={[draft.labName, draft.serviceName].filter(Boolean).join(' · ')}
+          status={
+            <Chip
+              label={t('orders.draft.label')}
+              size="small"
+              sx={{
+                bgcolor: 'warning.main',
+                color: 'warning.contrastText',
+                fontWeight: 600,
+                fontSize: 11,
+              }}
+            />
+          }
+          total="—"
+          avatarText={draftPatientName}
+          onClick={() => setDraftModalOpen(true)}
+        />
       )}
 
       {isLoading ? (

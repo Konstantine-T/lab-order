@@ -78,7 +78,9 @@
       "rushSurchargeFixed": "+{{amount}} დანამატი",
       "rushTurnaroundOne": "ვადა მცირდება 1 დღემდე.",
       "rushTurnaroundOther": "ვადა მცირდება {{count}} დღემდე.",
-      "workLocation": "სამუშაო ადგილი"
+      "workLocation": "სამუშაო ადგილი",
+      "noLocations": "ჯერ არ გაქვთ სამუშაო ადგილი. გასაგრძელებლად დაამატეთ ერთი.",
+      "addLocation": "სამუშაო ადგილის დამატება"
     },
     "review": {
       "header": "გადახედვა და გაგზავნა",
@@ -105,6 +107,12 @@
     "count_other": "{{count}} შეკვეთა",
     "countFiltered": "{{count}} / {{total}} შეკვეთა",
     "dueOn": "ვადა — {{date}}",
+    "draft": {
+      "title": "დაუსრულებელი შეკვეთა გაქვთ, გინდათ გააგრძელოთ?",
+      "label": "დაუსრულებელი",
+      "continue": "გააგრძელოთ",
+      "discard": "გაუქმება"
+    },
     "filters": {
       "search": "ძებნა შეკვეთის, პაციენტის, ლაბის მიხედვით…",
       "status": "სტატუსი",

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import {
   Alert,
   Box,
+  Button,
   Chip,
   Divider,
   Paper,
@@ -109,11 +110,35 @@ export function ImplantRestorationForm({
     for (const key of Object.keys(newConfigs)) {
       if (!positions.includes(Number(key))) delete newConfigs[key];
     }
-    // Remove deleted positions from edit group
+    // Auto-apply global brand to newly added positions
+    if (a.brand) {
+      for (const pos of positions) {
+        if (!newConfigs[String(pos)]) {
+          newConfigs[String(pos)] = { brand: a.brand };
+        }
+      }
+    }
     const newEditGroup = editGroup.filter((p) => positions.includes(p));
     setEditGroup(newEditGroup);
     set({
       implantPositions: positions,
+      configsByPosition: newConfigs,
+      submittedPositions: (a.submittedPositions ?? []).filter((p) => positions.includes(p)),
+    });
+  };
+
+  const setGlobalBrand = (brandId: string) => {
+    // Stamp brand into any position that doesn't yet have an explicit brand,
+    // so they don't keep following the active brush when it changes.
+    const newConfigs = { ...a.configsByPosition };
+    for (const pos of a.implantPositions) {
+      if (!newConfigs[String(pos)]?.brand) {
+        newConfigs[String(pos)] = { ...(newConfigs[String(pos)] ?? {}), brand: brandId };
+      }
+    }
+    set({
+      brand: brandId,
+      brandCustom: brandId !== 'custom' ? undefined : a.brandCustom,
       configsByPosition: newConfigs,
     });
   };
@@ -127,13 +152,32 @@ export function ImplantRestorationForm({
     set({
       implantPositions: newPositions,
       configsByPosition: newConfigs,
+      submittedPositions: (a.submittedPositions ?? []).filter((p) => p !== pos),
     });
   };
 
+  const isSubmitted = (pos: number) => (a.submittedPositions ?? []).includes(pos);
+
   const toggleEditGroup = (pos: number) => {
-    setEditGroup((prev) =>
-      prev.includes(pos) ? prev.filter((p) => p !== pos) : [...prev, pos],
-    );
+    if (editGroup.includes(pos)) {
+      setEditGroup(editGroup.filter((p) => p !== pos));
+      return;
+    }
+    if (isSubmitted(pos)) {
+      // Submitted tooth: always open solo (auto-deselect anything else)
+      setEditGroup([pos]);
+    } else {
+      // Unsubmitted tooth: strip submitted positions from current group, then add
+      const withoutSubmitted = editGroup.filter((p) => !isSubmitted(p));
+      setEditGroup([...withoutSubmitted, pos]);
+    }
+  };
+
+  const handleSubmitGroup = () => {
+    const current = new Set(a.submittedPositions ?? []);
+    for (const pos of editGroup) current.add(pos);
+    set({ submittedPositions: [...current] });
+    setEditGroup([]);
   };
 
   // ── Per-implant config updates ────────────────────────────────────────────
@@ -192,16 +236,17 @@ export function ImplantRestorationForm({
   const positionToothColors = useMemo(() => {
     const m: Record<number, string> = {};
     for (const pos of a.implantPositions) {
-      const brand = a.configsByPosition[String(pos)]?.brand;
+      const brand = a.configsByPosition[String(pos)]?.brand ?? a.brand;
       if (brand) { const c = brandColorById[brand]; if (c) m[pos] = c; }
     }
     return m;
-  }, [a.implantPositions, a.configsByPosition, brandColorById]);
+  }, [a.implantPositions, a.configsByPosition, a.brand, brandColorById]);
 
   // ── Section numbering ─────────────────────────────────────────────────────
 
   let sn = 0;
   const ns = () => ++sn;
+  const brandSn = labBrands.length > 0 ? ns() : 0;
   const positionSn = ns();
   const configureSn = ns();
   const barSn = ns();
@@ -216,7 +261,67 @@ export function ImplantRestorationForm({
   return (
     <Stack spacing={3}>
 
-      {/* 1. Implant positions */}
+      {/* 1. Brand selector (only when lab has configured brands) */}
+      {labBrands.length > 0 && (
+        <NumberedSection number={brandSn} label={t('implantForm.sections.brand')}>
+          <Stack spacing={1.5}>
+            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+              {[...labBrands.map((b, i) => ({ id: b.id, name: b.name, color: BRAND_COLORS[i % BRAND_COLORS.length] })),
+                { id: 'custom', name: t('implantForm.brand.custom'), color: CUSTOM_BRAND_COLOR },
+              ].map((b) => {
+                const isSel = a.brand === b.id;
+                return (
+                  <Box
+                    key={b.id}
+                    role="button"
+                    aria-pressed={isSel}
+                    tabIndex={readOnly ? -1 : 0}
+                    onClick={() => !readOnly && setGlobalBrand(b.id)}
+                    onKeyDown={(e) => {
+                      if (readOnly) return;
+                      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setGlobalBrand(b.id); }
+                    }}
+                    sx={{
+                      display: 'inline-flex', alignItems: 'center', gap: 0.75,
+                      px: 1.75, py: 0.75, borderRadius: 999, border: 2,
+                      borderColor: isSel ? b.color : 'divider',
+                      bgcolor: isSel ? b.color : 'background.paper',
+                      color: isSel ? '#fff' : 'text.primary',
+                      fontWeight: 500, fontSize: 13,
+                      cursor: readOnly ? 'default' : 'pointer',
+                      userSelect: 'none',
+                      transition: 'border-color 0.15s',
+                      '&:hover': readOnly ? {} : { borderColor: b.color },
+                    }}
+                  >
+                    <Box sx={{
+                      width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
+                      bgcolor: isSel ? 'rgba(255,255,255,0.75)' : b.color,
+                      border: 1, borderColor: 'rgba(0,0,0,0.12)',
+                    }} />
+                    {b.name}
+                  </Box>
+                );
+              })}
+            </Stack>
+            {a.brand === 'custom' && (
+              <TextField
+                placeholder={t('implantForm.brand.customPlaceholder')}
+                value={a.brandCustom ?? ''}
+                onChange={(e) => set({ brandCustom: e.target.value })}
+                size="small"
+                sx={{ maxWidth: 320 }}
+                InputProps={{ readOnly }}
+              />
+            )}
+            <Typography variant="caption" color="text.secondary">
+              {t('implantForm.brand.globalHint')}
+            </Typography>
+          </Stack>
+        </NumberedSection>
+      )}
+
+      {/* 2. Implant positions */}
       <NumberedSection number={positionSn} label={`${t('implantForm.sections.positions')} *`}>
         <Stack spacing={1.5}>
           <ToothMap
@@ -231,11 +336,11 @@ export function ImplantRestorationForm({
           {labBrands.length > 0 && (() => {
             const items: Array<{ label: string; color: string }> = [];
             for (const b of labBrands) {
-              if (a.implantPositions.some((pos) => a.configsByPosition[String(pos)]?.brand === b.id)) {
+              if (a.implantPositions.some((pos) => (a.configsByPosition[String(pos)]?.brand ?? a.brand) === b.id)) {
                 items.push({ label: b.name, color: brandColorById[b.id] });
               }
             }
-            const hasCustom = a.implantPositions.some((pos) => a.configsByPosition[String(pos)]?.brand === 'custom');
+            const hasCustom = a.implantPositions.some((pos) => (a.configsByPosition[String(pos)]?.brand ?? a.brand) === 'custom');
             if (hasCustom) items.push({ label: t('implantForm.brand.custom'), color: CUSTOM_BRAND_COLOR });
             if (items.length === 0) return null;
             return (
@@ -268,8 +373,7 @@ export function ImplantRestorationForm({
           {a.implantPositions.length > 0 && (
             <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
               {a.implantPositions.map((pos) => {
-                const cfg = a.configsByPosition[String(pos)] ?? {};
-                const complete = isImplantConfigComplete(cfg);
+                const complete = isSubmitted(pos);
                 const inGroup = editGroup.includes(pos);
                 const isPendingDel = pendingDelete === pos;
                 const label = posLabel(pos, a.notation);
@@ -341,6 +445,7 @@ export function ImplantRestorationForm({
               notation={a.notation}
               labBrands={labBrands}
               brandColorById={brandColorById}
+              globalBrand={a.brand}
               t={t}
             />
           ) : (
@@ -359,67 +464,6 @@ export function ImplantRestorationForm({
                     </Typography>
 
                     <Stack spacing={2.5} mt={2}>
-
-                      {/* Brand */}
-                      {labBrands.length > 0 && (
-                        <Stack spacing={1}>
-                          <Typography variant="body2" fontWeight={600}>
-                            {t('implantForm.brand.label')}
-                          </Typography>
-                          <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                            {[...labBrands.map((b, i) => ({ id: b.id, name: b.name, color: BRAND_COLORS[i % BRAND_COLORS.length] })),
-                              { id: 'custom', name: t('implantForm.brand.custom'), color: CUSTOM_BRAND_COLOR }
-                            ].map((b) => {
-                              const isSel = representativeCfg.brand === b.id;
-                              return (
-                                <Box
-                                  key={b.id}
-                                  role="button"
-                                  aria-pressed={isSel}
-                                  tabIndex={readOnly ? -1 : 0}
-                                  onClick={() => !readOnly && updateEditGroup({
-                                    brand: b.id,
-                                    brandCustom: b.id !== 'custom' ? undefined : representativeCfg.brandCustom,
-                                  })}
-                                  onKeyDown={(e) => {
-                                    if (readOnly) return;
-                                    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); updateEditGroup({ brand: b.id, brandCustom: b.id !== 'custom' ? undefined : representativeCfg.brandCustom }); }
-                                  }}
-                                  sx={{
-                                    display: 'inline-flex', alignItems: 'center', gap: 0.75,
-                                    px: 1.75, py: 0.75, borderRadius: 999, border: 2,
-                                    borderColor: isSel ? b.color : 'divider',
-                                    bgcolor: isSel ? b.color : 'background.paper',
-                                    color: isSel ? '#fff' : 'text.primary',
-                                    fontWeight: 500, fontSize: 13,
-                                    cursor: readOnly ? 'default' : 'pointer',
-                                    userSelect: 'none',
-                                    transition: 'border-color 0.15s',
-                                    '&:hover': readOnly ? {} : { borderColor: b.color },
-                                  }}
-                                >
-                                  <Box sx={{
-                                    width: 10, height: 10, borderRadius: '50%', flexShrink: 0,
-                                    bgcolor: isSel ? 'rgba(255,255,255,0.75)' : b.color,
-                                    border: 1, borderColor: 'rgba(0,0,0,0.12)',
-                                  }} />
-                                  {b.name}
-                                </Box>
-                              );
-                            })}
-                          </Stack>
-                          {representativeCfg.brand === 'custom' && (
-                            <TextField
-                              placeholder={t('implantForm.brand.customPlaceholder')}
-                              value={representativeCfg.brandCustom ?? ''}
-                              onChange={(e) => updateEditGroup({ brandCustom: e.target.value })}
-                              size="small"
-                              sx={{ maxWidth: 320 }}
-                              InputProps={{ readOnly }}
-                            />
-                          )}
-                        </Stack>
-                      )}
 
                       {/* Abutment status */}
                       <Stack spacing={1}>
@@ -583,6 +627,18 @@ export function ImplantRestorationForm({
                         </Stack>
                       )}
 
+                      {/* Submit button */}
+                      <Box sx={{ pt: 1 }}>
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={handleSubmitGroup}
+                          disabled={!editGroup.every((p) => isImplantConfigComplete(a.configsByPosition[String(p)] ?? {}))}
+                        >
+                          {t('implantForm.configure.submit')}
+                        </Button>
+                      </Box>
+
                     </Stack>
                   </Paper>
                 )}
@@ -594,6 +650,7 @@ export function ImplantRestorationForm({
                   notation={a.notation}
                   labBrands={labBrands}
                   brandColorById={brandColorById}
+                  submittedPositions={a.submittedPositions ?? []}
                   incompleteConfigs={errors.incompleteConfigs}
                   t={t}
                 />
@@ -739,6 +796,7 @@ function PositionDetailList({
   notation,
   labBrands,
   brandColorById,
+  globalBrand,
   t,
 }: {
   positions: number[];
@@ -746,6 +804,7 @@ function PositionDetailList({
   notation: 'Universal' | 'FDI';
   labBrands: Array<{ id: string; name: string }>;
   brandColorById: Record<string, string>;
+  globalBrand?: string;
   t: ReturnType<typeof import('react-i18next').useTranslation>['t'];
 }) {
   return (
@@ -754,15 +813,16 @@ function PositionDetailList({
         const cfg: ImplantConfig = configsByPosition[String(pos)] ?? {};
         const label = posLabel(pos, notation);
         const complete = isImplantConfigComplete(cfg);
-        const brandColor = cfg.brand ? brandColorById[cfg.brand] : undefined;
+        const effectiveBrand = cfg.brand ?? globalBrand;
+        const brandColor = effectiveBrand ? brandColorById[effectiveBrand] : undefined;
 
         const rows: Array<{ label: string; value: string }> = [];
 
         // Brand row
-        if (labBrands.length > 0 && cfg.brand) {
-          const brandName = cfg.brand === 'custom'
+        if (labBrands.length > 0 && effectiveBrand) {
+          const brandName = effectiveBrand === 'custom'
             ? (cfg.brandCustom?.trim() || t('implantForm.brand.custom'))
-            : (labBrands.find((b) => b.id === cfg.brand)?.name ?? cfg.brand);
+            : (labBrands.find((b) => b.id === effectiveBrand)?.name ?? effectiveBrand);
           rows.push({ label: t('implantForm.brand.label'), value: brandName });
         }
 
@@ -869,6 +929,7 @@ function PositionSummary({
   notation,
   labBrands,
   brandColorById,
+  submittedPositions,
   incompleteConfigs,
   t,
 }: {
@@ -877,6 +938,7 @@ function PositionSummary({
   notation: 'Universal' | 'FDI';
   labBrands: Array<{ id: string; name: string }>;
   brandColorById: Record<string, string>;
+  submittedPositions: number[];
   incompleteConfigs?: number[];
   t: ReturnType<typeof import('react-i18next').useTranslation>['t'];
 }) {
@@ -886,7 +948,7 @@ function PositionSummary({
     <Box sx={{ borderRadius: 1, border: 1, borderColor: 'divider', overflow: 'hidden' }}>
       {positions.map((pos, i) => {
         const cfg: ImplantConfig = configsByPosition[String(pos)] ?? {};
-        const complete = isImplantConfigComplete(cfg);
+        const complete = submittedPositions.includes(pos);
         const hasError = incompleteConfigs?.includes(pos);
         const label = posLabel(pos, notation);
         const brandColor = cfg.brand ? brandColorById[cfg.brand] : undefined;

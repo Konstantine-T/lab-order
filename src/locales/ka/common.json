@@ -50,7 +50,16 @@
     "subtotal": "ჯამი",
     "rushSurcharge": "სასწრაფო დანამატი",
     "estimatedTotal": "სავარაუდო ჯამი",
-    "labFinalTotal": "ლაბორატორიის საბოლოო ჯამი"
+    "labFinalTotal": "ლაბორატორიის საბოლოო ჯამი",
+    "priceDetails": "ფასის დეტალები",
+    "items": {
+      "fixedPrice": "ფიქსირებული ფასი",
+      "unitPrice": "ერთეულის ფასი",
+      "sgPilot": "საპილოტე პროტოკოლი",
+      "sgFull": "სრული პროტოკოლი",
+      "sgSupport": "გიდის მხარდაჭერა",
+      "gingivalReduction": "ღრძილის კვეთის გიდი"
+    }
   },
   "toothMap": {
     "upper": "ზედა",

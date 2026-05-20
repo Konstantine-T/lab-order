@@ -505,9 +505,11 @@
     "brand": {
       "label": "Implant brand",
       "custom": "Other (custom)",
-      "customPlaceholder": "Enter brand name"
+      "customPlaceholder": "Enter brand name",
+      "globalHint": "Select a brand, then click teeth to assign it. Each tooth can have a different brand."
     },
     "sections": {
+      "brand": "Implant brand",
       "positions": "Select implant positions",
       "configure": "Configure each implant",
       "bar": "Bar restoration",
@@ -522,6 +524,7 @@
       "selectHint": "Click an implant position chip above to configure it.",
       "editingOne": "Configuring tooth #{{pos}}",
       "editingMany": "Configuring {{count}} implants (shared settings)",
+      "submit": "Save & confirm",
       "abutmentStatus": {
         "label": "Is there an abutment in place?",
         "existingAbutment": "Already in Mouth",

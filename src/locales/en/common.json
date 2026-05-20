@@ -50,7 +50,16 @@
     "subtotal": "Subtotal",
     "rushSurcharge": "Rush surcharge",
     "estimatedTotal": "Estimated total",
-    "labFinalTotal": "Lab final total"
+    "labFinalTotal": "Lab final total",
+    "priceDetails": "Price details",
+    "items": {
+      "fixedPrice": "Fixed price",
+      "unitPrice": "Unit price",
+      "sgPilot": "Pilot protocol",
+      "sgFull": "Full protocol",
+      "sgSupport": "Guide support",
+      "gingivalReduction": "Gingival reduction guide"
+    }
   },
   "toothMap": {
     "upper": "Upper",

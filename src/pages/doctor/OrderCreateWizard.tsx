@@ -41,6 +41,7 @@ import type {
   RushType,
 } from '@/types/database';
 import { initialState, type WizardState } from '@/features/doctor/orderCreate/types';
+import { saveDraft, loadDraft, clearDraft } from '@/features/doctor/orderCreate/draftStorage';
 
 /** Effective rush surcharge derived from the lab's pricing config + the
  * doctor's rush toggle. Returns undefined → calculatePrice falls back to no
@@ -101,6 +102,20 @@ export function OrderCreateWizard() {
       navigate('/doctor/marketplace', { replace: true });
     }
   }, [labParam, serviceParam, navigate]);
+
+  // Restore draft if lab+service match (doctor returning after adding a location).
+  useEffect(() => {
+    const draft = loadDraft();
+    if (
+      draft &&
+      draft.state.lab_id === labParam &&
+      draft.state.lab_service_id === serviceParam
+    ) {
+      setState(draft.state);
+      setStep(draft.step);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ----- Data queries -------------------------------------------------------
   const { data: locations = [] } = useQuery({
@@ -275,7 +290,7 @@ export function OrderCreateWizard() {
       if (error) throw error;
       return data as string;
     },
-    onSuccess: (orderId) => setSubmittedOrderId(orderId),
+    onSuccess: (orderId) => { clearDraft(); setSubmittedOrderId(orderId); },
     onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
   });
 
@@ -341,6 +356,15 @@ export function OrderCreateWizard() {
           locations={locations}
           pricing={version?.pricing_configuration_json}
           averageTurnaroundDays={selectedService?.average_turnaround_days ?? null}
+          onAddLocation={() => {
+            saveDraft({
+              state,
+              step: 2,
+              labName: lab?.public_name ?? '',
+              serviceName: selectedService?.name ?? '',
+            });
+            navigate('/doctor/work-locations');
+          }}
         />
       )}
       {step === 3 && version && (
@@ -389,17 +413,18 @@ function PatientStep({
   const [match, setMatch] = useState<PatientRow | null>(null);
   const [matchOpen, setMatchOpen] = useState(false);
 
-  // Trigger match check when name + dob entered
+  // Trigger match check when name + gender are entered (dob is optional).
   useEffect(() => {
-    const { first_name, last_name, date_of_birth } = state.patient;
-    if (!first_name || !last_name || !date_of_birth || !doctorId) return;
+    const { first_name, last_name, date_of_birth, gender } = state.patient;
+    if (!first_name || !last_name || !gender || !doctorId) return;
     if (state.patient.existing_id) return;
 
     void supabase
       .rpc('find_matching_patient', {
         p_first: first_name,
         p_last: last_name,
-        p_dob: date_of_birth,
+        p_dob: date_of_birth || null,
+        p_gender: gender,
       })
       .then(({ data }) => {
         if (data && data.length > 0) {
@@ -411,6 +436,7 @@ function PatientStep({
     state.patient.first_name,
     state.patient.last_name,
     state.patient.date_of_birth,
+    state.patient.gender,
     state.patient.existing_id,
     doctorId,
   ]);
@@ -505,7 +531,9 @@ function PatientStep({
           </Typography>
           {match && (
             <Typography variant="body2" sx={{ mt: 1, fontWeight: 500 }}>
-              {match.first_name} {match.last_name} · {match.date_of_birth}
+              {match.first_name} {match.last_name}
+              {match.date_of_birth ? ` · ${match.date_of_birth}` : ''}
+              {match.gender ? ` · ${match.gender}` : ''}
             </Typography>
           )}
         </DialogContent>
@@ -579,12 +607,14 @@ function FilesAndDueStep({
   locations,
   pricing,
   averageTurnaroundDays,
+  onAddLocation,
 }: {
   state: WizardState;
   update: (p: Partial<WizardState>) => void;
   locations: DoctorWorkLocationRow[];
   pricing: PricingConfig | undefined;
   averageTurnaroundDays: number | null;
+  onAddLocation: () => void;
 }) {
   const { t } = useTranslation('doctor');
 
@@ -614,20 +644,34 @@ function FilesAndDueStep({
         <Stack spacing={3}>
           <Stack>
             <Typography variant="h6">{t('orderCreate.filesAndDue.workLocation')}</Typography>
-            <TextField
-              select
-              value={state.doctor_work_location_id}
-              onChange={(e) => update({ doctor_work_location_id: e.target.value })}
-              fullWidth
-              sx={{ mt: 1 }}
-            >
-              {locations.map((l) => (
-                <MenuItem key={l.id} value={l.id}>
-                  {l.clinic_name}
-                  {l.branch_name ? ` · ${l.branch_name}` : ''} — {l.city}
-                </MenuItem>
-              ))}
-            </TextField>
+            {locations.length === 0 ? (
+              <Alert
+                severity="warning"
+                sx={{ mt: 1 }}
+                action={
+                  <Button color="inherit" size="small" onClick={onAddLocation}>
+                    {t('orderCreate.filesAndDue.addLocation')}
+                  </Button>
+                }
+              >
+                {t('orderCreate.filesAndDue.noLocations')}
+              </Alert>
+            ) : (
+              <TextField
+                select
+                value={state.doctor_work_location_id}
+                onChange={(e) => update({ doctor_work_location_id: e.target.value })}
+                fullWidth
+                sx={{ mt: 1 }}
+              >
+                {locations.map((l) => (
+                  <MenuItem key={l.id} value={l.id}>
+                    {l.clinic_name}
+                    {l.branch_name ? ` · ${l.branch_name}` : ''} — {l.city}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
           </Stack>
 
           <Stack spacing={1}>

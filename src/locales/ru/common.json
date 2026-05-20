@@ -50,7 +50,16 @@
     "subtotal": "Подытог",
     "rushSurcharge": "Срочная надбавка",
     "estimatedTotal": "Предварительный итог",
-    "labFinalTotal": "Итог лаборатории"
+    "labFinalTotal": "Итог лаборатории",
+    "priceDetails": "Детали цены",
+    "items": {
+      "fixedPrice": "Фиксированная цена",
+      "unitPrice": "Цена за единицу",
+      "sgPilot": "Протокол «Пилот»",
+      "sgFull": "Полный протокол",
+      "sgSupport": "Тип поддержки шаблона",
+      "gingivalReduction": "Гид редукции десны"
+    }
   },
   "toothMap": {
     "upper": "Верх",

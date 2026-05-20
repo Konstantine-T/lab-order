@@ -1,10 +1,24 @@
 import type { PricingConfig, RushType } from '@/types/database';
 
+export type PriceLineItem = {
+  label: string;
+  /** If set, translate as t(`priceBreakdown.items.${i18nKey}`); label is the fallback */
+  i18nKey?: string;
+  /** Multiplier count, e.g. "× 3 implants" */
+  qty?: number;
+  /** Per-unit amount — used alongside baseAmount for bar display */
+  unitAmount?: number;
+  /** Base fee for base_plus_per_implant items (bar materials) */
+  baseAmount?: number;
+  amount: number;
+};
+
 export type PriceResult = {
   kind: 'CALCULATED';
   subtotal: number;
   rushAmount: number;
   total: number;
+  lineItems: PriceLineItem[];
 };
 
 /**
@@ -16,12 +30,14 @@ export function calculatePrice(
   answers: Record<string, unknown>,
   rushOverride?: { type: RushType; value: number },
 ): PriceResult {
-  if (!pricing) return { kind: 'CALCULATED', subtotal: 0, rushAmount: 0, total: 0 };
+  if (!pricing) return { kind: 'CALCULATED', subtotal: 0, rushAmount: 0, total: 0, lineItems: [] };
 
   let subtotal = 0;
+  const lineItems: PriceLineItem[] = [];
 
   if (pricing.model === 'FIXED_PRICE') {
     subtotal = pricing.fixed_price ?? 0;
+    // No line items for fixed price — nothing to break down.
   } else if (pricing.model === 'UNIT_BASED') {
     // Crown & Bridge: sum each tooth assignment's material price.
     const toothAssignments = (answers as { toothAssignments?: unknown }).toothAssignments;
@@ -29,17 +45,32 @@ export function calculatePrice(
       const priceById = new Map<string, number>(
         pricing.materials.map((m) => [m.id, m.unit_price ?? 0]),
       );
+      const nameById = new Map<string, string>(
+        pricing.materials.map((m) => [m.id, m.name]),
+      );
+      // Aggregate by material id
+      const matCount = new Map<string, number>();
       subtotal = toothAssignments.reduce((sum, a) => {
         const ao = a as { materialId?: unknown };
         const mid = typeof ao.materialId === 'string' ? ao.materialId : '';
+        matCount.set(mid, (matCount.get(mid) ?? 0) + 1);
         return sum + (priceById.get(mid) ?? 0);
       }, 0);
+      for (const [mid, qty] of matCount) {
+        const unitAmount = priceById.get(mid) ?? 0;
+        const amount = unitAmount * qty;
+        if (amount > 0) {
+          lineItems.push({ label: nameById.get(mid) ?? mid, qty, unitAmount, amount });
+        }
+      }
       // Evident Smile Package: add gingival reduction guide fee if opted in
       if (
         (answers as Record<string, unknown>).needsGingivalReductionGuide === 'YES' &&
         (pricing.esp_gingival_reduction_price ?? 0) > 0
       ) {
-        subtotal += pricing.esp_gingival_reduction_price!;
+        const fee = pricing.esp_gingival_reduction_price!;
+        subtotal += fee;
+        lineItems.push({ i18nKey: 'gingivalReduction', label: 'Gingival reduction guide', amount: fee });
       }
     } else if (typeof (answers as Record<string, unknown>).guideProtocol === 'string') {
       // Surgical Guide: protocol unit price × implant count + support type fees.
@@ -54,25 +85,41 @@ export function calculatePrice(
       const upperCount = hasUpper ? (sg.upper?.implantPositions?.length ?? 0) : 0;
       const lowerCount = hasLower ? (sg.lower?.implantPositions?.length ?? 0) : 0;
       const implantCount = upperCount + lowerCount;
-      const unitPrice =
-        sg.guideProtocol === 'PILOT'
-          ? (pricing.sg_pilot_unit_price ?? 0)
-          : (pricing.sg_full_protocol_unit_price ?? 0);
+      const isPilot = sg.guideProtocol === 'PILOT';
+      const unitPrice = isPilot
+        ? (pricing.sg_pilot_unit_price ?? 0)
+        : (pricing.sg_full_protocol_unit_price ?? 0);
       subtotal = unitPrice * implantCount;
+      if (unitPrice > 0 && implantCount > 0) {
+        lineItems.push({
+          i18nKey: isPilot ? 'sgPilot' : 'sgFull',
+          label: isPilot ? 'Pilot protocol' : 'Full protocol',
+          qty: implantCount,
+          unitAmount: unitPrice,
+          amount: unitPrice * implantCount,
+        });
+      }
       const supportFees = pricing.sg_support_fees ?? [];
       if (hasUpper && sg.upper?.guideSupport) {
-        subtotal +=
-          supportFees.find((sf) => sf.supportType === sg.upper?.guideSupport)?.extra_fee ?? 0;
+        const fee = supportFees.find((sf) => sf.supportType === sg.upper?.guideSupport)?.extra_fee ?? 0;
+        subtotal += fee;
+        if (fee > 0) {
+          lineItems.push({ i18nKey: 'sgSupport', label: sg.upper.guideSupport, amount: fee });
+        }
       }
       if (hasLower && sg.lower?.guideSupport) {
-        subtotal +=
-          supportFees.find((sf) => sf.supportType === sg.lower?.guideSupport)?.extra_fee ?? 0;
+        const fee = supportFees.find((sf) => sf.supportType === sg.lower?.guideSupport)?.extra_fee ?? 0;
+        subtotal += fee;
+        if (fee > 0) {
+          lineItems.push({ i18nKey: 'sgSupport', label: sg.lower.guideSupport, amount: fee });
+        }
       }
     } else if (pricing.implant_price_config !== undefined || pricing.implant_crown_materials !== undefined) {
       // Constructions on Implants
       const cfg = pricing.implant_price_config ?? {};
       const crownMats = pricing.implant_crown_materials ?? [];
       const crownMatById = new Map(crownMats.map((m) => [m.id, m.unit_price ?? 0]));
+      const crownNameById = new Map(crownMats.map((m) => [m.id, m.name]));
 
       const a = answers as {
         implantPositions?: number[];
@@ -90,11 +137,13 @@ export function calculatePrice(
         cnbAnswers?: { toothAssignments?: Array<{ materialId?: string }> };
       };
 
+      // Aggregate component usage: key → { label, price, count }
+      const componentCount = new Map<string, { label: string; price: number; count: number }>();
+
       for (const pos of a.implantPositions ?? []) {
         const implantCfg = a.configsByPosition?.[String(pos)];
         if (!implantCfg) continue;
 
-        // existingAbutment: no component prices
         if (implantCfg.abutmentStatus !== 'existingAbutment') {
           const keys: string[] = [];
           if (implantCfg.abutmentType) keys.push(implantCfg.abutmentType);
@@ -110,14 +159,39 @@ export function calculatePrice(
           }
           for (const k of keys) {
             const item = cfg[k];
-            if (item?.enabled) subtotal += item.price;
+            if (item?.enabled) {
+              subtotal += item.price;
+              const existing = componentCount.get(k);
+              if (existing) {
+                existing.count++;
+              } else {
+                componentCount.set(k, { label: item.label, price: item.price, count: 1 });
+              }
+            }
           }
         }
       }
 
+      for (const [, { label, price, count }] of componentCount) {
+        if (price > 0) {
+          lineItems.push({ label, qty: count, unitAmount: price, amount: price * count });
+        }
+      }
+
       // Crown pricing from embedded CNB form (per tooth assignment)
+      const crownCount = new Map<string, number>();
       for (const ta of a.cnbAnswers?.toothAssignments ?? []) {
-        if (ta.materialId) subtotal += crownMatById.get(ta.materialId) ?? 0;
+        if (ta.materialId) {
+          subtotal += crownMatById.get(ta.materialId) ?? 0;
+          crownCount.set(ta.materialId, (crownCount.get(ta.materialId) ?? 0) + 1);
+        }
+      }
+      for (const [mid, qty] of crownCount) {
+        const unitAmount = crownMatById.get(mid) ?? 0;
+        const amount = unitAmount * qty;
+        if (amount > 0) {
+          lineItems.push({ label: crownNameById.get(mid) ?? mid, qty, unitAmount, amount });
+        }
       }
 
       // Bar pricing
@@ -128,9 +202,24 @@ export function calculatePrice(
           const item = cfg[bar.barMaterial];
           if (item?.enabled) {
             if (item.pricingMode === 'base_plus_per_implant') {
-              subtotal += (item.basePrice ?? 0) + (item.perImplantPrice ?? 0) * n;
+              const base = item.basePrice ?? 0;
+              const perUnit = item.perImplantPrice ?? 0;
+              const amount = base + perUnit * n;
+              subtotal += amount;
+              if (amount > 0) {
+                lineItems.push({
+                  label: item.label,
+                  qty: n,
+                  unitAmount: perUnit,
+                  baseAmount: base,
+                  amount,
+                });
+              }
             } else {
               subtotal += item.price;
+              if (item.price > 0) {
+                lineItems.push({ label: item.label, amount: item.price });
+              }
             }
           }
         }
@@ -139,7 +228,17 @@ export function calculatePrice(
       // Generic non-CnB: count `teeth` field × global unit_price.
       const teeth = answers['teeth'];
       const count = Array.isArray(teeth) ? teeth.length : 0;
-      subtotal = (pricing.unit_price ?? 0) * count;
+      const unitPrice = pricing.unit_price ?? 0;
+      subtotal = unitPrice * count;
+      if (subtotal > 0) {
+        lineItems.push({
+          i18nKey: 'unitPrice',
+          label: 'Unit price',
+          qty: count,
+          unitAmount: unitPrice,
+          amount: subtotal,
+        });
+      }
     }
   }
 
@@ -157,6 +256,7 @@ export function calculatePrice(
     subtotal,
     rushAmount,
     total: subtotal + rushAmount,
+    lineItems,
   };
 }
 

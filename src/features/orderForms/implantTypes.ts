@@ -100,9 +100,14 @@ export type ImplantBarAnswers = {
 };
 
 export type ImplantRestorationAnswers = {
+  /** Active brush brand used when clicking new teeth on the map. */
+  brand?: string;
+  brandCustom?: string;
   implantPositions: number[];
   notation: 'Universal' | 'FDI';
   configsByPosition: Record<string, ImplantConfig>;
+  /** Positions the doctor has explicitly confirmed via the Submit button. */
+  submittedPositions?: number[];
   bar: ImplantBarAnswers;
   /** CNB-form answers for the final crown restoration (stored as raw JSON). */
   cnbAnswers?: Record<string, unknown>;
@@ -138,9 +143,12 @@ export function coerceImplantAnswers(raw: unknown): ImplantRestorationAnswers {
     : {};
 
   return {
+    brand: typeof r.brand === 'string' ? r.brand : undefined,
+    brandCustom: typeof r.brandCustom === 'string' ? r.brandCustom : undefined,
     implantPositions: toNumArray(r.implantPositions),
     notation: r.notation === 'FDI' ? 'FDI' : 'Universal',
     configsByPosition: coercedConfigs,
+    submittedPositions: toNumArray(r.submittedPositions),
     bar: {
       needsBar: typeof bar.needsBar === 'boolean' ? bar.needsBar : undefined,
       barMaterial: typeof bar.barMaterial === 'string' ? bar.barMaterial : undefined,
@@ -193,7 +201,9 @@ export function validateImplantRestoration(a: ImplantRestorationAnswers): Implan
     e.implantPositions = 'Select at least one implant position.';
   }
 
+  const submitted = a.submittedPositions ?? [];
   const incomplete = a.implantPositions.filter((pos) => {
+    if (!submitted.includes(pos)) return true;
     const cfg = a.configsByPosition[String(pos)];
     return !cfg || !isImplantConfigComplete(cfg);
   });
