@@ -26,6 +26,15 @@ export type OrderStatus =
   | 'COMPLETED'
   | 'CANCELLED';
 export type PaymentStatus = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID';
+
+export const LAB_SELECTABLE_STATUSES = [
+  'RECEIVED',
+  'NEEDS_CLARIFICATION',
+  'IN_PROGRESS',
+  'READY_FOR_DELIVERY',
+  'SENT_TO_CLINIC',
+  'COMPLETED',
+] as const satisfies readonly OrderStatus[];
 export type InvoiceRecipientType = 'DOCTOR' | 'CLINIC';
 export type RushType = 'NONE' | 'PERCENTAGE' | 'FIXED_AMOUNT';
 export type PricingModel = 'UNIT_BASED' | 'FIXED_PRICE';

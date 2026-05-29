@@ -150,7 +150,11 @@
     "answers": "Order details",
     "files": "Files",
     "noFiles": "No files attached.",
-    "snapshot": "(snapshot at submission)"
+    "snapshot": "(snapshot at submission)",
+    "cancellation": {
+      "title": "Order cancelled",
+      "noReason": "No reason provided."
+    }
   },
   "profile": {
     "title": "My profile",

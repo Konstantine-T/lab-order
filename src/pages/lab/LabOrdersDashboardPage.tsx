@@ -29,19 +29,18 @@ import { OrderRowCard } from '@/features/orders/OrderRowCard';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { OrdersPaginator } from '@/features/orders/OrdersPaginator';
 import type { OrderRow, OrderStatus } from '@/types/database';
+import { LAB_SELECTABLE_STATUSES } from '@/types/database';
 
-const ALL_STATUSES: readonly OrderStatus[] = [
+const FILTERABLE_STATUSES: readonly OrderStatus[] = [
   'SUBMITTED',
   'RECEIVED',
   'NEEDS_CLARIFICATION',
   'IN_PROGRESS',
   'READY_FOR_DELIVERY',
   'SENT_TO_CLINIC',
-  'RECEIVED_BY_CLINIC',
-  'TRY_IN_PHASE',
   'COMPLETED',
   'CANCELLED',
-];
+] as const;
 
 type Row = OrderRow & {
   lab_services: { name: string } | null;
@@ -209,7 +208,7 @@ export function LabOrdersDashboardPage() {
                   : sel.map((s) => tc(`orderStatus.${s}`)).join(', ')
               }
             >
-              {ALL_STATUSES.map((s) => (
+              {FILTERABLE_STATUSES.map((s) => (
                 <MenuItem key={s} value={s}>
                   <Checkbox checked={statuses.includes(s)} size="small" />
                   <ListItemText primary={tc(`orderStatus.${s}`)} />
@@ -296,7 +295,7 @@ export function LabOrdersDashboardPage() {
                         disabled={updateStatus.isPending}
                         sx={{ minWidth: 220 }}
                       >
-                        {ALL_STATUSES.map((s) => (
+                        {LAB_SELECTABLE_STATUSES.map((s) => (
                           <MenuItem key={s} value={s}>
                             {tc(`orderStatus.${s}`)}
                           </MenuItem>

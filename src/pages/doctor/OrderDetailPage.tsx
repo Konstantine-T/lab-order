@@ -1,5 +1,6 @@
 import {
   Alert,
+  AlertTitle,
   Box,
   Button,
   Card,
@@ -98,6 +99,13 @@ export function OrderDetailPage() {
       <Button component={RouterLink} to="/doctor/orders" size="small" sx={{ alignSelf: 'flex-start' }}>
         ← {t('orderDetail.back')}
       </Button>
+
+      {order.status === 'CANCELLED' && (
+        <Alert severity="error">
+          <AlertTitle>{t('orderDetail.cancellation.title')}</AlertTitle>
+          {order.cancellation_reason || t('orderDetail.cancellation.noReason')}
+        </Alert>
+      )}
 
       <Card>
         <CardContent>

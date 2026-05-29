@@ -252,7 +252,16 @@
     "finalPriceTooLow": "Final price cannot be lower than {{min}} (50% of the estimated total).",
     "save": "Save",
     "statusTitle": "Order status",
-    "statusHelp": "Pick the new status and click Save. The doctor sees the change immediately."
+    "statusHelp": "Pick the new status and click Save. The doctor sees the change immediately.",
+    "cancelOrder": "Cancel order",
+    "cancelModal": {
+      "title": "Cancel this order?",
+      "body": "This action cannot be undone. Provide a reason — the doctor will see it.",
+      "reasonLabel": "Cancellation reason",
+      "keep": "Keep order",
+      "confirm": "Cancel order",
+      "success": "Order cancelled."
+    }
   },
   "approvalBanner": {
     "PENDING_APPROVAL": {

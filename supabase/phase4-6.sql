@@ -813,5 +813,11 @@ create policy order_drafts_doctor_all on public.order_drafts
 grant select, insert, update, delete on public.order_drafts to authenticated;
 
 -- ============================================================================
+-- Section 10: cancellation_reason column on orders
+-- ============================================================================
+
+alter table public.orders add column if not exists cancellation_reason text;
+
+-- ============================================================================
 -- DONE.
 -- ============================================================================

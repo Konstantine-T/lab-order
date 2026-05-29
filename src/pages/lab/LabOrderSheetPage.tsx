@@ -6,6 +6,11 @@ import {
   Card,
   CardContent,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   Stack,
   TextField,
@@ -28,21 +33,9 @@ import type {
   OrderRow,
   OrderStatus,
 } from '@/types/database';
+import { LAB_SELECTABLE_STATUSES } from '@/types/database';
 
 type DetailRow = OrderRow;
-
-const ALL_STATUSES: readonly OrderStatus[] = [
-  'SUBMITTED',
-  'RECEIVED',
-  'NEEDS_CLARIFICATION',
-  'IN_PROGRESS',
-  'READY_FOR_DELIVERY',
-  'SENT_TO_CLINIC',
-  'RECEIVED_BY_CLINIC',
-  'TRY_IN_PHASE',
-  'COMPLETED',
-  'CANCELLED',
-] as const;
 
 export function LabOrderSheetPage() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -55,6 +48,8 @@ export function LabOrderSheetPage() {
   const [pendingStatus, setPendingStatus] = useState<OrderStatus | ''>('');
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState('');
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['lab-order', orderId],
@@ -119,6 +114,25 @@ export function LabOrderSheetPage() {
     onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
   });
 
+  const cancel = useMutation({
+    mutationFn: async (reason: string) => {
+      if (!orderId) return;
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'CANCELLED', cancellation_reason: reason })
+        .eq('id', orderId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setCancelOpen(false);
+      setCancelReason('');
+      setSuccess(t('orderSheet.cancelModal.success'));
+      qc.invalidateQueries({ queryKey: ['lab-order', orderId] });
+      qc.invalidateQueries({ queryKey: ['lab-orders'] });
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
+  });
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
@@ -127,6 +141,8 @@ export function LabOrderSheetPage() {
     );
   }
   if (!order) return <Alert severity="error">{tc('errors.notFound')}</Alert>;
+
+  const isTerminal = order.status === 'COMPLETED' || order.status === 'CANCELLED';
 
   const answersMap: Record<string, unknown> = {};
   for (const a of answers) answersMap[a.field_code] = a.answer_json;
@@ -171,17 +187,28 @@ export function LabOrderSheetPage() {
             <PillGroup
               value={pendingStatus}
               onChange={(s) => setPendingStatus(s)}
-              options={ALL_STATUSES}
+              options={LAB_SELECTABLE_STATUSES}
               getLabel={(s) => tc(`orderStatus.${s}`)}
             />
-            <Stack direction="row" justifyContent="flex-end">
+            <Stack direction="row" justifyContent="flex-end" spacing={1}>
+              {!isTerminal && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  onClick={() => setCancelOpen(true)}
+                >
+                  {t('orderSheet.cancelOrder')}
+                </Button>
+              )}
               <Button
                 variant="contained"
                 size="small"
                 disabled={
                   update.isPending ||
                   !pendingStatus ||
-                  pendingStatus === order.status
+                  pendingStatus === order.status ||
+                  isTerminal
                 }
                 onClick={() => pendingStatus && update.mutate({ status: pendingStatus })}
               >
@@ -300,16 +327,26 @@ export function LabOrderSheetPage() {
             <PillGroup
               value={pendingStatus}
               onChange={(s) => setPendingStatus(s)}
-              options={ALL_STATUSES}
+              options={LAB_SELECTABLE_STATUSES}
               getLabel={(s) => tc(`orderStatus.${s}`)}
             />
-            <Stack direction="row" justifyContent="flex-end">
+            <Stack direction="row" justifyContent="flex-end" spacing={1}>
+              {!isTerminal && (
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={() => setCancelOpen(true)}
+                >
+                  {t('orderSheet.cancelOrder')}
+                </Button>
+              )}
               <Button
                 variant="contained"
                 disabled={
                   update.isPending ||
                   !pendingStatus ||
-                  pendingStatus === order.status
+                  pendingStatus === order.status ||
+                  isTerminal
                 }
                 onClick={() =>
                   pendingStatus && update.mutate({ status: pendingStatus })
@@ -321,6 +358,37 @@ export function LabOrderSheetPage() {
           </Stack>
         </CardContent>
       </Card>
+
+      <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>{t('orderSheet.cancelModal.title')}</DialogTitle>
+        <DialogContent>
+          <Stack spacing={2} sx={{ mt: 0.5 }}>
+            <DialogContentText>{t('orderSheet.cancelModal.body')}</DialogContentText>
+            <TextField
+              label={t('orderSheet.cancelModal.reasonLabel')}
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              multiline
+              minRows={3}
+              fullWidth
+              autoFocus
+            />
+          </Stack>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCancelOpen(false)} color="inherit">
+            {t('orderSheet.cancelModal.keep')}
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            disabled={!cancelReason.trim() || cancel.isPending}
+            onClick={() => cancel.mutate(cancelReason.trim())}
+          >
+            {t('orderSheet.cancelModal.confirm')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 }
@@ -337,4 +405,3 @@ function Row({ k, v }: { k: string; v: string | undefined | null }) {
     </Stack>
   );
 }
-
