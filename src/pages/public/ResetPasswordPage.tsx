@@ -1,19 +1,21 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Button,
   Card,
   CardContent,
+  Link,
   Stack,
   Typography,
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { PublicAuthLayout } from '@/layouts/PublicAuthLayout';
 import { RHFTextField } from '@/components/RHFTextField';
+import { FullPageSpinner } from '@/components/FullPageSpinner';
 import { supabase } from '@/lib/supabase';
 
 const schema = z
@@ -23,7 +25,7 @@ const schema = z
   })
   .refine((d) => d.password === d.confirm_password, {
     path: ['confirm_password'],
-    message: 'mismatch',
+    message: 'Passwords do not match.',
   });
 
 type FormValues = z.infer<typeof schema>;
@@ -33,11 +35,30 @@ export function ResetPasswordPage() {
   const navigate = useNavigate();
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  // null = still detecting, true = valid session, false = no session (link invalid)
+  const [sessionReady, setSessionReady] = useState<boolean | null>(null);
 
   const methods = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: { password: '', confirm_password: '' },
   });
+
+  useEffect(() => {
+    // Backup: if PASSWORD_RECOVERY fires after mount (rare with detectSessionInUrl)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setSessionReady(true);
+      }
+    });
+
+    // Primary check: session is already established by the time we mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      // Don't override if onAuthStateChange already set it to true
+      setSessionReady((prev) => prev ?? !!session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const onSubmit = async (values: FormValues) => {
     setServerError(null);
@@ -47,8 +68,32 @@ export function ResetPasswordPage() {
       return;
     }
     setSuccess(true);
-    setTimeout(() => navigate('/login'), 1500);
+    // Sign out so the user must log in with the new password.
+    await supabase.auth.signOut();
+    setTimeout(() => navigate('/login'), 2000);
   };
+
+  if (sessionReady === null) return <FullPageSpinner />;
+
+  if (!sessionReady) {
+    return (
+      <PublicAuthLayout>
+        <Card>
+          <CardContent>
+            <Stack spacing={3}>
+              <Stack spacing={0.5}>
+                <Typography variant="h4">{t('resetPassword.expiredTitle')}</Typography>
+                <Typography color="text.secondary">{t('resetPassword.expiredMessage')}</Typography>
+              </Stack>
+              <Link component={RouterLink} to="/forgot-password" variant="body2">
+                {t('resetPassword.requestNewLink')}
+              </Link>
+            </Stack>
+          </CardContent>
+        </Card>
+      </PublicAuthLayout>
+    );
+  }
 
   return (
     <PublicAuthLayout>
@@ -58,32 +103,34 @@ export function ResetPasswordPage() {
             <Typography variant="h4">{t('resetPassword.title')}</Typography>
             {success && <Alert severity="success">{t('resetPassword.success')}</Alert>}
             {serverError && <Alert severity="error">{serverError}</Alert>}
-            <FormProvider {...methods}>
-              <form onSubmit={methods.handleSubmit(onSubmit)} noValidate>
-                <Stack spacing={2}>
-                  <RHFTextField
-                    name="password"
-                    type="password"
-                    label={t('resetPassword.newPassword')}
-                    autoComplete="new-password"
-                  />
-                  <RHFTextField
-                    name="confirm_password"
-                    type="password"
-                    label={t('resetPassword.confirmPassword')}
-                    autoComplete="new-password"
-                  />
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                    disabled={methods.formState.isSubmitting}
-                  >
-                    {t('resetPassword.submit')}
-                  </Button>
-                </Stack>
-              </form>
-            </FormProvider>
+            {!success && (
+              <FormProvider {...methods}>
+                <form onSubmit={methods.handleSubmit(onSubmit)} noValidate>
+                  <Stack spacing={2}>
+                    <RHFTextField
+                      name="password"
+                      type="password"
+                      label={t('resetPassword.newPassword')}
+                      autoComplete="new-password"
+                    />
+                    <RHFTextField
+                      name="confirm_password"
+                      type="password"
+                      label={t('resetPassword.confirmPassword')}
+                      autoComplete="new-password"
+                    />
+                    <Button
+                      type="submit"
+                      variant="contained"
+                      size="large"
+                      disabled={methods.formState.isSubmitting}
+                    >
+                      {t('resetPassword.submit')}
+                    </Button>
+                  </Stack>
+                </form>
+              </FormProvider>
+            )}
           </Stack>
         </CardContent>
       </Card>

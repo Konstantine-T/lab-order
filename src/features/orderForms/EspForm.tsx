@@ -98,6 +98,7 @@ export function EspForm({
             getLabel={(o) => opt('misalignment', o)}
             onChange={(v) => set({ misalignment: v, misalignmentOther: v !== 'OTHER' ? '' : a.misalignmentOther })}
             readOnly={readOnly}
+            allowDeselect={!req('esp_misalignment')}
           />
           {a.misalignment === 'OTHER' && (
             <TextField
@@ -131,6 +132,7 @@ export function EspForm({
               })
             }
             readOnly={readOnly}
+            allowDeselect={!req('esp_gingival')}
           />
           <ErrorHelper>{errors.gingivalContouring}</ErrorHelper>
 
@@ -152,6 +154,7 @@ export function EspForm({
                 getLabel={(o) => t(`espForm.yesNo.${o}`)}
                 onChange={(v) => set({ needsGingivalReductionGuide: v })}
                 readOnly={readOnly}
+                allowDeselect
               />
             </Stack>
           )}
@@ -172,6 +175,7 @@ export function EspForm({
               set({ verticalDimension: v, verticalDimensionMm: v !== 'OPEN_BITE' ? null : a.verticalDimensionMm })
             }
             readOnly={readOnly}
+            allowDeselect={!req('esp_vertical_dimension')}
           />
           {a.verticalDimension === 'OPEN_BITE' && (
             <MmInput
@@ -197,6 +201,7 @@ export function EspForm({
             getLabel={(o) => opt('maxLength', o)}
             onChange={(v) => set({ maxLength: v, maxLengthOther: v !== 'OTHER' ? '' : a.maxLengthOther })}
             readOnly={readOnly}
+            allowDeselect={!req('esp_max_length')}
           />
           {a.maxLength === 'OTHER' && (
             <TextField

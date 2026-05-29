@@ -719,8 +719,9 @@ export function ImplantRestorationForm({
                     value={a.bar.tryIn ?? ''}
                     options={BAR_TRY_IN_OPTIONS.map((o) => o.key) as readonly string[]}
                     getLabel={(k) => t(`implantForm.bar.tryIn.${k}`)}
-                    onChange={(v) => set({ bar: { ...a.bar, tryIn: v } })}
+                    onChange={(v) => set({ bar: { ...a.bar, tryIn: v || undefined } })}
                     readOnly={readOnly}
+                    allowDeselect
                   />
                 </Stack>
 

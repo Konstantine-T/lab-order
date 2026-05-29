@@ -287,6 +287,7 @@ export function SurgicalGuideForm({
             getLabel={(o) => t(`sgForm.restoration.${o}`)}
             onChange={(v) => set({ directRestoration: v })}
             readOnly={readOnly}
+            allowDeselect
           />
 
           {a.directRestoration === 'YES' && (
@@ -690,6 +691,7 @@ function EdentulousSubSection({
           onChange={(v) => onChange({ needsOcclusionGuide: v })}
           readOnly={readOnly}
           size="small"
+          allowDeselect
         />
       </Stack>
 
@@ -703,6 +705,7 @@ function EdentulousSubSection({
           onChange={(v) => onChange({ prostheticSetup: v })}
           readOnly={readOnly}
           size="small"
+          allowDeselect
         />
       </Stack>
 
@@ -743,6 +746,7 @@ function EdentulousSubSection({
           onChange={(v) => onChange({ existingDenture: v })}
           readOnly={readOnly}
           size="small"
+          allowDeselect
         />
       </Stack>
 
@@ -756,6 +760,7 @@ function EdentulousSubSection({
           onChange={(v) => onChange({ useExistingDentureRef: v })}
           readOnly={readOnly || noDenture}
           size="small"
+          allowDeselect
         />
       </Stack>
 
@@ -769,6 +774,7 @@ function EdentulousSubSection({
           onChange={(v) => onChange({ planOnFutureProsthetics: v })}
           readOnly={readOnly || noDenture}
           size="small"
+          allowDeselect
         />
       </Stack>
     </Stack>

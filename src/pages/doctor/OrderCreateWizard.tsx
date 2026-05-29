@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Button,
@@ -41,7 +41,12 @@ import type {
   RushType,
 } from '@/types/database';
 import { initialState, type WizardState } from '@/features/doctor/orderCreate/types';
-import { saveDraft, loadDraft, clearDraft } from '@/features/doctor/orderCreate/draftStorage';
+import {
+  loadDraft,
+  clearDraft,
+  useDebouncedDraftAutosave,
+  type DraftBrokenness,
+} from '@/features/doctor/orderCreate/draftStorage';
 
 /** Effective rush surcharge derived from the lab's pricing config + the
  * doctor's rush toggle. Returns undefined → calculatePrice falls back to no
@@ -93,6 +98,8 @@ export function OrderCreateWizard() {
   const [error, setError] = useState<string | null>(null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [submittedOrderId, setSubmittedOrderId] = useState<string | null>(null);
+  const [dismissedBroken, setDismissedBroken] = useState(false);
+  const draftHydratedRef = useRef(false);
 
   const update = (patch: Partial<WizardState>) => setState((s) => ({ ...s, ...patch }));
 
@@ -103,19 +110,32 @@ export function OrderCreateWizard() {
     }
   }, [labParam, serviceParam, navigate]);
 
-  // Restore draft if lab+service match (doctor returning after adding a location).
+  // Load draft from Supabase once.
+  const { data: draftData, isSuccess: draftLoaded } = useQuery({
+    queryKey: ['doctor-draft', doctorId],
+    enabled: !!doctorId,
+    queryFn: () => loadDraft(doctorId!),
+    staleTime: Infinity,
+    gcTime: 0,
+  });
+
+  // Hydrate wizard state from draft when it arrives (once, if lab/service match).
   useEffect(() => {
-    const draft = loadDraft();
+    if (!draftLoaded || draftHydratedRef.current) return;
+    draftHydratedRef.current = true;
     if (
-      draft &&
-      draft.state.lab_id === labParam &&
-      draft.state.lab_service_id === serviceParam
+      draftData &&
+      draftData.state.lab_id === labParam &&
+      draftData.state.lab_service_id === serviceParam
     ) {
-      setState(draft.state);
-      setStep(draft.step);
+      // Clear existing_id so the patient-match dialog re-shows on resume.
+      setState({
+        ...draftData.state,
+        patient: { ...draftData.state.patient, existing_id: undefined },
+      });
+      setStep(draftData.step);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [draftLoaded, draftData, labParam, serviceParam]);
 
   // ----- Data queries -------------------------------------------------------
   const { data: locations = [] } = useQuery({
@@ -197,6 +217,31 @@ export function OrderCreateWizard() {
       return data as LabFormVersionRow | null;
     },
   });
+
+  // ----- Broken-draft detection ------------------------------------------------
+  // The orderable-lab and orderable-service queries already filter by
+  // is_active / approval_status, so a null result means unavailable.
+  const draftBrokenness = useMemo<DraftBrokenness | null>(() => {
+    if (!draftLoaded || !draftData) return null;
+    if (!lab) return { broken: true, reason: 'lab_unavailable' as const };
+    if (!selectedService) return { broken: true, reason: 'service_unavailable' as const };
+    const form = selectedService.lab_forms;
+    if (!form || form.status !== 'PUBLISHED') {
+      return { broken: true, reason: 'form_unavailable' as const };
+    }
+    return { broken: false };
+  }, [draftLoaded, draftData, lab, selectedService]);
+
+  const isBroken = (draftBrokenness?.broken ?? false) && !dismissedBroken;
+
+  // ----- Autosave (debounced, starts after draft is loaded) ----------------
+  useDebouncedDraftAutosave(
+    draftLoaded ? doctorId : undefined,
+    state,
+    step,
+    lab?.public_name ?? '',
+    selectedService?.name ?? '',
+  );
 
   // ----- Step navigation ----------------------------------------------------
   // Steps: 0 = patient, 1 = form, 2 = filesAndDue, 3 = review.
@@ -290,7 +335,10 @@ export function OrderCreateWizard() {
       if (error) throw error;
       return data as string;
     },
-    onSuccess: (orderId) => { clearDraft(); setSubmittedOrderId(orderId); },
+    onSuccess: (orderId) => {
+      if (doctorId) void clearDraft(doctorId);
+      setSubmittedOrderId(orderId);
+    },
     onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
   });
 
@@ -338,6 +386,29 @@ export function OrderCreateWizard() {
         </Alert>
       )}
 
+      {isBroken && (
+        <Alert severity="warning">
+          {t('orderCreate.brokenDraft.alert')}
+          <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+            <Button size="small" onClick={() => setDismissedBroken(true)}>
+              {t('orderCreate.brokenDraft.keepAnswers')}
+            </Button>
+            <Button
+              size="small"
+              color="error"
+              onClick={async () => {
+                if (doctorId) await clearDraft(doctorId);
+                setDismissedBroken(false);
+                setState({ ...initialState, lab_id: labParam, lab_service_id: serviceParam });
+                setStep(0);
+              }}
+            >
+              {t('orderCreate.brokenDraft.discard')}
+            </Button>
+          </Stack>
+        </Alert>
+      )}
+
       {error && <Alert severity="error">{error}</Alert>}
 
       {step === 0 && <PatientStep state={state} update={update} doctorId={doctorId ?? ''} />}
@@ -357,12 +428,6 @@ export function OrderCreateWizard() {
           pricing={version?.pricing_configuration_json}
           averageTurnaroundDays={selectedService?.average_turnaround_days ?? null}
           onAddLocation={() => {
-            saveDraft({
-              state,
-              step: 2,
-              labName: lab?.public_name ?? '',
-              serviceName: selectedService?.name ?? '',
-            });
             navigate('/doctor/work-locations');
           }}
         />
@@ -384,11 +449,15 @@ export function OrderCreateWizard() {
           {tc('actions.back')}
         </Button>
         {step < STEP_KEYS.length - 1 ? (
-          <Button variant="contained" onClick={goNext}>
+          <Button variant="contained" onClick={goNext} disabled={isBroken}>
             {tc('actions.next')}
           </Button>
         ) : (
-          <Button variant="contained" onClick={() => submit.mutate()} disabled={submit.isPending}>
+          <Button
+            variant="contained"
+            onClick={() => submit.mutate()}
+            disabled={submit.isPending || isBroken}
+          >
             {t('orderCreate.review.submit')}
           </Button>
         )}

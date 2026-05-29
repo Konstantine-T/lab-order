@@ -65,6 +65,7 @@ export function ModelForm({
             getLabel={(o) => opt('modelType', o)}
             onChange={(v) => set({ modelType: v })}
             readOnly={readOnly}
+            allowDeselect={!req('model_type')}
           />
           <ErrorHelper>{errors.modelType}</ErrorHelper>
         </NumberedSection>
@@ -81,6 +82,7 @@ export function ModelForm({
             getLabel={(o) => t(`modelForm.yesNo.${o}`)}
             onChange={(v) => set({ articulatorAlignment: v })}
             readOnly={readOnly}
+            allowDeselect={!req('model_articulator')}
           />
           <ErrorHelper>{errors.articulatorAlignment}</ErrorHelper>
         </NumberedSection>
@@ -97,6 +99,7 @@ export function ModelForm({
             getLabel={(o) => opt('arch', o)}
             onChange={(v) => set({ arch: v })}
             readOnly={readOnly}
+            allowDeselect={!req('model_arch')}
           />
           <ErrorHelper>{errors.arch}</ErrorHelper>
         </NumberedSection>
@@ -130,6 +133,7 @@ export function ModelForm({
             getLabel={(o) => opt('baseType', o)}
             onChange={(v) => set({ baseType: v })}
             readOnly={readOnly}
+            allowDeselect={!req('model_base_type')}
           />
           <ErrorHelper>{errors.baseType}</ErrorHelper>
         </NumberedSection>
@@ -146,6 +150,7 @@ export function ModelForm({
             getLabel={(o) => t(`modelForm.yesNo.${o}`)}
             onChange={(v) => set({ preparedDies: v })}
             readOnly={readOnly}
+            allowDeselect={!req('model_prepared_dies')}
           />
           <ErrorHelper>{errors.preparedDies}</ErrorHelper>
         </NumberedSection>

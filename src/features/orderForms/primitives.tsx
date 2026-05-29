@@ -135,6 +135,7 @@ export function PillGroup<T extends string>({
   readOnly,
   size,
   getLabel,
+  allowDeselect,
 }: {
   value: T | '';
   onChange: (v: T) => void;
@@ -143,6 +144,8 @@ export function PillGroup<T extends string>({
   size?: 'small' | 'medium';
   /** Optional label resolver — defaults to the option value itself. */
   getLabel?: (option: T) => string;
+  /** When true, clicking an already-selected pill deselects it (sets value to ''). */
+  allowDeselect?: boolean;
 }) {
   return (
     <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
@@ -152,7 +155,13 @@ export function PillGroup<T extends string>({
           label={getLabel ? getLabel(opt) : opt}
           selected={value === opt}
           readOnly={readOnly}
-          onClick={() => onChange(opt)}
+          onClick={() => {
+            if (allowDeselect && value === opt) {
+              onChange('' as unknown as T);
+            } else {
+              onChange(opt);
+            }
+          }}
           size={size}
         />
       ))}

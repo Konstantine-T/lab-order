@@ -123,8 +123,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, newSession) => {
+    } = supabase.auth.onAuthStateChange((event, newSession) => {
       if (!mounted) return;
+
+      // Recovery session: set session so updateUser works, but don't sign the
+      // user into the app — they stay unauthenticated until they set a new password.
+      if (event === 'PASSWORD_RECOVERY') {
+        setSession(newSession);
+        setInitialized(true);
+        return;
+      }
+
       setSession(newSession);
       // Defer DB calls out of this callback to avoid the supabase-js auth
       // lock deadlock — see github.com/supabase/auth-js/issues/762.

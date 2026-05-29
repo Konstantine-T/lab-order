@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Checkbox,
@@ -22,9 +23,10 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/Search';
+import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { DatePicker } from '@mui/x-date-pickers';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useAuth } from '@/auth/AuthProvider';
@@ -35,7 +37,11 @@ import { OrderRowCard } from '@/features/orders/OrderRowCard';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { OrdersPaginator } from '@/features/orders/OrdersPaginator';
 import type { OrderRow, OrderStatus } from '@/types/database';
-import { loadDraft, clearDraft, type DraftData } from '@/features/doctor/orderCreate/draftStorage';
+import {
+  loadDraft,
+  clearDraft,
+  checkDraftBrokenness,
+} from '@/features/doctor/orderCreate/draftStorage';
 
 const ALL_STATUSES: readonly OrderStatus[] = [
   'SUBMITTED',
@@ -63,6 +69,7 @@ export function OrdersListPage() {
   const { user } = useAuth();
   const doctorId = user?.doctor_profile?.id;
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -72,16 +79,40 @@ export function OrdersListPage() {
   const [dateFrom, setDateFrom] = useState<Dayjs | null>(null);
   const [dateTo, setDateTo] = useState<Dayjs | null>(null);
 
-  const [draft, setDraft] = useState<DraftData | null>(null);
   const [draftModalOpen, setDraftModalOpen] = useState(false);
 
+  const { data: draft = null } = useQuery({
+    queryKey: ['doctor-draft', doctorId],
+    enabled: !!doctorId,
+    queryFn: () => loadDraft(doctorId!),
+    staleTime: Infinity,
+    gcTime: 0,
+  });
+
   useEffect(() => {
-    const d = loadDraft();
-    if (d) {
-      setDraft(d);
-      setDraftModalOpen(true);
-    }
-  }, []);
+    if (draft) setDraftModalOpen(true);
+  }, [draft]);
+
+  const { data: draftBroken = null } = useQuery({
+    queryKey: ['draft-broken-check', draft?.state.lab_id, draft?.state.lab_service_id],
+    enabled: !!draft,
+    queryFn: async () => {
+      const [labRes, svcRes] = await Promise.all([
+        supabase
+          .from('labs')
+          .select('is_active, approval_status')
+          .eq('id', draft!.state.lab_id)
+          .maybeSingle(),
+        supabase
+          .from('lab_services')
+          .select('is_active, lab_forms!lab_services_linked_form_fk(status)')
+          .eq('id', draft!.state.lab_service_id)
+          .maybeSingle(),
+      ]);
+      const svc = svcRes.data as { is_active: boolean; lab_forms: { status: string } | null } | null;
+      return checkDraftBrokenness(labRes.data, svc, svc?.lab_forms ?? null);
+    },
+  });
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['doctor-orders', doctorId],
@@ -167,9 +198,9 @@ export function OrdersListPage() {
     navigate(`/doctor/orders/new?lab=${draft.state.lab_id}&service=${draft.state.lab_service_id}`);
   };
 
-  const handleDraftDiscard = () => {
-    clearDraft();
-    setDraft(null);
+  const handleDraftDiscard = async () => {
+    if (doctorId) await clearDraft(doctorId);
+    queryClient.setQueryData(['doctor-draft', doctorId], null);
     setDraftModalOpen(false);
   };
 
@@ -181,20 +212,37 @@ export function OrdersListPage() {
     <Stack spacing={3}>
       {/* Draft resume modal */}
       <Dialog open={draftModalOpen} onClose={() => setDraftModalOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('orders.draft.title')}</DialogTitle>
+        <DialogTitle>
+          {draftBroken?.broken ? t('orders.draft.titleBroken') : t('orders.draft.title')}
+        </DialogTitle>
         <DialogContent>
-          <Stack spacing={0.5} sx={{ mt: 0.5 }}>
-            <Typography variant="body2" fontWeight={600}>{draftPatientName}</Typography>
-            {draft && (
-              <Typography variant="body2" color="text.secondary">
-                {[draft.labName, draft.serviceName].filter(Boolean).join(' · ')}
-              </Typography>
+          <Stack spacing={1} sx={{ mt: 0.5 }}>
+            <Stack spacing={0.5}>
+              <Typography variant="body2" fontWeight={600}>{draftPatientName}</Typography>
+              {draft && (
+                <Typography variant="body2" color="text.secondary">
+                  {[draft.labName, draft.serviceName].filter(Boolean).join(' · ')}
+                </Typography>
+              )}
+            </Stack>
+            {draftBroken?.broken && (
+              <Alert severity="warning" sx={{ mt: 1 }}>
+                {t('orders.draft.brokenAlert')}
+              </Alert>
             )}
           </Stack>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleDraftDiscard} color="inherit">{t('orders.draft.discard')}</Button>
-          <Button variant="contained" onClick={handleDraftContinue}>{t('orders.draft.continue')}</Button>
+          {draftBroken?.broken ? (
+            <Button variant="outlined" onClick={handleDraftContinue}>
+              {t('orders.draft.viewBroken')}
+            </Button>
+          ) : (
+            <Button variant="contained" onClick={handleDraftContinue}>
+              {t('orders.draft.continue')}
+            </Button>
+          )}
         </DialogActions>
       </Dialog>
 
@@ -303,16 +351,25 @@ export function OrdersListPage() {
           primary={draftPatientName}
           secondary={[draft.labName, draft.serviceName].filter(Boolean).join(' · ')}
           status={
-            <Chip
-              label={t('orders.draft.label')}
-              size="small"
-              sx={{
-                bgcolor: 'warning.main',
-                color: 'warning.contrastText',
-                fontWeight: 600,
-                fontSize: 11,
-              }}
-            />
+            <Stack direction="row" spacing={0.5} alignItems="center">
+              <Chip
+                label={t('orders.draft.label')}
+                size="small"
+                sx={{
+                  bgcolor: 'warning.main',
+                  color: 'warning.contrastText',
+                  fontWeight: 600,
+                  fontSize: 11,
+                }}
+              />
+              {draftBroken?.broken && (
+                <WarningAmberIcon
+                  fontSize="small"
+                  color="warning"
+                  titleAccess={t('orders.draft.brokenTooltip')}
+                />
+              )}
+            </Stack>
           }
           total="—"
           avatarText={draftPatientName}

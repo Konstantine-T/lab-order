@@ -76,6 +76,11 @@
       "noLocations": "You have no work locations yet. Add one to continue.",
       "addLocation": "Add work location"
     },
+    "brokenDraft": {
+      "alert": "This draft is outdated — the lab, service, or form has changed since it was saved. Keep your answers and continue, or start fresh.",
+      "keepAnswers": "Keep answers",
+      "discard": "Discard draft"
+    },
     "review": {
       "header": "Review and submit",
       "invoiceRecipient": "Invoice recipient",
@@ -104,9 +109,13 @@
     "dueOn": "Due {{date}}",
     "draft": {
       "title": "You have an unfinished order. Would you like to continue?",
+      "titleBroken": "Draft is outdated",
       "label": "Draft",
       "continue": "Continue",
-      "discard": "Discard"
+      "discard": "Discard",
+      "viewBroken": "View anyway",
+      "brokenTooltip": "This draft may be outdated.",
+      "brokenAlert": "The lab, service, or form has changed since this draft was saved. You can still open it or discard it."
     },
     "filters": {
       "search": "Search by order, patient, lab…",

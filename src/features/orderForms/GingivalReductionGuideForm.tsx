@@ -76,6 +76,7 @@ export function GingivalReductionGuideForm({
             getLabel={(o) => t(`grgForm.yesNo.${o}`)}
             onChange={(v) => set({ additiveWaxUp: v })}
             readOnly={readOnly}
+            allowDeselect={!req('grg_additive_wax_up')}
           />
           <ErrorHelper>{errors.additiveWaxUp}</ErrorHelper>
         </NumberedSection>
@@ -92,6 +93,7 @@ export function GingivalReductionGuideForm({
             getLabel={(o) => t(`grgForm.yesNo.${o}`)}
             onChange={(v) => set({ approvalNeeded: v })}
             readOnly={readOnly}
+            allowDeselect={!req('grg_approval_needed')}
           />
           <ErrorHelper>{errors.approvalNeeded}</ErrorHelper>
         </NumberedSection>

@@ -119,6 +119,7 @@ export function CrownAndBridgeForm({
               options={['Yes', 'No'] as const}
               getLabel={optLabel}
               readOnly={readOnly}
+              allowDeselect={!req('gingivalContouring')}
             />
             {value.gingivalContouring.choice === 'Yes' && (
               <MmInput
@@ -154,6 +155,7 @@ export function CrownAndBridgeForm({
               options={['Keep Existing', 'Open Bite', 'Make Ideal'] as const}
               getLabel={optLabel}
               readOnly={readOnly}
+              allowDeselect={!req('verticalDimension')}
             />
             {value.verticalDimension.choice === 'Open Bite' && (
               <MmInput
@@ -189,6 +191,7 @@ export function CrownAndBridgeForm({
               options={['Ideal', 'Other'] as const}
               getLabel={optLabel}
               readOnly={readOnly}
+              allowDeselect={!req('maxLengthOfCentrals')}
             />
             {value.maxLengthOfCentrals.choice === 'Other' && (
               <MmInput
@@ -213,6 +216,7 @@ export function CrownAndBridgeForm({
             options={['Yes', 'No'] as const}
             getLabel={optLabel}
             readOnly={readOnly}
+            allowDeselect={!req('checkDesign')}
           />
         </NumberedSection>
       )}
@@ -226,6 +230,7 @@ export function CrownAndBridgeForm({
             options={['Tight', 'Zero', 'Relief'] as const}
             getLabel={optLabel}
             readOnly={readOnly}
+            allowDeselect={!req('occlusalContact')}
           />
         </NumberedSection>
       )}
