@@ -189,6 +189,7 @@ export function isImplantConfigComplete(cfg: ImplantConfig): boolean {
 
 export type ImplantRestorationErrors = {
   implantPositions?: string;
+  brandCustom?: string;
   incompleteConfigs?: number[];
   barMaterial?: string;
   barTeeth?: string;
@@ -199,6 +200,10 @@ export function validateImplantRestoration(a: ImplantRestorationAnswers): Implan
 
   if (a.implantPositions.length === 0) {
     e.implantPositions = 'Select at least one implant position.';
+  }
+
+  if (a.brand === 'custom' && !a.brandCustom?.trim()) {
+    e.brandCustom = 'Enter the brand name.';
   }
 
   const submitted = a.submittedPositions ?? [];

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
+  Box,
   Button,
   Card,
   CardContent,
@@ -41,6 +42,7 @@ import type {
   RushType,
 } from '@/types/database';
 import { initialState, type WizardState } from '@/features/doctor/orderCreate/types';
+import { scrollToFirstError } from '@/features/orderForms/scrollToFirstError';
 import {
   loadDraft,
   clearDraft,
@@ -97,6 +99,8 @@ export function OrderCreateWizard() {
   }));
   const [error, setError] = useState<string | null>(null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
+  const [patientAttempted, setPatientAttempted] = useState(false);
+  const [filesAttempted, setFilesAttempted] = useState(false);
   const [submittedOrderId, setSubmittedOrderId] = useState<string | null>(null);
   const [dismissedBroken, setDismissedBroken] = useState(false);
   const draftHydratedRef = useRef(false);
@@ -249,7 +253,9 @@ export function OrderCreateWizard() {
     setError(null);
     if (step === 0) {
       if (!state.patient.first_name || !state.patient.last_name) {
+        setPatientAttempted(true);
         setError(tc('errors.required'));
+        scrollToFirstError();
         return;
       }
       if (!linkedForm || linkedForm.status !== 'PUBLISHED') {
@@ -266,16 +272,21 @@ export function OrderCreateWizard() {
       if (!ok) {
         setSubmitAttempted(true);
         setError(tc('errors.required'));
+        scrollToFirstError();
         return;
       }
     }
     if (step === 2) {
       if (!state.doctor_work_location_id) {
+        setFilesAttempted(true);
         setError(tc('errors.required'));
+        scrollToFirstError();
         return;
       }
       if (!state.requested_due_date) {
+        setFilesAttempted(true);
         setError(tc('errors.required'));
+        scrollToFirstError();
         return;
       }
       const minDays = minTurnaroundDays(
@@ -285,7 +296,9 @@ export function OrderCreateWizard() {
       );
       const minDate = dayjs().startOf('day').add(minDays, 'day');
       if (dayjs(state.requested_due_date).isBefore(minDate, 'day')) {
+        setFilesAttempted(true);
         setError(t('orderCreate.filesAndDue.dueDate'));
+        scrollToFirstError();
         return;
       }
     }
@@ -411,7 +424,7 @@ export function OrderCreateWizard() {
 
       {error && <Alert severity="error">{error}</Alert>}
 
-      {step === 0 && <PatientStep state={state} update={update} doctorId={doctorId ?? ''} />}
+      {step === 0 && <PatientStep state={state} update={update} doctorId={doctorId ?? ''} patientAttempted={patientAttempted} />}
       {step === 1 && version && (
         <FormStep
           state={state}
@@ -427,6 +440,7 @@ export function OrderCreateWizard() {
           locations={locations}
           pricing={version?.pricing_configuration_json}
           averageTurnaroundDays={selectedService?.average_turnaround_days ?? null}
+          filesAttempted={filesAttempted}
           onAddLocation={() => {
             navigate('/doctor/work-locations');
           }}
@@ -473,10 +487,12 @@ function PatientStep({
   state,
   update,
   doctorId,
+  patientAttempted,
 }: {
   state: WizardState;
   update: (p: Partial<WizardState>) => void;
   doctorId: string;
+  patientAttempted?: boolean;
 }) {
   const { t } = useTranslation('doctor');
   const [match, setMatch] = useState<PatientRow | null>(null);
@@ -523,6 +539,7 @@ function PatientStep({
                 update({ patient: { ...state.patient, first_name: e.target.value, existing_id: undefined } })
               }
               fullWidth
+              error={patientAttempted && !state.patient.first_name}
             />
             <TextField
               label={t('orderCreate.patient.lastName')}
@@ -531,6 +548,7 @@ function PatientStep({
                 update({ patient: { ...state.patient, last_name: e.target.value, existing_id: undefined } })
               }
               fullWidth
+              error={patientAttempted && !state.patient.last_name}
             />
           </Stack>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
@@ -676,6 +694,7 @@ function FilesAndDueStep({
   locations,
   pricing,
   averageTurnaroundDays,
+  filesAttempted,
   onAddLocation,
 }: {
   state: WizardState;
@@ -683,6 +702,7 @@ function FilesAndDueStep({
   locations: DoctorWorkLocationRow[];
   pricing: PricingConfig | undefined;
   averageTurnaroundDays: number | null;
+  filesAttempted?: boolean;
   onAddLocation: () => void;
 }) {
   const { t } = useTranslation('doctor');
@@ -713,34 +733,36 @@ function FilesAndDueStep({
         <Stack spacing={3}>
           <Stack>
             <Typography variant="h6">{t('orderCreate.filesAndDue.workLocation')}</Typography>
-            {locations.length === 0 ? (
-              <Alert
-                severity="warning"
-                sx={{ mt: 1 }}
-                action={
-                  <Button color="inherit" size="small" onClick={onAddLocation}>
-                    {t('orderCreate.filesAndDue.addLocation')}
-                  </Button>
-                }
-              >
-                {t('orderCreate.filesAndDue.noLocations')}
-              </Alert>
-            ) : (
-              <TextField
-                select
-                value={state.doctor_work_location_id}
-                onChange={(e) => update({ doctor_work_location_id: e.target.value })}
-                fullWidth
-                sx={{ mt: 1 }}
-              >
-                {locations.map((l) => (
-                  <MenuItem key={l.id} value={l.id}>
-                    {l.clinic_name}
-                    {l.branch_name ? ` · ${l.branch_name}` : ''} — {l.city}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
+            <Box data-form-error={filesAttempted && !state.doctor_work_location_id ? 'true' : undefined}>
+              {locations.length === 0 ? (
+                <Alert
+                  severity="warning"
+                  sx={{ mt: 1 }}
+                  action={
+                    <Button color="inherit" size="small" onClick={onAddLocation}>
+                      {t('orderCreate.filesAndDue.addLocation')}
+                    </Button>
+                  }
+                >
+                  {t('orderCreate.filesAndDue.noLocations')}
+                </Alert>
+              ) : (
+                <TextField
+                  select
+                  value={state.doctor_work_location_id}
+                  onChange={(e) => update({ doctor_work_location_id: e.target.value })}
+                  fullWidth
+                  sx={{ mt: 1 }}
+                >
+                  {locations.map((l) => (
+                    <MenuItem key={l.id} value={l.id}>
+                      {l.clinic_name}
+                      {l.branch_name ? ` · ${l.branch_name}` : ''} — {l.city}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
+            </Box>
           </Stack>
 
           <Stack spacing={1}>
@@ -793,18 +815,20 @@ function FilesAndDueStep({
           <Divider />
 
           <Stack spacing={1}>
-            <DatePicker
-              label={t('orderCreate.filesAndDue.dueDate')}
-              value={state.requested_due_date ? dayjs(state.requested_due_date) : null}
-              onChange={(d: Dayjs | null) =>
-                update({
-                  requested_due_date: d && d.isValid() ? d.format('YYYY-MM-DD') : '',
-                })
-              }
-              format="YYYY-MM-DD"
-              minDate={minDate}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
+            <Box data-form-error={filesAttempted && !state.requested_due_date ? 'true' : undefined}>
+              <DatePicker
+                label={t('orderCreate.filesAndDue.dueDate')}
+                value={state.requested_due_date ? dayjs(state.requested_due_date) : null}
+                onChange={(d: Dayjs | null) =>
+                  update({
+                    requested_due_date: d && d.isValid() ? d.format('YYYY-MM-DD') : '',
+                  })
+                }
+                format="YYYY-MM-DD"
+                minDate={minDate}
+                slotProps={{ textField: { fullWidth: true } }}
+              />
+            </Box>
             <Typography variant="caption" color="text.secondary">
               {t('orderCreate.filesAndDue.dueDateHint', { count: minDays })}
             </Typography>

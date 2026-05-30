@@ -1,15 +1,17 @@
 import { useMemo, useState } from 'react';
 import {
   Alert,
+  alpha,
   Box,
   Button,
   Chip,
   Divider,
+  IconButton,
   Paper,
   Stack,
   TextField,
-  Tooltip,
   Typography,
+  useTheme,
 } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
@@ -110,11 +112,18 @@ export function ImplantRestorationForm({
     for (const key of Object.keys(newConfigs)) {
       if (!positions.includes(Number(key))) delete newConfigs[key];
     }
+
+    // Doctors were marking teeth without picking a brand and ending up with
+    // unconfigured implants. Auto-defaulting to 'custom' surfaces the name
+    // field immediately so they know a brand name is needed.
+    const isAdding = positions.length > a.implantPositions.length;
+    const nextBrand = (!a.brand && isAdding) ? 'custom' : a.brand;
+
     // Auto-apply global brand to newly added positions
-    if (a.brand) {
+    if (nextBrand) {
       for (const pos of positions) {
         if (!newConfigs[String(pos)]) {
-          newConfigs[String(pos)] = { brand: a.brand };
+          newConfigs[String(pos)] = { brand: nextBrand };
         }
       }
     }
@@ -124,6 +133,7 @@ export function ImplantRestorationForm({
       implantPositions: positions,
       configsByPosition: newConfigs,
       submittedPositions: (a.submittedPositions ?? []).filter((p) => positions.includes(p)),
+      ...(nextBrand !== a.brand ? { brand: nextBrand } : {}),
     });
   };
 
@@ -305,14 +315,18 @@ export function ImplantRestorationForm({
               })}
             </Stack>
             {a.brand === 'custom' && (
-              <TextField
-                placeholder={t('implantForm.brand.customPlaceholder')}
-                value={a.brandCustom ?? ''}
-                onChange={(e) => set({ brandCustom: e.target.value })}
-                size="small"
-                sx={{ maxWidth: 320 }}
-                InputProps={{ readOnly }}
-              />
+              <Box data-form-error={showErrors && !!errors.brandCustom ? 'true' : undefined}>
+                <TextField
+                  placeholder={t('implantForm.brand.customPlaceholder')}
+                  value={a.brandCustom ?? ''}
+                  onChange={(e) => set({ brandCustom: e.target.value })}
+                  size="small"
+                  sx={{ maxWidth: 320 }}
+                  InputProps={{ readOnly }}
+                  error={showErrors && !!errors.brandCustom}
+                  helperText={showErrors && errors.brandCustom ? t('implantForm.brand.customRequired') : undefined}
+                />
+              </Box>
             )}
             <Typography variant="caption" color="text.secondary">
               {t('implantForm.brand.globalHint')}
@@ -368,69 +382,6 @@ export function ImplantRestorationForm({
               size="small"
             />
           </Stack>
-
-          {/* Position chips: click to add to edit group, X to remove */}
-          {a.implantPositions.length > 0 && (
-            <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-              {a.implantPositions.map((pos) => {
-                const complete = isSubmitted(pos);
-                const inGroup = editGroup.includes(pos);
-                const isPendingDel = pendingDelete === pos;
-                const label = posLabel(pos, a.notation);
-
-                if (isPendingDel) {
-                  return (
-                    <Stack key={pos} direction="row" alignItems="center" spacing={0.5}
-                      sx={{ border: 1, borderColor: 'error.main', borderRadius: 999, px: 1.25, py: 0.5 }}>
-                      <Typography variant="caption" color="error.main" fontWeight={600}>
-                        #{label} — {t('implantForm.positions.deleteConfirm')}
-                      </Typography>
-                      <Chip
-                        label={t('common.yes')}
-                        size="small"
-                        color="error"
-                        onClick={() => removePosition(pos)}
-                        sx={{ height: 20, fontSize: 11 }}
-                      />
-                      <Chip
-                        label={t('common.no')}
-                        size="small"
-                        onClick={() => setPendingDelete(null)}
-                        sx={{ height: 20, fontSize: 11 }}
-                      />
-                    </Stack>
-                  );
-                }
-
-                return (
-                  <Tooltip
-                    key={pos}
-                    title={readOnly ? '' : t('implantForm.positions.chipHint')}
-                    placement="top"
-                    arrow
-                  >
-                    <Chip
-                      label={
-                        <Stack direction="row" spacing={0.5} alignItems="center">
-                          {complete
-                            ? <CheckCircleOutlineIcon sx={{ fontSize: 13, color: inGroup ? 'inherit' : 'success.main' }} />
-                            : <RadioButtonUncheckedIcon sx={{ fontSize: 13, color: inGroup ? 'inherit' : 'warning.main' }} />
-                          }
-                          <span>#{label}</span>
-                        </Stack>
-                      }
-                      variant={inGroup ? 'filled' : 'outlined'}
-                      color={inGroup ? 'primary' : 'default'}
-                      onClick={readOnly ? undefined : () => toggleEditGroup(pos)}
-                      onDelete={readOnly ? undefined : () => setPendingDelete(pos)}
-                      deleteIcon={<DeleteOutlineIcon />}
-                      size="small"
-                    />
-                  </Tooltip>
-                );
-              })}
-            </Stack>
-          )}
         </Stack>
         <ErrorHelper>{errors.implantPositions}</ErrorHelper>
       </NumberedSection>
@@ -450,12 +401,36 @@ export function ImplantRestorationForm({
             />
           ) : (
             <>
+              {/* Tile grid — immediately under the section heading */}
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25 }}>
+                {a.implantPositions.map((pos) => {
+                  const brandColor = (() => {
+                    const brand = a.configsByPosition[String(pos)]?.brand ?? a.brand;
+                    return brand ? brandColorById[brand] : undefined;
+                  })();
+                  return (
+                    <PositionTile
+                      key={pos}
+                      pos={pos}
+                      label={posLabel(pos, a.notation)}
+                      inGroup={editGroup.includes(pos)}
+                      complete={isSubmitted(pos)}
+                      hasError={!!(errors.incompleteConfigs?.includes(pos))}
+                      brandColor={brandColor}
+                      isPendingDel={pendingDelete === pos}
+                      showErrors={showErrors}
+                      readOnly={readOnly}
+                      onTileClick={() => toggleEditGroup(pos)}
+                      onDeleteClick={(e) => { e.stopPropagation(); setPendingDelete(pos); }}
+                      onConfirmDelete={() => removePosition(pos)}
+                      onCancelDelete={() => setPendingDelete(null)}
+                    />
+                  );
+                })}
+              </Box>
+
               <Stack spacing={2}>
-                {editGroup.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                    {t('implantForm.configure.selectHint')}
-                  </Typography>
-                ) : (
+                {editGroup.length > 0 && (
                   <Paper variant="outlined" sx={{ borderRadius: 2, p: 2.5 }}>
                     <Typography variant="caption" color="text.secondary" fontWeight={700} textTransform="uppercase" letterSpacing={0.8}>
                       {editGroup.length === 1
@@ -652,6 +627,7 @@ export function ImplantRestorationForm({
                   brandColorById={brandColorById}
                   submittedPositions={a.submittedPositions ?? []}
                   incompleteConfigs={errors.incompleteConfigs}
+                  showErrors={showErrors}
                   t={t}
                 />
               </Stack>
@@ -788,6 +764,163 @@ export function ImplantRestorationForm({
 // ─── Unused but required to prevent compiler error from implantTypes import ───
 
 void DEFAULT_IMPLANT_PRICE_CONFIG;
+
+// ─── Position tile (card-style, used in Section 3 edit mode) ─────────────────
+
+function PositionTile({
+  label,
+  inGroup,
+  complete,
+  hasError,
+  brandColor,
+  isPendingDel,
+  showErrors,
+  readOnly,
+  onTileClick,
+  onDeleteClick,
+  onConfirmDelete,
+  onCancelDelete,
+}: {
+  pos: number;
+  label: string;
+  inGroup: boolean;
+  complete: boolean;
+  hasError: boolean;
+  brandColor?: string;
+  isPendingDel: boolean;
+  showErrors?: boolean;
+  readOnly?: boolean;
+  onTileClick: () => void;
+  onDeleteClick: (e: { stopPropagation: () => void }) => void;
+  onConfirmDelete: () => void;
+  onCancelDelete: () => void;
+}) {
+  const { t } = useTranslation('lab');
+  const { t: tc } = useTranslation('common');
+  const theme = useTheme();
+  const tileError = showErrors && hasError;
+
+  if (isPendingDel) {
+    return (
+      <Paper
+        variant="outlined"
+        sx={{
+          width: 96, minWidth: 96, minHeight: 92, borderRadius: 2, borderWidth: 2,
+          borderColor: 'error.main',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center',
+          p: 0.75, gap: 0.5,
+        }}
+      >
+        <Typography sx={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, textAlign: 'center', color: 'error.main' }}>
+          #{label}
+        </Typography>
+        <Typography sx={{ fontSize: 11, fontWeight: 600, lineHeight: 1.2, textAlign: 'center', color: 'text.secondary' }}>
+          {t('implantForm.positions.deleteConfirm')}
+        </Typography>
+        <Stack direction="row" spacing={0.5}>
+          <Button
+            size="small"
+            variant="contained"
+            color="error"
+            onClick={onConfirmDelete}
+            sx={{ minWidth: 0, px: 1, py: 0.25, fontSize: 11 }}
+          >
+            {tc('yes')}
+          </Button>
+          <Button
+            size="small"
+            variant="outlined"
+            onClick={onCancelDelete}
+            sx={{ minWidth: 0, px: 1, py: 0.25, fontSize: 11 }}
+          >
+            {tc('no')}
+          </Button>
+        </Stack>
+      </Paper>
+    );
+  }
+
+  return (
+    <Box
+      sx={{ width: 96 }}
+      data-form-error={tileError ? 'true' : undefined}
+    >
+      <Paper
+        variant="outlined"
+        onClick={readOnly ? undefined : onTileClick}
+        sx={{
+          position: 'relative',
+          width: 96, minWidth: 96, minHeight: 92, borderRadius: 2,
+          borderWidth: 2,
+          cursor: readOnly ? 'default' : 'pointer',
+          borderColor: inGroup ? 'primary.main' : tileError ? 'error.main' : 'divider',
+          bgcolor: inGroup ? alpha(theme.palette.primary.main, 0.08) : 'background.paper',
+          boxShadow: inGroup ? 4 : 0,
+          transition: 'box-shadow 0.15s, border-color 0.15s, transform 0.05s',
+          overflow: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          '&:hover': readOnly ? {} : {
+            boxShadow: 4,
+            '& .position-tile-delete': { opacity: 1 },
+          },
+          '&:active': readOnly ? {} : { transform: 'scale(0.98)' },
+        }}
+      >
+        {/* Brand color strip across the top — overflow:hidden on Paper rounds its corners */}
+        {brandColor && (
+          <Box sx={{ height: 4, bgcolor: brandColor, flexShrink: 0 }} />
+        )}
+        <Stack
+          alignItems="center"
+          justifyContent="center"
+          spacing={0.5}
+          sx={{ flex: 1, p: 1, pt: 1.25 }}
+        >
+          <Typography variant="h5" textAlign="center" sx={{ fontWeight: 700, lineHeight: 1, letterSpacing: '-0.02em' }}>
+            #{label}
+          </Typography>
+          <Stack direction="row" alignItems="center" spacing={0.25}>
+            {complete
+              ? <CheckCircleOutlineIcon sx={{ fontSize: 12, color: 'success.main' }} />
+              : <RadioButtonUncheckedIcon sx={{ fontSize: 12, color: hasError ? 'error.main' : 'warning.main' }} />
+            }
+            <Typography sx={{
+              fontSize: 10.5, lineHeight: 1.2, fontWeight: 500, textAlign: 'center',
+              color: complete ? 'success.main' : (hasError ? 'error.main' : 'text.secondary'),
+              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical',
+              overflow: 'hidden', wordBreak: 'break-word', px: 0.5,
+            }}>
+              {complete ? t('implantForm.summary.complete') : t('implantForm.summary.incomplete')}
+            </Typography>
+          </Stack>
+        </Stack>
+        {!readOnly && (
+          <IconButton
+            size="small"
+            className="position-tile-delete"
+            onClick={onDeleteClick}
+            sx={{
+              position: 'absolute',
+              top: 2,
+              right: 2,
+              p: 0.25,
+              opacity: 0,
+              transition: 'opacity 0.15s ease',
+              color: 'error.light',
+              '& svg': { fontSize: 16 },
+              '&:hover': { color: 'error.main', bgcolor: 'transparent' },
+              '&:focus-visible': { opacity: 1 },
+            }}
+          >
+            <DeleteOutlineIcon />
+          </IconButton>
+        )}
+      </Paper>
+    </Box>
+  );
+}
 
 // ─── Per-position detail (read-only) ─────────────────────────────────────────
 
@@ -932,6 +1065,7 @@ function PositionSummary({
   brandColorById,
   submittedPositions,
   incompleteConfigs,
+  showErrors,
   t,
 }: {
   positions: number[];
@@ -941,6 +1075,7 @@ function PositionSummary({
   brandColorById: Record<string, string>;
   submittedPositions: number[];
   incompleteConfigs?: number[];
+  showErrors?: boolean;
   t: ReturnType<typeof import('react-i18next').useTranslation>['t'];
 }) {
   if (positions.length === 0) return null;
@@ -965,6 +1100,7 @@ function PositionSummary({
             direction="row"
             alignItems="center"
             spacing={1.5}
+            data-form-error={showErrors && hasError ? 'true' : undefined}
             sx={{
               px: 2,
               py: 1.25,

@@ -515,6 +515,7 @@
       "label": "Implant brand",
       "custom": "Other (custom)",
       "customPlaceholder": "Enter brand name",
+      "customRequired": "Enter the brand name.",
       "globalHint": "Select a brand, then click teeth to assign it. Each tooth can have a different brand."
     },
     "sections": {
@@ -526,7 +527,6 @@
     },
     "notation": "Notation",
     "positions": {
-      "chipHint": "Click to configure · Click × to remove",
       "deleteConfirm": "Remove?"
     },
     "configure": {

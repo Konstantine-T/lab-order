@@ -214,7 +214,7 @@ export function MmInput({
 export function ErrorHelper({ children }: { children?: string }) {
   if (!children) return null;
   return (
-    <Typography variant="caption" color="error" sx={{ display: 'block' }}>
+    <Typography variant="caption" color="error" sx={{ display: 'block' }} data-form-error="true">
       {children}
     </Typography>
   );

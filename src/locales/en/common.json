@@ -110,5 +110,7 @@
     "title": "Page not found",
     "body": "The page you're looking for doesn't exist.",
     "goHome": "Go to home"
-  }
+  },
+  "yes": "Yes",
+  "no": "No"
 }
