@@ -22,6 +22,7 @@ import { OrdersListPage } from '@/pages/doctor/OrdersListPage';
 import { OrderDetailPage } from '@/pages/doctor/OrderDetailPage';
 import { PatientsPage } from '@/pages/doctor/PatientsPage';
 import { PatientOrdersPage } from '@/pages/doctor/PatientOrdersPage';
+import { UnderDevelopmentPage } from '@/pages/common/UnderDevelopmentPage';
 
 import { LabLayout } from '@/layouts/LabLayout';
 import { LabDashboardPage } from '@/pages/lab/LabDashboardPage';
@@ -72,6 +73,8 @@ export function AppRoutes() {
         <Route path="orders/:orderId" element={<OrderDetailPage />} />
         <Route path="patients" element={<PatientsPage />} />
         <Route path="patients/:patientId" element={<PatientOrdersPage />} />
+        <Route path="invoices" element={<UnderDevelopmentPage featureKey="invoices" />} />
+        <Route path="debts" element={<UnderDevelopmentPage featureKey="debts" />} />
       </Route>
 
       {/* Lab */}

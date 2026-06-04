@@ -116,14 +116,32 @@ function FieldCard({
   return (
     <Paper
       variant="outlined"
-      sx={{
-        borderRadius: 2,
-        overflow: 'hidden',
-        opacity: isCustom || field.enabled ? 1 : 0.5,
-        transition: 'opacity 0.15s',
-        borderLeftWidth: 4,
-        borderLeftStyle: 'solid',
-        borderLeftColor: isCustom || field.enabled ? 'primary.main' : 'divider',
+      sx={(theme) => {
+        const isOn = isCustom || field.enabled;
+        const isLight = theme.palette.mode === 'light';
+        return {
+          borderRadius: 2,
+          overflow: 'hidden',
+          transition: 'opacity 0.15s, background-color 0.15s, border-color 0.15s',
+          borderLeftWidth: 4,
+          borderLeftStyle: 'solid',
+          // Off-cards: distinctly visible gray accent, not the near-white `divider`.
+          borderLeftColor: isOn
+            ? 'primary.main'
+            : isLight ? theme.palette.grey[500] : theme.palette.grey[700],
+          // Off-cards in light mode get a darker outline so they don't blend
+          // into the page background, plus a very subtle gray fill that says
+          // "this exists but isn't active" without making the card unreadable.
+          ...(isOn ? {} : isLight ? {
+            borderColor: theme.palette.grey[400],
+            backgroundColor: theme.palette.grey[50],
+            opacity: 0.85,
+          } : {
+            borderColor: theme.palette.grey[800],
+            backgroundColor: 'transparent',
+            opacity: 0.6,
+          }),
+        };
       }}
     >
       {/* ── Header: label + on/off (or delete for custom questions) ── */}
@@ -146,7 +164,7 @@ function FieldCard({
           <Typography
             variant="subtitle1"
             fontWeight={600}
-            color={field.enabled ? 'text.primary' : 'text.disabled'}
+            color={field.enabled ? 'text.primary' : 'text.secondary'}
           >
             {t(`formFields.${field.code}`, { defaultValue: field.label })}
           </Typography>

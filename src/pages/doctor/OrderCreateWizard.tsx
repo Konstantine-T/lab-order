@@ -498,30 +498,35 @@ function PatientStep({
   const [match, setMatch] = useState<PatientRow | null>(null);
   const [matchOpen, setMatchOpen] = useState(false);
 
-  // Trigger match check when name + gender are entered (dob is optional).
+  // Trigger match check as soon as first + last name are filled; gender/DOB
+  // are no longer required because the RPC now matches on name only.
   useEffect(() => {
-    const { first_name, last_name, date_of_birth, gender } = state.patient;
-    if (!first_name || !last_name || !gender || !doctorId) return;
+    const { first_name, last_name } = state.patient;
+    if (!first_name.trim() || !last_name.trim() || !doctorId) return;
     if (state.patient.existing_id) return;
 
-    void supabase
-      .rpc('find_matching_patient', {
-        p_first: first_name,
-        p_last: last_name,
-        p_dob: date_of_birth || null,
-        p_gender: gender,
-      })
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          setMatch(data[0] as PatientRow);
-          setMatchOpen(true);
-        }
-      });
+    // 400ms debounce so we don't hit the RPC on every keystroke while the
+    // doctor is still typing the name.
+    const timer = setTimeout(() => {
+      void supabase
+        .rpc('find_matching_patient', {
+          p_first: first_name,
+          p_last: last_name,
+          p_dob: state.patient.date_of_birth || null,
+          p_gender: state.patient.gender || null,
+        })
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            setMatch(data[0] as PatientRow);
+            setMatchOpen(true);
+          }
+        });
+    }, 400);
+
+    return () => clearTimeout(timer);
   }, [
     state.patient.first_name,
     state.patient.last_name,
-    state.patient.date_of_birth,
-    state.patient.gender,
     state.patient.existing_id,
     doctorId,
   ]);

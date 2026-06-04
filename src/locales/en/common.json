@@ -111,6 +111,16 @@
     "body": "The page you're looking for doesn't exist.",
     "goHome": "Go to home"
   },
+  "underDevelopment": {
+    "title": "Under development",
+    "body": "This feature is on the way. Check back soon.",
+    "goBack": "Go back",
+    "goHome": "Go home",
+    "features": {
+      "invoices": "Invoices are on the way",
+      "debts": "Debts are on the way"
+    }
+  },
   "yes": "Yes",
   "no": "No"
 }

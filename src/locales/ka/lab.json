@@ -12,7 +12,7 @@
   "formFields": {
     "treatments": "კბილების ასარჩევი რუკა",
     "shade": "ფერის ასარჩევი",
-    "gingivalContouring": "ღრძილის ფორმირება",
+    "gingivalContouring": "ღრძილის თაღების საკორექციო გაიდი",
     "verticalDimension": "თანკბილვის სიმაღლე",
     "maxLengthOfCentrals": "ცენტრალური კბილების მაქს. სიგრძე",
     "checkDesign": "დიზაინის შემოწმება",
@@ -20,7 +20,7 @@
     "rxNotes": "შენიშვნები",
     "esp_treatments": "კბილების რუკა",
     "esp_misalignment": "რკალის გასწორება",
-    "esp_gingival": "ღრძილის ფორმირება",
+    "esp_gingival": "ღრძილის თაღების საკორექციო გაიდი",
     "esp_vertical_dimension": "თანკბილვის სიმაღლე",
     "esp_max_length": "ცენტრალური კბილების მაქსიმალური სიგრძე",
     "esp_shade": "ფერი",
@@ -42,7 +42,7 @@
     "sections": {
       "treatments": "მკურნალობის დამატება",
       "shade": "აირჩიეთ ფერი",
-      "gingivalContouring": "ღრძილის ფორმირება",
+      "gingivalContouring": "ღრძილის თაღების საკორექციო გაიდი",
       "verticalDimension": "თანკბილვის სიმაღლე",
       "maxLengthOfCentrals": "ცენტრალური კბილების მაქს. სიგრძე",
       "checkDesign": "დიზაინის შემოწმება",
@@ -309,7 +309,7 @@
       "otherPlaceholder": "გთხოვთ, დააზუსტოთ"
     },
     "gingival": {
-      "label": "ღრძილის ფორმირება?",
+      "label": "ღრძილის თაღების საკორექციო გაიდი?",
       "reductionGuideLabel": "გჭირდებათ ღრძილის კონტურირების გიდი?",
       "reductionGuidePrice": "დამატებით {{amount}}"
     },
