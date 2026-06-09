@@ -80,18 +80,28 @@ export function OrdersListPage() {
   const [dateTo, setDateTo] = useState<Dayjs | null>(null);
 
   const [draftModalOpen, setDraftModalOpen] = useState(false);
+  const [draftSeen, setDraftSeen] = useState(false);
 
-  const { data: draft = null } = useQuery({
+  const draftQuery = useQuery({
     queryKey: ['doctor-draft', doctorId],
     enabled: !!doctorId,
     queryFn: () => loadDraft(doctorId!),
-    staleTime: Infinity,
+    staleTime: 0,
     gcTime: 0,
+    refetchOnMount: 'always',
   });
+  const draft = draftQuery.data ?? null;
 
+  // Only open the modal once we know the DB actually has a draft — not from
+  // a stale cache hit. refetchOnMount:'always' + staleTime:0 means isFetched
+  // flips to true only after a fresh network round-trip on each mount, so a
+  // draft that was deleted after submit will return null here.
   useEffect(() => {
-    if (draft) setDraftModalOpen(true);
-  }, [draft]);
+    if (draftQuery.isFetched && draftQuery.data && !draftSeen) {
+      setDraftModalOpen(true);
+      setDraftSeen(true);
+    }
+  }, [draftQuery.isFetched, draftQuery.data, draftSeen]);
 
   const { data: draftBroken = null } = useQuery({
     queryKey: ['draft-broken-check', draft?.state.lab_id, draft?.state.lab_service_id],

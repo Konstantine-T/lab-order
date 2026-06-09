@@ -25,7 +25,7 @@ import {
 import { DatePicker } from '@mui/x-date-pickers';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -104,6 +104,7 @@ export function OrderCreateWizard() {
   const [submittedOrderId, setSubmittedOrderId] = useState<string | null>(null);
   const [dismissedBroken, setDismissedBroken] = useState(false);
   const draftHydratedRef = useRef(false);
+  const queryClient = useQueryClient();
 
   const update = (patch: Partial<WizardState>) => setState((s) => ({ ...s, ...patch }));
 
@@ -239,8 +240,11 @@ export function OrderCreateWizard() {
   const isBroken = (draftBrokenness?.broken ?? false) && !dismissedBroken;
 
   // ----- Autosave (debounced, starts after draft is loaded) ----------------
+  // Once the order is submitted, stop autosaving. Otherwise the hook's
+  // unmount flush re-creates the draft row we just deleted in onSuccess,
+  // and OrdersListPage's modal pops up again for a phantom draft.
   useDebouncedDraftAutosave(
-    draftLoaded ? doctorId : undefined,
+    draftLoaded && !submittedOrderId ? doctorId : undefined,
     state,
     step,
     lab?.public_name ?? '',
@@ -348,8 +352,23 @@ export function OrderCreateWizard() {
       if (error) throw error;
       return data as string;
     },
-    onSuccess: (orderId) => {
-      if (doctorId) void clearDraft(doctorId);
+    onSuccess: async (orderId) => {
+      // Delete the draft row, then nuke the cached value so other mounted
+      // pages (e.g. OrdersListPage in browser back/forward cache) don't see
+      // a phantom draft. setQueryData is for already-mounted readers,
+      // invalidate is for the next fresh read.
+      if (doctorId) {
+        try {
+          await clearDraft(doctorId);
+        } catch {
+          // Swallow — the DB delete might race with submit, but the order
+          // already exists, so the doctor isn't blocked. The cache update
+          // below still runs.
+        }
+        queryClient.setQueryData(['doctor-draft', doctorId], null);
+        queryClient.invalidateQueries({ queryKey: ['doctor-draft', doctorId] });
+        queryClient.removeQueries({ queryKey: ['draft-broken-check'] });
+      }
       setSubmittedOrderId(orderId);
     },
     onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
