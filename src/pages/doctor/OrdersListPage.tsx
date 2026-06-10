@@ -22,6 +22,7 @@ import {
   Typography,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import EditIcon from '@mui/icons-material/Edit';
 import SearchIcon from '@mui/icons-material/Search';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { DatePicker } from '@mui/x-date-pickers';
@@ -441,6 +442,19 @@ export function OrdersListPage() {
                   dueDate={due}
                   avatarText={patientName}
                   onClick={() => navigate(`/doctor/orders/${row.id}`)}
+                  footer={
+                    row.status !== 'COMPLETED' && row.status !== 'CANCELLED' ? (
+                      <Box sx={{ px: 2.5, py: 1.25 }}>
+                        <Button
+                          size="small"
+                          startIcon={<EditIcon fontSize="small" />}
+                          onClick={() => navigate(`/doctor/orders/${row.id}/edit`)}
+                        >
+                          {t('orders.editButton')}
+                        </Button>
+                      </Box>
+                    ) : undefined
+                  }
                 />
               );
             })}

@@ -25,6 +25,12 @@ type Props = {
    * divider). Clicks inside this area do NOT propagate to the card's onClick.
    */
   footer?: ReactNode;
+  /**
+   * When true, paints the resting border + accent stripe in warning yellow so
+   * the row stands out — used to flag an unreviewed doctor edit in the lab list.
+   * Falsy keeps the default divider border exactly as before.
+   */
+  highlight?: boolean;
 };
 
 /** Single order row in the modern card list. Subtle hover lift + tinted shadow,
@@ -42,6 +48,7 @@ export function OrderRowCard({
   avatarText,
   onClick,
   footer,
+  highlight,
 }: Props) {
   const initials =
     avatarText
@@ -67,7 +74,9 @@ export function OrderRowCard({
         flexDirection: 'column',
         borderRadius: 2.5,
         border: 1,
-        borderColor: 'divider',
+        // Unreviewed doctor edit → yellow resting border so it's noticed before
+        // opening; otherwise the usual subtle divider border.
+        borderColor: highlight ? 'warning.main' : 'divider',
         bgcolor: 'background.paper',
         cursor: 'pointer',
         position: 'relative',
@@ -82,7 +91,7 @@ export function OrderRowCard({
           top: 0,
           bottom: 0,
           width: 3,
-          bgcolor: 'primary.main',
+          bgcolor: highlight ? 'warning.main' : 'primary.main',
           opacity: 0,
           transform: 'translateX(-3px)',
           transition: 'opacity 220ms ease, transform 220ms ease',

@@ -121,6 +121,14 @@
       "debts": "Debts are on the way"
     }
   },
+  "editReasons": {
+    "CORRECTION": "Correction",
+    "UNFORESEEN_LAB_INSTRUCTION": "Unforeseen instruction from the lab",
+    "PATIENT_REASON": "Patient-related reason",
+    "CONSTRUCTION_DEFECT": "Construction defect",
+    "MY_MISTAKE": "My mistake",
+    "UNFORESEEN_EVENT": "Unforeseen event"
+  },
   "yes": "Yes",
   "no": "No"
 }

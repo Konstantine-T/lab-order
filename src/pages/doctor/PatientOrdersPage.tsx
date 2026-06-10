@@ -5,6 +5,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
 import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -122,6 +123,19 @@ export function PatientOrdersPage() {
                 dueDate={due}
                 avatarText={serviceName || '?'}
                 onClick={() => navigate(`/doctor/orders/${row.id}`)}
+                footer={
+                  row.status !== 'COMPLETED' && row.status !== 'CANCELLED' ? (
+                    <Box sx={{ px: 2.5, py: 1.25 }}>
+                      <Button
+                        size="small"
+                        startIcon={<EditIcon fontSize="small" />}
+                        onClick={() => navigate(`/doctor/orders/${row.id}/edit`)}
+                      >
+                        {t('orders.editButton')}
+                      </Button>
+                    </Box>
+                  ) : undefined
+                }
               />
             );
           })}

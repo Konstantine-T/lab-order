@@ -287,8 +287,45 @@ export interface OrderRow {
   cancelled_at: string | null;
   cancelled_by_user_id: string | null;
   cancellation_reason: string | null;
+  has_unreviewed_edits: boolean;
+  edit_count: number;
+  last_edited_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+export type EditReasonCode =
+  | 'CORRECTION'
+  | 'UNFORESEEN_LAB_INSTRUCTION'
+  | 'PATIENT_REASON'
+  | 'CONSTRUCTION_DEFECT'
+  | 'MY_MISTAKE'
+  | 'UNFORESEEN_EVENT';
+
+/** Pre-edit state captured server-side by edit_order before mutating the live
+ * order. The RPC's snapshot JSON also carries a `patient` object, but it's
+ * deliberately omitted here: patient PII is doctor-only and the only consumer
+ * of this type is the lab edit-review, which must never read it. */
+export interface OrderEditSnapshot {
+  doctor_work_location_id: string;
+  work_location_snapshot: Record<string, unknown>;
+  invoice_recipient_type: InvoiceRecipientType;
+  invoice_recipient_snapshot: Record<string, unknown>;
+  requested_due_date: string | null;
+  rush_type: RushType;
+  rush_value: number | null;
+  generated_total: number | null;
+  answers: Record<string, unknown>;
+}
+
+export interface OrderEditRow {
+  id: string;
+  order_id: string;
+  editor_user_id: string;
+  reason_code: EditReasonCode;
+  comment: string | null;
+  snapshot_json: OrderEditSnapshot;
+  created_at: string;
 }
 
 export interface OrderAnswerRow {

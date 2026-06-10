@@ -5,6 +5,7 @@
     "services": "Services",
     "forms": "Forms",
     "orders": "Orders",
+    "editedOrders": "Edited orders",
     "invoices": "Invoices",
     "debts": "Debts",
     "platformBilling": "Platform billing"
@@ -203,7 +204,11 @@
     "overdue": "Overdue",
     "overdueHint": "Past due date — action required",
     "dueSoon": "Due Soon",
-    "dueSoonHint": "Due within 2 days"
+    "dueSoonHint": "Due within 2 days",
+    "editedOrdersBox": {
+      "title": "Orders edited by doctors",
+      "hint": "Awaiting your review"
+    }
   },
   "ordersDashboard": {
     "title": "Orders",
@@ -231,6 +236,11 @@
       "created": "Created"
     }
   },
+  "editedOrders": {
+    "title": "Edited orders",
+    "empty": "No edited orders yet.",
+    "unconfirmedBadge": "Edited"
+  },
   "orderSheet": {
     "back": "Back to orders",
     "doctor": "Doctor",
@@ -254,6 +264,30 @@
     "statusTitle": "Order status",
     "statusHelp": "Pick the new status and click Save. The doctor sees the change immediately.",
     "cancelOrder": "Cancel order",
+    "reasonLabel": "Reason for change",
+    "editBanner": {
+      "text": "This order was edited by the doctor. Changed fields are highlighted below."
+    },
+    "diff": {
+      "before": "Before",
+      "after": "After",
+      "changed": "Changed",
+      "highlightHint": "Highlighted questions were changed by the doctor.",
+      "previousVersion": "Previous version",
+      "fields": {
+        "workLocation": "Work location",
+        "invoiceRecipient": "Invoice recipient"
+      },
+      "invoice": {
+        "DOCTOR": "Doctor",
+        "CLINIC": "Clinic"
+      }
+    },
+    "history": {
+      "label": "Edit history",
+      "editedBy": "Edited by",
+      "at": "at"
+    },
     "cancelModal": {
       "title": "Cancel this order?",
       "body": "This action cannot be undone. Provide a reason — the doctor will see it.",

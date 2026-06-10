@@ -121,6 +121,14 @@
       "debts": "Задолженности скоро появятся"
     }
   },
+  "editReasons": {
+    "CORRECTION": "Корректировка",
+    "UNFORESEEN_LAB_INSTRUCTION": "Непредвиденное указание со стороны лаборатории",
+    "PATIENT_REASON": "Причина со стороны пациента",
+    "CONSTRUCTION_DEFECT": "Дефект конструкции",
+    "MY_MISTAKE": "Моя ошибка",
+    "UNFORESEEN_EVENT": "Непредвиденный случай"
+  },
   "yes": "Да",
   "no": "Нет"
 }

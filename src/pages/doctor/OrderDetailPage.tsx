@@ -10,6 +10,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import EditIcon from '@mui/icons-material/Edit';
 import { Link as RouterLink, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -114,6 +115,18 @@ export function OrderDetailPage() {
               <Typography variant="h4">{order.order_code}</Typography>
               <OrderStatusChip status={order.status} />
               <PaymentStatusChip status={order.payment_status} />
+              {order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && (
+                <Button
+                  component={RouterLink}
+                  to={`/doctor/orders/${order.id}/edit`}
+                  variant="outlined"
+                  size="small"
+                  startIcon={<EditIcon fontSize="small" />}
+                  sx={{ ml: { sm: 'auto' } }}
+                >
+                  {t('orders.editButton')}
+                </Button>
+              )}
             </Stack>
             <Divider />
             <Row k={t('orderDetail.lab')} v={labSnap?.public_name} />

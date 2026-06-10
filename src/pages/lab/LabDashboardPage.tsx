@@ -48,6 +48,20 @@ export function LabDashboardPage() {
     },
   });
 
+  const { data: unreviewedEditsCount = 0 } = useQuery({
+    queryKey: ['lab-unreviewed-edits-count', labId],
+    enabled: !!labId && lab?.approval_status === 'APPROVED_ACTIVE',
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('orders')
+        .select('*', { count: 'exact', head: true })
+        .eq('lab_id', labId!)
+        .eq('has_unreviewed_edits', true);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+
   const overdueCount = dueDates.filter((d) => d < today).length;
   const dueSoonCount = dueDates.filter((d) => d >= today && d <= dayPlus2).length;
 
@@ -77,7 +91,7 @@ export function LabDashboardPage() {
                   </Stack>
                 </Stack>
 
-                {(overdueCount > 0 || dueSoonCount > 0) && (
+                {(overdueCount > 0 || dueSoonCount > 0 || unreviewedEditsCount > 0) && (
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                     {overdueCount > 0 && (
                       <Card
@@ -129,6 +143,33 @@ export function LabDashboardPage() {
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
                             {t('dashboard.dueSoonHint')}
+                          </Typography>
+                        </CardContent>
+                      </Card>
+                    )}
+                    {unreviewedEditsCount > 0 && (
+                      // Distinct info-blue accent so it never reads as overdue
+                      // (red) or due-soon (amber).
+                      <Card
+                        variant="outlined"
+                        sx={{
+                          flex: 1,
+                          borderColor: 'info.main',
+                          cursor: 'pointer',
+                          transition: 'box-shadow 0.15s',
+                          '&:hover': { boxShadow: 3 },
+                        }}
+                        onClick={() => navigate('/lab/edited-orders')}
+                      >
+                        <CardContent>
+                          <Typography variant="overline" color="info.dark">
+                            {t('dashboard.editedOrdersBox.title')}
+                          </Typography>
+                          <Typography variant="h3" color="info.dark">
+                            {unreviewedEditsCount}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {t('dashboard.editedOrdersBox.hint')}
                           </Typography>
                         </CardContent>
                       </Card>

@@ -20,6 +20,7 @@ import { LabPublicProfilePage } from '@/pages/doctor/LabPublicProfilePage';
 import { OrderCreateWizard } from '@/pages/doctor/OrderCreateWizard';
 import { OrdersListPage } from '@/pages/doctor/OrdersListPage';
 import { OrderDetailPage } from '@/pages/doctor/OrderDetailPage';
+import { OrderEditPage } from '@/pages/doctor/OrderEditPage';
 import { PatientsPage } from '@/pages/doctor/PatientsPage';
 import { PatientOrdersPage } from '@/pages/doctor/PatientOrdersPage';
 import { UnderDevelopmentPage } from '@/pages/common/UnderDevelopmentPage';
@@ -31,6 +32,7 @@ import { LabServicesPage } from '@/pages/lab/LabServicesPage';
 import { LabServiceCreatePage } from '@/pages/lab/LabServiceCreatePage';
 import { LabServiceEditPage } from '@/pages/lab/LabServiceEditPage';
 import { LabOrdersDashboardPage } from '@/pages/lab/LabOrdersDashboardPage';
+import { LabEditedOrdersPage } from '@/pages/lab/LabEditedOrdersPage';
 import { LabOrderSheetPage } from '@/pages/lab/LabOrderSheetPage';
 
 import { AdminLayout } from '@/layouts/AdminLayout';
@@ -71,6 +73,7 @@ export function AppRoutes() {
         <Route path="orders" element={<OrdersListPage />} />
         <Route path="orders/new" element={<OrderCreateWizard />} />
         <Route path="orders/:orderId" element={<OrderDetailPage />} />
+        <Route path="orders/:orderId/edit" element={<OrderEditPage />} />
         <Route path="patients" element={<PatientsPage />} />
         <Route path="patients/:patientId" element={<PatientOrdersPage />} />
         <Route path="invoices" element={<UnderDevelopmentPage featureKey="invoices" />} />
@@ -94,6 +97,7 @@ export function AppRoutes() {
         <Route path="services/new" element={<LabServiceCreatePage />} />
         <Route path="services/:serviceId" element={<LabServiceEditPage />} />
         <Route path="orders" element={<LabOrdersDashboardPage />} />
+        <Route path="edited-orders" element={<LabEditedOrdersPage />} />
         <Route path="orders/:orderId" element={<LabOrderSheetPage />} />
       </Route>
 

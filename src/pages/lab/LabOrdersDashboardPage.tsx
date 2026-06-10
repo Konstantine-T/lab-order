@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Checkbox,
+  Chip,
   CircularProgress,
   FormControl,
   InputAdornment,
@@ -86,7 +87,7 @@ export function LabOrdersDashboardPage() {
       const { data, error } = await supabase
         .from('orders')
         .select(
-          'id, order_code, status, generated_total, final_total, requested_due_date, confirmed_due_date, created_at, service_snapshot, doctor_snapshot, ' +
+          'id, order_code, status, generated_total, final_total, requested_due_date, confirmed_due_date, created_at, service_snapshot, doctor_snapshot, has_unreviewed_edits, ' +
             'lab_services(name)',
         )
         .eq('lab_id', labId!)
@@ -268,7 +269,21 @@ export function LabOrdersDashboardPage() {
                   code={row.order_code}
                   primary={doctorName}
                   secondary={serviceName}
-                  status={<OrderStatusChip status={row.status} />}
+                  highlight={row.has_unreviewed_edits}
+                  status={
+                    <>
+                      <OrderStatusChip status={row.status} />
+                      {row.has_unreviewed_edits && (
+                        <Chip
+                          label={t('editedOrders.unconfirmedBadge')}
+                          size="small"
+                          color="warning"
+                          variant="filled"
+                          sx={{ fontWeight: 600 }}
+                        />
+                      )}
+                    </>
+                  }
                   total={total != null ? formatGEL(total) : '—'}
                   dueDate={due}
                   avatarText={doctorName}

@@ -15,9 +15,6 @@ import {
   Radio,
   RadioGroup,
   Stack,
-  Step,
-  StepLabel,
-  Stepper,
   Switch,
   TextField,
   Typography,
@@ -78,8 +75,6 @@ function minTurnaroundDays(
   return Math.max(1, averageDays ?? 1);
 }
 
-const STEP_KEYS = ['patient', 'form', 'filesAndDue', 'review'] as const;
-
 export function OrderCreateWizard() {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
@@ -91,7 +86,6 @@ export function OrderCreateWizard() {
   const labParam = params.get('lab') ?? '';
   const serviceParam = params.get('service') ?? '';
 
-  const [step, setStep] = useState(0);
   const [state, setState] = useState<WizardState>(() => ({
     ...initialState,
     lab_id: labParam,
@@ -134,11 +128,11 @@ export function OrderCreateWizard() {
       draftData.state.lab_service_id === serviceParam
     ) {
       // Clear existing_id so the patient-match dialog re-shows on resume.
+      // The stored draft.step is ignored now — single page, no steps.
       setState({
         ...draftData.state,
         patient: { ...draftData.state.patient, existing_id: undefined },
       });
-      setStep(draftData.step);
     }
   }, [draftLoaded, draftData, labParam, serviceParam]);
 
@@ -243,73 +237,76 @@ export function OrderCreateWizard() {
   // Once the order is submitted, stop autosaving. Otherwise the hook's
   // unmount flush re-creates the draft row we just deleted in onSuccess,
   // and OrdersListPage's modal pops up again for a phantom draft.
+  // step is hard-coded to 0 now — the wizard is a single page with no steps,
+  // but the draft schema (and OrdersListPage's resume modal) still expect the
+  // column, so we keep writing 0 to avoid a migration.
   useDebouncedDraftAutosave(
     draftLoaded && !submittedOrderId ? doctorId : undefined,
     state,
-    step,
+    0,
     lab?.public_name ?? '',
     selectedService?.name ?? '',
   );
 
-  // ----- Step navigation ----------------------------------------------------
-  // Steps: 0 = patient, 1 = form, 2 = filesAndDue, 3 = review.
-  const goNext = () => {
+  // ----- Validation ---------------------------------------------------------
+  // Single page now: the checks that used to gate each step transition run once
+  // on Submit. We flip all three "attempted" flags up front so every section
+  // surfaces its inline errors at once, then return on the first hard failure
+  // for the top-level banner + scroll.
+  const validateAll = (): boolean => {
     setError(null);
-    if (step === 0) {
-      if (!state.patient.first_name || !state.patient.last_name) {
-        setPatientAttempted(true);
-        setError(tc('errors.required'));
-        scrollToFirstError();
-        return;
-      }
-      if (!linkedForm || linkedForm.status !== 'PUBLISHED') {
-        setError(t('orderCreate.labService.noPublishedForm'));
-        return;
-      }
+    setPatientAttempted(true);
+    setSubmitAttempted(true);
+    setFilesAttempted(true);
+
+    if (!state.patient.first_name || !state.patient.last_name) {
+      setError(tc('errors.required'));
+      scrollToFirstError();
+      return false;
     }
-    if (step === 1 && version) {
-      const ok = isOrderFormValid(
+    if (!linkedForm || linkedForm.status !== 'PUBLISHED') {
+      setError(t('orderCreate.labService.noPublishedForm'));
+      return false;
+    }
+    if (
+      version &&
+      !isOrderFormValid(
         version.configuration_json,
         state.answers,
         version.pricing_configuration_json,
-      );
-      if (!ok) {
-        setSubmitAttempted(true);
-        setError(tc('errors.required'));
-        scrollToFirstError();
-        return;
-      }
+      )
+    ) {
+      setError(tc('errors.required'));
+      scrollToFirstError();
+      return false;
     }
-    if (step === 2) {
-      if (!state.doctor_work_location_id) {
-        setFilesAttempted(true);
-        setError(tc('errors.required'));
-        scrollToFirstError();
-        return;
-      }
-      if (!state.requested_due_date) {
-        setFilesAttempted(true);
-        setError(tc('errors.required'));
-        scrollToFirstError();
-        return;
-      }
-      const minDays = minTurnaroundDays(
-        selectedService?.average_turnaround_days,
-        version?.pricing_configuration_json,
-        state.rush_requested,
-      );
-      const minDate = dayjs().startOf('day').add(minDays, 'day');
-      if (dayjs(state.requested_due_date).isBefore(minDate, 'day')) {
-        setFilesAttempted(true);
-        setError(t('orderCreate.filesAndDue.dueDate'));
-        scrollToFirstError();
-        return;
-      }
+    if (!state.doctor_work_location_id) {
+      setError(tc('errors.required'));
+      scrollToFirstError();
+      return false;
     }
-    setStep((s) => Math.min(STEP_KEYS.length - 1, s + 1));
+    if (!state.requested_due_date) {
+      setError(tc('errors.required'));
+      scrollToFirstError();
+      return false;
+    }
+    const minDays = minTurnaroundDays(
+      selectedService?.average_turnaround_days,
+      version?.pricing_configuration_json,
+      state.rush_requested,
+    );
+    const minDate = dayjs().startOf('day').add(minDays, 'day');
+    if (dayjs(state.requested_due_date).isBefore(minDate, 'day')) {
+      setError(t('orderCreate.filesAndDue.dueDate'));
+      scrollToFirstError();
+      return false;
+    }
+    return true;
   };
 
-  const goBack = () => setStep((s) => Math.max(0, s - 1));
+  const handleSubmit = () => {
+    if (validateAll()) submit.mutate();
+  };
 
   // ----- Derived rush -------------------------------------------------------
   const rush = effectiveRush(version?.pricing_configuration_json, state.rush_requested);
@@ -388,17 +385,12 @@ export function OrderCreateWizard() {
     );
   }
 
+  // Selected work location — drives the clinic-code warning in the invoice card.
+  const selectedLoc = locations.find((l) => l.id === state.doctor_work_location_id);
+
   return (
     <Stack spacing={3} sx={{ maxWidth: 920, mx: 'auto' }}>
       <Typography variant="h4">{t('orderCreate.title')}</Typography>
-
-      <Stepper activeStep={step} alternativeLabel>
-        {STEP_KEYS.map((k) => (
-          <Step key={k}>
-            <StepLabel>{t(`orderCreate.steps.${k}` as const)}</StepLabel>
-          </Step>
-        ))}
-      </Stepper>
 
       {lab && selectedService && (
         <Alert severity="info" icon={false} sx={{ '.MuiAlert-message': { width: '100%' } }}>
@@ -432,7 +424,6 @@ export function OrderCreateWizard() {
                 if (doctorId) await clearDraft(doctorId);
                 setDismissedBroken(false);
                 setState({ ...initialState, lab_id: labParam, lab_service_id: serviceParam });
-                setStep(0);
               }}
             >
               {t('orderCreate.brokenDraft.discard')}
@@ -443,57 +434,69 @@ export function OrderCreateWizard() {
 
       {error && <Alert severity="error">{error}</Alert>}
 
-      {step === 0 && <PatientStep state={state} update={update} doctorId={doctorId ?? ''} patientAttempted={patientAttempted} />}
-      {step === 1 && version && (
-        <FormStep
-          state={state}
-          update={update}
-          version={version}
-          showErrors={submitAttempted}
-        />
-      )}
-      {step === 2 && (
-        <FilesAndDueStep
-          state={state}
-          update={update}
-          locations={locations}
-          pricing={version?.pricing_configuration_json}
-          averageTurnaroundDays={selectedService?.average_turnaround_days ?? null}
-          filesAttempted={filesAttempted}
-          onAddLocation={() => {
-            navigate('/doctor/work-locations');
-          }}
-        />
-      )}
-      {step === 3 && version && (
-        <ReviewStep
-          state={state}
-          update={update}
-          version={version}
-          locations={locations}
-          serviceName={selectedService?.name ?? ''}
-          labName={lab?.public_name ?? ''}
-          rush={rush}
-        />
+      {/* Single scrolling page: all sections stacked top-to-bottom. */}
+      <PatientStep
+        state={state}
+        update={update}
+        doctorId={doctorId ?? ''}
+        patientAttempted={patientAttempted}
+      />
+
+      {version && (
+        <FormStep state={state} update={update} version={version} showErrors={submitAttempted} />
       )}
 
-      <Stack direction="row" justifyContent="space-between">
-        <Button onClick={goBack} disabled={step === 0}>
-          {tc('actions.back')}
-        </Button>
-        {step < STEP_KEYS.length - 1 ? (
-          <Button variant="contained" onClick={goNext} disabled={isBroken}>
-            {tc('actions.next')}
-          </Button>
-        ) : (
-          <Button
-            variant="contained"
-            onClick={() => submit.mutate()}
-            disabled={submit.isPending || isBroken}
+      <FilesAndDueStep
+        state={state}
+        update={update}
+        locations={locations}
+        pricing={version?.pricing_configuration_json}
+        averageTurnaroundDays={selectedService?.average_turnaround_days ?? null}
+        filesAttempted={filesAttempted}
+        onAddLocation={() => {
+          navigate('/doctor/work-locations');
+        }}
+      />
+
+      {/* Invoice recipient — moved out of the old Review step. */}
+      <Card>
+        <CardContent>
+          <Typography variant="h6">{t('orderCreate.review.invoiceRecipient')}</Typography>
+          <RadioGroup
+            value={state.invoice_recipient_type}
+            onChange={(e) =>
+              update({ invoice_recipient_type: e.target.value as 'DOCTOR' | 'CLINIC' })
+            }
           >
-            {t('orderCreate.review.submit')}
-          </Button>
-        )}
+            <FormControlLabel
+              value="DOCTOR"
+              control={<Radio />}
+              label={t('orderCreate.review.invoiceDoctor')}
+            />
+            <FormControlLabel
+              value="CLINIC"
+              control={<Radio />}
+              label={t('orderCreate.review.invoiceClinic')}
+            />
+          </RadioGroup>
+          {state.invoice_recipient_type === 'CLINIC' &&
+            selectedLoc &&
+            !selectedLoc.clinic_identification_code && (
+              <Alert severity="warning" sx={{ mt: 1 }}>
+                {t('orderCreate.review.clinicCodeWarning')}
+              </Alert>
+            )}
+        </CardContent>
+      </Card>
+
+      <Stack direction="row" justifyContent="flex-end">
+        <Button
+          variant="contained"
+          onClick={handleSubmit}
+          disabled={submit.isPending || isBroken}
+        >
+          {t('orderCreate.review.submit')}
+        </Button>
       </Stack>
     </Stack>
   );
@@ -502,7 +505,9 @@ export function OrderCreateWizard() {
 // ============================================================================
 // Step 1 — Patient
 // ============================================================================
-function PatientStep({
+// Exported so the edit page (OrderEditPage) can reuse the exact same patient
+// fields + match dialog without duplicating the UI.
+export function PatientStep({
   state,
   update,
   doctorId,
@@ -674,7 +679,8 @@ function PatientStep({
 // ============================================================================
 // Step 2 — Form
 // ============================================================================
-function FormStep({
+// Exported for reuse on the edit page — same dental form + live price estimate.
+export function FormStep({
   state,
   update,
   version,
@@ -875,108 +881,3 @@ function FilesAndDueStep({
   );
 }
 
-// ============================================================================
-// Step 5 — Review & Submit
-// ============================================================================
-function ReviewStep({
-  state,
-  update,
-  version,
-  locations,
-  serviceName,
-  labName,
-  rush,
-}: {
-  state: WizardState;
-  update: (p: Partial<WizardState>) => void;
-  version: LabFormVersionRow;
-  locations: DoctorWorkLocationRow[];
-  serviceName: string;
-  labName: string;
-  rush: { type: RushType; value: number } | undefined;
-}) {
-  const { t } = useTranslation('doctor');
-  const loc = locations.find((l) => l.id === state.doctor_work_location_id);
-
-  return (
-    <Stack spacing={2}>
-      <Card>
-        <CardContent>
-          <Typography variant="h6">{t('orderCreate.review.header')}</Typography>
-          <Stack spacing={1} sx={{ mt: 2 }}>
-            <Row k={t('orderCreate.review.fields.lab')} v={labName} />
-            <Row k={t('orderCreate.review.fields.service')} v={serviceName} />
-            <Row
-              k={t('orderCreate.review.fields.patient')}
-              v={`${state.patient.first_name} ${state.patient.last_name}`}
-            />
-            <Row
-              k={t('orderCreate.review.fields.workLocation')}
-              v={loc ? `${loc.clinic_name} — ${loc.city}` : ''}
-            />
-            <Row k={t('orderCreate.review.fields.dueDate')} v={state.requested_due_date || '—'} />
-          </Stack>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent>
-          <Typography variant="h6">{t('orderCreate.review.invoiceRecipient')}</Typography>
-          <RadioGroup
-            value={state.invoice_recipient_type}
-            onChange={(e) =>
-              update({ invoice_recipient_type: e.target.value as 'DOCTOR' | 'CLINIC' })
-            }
-          >
-            <FormControlLabel value="DOCTOR" control={<Radio />} label={t('orderCreate.review.invoiceDoctor')} />
-            <FormControlLabel value="CLINIC" control={<Radio />} label={t('orderCreate.review.invoiceClinic')} />
-          </RadioGroup>
-        </CardContent>
-      </Card>
-
-      {/* Show order form answers in read-only mode */}
-      {version.configuration_json._templateCode && (
-        <Card>
-          <CardContent>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              {t('orderCreate.review.formAnswers')}
-            </Typography>
-            <OrderForm
-              configuration={version.configuration_json}
-              pricing={version.pricing_configuration_json}
-              values={state.answers}
-              onChange={() => {}}
-              readOnly
-            />
-          </CardContent>
-        </Card>
-      )}
-
-      <PriceBreakdown
-        pricing={version.pricing_configuration_json}
-        answers={state.answers}
-        rush={rush}
-        finalTotal={null}
-      />
-
-      {state.invoice_recipient_type === 'CLINIC' &&
-        loc &&
-        !loc.clinic_identification_code && (
-          <Alert severity="warning">{t('orderCreate.review.clinicCodeWarning')}</Alert>
-        )}
-    </Stack>
-  );
-}
-
-function Row({ k, v }: { k: string; v: string | undefined | null }) {
-  return (
-    <Stack direction="row" spacing={2}>
-      <Typography variant="body2" color="text.secondary" sx={{ minWidth: 140 }}>
-        {k}
-      </Typography>
-      <Typography variant="body2" sx={{ flex: 1 }}>
-        {v || '—'}
-      </Typography>
-    </Stack>
-  );
-}
