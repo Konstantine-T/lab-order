@@ -265,6 +265,9 @@
     "statusHelp": "Pick the new status and click Save. The doctor sees the change immediately.",
     "cancelOrder": "Cancel order",
     "reasonLabel": "Reason for change",
+    "lineage": {
+      "continuesFrom": "Continues from"
+    },
     "editBanner": {
       "text": "This order was edited by the doctor. Changed fields are highlighted below."
     },

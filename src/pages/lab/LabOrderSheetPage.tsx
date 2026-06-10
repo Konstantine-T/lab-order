@@ -39,6 +39,7 @@ import {
   type EditState,
 } from '@/features/lab/orderEdits/diff';
 import { OrderAnswersDiff } from '@/features/lab/orderEdits/OrderAnswersDiff';
+import { OrderLineage } from '@/features/orders/OrderLineage';
 import type {
   LabFormVersionRow,
   OrderAnswerRow,
@@ -239,6 +240,12 @@ export function LabOrderSheetPage() {
 
       {success && <Alert severity="success" onClose={() => setSuccess(null)}>{success}</Alert>}
       {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
+
+      <OrderLineage
+        orderId={order.id}
+        basePath="/lab/orders"
+        label={t('orderSheet.lineage.continuesFrom')}
+      />
 
       <Card>
         <CardContent>

@@ -23,6 +23,7 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import EditIcon from '@mui/icons-material/Edit';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import SearchIcon from '@mui/icons-material/Search';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { DatePicker } from '@mui/x-date-pickers';
@@ -43,6 +44,7 @@ import {
   clearDraft,
   checkDraftBrokenness,
 } from '@/features/doctor/orderCreate/draftStorage';
+import { useContinueProject } from '@/features/doctor/orderCreate/useContinueProject';
 
 const ALL_STATUSES: readonly OrderStatus[] = [
   'SUBMITTED',
@@ -71,6 +73,7 @@ export function OrdersListPage() {
   const doctorId = user?.doctor_profile?.id;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const continueProject = useContinueProject();
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -132,7 +135,7 @@ export function OrdersListPage() {
       const { data, error } = await supabase
         .from('orders')
         .select(
-          'id, order_code, status, payment_status, generated_total, final_total, requested_due_date, confirmed_due_date, created_at, service_snapshot, ' +
+          'id, order_code, status, payment_status, generated_total, final_total, requested_due_date, confirmed_due_date, created_at, service_snapshot, lab_id, patient_id, ' +
             'patients(first_name, last_name), labs(public_name), lab_services(name)',
         )
         .eq('doctor_id', doctorId!)
@@ -443,17 +446,31 @@ export function OrdersListPage() {
                   avatarText={patientName}
                   onClick={() => navigate(`/doctor/orders/${row.id}`)}
                   footer={
-                    row.status !== 'COMPLETED' && row.status !== 'CANCELLED' ? (
-                      <Box sx={{ px: 2.5, py: 1.25 }}>
-                        <Button
-                          size="small"
-                          startIcon={<EditIcon fontSize="small" />}
-                          onClick={() => navigate(`/doctor/orders/${row.id}/edit`)}
-                        >
-                          {t('orders.editButton')}
-                        </Button>
-                      </Box>
-                    ) : undefined
+                    row.status === 'CANCELLED' ? undefined : (
+                      <Stack direction="row" spacing={1} sx={{ px: 2.5, py: 1.25 }}>
+                        {row.status !== 'COMPLETED' && (
+                          <Button
+                            size="small"
+                            startIcon={<EditIcon fontSize="small" />}
+                            onClick={() => navigate(`/doctor/orders/${row.id}/edit`)}
+                          >
+                            {t('orders.editButton')}
+                          </Button>
+                        )}
+                        {row.status === 'COMPLETED' && (
+                          <Button
+                            size="small"
+                            variant="contained"
+                            startIcon={<PlayArrowIcon fontSize="small" />}
+                            onClick={() =>
+                              continueProject.start(row.lab_id, row.patient_id, row.id)
+                            }
+                          >
+                            {t('orders.continueProject')}
+                          </Button>
+                        )}
+                      </Stack>
+                    )
                   }
                 />
               );
@@ -471,6 +488,7 @@ export function OrdersListPage() {
           />
         </Stack>
       )}
+      {continueProject.modal}
     </Stack>
   );
 }

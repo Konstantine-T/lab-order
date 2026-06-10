@@ -6,8 +6,10 @@ import {
   Typography,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useContinueProject } from '@/features/doctor/orderCreate/useContinueProject';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { useAuth } from '@/auth/AuthProvider';
@@ -30,6 +32,7 @@ export function PatientOrdersPage() {
   const doctorId = user?.doctor_profile?.id;
   const { patientId } = useParams<{ patientId: string }>();
   const navigate = useNavigate();
+  const continueProject = useContinueProject();
 
   const { data: patient } = useQuery({
     queryKey: ['doctor-patient', patientId],
@@ -54,7 +57,7 @@ export function PatientOrdersPage() {
         .from('orders')
         .select(
           'id, order_code, status, payment_status, generated_total, final_total, ' +
-            'requested_due_date, confirmed_due_date, created_at, service_snapshot, ' +
+            'requested_due_date, confirmed_due_date, created_at, service_snapshot, lab_id, ' +
             'labs(public_name), lab_services(name)',
         )
         .eq('doctor_id', doctorId!)
@@ -124,23 +127,36 @@ export function PatientOrdersPage() {
                 avatarText={serviceName || '?'}
                 onClick={() => navigate(`/doctor/orders/${row.id}`)}
                 footer={
-                  row.status !== 'COMPLETED' && row.status !== 'CANCELLED' ? (
-                    <Box sx={{ px: 2.5, py: 1.25 }}>
-                      <Button
-                        size="small"
-                        startIcon={<EditIcon fontSize="small" />}
-                        onClick={() => navigate(`/doctor/orders/${row.id}/edit`)}
-                      >
-                        {t('orders.editButton')}
-                      </Button>
-                    </Box>
-                  ) : undefined
+                  row.status === 'CANCELLED' ? undefined : (
+                    <Stack direction="row" spacing={1} sx={{ px: 2.5, py: 1.25 }}>
+                      {row.status !== 'COMPLETED' && (
+                        <Button
+                          size="small"
+                          startIcon={<EditIcon fontSize="small" />}
+                          onClick={() => navigate(`/doctor/orders/${row.id}/edit`)}
+                        >
+                          {t('orders.editButton')}
+                        </Button>
+                      )}
+                      {row.status === 'COMPLETED' && patientId && (
+                        <Button
+                          size="small"
+                          variant="contained"
+                          startIcon={<PlayArrowIcon fontSize="small" />}
+                          onClick={() => continueProject.start(row.lab_id, patientId, row.id)}
+                        >
+                          {t('orders.continueProject')}
+                        </Button>
+                      )}
+                    </Stack>
+                  )
                 }
               />
             );
           })}
         </Stack>
       )}
+      {continueProject.modal}
     </Stack>
   );
 }

@@ -85,6 +85,10 @@ export function OrderCreateWizard() {
 
   const labParam = params.get('lab') ?? '';
   const serviceParam = params.get('service') ?? '';
+  // Set when continuing a project: pre-fill + lock the patient, link lineage.
+  const patientParam = params.get('patient') ?? '';
+  const continuesParam = params.get('continues') ?? '';
+  const isContinuation = !!patientParam;
 
   const [state, setState] = useState<WizardState>(() => ({
     ...initialState,
@@ -98,6 +102,7 @@ export function OrderCreateWizard() {
   const [submittedOrderId, setSubmittedOrderId] = useState<string | null>(null);
   const [dismissedBroken, setDismissedBroken] = useState(false);
   const draftHydratedRef = useRef(false);
+  const continuePatientRef = useRef(false);
   const queryClient = useQueryClient();
 
   const update = (patch: Partial<WizardState>) => setState((s) => ({ ...s, ...patch }));
@@ -135,6 +140,38 @@ export function OrderCreateWizard() {
       });
     }
   }, [draftLoaded, draftData, labParam, serviceParam]);
+
+  // Continue-project: load the locked patient and seed it as an existing
+  // patient (existing_id set → no match dialog). By the time we're here the
+  // draft-collision modal has already cleared any conflicting draft.
+  const { data: continuePatientRow } = useQuery({
+    queryKey: ['continue-patient', patientParam, doctorId],
+    enabled: !!patientParam && !!doctorId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('patients')
+        .select('*')
+        .eq('id', patientParam)
+        .eq('doctor_id', doctorId!)
+        .maybeSingle();
+      if (error) throw error;
+      return data as PatientRow | null;
+    },
+  });
+
+  useEffect(() => {
+    if (!isContinuation || continuePatientRef.current || !continuePatientRow) return;
+    continuePatientRef.current = true; // seed once
+    update({
+      patient: {
+        first_name: continuePatientRow.first_name,
+        last_name: continuePatientRow.last_name,
+        date_of_birth: continuePatientRow.date_of_birth ?? '',
+        gender: continuePatientRow.gender ?? '',
+        existing_id: continuePatientRow.id,
+      },
+    });
+  }, [isContinuation, continuePatientRow]);
 
   // ----- Data queries -------------------------------------------------------
   const { data: locations = [] } = useQuery({
@@ -345,6 +382,7 @@ export function OrderCreateWizard() {
         p_rush_value: submittedRush.type === 'NONE' ? null : submittedRush.value,
         p_answers: state.answers,
         p_generated_total: generatedTotal,
+        p_continues_order_id: continuesParam || null,
       });
       if (error) throw error;
       return data as string;
@@ -440,6 +478,7 @@ export function OrderCreateWizard() {
         update={update}
         doctorId={doctorId ?? ''}
         patientAttempted={patientAttempted}
+        readOnly={isContinuation}
       />
 
       {version && (
@@ -512,11 +551,14 @@ export function PatientStep({
   update,
   doctorId,
   patientAttempted,
+  readOnly,
 }: {
   state: WizardState;
   update: (p: Partial<WizardState>) => void;
   doctorId: string;
   patientAttempted?: boolean;
+  /** Continue-project: the patient is fixed, so lock the fields + match dialog. */
+  readOnly?: boolean;
 }) {
   const { t } = useTranslation('doctor');
   const [match, setMatch] = useState<PatientRow | null>(null);
@@ -525,6 +567,7 @@ export function PatientStep({
   // Trigger match check as soon as first + last name are filled; gender/DOB
   // are no longer required because the RPC now matches on name only.
   useEffect(() => {
+    if (readOnly) return; // locked patient never needs the match lookup
     const { first_name, last_name } = state.patient;
     if (!first_name.trim() || !last_name.trim() || !doctorId) return;
     if (state.patient.existing_id) return;
@@ -553,6 +596,7 @@ export function PatientStep({
     state.patient.last_name,
     state.patient.existing_id,
     doctorId,
+    readOnly,
   ]);
 
   return (
@@ -560,6 +604,9 @@ export function PatientStep({
       <CardContent>
         <Stack spacing={2}>
           <Typography variant="h6">{t('orderCreate.patient.header')}</Typography>
+          {readOnly && (
+            <Alert severity="info">{t('orderCreate.patient.lockedForContinuation')}</Alert>
+          )}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
               label={t('orderCreate.patient.firstName')}
@@ -568,6 +615,7 @@ export function PatientStep({
                 update({ patient: { ...state.patient, first_name: e.target.value, existing_id: undefined } })
               }
               fullWidth
+              disabled={readOnly}
               error={patientAttempted && !state.patient.first_name}
             />
             <TextField
@@ -577,6 +625,7 @@ export function PatientStep({
                 update({ patient: { ...state.patient, last_name: e.target.value, existing_id: undefined } })
               }
               fullWidth
+              disabled={readOnly}
               error={patientAttempted && !state.patient.last_name}
             />
           </Stack>
@@ -595,6 +644,7 @@ export function PatientStep({
               }
               format="YYYY-MM-DD"
               disableFuture
+              disabled={readOnly}
               slotProps={{ textField: { fullWidth: true } }}
             />
             <TextField
@@ -605,6 +655,7 @@ export function PatientStep({
                 update({ patient: { ...state.patient, gender: e.target.value } })
               }
               fullWidth
+              disabled={readOnly}
               // Float the label into the notch always — keeps it from overlapping
               // the empty placeholder when no option is picked.
               InputLabelProps={{ shrink: true }}
@@ -634,12 +685,12 @@ export function PatientStep({
               <MenuItem value="other">{t('orderCreate.patient.genderOptions.other')}</MenuItem>
             </TextField>
           </Stack>
-          {state.patient.existing_id && (
+          {state.patient.existing_id && !readOnly && (
             <Alert severity="info">{t('orderCreate.patient.continuingExisting')}</Alert>
           )}
         </Stack>
       </CardContent>
-      <Dialog open={matchOpen && !state.patient.existing_id} onClose={() => setMatchOpen(false)}>
+      <Dialog open={matchOpen && !state.patient.existing_id && !readOnly} onClose={() => setMatchOpen(false)}>
         <DialogTitle>{t('orderCreate.patient.match.title')}</DialogTitle>
         <DialogContent>
           <Typography>

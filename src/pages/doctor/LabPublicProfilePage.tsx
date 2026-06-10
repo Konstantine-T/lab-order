@@ -14,7 +14,7 @@ import {
   Typography,
 } from '@mui/material';
 import BusinessIcon from '@mui/icons-material/Business';
-import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
@@ -28,6 +28,12 @@ export function LabPublicProfilePage() {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Set when the doctor arrived here via "Continue project" — carry them onto
+  // the order CTA so the wizard pre-fills + locks the patient and links lineage.
+  const continuePatient = searchParams.get('patient');
+  const continuesOrder = searchParams.get('continues');
 
   const { data: lab, isLoading: labLoading } = useQuery({
     queryKey: ['public-lab', labId],
@@ -106,6 +112,10 @@ export function LabPublicProfilePage() {
         ← {t('labProfile.back')}
       </Button>
 
+      {(continuePatient || continuesOrder) && (
+        <Alert severity="info">{t('labProfile.continuingFor')}</Alert>
+      )}
+
       <Card>
         <CardContent>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} alignItems="flex-start">
@@ -158,7 +168,11 @@ export function LabPublicProfilePage() {
                     <CardActionArea
                       disabled={!orderable}
                       onClick={() =>
-                        navigate(`/doctor/orders/new?lab=${lab.id}&service=${s.id}`)
+                        navigate(
+                          `/doctor/orders/new?lab=${lab.id}&service=${s.id}` +
+                            (continuePatient ? `&patient=${continuePatient}` : '') +
+                            (continuesOrder ? `&continues=${continuesOrder}` : ''),
+                        )
                       }
                       sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', alignItems: 'stretch' }}
                     >

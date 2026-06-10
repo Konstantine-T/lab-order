@@ -290,6 +290,8 @@ export interface OrderRow {
   has_unreviewed_edits: boolean;
   edit_count: number;
   last_edited_at: string | null;
+  /** Parent order this one continues from (same lab + same doctor), or null. */
+  continues_order_id: string | null;
   created_at: string;
   updated_at: string;
 }

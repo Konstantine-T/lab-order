@@ -11,6 +11,7 @@ import {
   Typography,
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
+import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import { Link as RouterLink, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +20,8 @@ import { supabase } from '@/lib/supabase';
 import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { OrderForm } from '@/features/orderForms/OrderForm';
+import { OrderLineage } from '@/features/orders/OrderLineage';
+import { useContinueProject } from '@/features/doctor/orderCreate/useContinueProject';
 import type {
   LabFormVersionRow,
   OrderAnswerRow,
@@ -33,6 +36,7 @@ export function OrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
+  const continueProject = useContinueProject();
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['order', orderId],
@@ -101,6 +105,13 @@ export function OrderDetailPage() {
         ← {t('orderDetail.back')}
       </Button>
 
+      <OrderLineage
+        orderId={order.id}
+        basePath="/doctor/orders"
+        label={t('orders.lineage.continuesFrom')}
+      />
+      {continueProject.modal}
+
       {order.status === 'CANCELLED' && (
         <Alert severity="error">
           <AlertTitle>{t('orderDetail.cancellation.title')}</AlertTitle>
@@ -125,6 +136,17 @@ export function OrderDetailPage() {
                   sx={{ ml: { sm: 'auto' } }}
                 >
                   {t('orders.editButton')}
+                </Button>
+              )}
+              {order.status === 'COMPLETED' && (
+                <Button
+                  variant="contained"
+                  size="small"
+                  startIcon={<PlayArrowIcon fontSize="small" />}
+                  sx={{ ml: { sm: 'auto' } }}
+                  onClick={() => continueProject.start(order.lab_id, order.patient_id, order.id)}
+                >
+                  {t('orders.continueProject')}
                 </Button>
               )}
             </Stack>
