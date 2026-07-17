@@ -108,6 +108,9 @@ export function LoginPage() {
                 <Button component={RouterLink} to="/register/lab" variant="outlined" size="small">
                   {t('login.registerAsLab')}
                 </Button>
+                <Button component={RouterLink} to="/register/clinic" variant="outlined" size="small">
+                  {t('login.registerAsClinic')}
+                </Button>
               </Stack>
             </Stack>
           </Stack>

@@ -12,6 +12,7 @@ import {
 } from '@mui/material';
 import EditIcon from '@mui/icons-material/Edit';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
+import TelegramIcon from '@mui/icons-material/Telegram';
 import { Link as RouterLink, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -25,7 +26,9 @@ import { useContinueProject } from '@/features/doctor/orderCreate/useContinuePro
 import type {
   LabFormVersionRow,
   OrderAnswerRow,
+  OrderChatPublicRow,
   OrderRow,
+  OrderStaffPublicRow,
 } from '@/types/database';
 
 type DetailRow = OrderRow & {
@@ -62,6 +65,34 @@ export function OrderDetailPage() {
         .eq('order_id', orderId!);
       if (error) throw error;
       return (data ?? []) as OrderAnswerRow[];
+    },
+  });
+
+  // Staff the lab assigned to this order — names only, via the phone/email-safe
+  // get_order_staff() RPC (doctors have no direct read on lab_staff).
+  const { data: labTeam = [] } = useQuery({
+    queryKey: ['order-staff-public', orderId],
+    enabled: !!orderId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_order_staff', {
+        p_order_id: orderId!,
+      });
+      if (error) throw error;
+      return (data ?? []) as OrderStaffPublicRow[];
+    },
+  });
+
+  // The order's Telegram group invite link, if the lab created one. Doctors get
+  // ONLY the link via get_order_chat() — never phones / unadded_members.
+  const { data: orderChat } = useQuery({
+    queryKey: ['order-chat-public', orderId],
+    enabled: !!orderId,
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('get_order_chat', {
+        p_order_id: orderId!,
+      });
+      if (error) throw error;
+      return ((data as OrderChatPublicRow[] | null) ?? [])[0] ?? null;
     },
   });
 
@@ -152,6 +183,25 @@ export function OrderDetailPage() {
             </Stack>
             <Divider />
             <Row k={t('orderDetail.lab')} v={labSnap?.public_name} />
+            {labTeam.length > 0 && (
+              <Row
+                k={t('orderDetail.labTeam')}
+                v={labTeam.map((s) => `${s.first_name} ${s.last_name}`).join(', ')}
+              />
+            )}
+            {orderChat?.invite_link && (
+              <Button
+                href={orderChat.invite_link}
+                target="_blank"
+                rel="noopener"
+                size="small"
+                variant="outlined"
+                startIcon={<TelegramIcon />}
+                sx={{ alignSelf: 'flex-start' }}
+              >
+                {t('orderDetail.openChat')}
+              </Button>
+            )}
             <Row k={t('orderDetail.service')} v={serviceSnap?.name} />
             <Row
               k={t('orderDetail.patient')}

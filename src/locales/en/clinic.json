@@ -1,0 +1,57 @@
+{
+  "brand": "Lab Order — Clinic",
+  "nav": {
+    "home": "Home",
+    "doctors": "Doctors",
+    "orders": "Orders"
+  },
+  "home": {
+    "fallbackName": "Clinic",
+    "stats": {
+      "doctors": "Doctors",
+      "orders": "Orders",
+      "pendingInvites": "Pending invites"
+    }
+  },
+  "doctors": {
+    "title": "Doctors",
+    "subtitle": "Doctors working under your clinic",
+    "empty": "No doctors have joined your clinic yet. Invite one above.",
+    "invite": {
+      "title": "Invite a doctor",
+      "hint": "Enter the email the doctor uses to sign in. They must accept the invitation before you can see their orders.",
+      "emailLabel": "Doctor email",
+      "action": "Send invite",
+      "invalidEmail": "Enter a valid email address."
+    },
+    "pending": {
+      "title": "Pending invitations",
+      "badge": "Pending",
+      "revoke": "Revoke invitation"
+    },
+    "roster": {
+      "title": "Doctors ({{n}})",
+      "remove": "Remove from clinic",
+      "removeAction": "Remove",
+      "removeConfirmTitle": "Remove doctor?",
+      "removeConfirmBody": "Remove {{name}} from your clinic? You will immediately lose access to their orders."
+    }
+  },
+  "orders": {
+    "title": "Orders",
+    "subtitle": "All orders from doctors under your clinic",
+    "empty": "No orders yet.",
+    "filterByDoctor": "Filter by doctor",
+    "allDoctors": "All doctors"
+  },
+  "orderDetail": {
+    "back": "Back to orders",
+    "lab": "Lab",
+    "service": "Service",
+    "patient": "Patient",
+    "confirmedDueDate": "Confirmed due date",
+    "dueDate": "Requested due date",
+    "total": "Total",
+    "createdAt": "Created"
+  }
+}

@@ -115,6 +115,98 @@ export interface LabRow {
   updated_at: string;
 }
 
+export interface ClinicRow {
+  id: string;
+  owner_user_id: string;
+  public_name: string;
+  legal_name: string | null;
+  identification_code: string | null;
+  legal_address: string | null;
+  city: string | null;
+  country: string | null;
+  contact_person_name: string | null;
+  contact_phone: string | null;
+  contact_email: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface LabStaffRow {
+  id: string;
+  lab_id: string;
+  first_name: string;
+  last_name: string;
+  phone: string;
+  email: string | null;
+  telegram_user_id: number | null;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface OrderStaffAssignmentRow {
+  id: string;
+  order_id: string;
+  staff_id: string;
+  assigned_by_user_id: string | null;
+  assigned_at: string;
+}
+
+export interface OrderChatRow {
+  order_id: string;
+  telegram_chat_id: number;
+  invite_link: string;
+  unadded_members: { name: string; phone: string | null; reason: string }[];
+  created_by_user_id: string | null;
+  created_at: string;
+}
+
+/** Row shape returned by the get_order_staff() RPC (names only — no contact info). */
+export interface OrderStaffPublicRow {
+  staff_id: string;
+  first_name: string;
+  last_name: string;
+  assigned_at: string;
+}
+
+/**
+ * Row shape returned by the get_order_chat() RPC — the doctor-safe view of a
+ * chat: invite link only, never phones / telegram_chat_id / unadded_members.
+ */
+export interface OrderChatPublicRow {
+  order_id: string;
+  invite_link: string;
+}
+
+/** Response of the create-order-chat Edge Function (lab-side). */
+export interface CreateOrderChatResult {
+  invite_link: string | null;
+  chat_id: number | null;
+  unadded_members: { name: string; phone: string | null; reason: string }[];
+}
+
+export type ClinicInviteStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'REVOKED';
+
+export interface ClinicDoctorInviteRow {
+  id: string;
+  clinic_id: string;
+  doctor_email: string;
+  status: ClinicInviteStatus;
+  invited_by_user_id: string | null;
+  created_at: string;
+  responded_at: string | null;
+}
+
+/** Row shape returned by the clinic_doctors() RPC. */
+export interface ClinicDoctorRow {
+  doctor_id: string;
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  specialty: string | null;
+}
+
 export interface LabServiceRow {
   id: string;
   lab_id: string;

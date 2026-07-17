@@ -8,7 +8,8 @@
     "editedOrders": "Edited orders",
     "invoices": "Invoices",
     "debts": "Debts",
-    "platformBilling": "Platform billing"
+    "platformBilling": "Platform billing",
+    "staff": "Staff"
   },
   "formFields": {
     "treatments": "Treatments (tooth chart)",
@@ -148,7 +149,11 @@
       "create": "Create"
     },
     "editor": {
-      "tabs": { "fields": "Fields", "pricing": "Pricing", "preview": "Preview" },
+      "tabs": {
+        "fields": "Fields",
+        "pricing": "Pricing",
+        "preview": "Preview"
+      },
       "livePreview": "Live Preview",
       "fieldsTitle": "Field configuration",
       "fieldsHelp": "Toggle fields on/off, mark as required, and add helper text.",
@@ -700,6 +705,54 @@
     "notes": {
       "label": "Notes",
       "placeholder": "Any additional instructions…"
+    }
+  },
+  "staff": {
+    "title": "Staff",
+    "subtitle": "Your lab's team members — assign them to orders so everyone knows who's working on what.",
+    "addNew": "Add staff member",
+    "empty": "No staff members yet. Add your technicians and assistants here.",
+    "createDialog": {
+      "title": "Add staff member"
+    },
+    "editDialog": {
+      "title": "Edit staff member"
+    },
+    "fields": {
+      "firstName": "First name",
+      "lastName": "Last name",
+      "phone": "Phone",
+      "email": "Email (optional)"
+    },
+    "fieldHelp": {
+      "phone": "International format, e.g. +995 5XX XXX XXX. Used for the Telegram chat.",
+      "email": "Optional"
+    },
+    "errors": {
+      "duplicatePhone": "A staff member with this phone number already exists."
+    },
+    "archiveConfirm": {
+      "title": "Archive staff member?",
+      "body": "They will disappear from the list and can no longer be assigned to orders. Past order assignments are kept."
+    },
+    "team": {
+      "title": "Team",
+      "subtitle": "Who is working on this order",
+      "assignLabel": "Assign staff",
+      "assignAction": "Assign",
+      "empty": "No staff assigned yet.",
+      "noStaff": "You have no staff members yet — add them on the Staff page first.",
+      "goToStaff": "Manage staff",
+      "chat": {
+        "create": "Create Telegram chat",
+        "creating": "Creating chat…",
+        "createHint": "Creates a Telegram group with the assigned team, the doctor, and your lab.",
+        "open": "Open chat",
+        "copyLink": "Copy invite link",
+        "copied": "Copied",
+        "unaddedHint": "These people couldn't be added automatically — share the invite link with them:",
+        "error": "Couldn't create the chat. Please try again."
+      }
     }
   }
 }

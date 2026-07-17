@@ -151,6 +151,7 @@
   },
   "orderDetail": {
     "back": "Back to orders",
+    "labTeam": "Lab team",
     "service": "Service",
     "status": "Status",
     "patient": "Patient",
@@ -166,7 +167,8 @@
     "cancellation": {
       "title": "Order cancelled",
       "noReason": "No reason provided."
-    }
+    },
+    "openChat": "Open Telegram chat"
   },
   "orderEdit": {
     "title": "Edit order",
@@ -195,7 +197,11 @@
     "preferences": "Preferences",
     "language": "Language",
     "colorMode": "Color mode",
-    "modeOptions": { "light": "Light", "dark": "Dark", "system": "System" },
+    "modeOptions": {
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
     "saveSuccess": "Profile updated."
   },
   "patients": {
@@ -233,11 +239,22 @@
       "clinicIdentificationCode": "Required if you bill the clinic for orders.",
       "clinicInvoiceEmail": "If provided, dental work invoices for this clinic will be sent here too."
     },
-    "createDialog": { "title": "Add work location" },
-    "editDialog": { "title": "Edit work location" },
+    "createDialog": {
+      "title": "Add work location"
+    },
+    "editDialog": {
+      "title": "Edit work location"
+    },
     "archiveConfirm": {
       "title": "Archive this work location?",
       "body": "Archived locations cannot be selected for new orders. Existing orders are unaffected."
     }
+  },
+  "clinicInvites": {
+    "title": "Clinic invitations",
+    "body": "{{clinic}} invited you to join their clinic.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "alreadyInClinic": "You're already part of a clinic. Leave it before joining another."
   }
 }

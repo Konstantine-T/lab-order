@@ -3,6 +3,7 @@ import BusinessIcon from '@mui/icons-material/Business';
 import StorefrontIcon from '@mui/icons-material/Storefront';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import EditNoteIcon from '@mui/icons-material/EditNote';
+import GroupsIcon from '@mui/icons-material/Groups';
 import { useTranslation } from 'react-i18next';
 import { AppShell, type NavEntry } from './AppShell';
 
@@ -13,6 +14,7 @@ export function LabLayout() {
     { to: '/lab/orders', label: t('nav.orders'), icon: <ListAltIcon /> },
     { to: '/lab/edited-orders', label: t('nav.editedOrders'), icon: <EditNoteIcon /> },
     { to: '/lab/services', label: t('nav.services'), icon: <StorefrontIcon /> },
+    { to: '/lab/staff', label: t('nav.staff'), icon: <GroupsIcon /> },
     { to: '/lab/profile', label: t('nav.profile'), icon: <BusinessIcon /> },
   ];
   return <AppShell brand="Lab Order" navEntries={nav} />;

@@ -6,6 +6,7 @@ import { RoleAwareRedirect } from '@/auth/RoleAwareRedirect';
 import { LoginPage } from '@/pages/public/LoginPage';
 import { DoctorRegisterPage } from '@/pages/public/DoctorRegisterPage';
 import { LabRegisterPage } from '@/pages/public/LabRegisterPage';
+import { ClinicRegisterPage } from '@/pages/public/ClinicRegisterPage';
 import { ForgotPasswordPage } from '@/pages/public/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/pages/public/ResetPasswordPage';
 import { NotFoundPage } from '@/pages/public/NotFoundPage';
@@ -34,6 +35,7 @@ import { LabServiceEditPage } from '@/pages/lab/LabServiceEditPage';
 import { LabOrdersDashboardPage } from '@/pages/lab/LabOrdersDashboardPage';
 import { LabEditedOrdersPage } from '@/pages/lab/LabEditedOrdersPage';
 import { LabOrderSheetPage } from '@/pages/lab/LabOrderSheetPage';
+import { LabStaffPage } from '@/pages/lab/LabStaffPage';
 
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { AdminHomePage } from '@/pages/admin/AdminHomePage';
@@ -42,6 +44,9 @@ import { LabReviewPage } from '@/pages/admin/LabReviewPage';
 
 import { ClinicLayout } from '@/layouts/ClinicLayout';
 import { ClinicHomePage } from '@/pages/clinic/ClinicHomePage';
+import { ClinicDoctorsPage } from '@/pages/clinic/ClinicDoctorsPage';
+import { ClinicOrdersPage } from '@/pages/clinic/ClinicOrdersPage';
+import { ClinicOrderDetailPage } from '@/pages/clinic/ClinicOrderDetailPage';
 
 export function AppRoutes() {
   return (
@@ -50,6 +55,7 @@ export function AppRoutes() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register/doctor" element={<DoctorRegisterPage />} />
       <Route path="/register/lab" element={<LabRegisterPage />} />
+      <Route path="/register/clinic" element={<ClinicRegisterPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/forbidden" element={<ForbiddenPage />} />
@@ -99,6 +105,7 @@ export function AppRoutes() {
         <Route path="orders" element={<LabOrdersDashboardPage />} />
         <Route path="edited-orders" element={<LabEditedOrdersPage />} />
         <Route path="orders/:orderId" element={<LabOrderSheetPage />} />
+        <Route path="staff" element={<LabStaffPage />} />
       </Route>
 
       {/* Admin */}
@@ -129,6 +136,9 @@ export function AppRoutes() {
         }
       >
         <Route index element={<ClinicHomePage />} />
+        <Route path="doctors" element={<ClinicDoctorsPage />} />
+        <Route path="orders" element={<ClinicOrdersPage />} />
+        <Route path="orders/:orderId" element={<ClinicOrderDetailPage />} />
       </Route>
 
       {/* Root + 404 */}

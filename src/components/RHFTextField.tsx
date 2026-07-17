@@ -5,7 +5,7 @@ type Props = Omit<TextFieldProps, 'name'> & {
   name: string;
 };
 
-export function RHFTextField({ name, ...rest }: Props) {
+export function RHFTextField({ name, helperText: staticHelperText, ...rest }: Props) {
   const { control } = useFormContext();
   return (
     <Controller
@@ -16,9 +16,11 @@ export function RHFTextField({ name, ...rest }: Props) {
           {...field}
           value={field.value ?? ''}
           fullWidth
-          error={!!fieldState.error}
-          helperText={fieldState.error?.message ?? rest.helperText}
           {...rest}
+          // Set error/helperText AFTER {...rest} so a validation message is never
+          // masked by a static helperText passed in by the caller.
+          error={!!fieldState.error}
+          helperText={fieldState.error?.message ?? staticHelperText}
         />
       )}
     />

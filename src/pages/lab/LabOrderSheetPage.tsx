@@ -40,6 +40,7 @@ import {
 } from '@/features/lab/orderEdits/diff';
 import { OrderAnswersDiff } from '@/features/lab/orderEdits/OrderAnswersDiff';
 import { OrderLineage } from '@/features/orders/OrderLineage';
+import { OrderTeamSection } from '@/features/lab/staff/OrderTeamSection';
 import type {
   LabFormVersionRow,
   OrderAnswerRow,
@@ -304,6 +305,8 @@ export function LabOrderSheetPage() {
           </Stack>
         </CardContent>
       </Card>
+
+      <OrderTeamSection orderId={order.id} labId={order.lab_id} disabled={isTerminal} />
 
       {/* ── Edit review: banner + history dropdown + before/after diff ── */}
       {editReview && (

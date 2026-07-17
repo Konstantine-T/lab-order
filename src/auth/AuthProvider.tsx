@@ -10,11 +10,18 @@ import {
 import type { PropsWithChildren } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import type { AppUserRow, DoctorProfileRow, LabRow, UserRole } from '@/types/database';
+import type {
+  AppUserRow,
+  ClinicRow,
+  DoctorProfileRow,
+  LabRow,
+  UserRole,
+} from '@/types/database';
 
 export type AppUser = AppUserRow & {
   doctor_profile?: DoctorProfileRow | null;
   lab?: LabRow | null;
+  clinic?: ClinicRow | null;
 };
 
 type AuthContextValue = {
@@ -53,6 +60,7 @@ async function loadAppUser(userId: string): Promise<AppUser | null> {
   const role = (userRow as AppUserRow).role as UserRole;
   let doctor_profile: DoctorProfileRow | null = null;
   let lab: LabRow | null = null;
+  let clinic: ClinicRow | null = null;
 
   if (role === 'DOCTOR') {
     const { data, error: e } = await supabase
@@ -70,9 +78,17 @@ async function loadAppUser(userId: string): Promise<AppUser | null> {
       .maybeSingle();
     if (e) console.error('[Auth] failed to load labs:', e);
     lab = (data ?? null) as LabRow | null;
+  } else if (role === 'CLINIC_ADMIN') {
+    const { data, error: e } = await supabase
+      .from('clinics')
+      .select('*')
+      .eq('owner_user_id', userId)
+      .maybeSingle();
+    if (e) console.error('[Auth] failed to load clinics:', e);
+    clinic = (data ?? null) as ClinicRow | null;
   }
 
-  return { ...(userRow as AppUserRow), doctor_profile, lab };
+  return { ...(userRow as AppUserRow), doctor_profile, lab, clinic };
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {
