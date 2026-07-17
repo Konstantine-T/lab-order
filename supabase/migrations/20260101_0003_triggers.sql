@@ -83,10 +83,20 @@ declare
   v_pid        text;
 begin
   v_role := coalesce(new.raw_user_meta_data->>'role', 'DOCTOR')::public.user_role;
-  v_first_name := coalesce(new.raw_user_meta_data->>'first_name', 'New');
-  v_last_name  := coalesce(new.raw_user_meta_data->>'last_name', 'User');
+
+  -- SECURITY: role comes from client-supplied signUp metadata. Only self-
+  -- registerable roles are allowed here; PLATFORM_ADMIN must be granted
+  -- out-of-band (service role / SQL), never via an anonymous signup.
+  -- NB: migration 0011 re-defines this function (adds the CLINIC_ADMIN branch);
+  -- keep this guard in sync with that copy.
+  if v_role not in ('DOCTOR', 'LAB_MAIN_ADMIN', 'CLINIC_ADMIN') then
+    raise exception 'invalid signup role: %', v_role using errcode = '42501';
+  end if;
+
+  v_first_name := coalesce(nullif(new.raw_user_meta_data->>'first_name', ''), 'New');
+  v_last_name  := coalesce(nullif(new.raw_user_meta_data->>'last_name', ''), 'User');
   v_phone      := nullif(new.raw_user_meta_data->>'phone', '');
-  v_lang       := coalesce(new.raw_user_meta_data->>'preferred_lang', 'en');
+  v_lang       := coalesce(nullif(new.raw_user_meta_data->>'preferred_lang', ''), 'en');
 
   insert into public.users (id, role, first_name, last_name, email, phone, preferred_lang)
   values (new.id, v_role, v_first_name, v_last_name, new.email, v_phone, v_lang);
