@@ -29,6 +29,7 @@
     "continuingFor": "Continuing a project — pick a service."
   },
   "orderCreate": {
+    "digitalImpressionsNote": "At this stage we work with digital impressions only.",
     "title": "New order",
     "changeLabService": "Change lab / service",
     "patient": {

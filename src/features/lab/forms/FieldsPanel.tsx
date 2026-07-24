@@ -17,7 +17,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useTranslation } from 'react-i18next';
 import { FieldRenderer } from '@/components/DynamicForm';
 import { ToothMap } from '@/components/ToothMap';
-import { SHADE_GROUPS, TEMPLATE_CODE_CNB } from '@/features/orderForms/cnbTypes';
+import { SHADE_GROUPS, isCnbTemplate } from '@/features/orderForms/cnbTypes';
 import { TEMPLATE_CODE_SG } from '@/features/orderForms/sgTypes';
 import { isModelTemplateCode } from '@/features/orderForms/modelTypes';
 import { TEMPLATE_CODE_ESP } from '@/features/orderForms/espTypes';
@@ -33,7 +33,7 @@ export function FieldsPanel({
 }) {
   const { t } = useTranslation('lab');
   const isStructured =
-    config._templateCode === TEMPLATE_CODE_CNB ||
+    isCnbTemplate(config._templateCode) ||
     config._templateCode === TEMPLATE_CODE_SG ||
     isModelTemplateCode(config._templateCode) ||
     config._templateCode === TEMPLATE_CODE_ESP ||

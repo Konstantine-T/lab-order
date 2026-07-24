@@ -1,8 +1,11 @@
 -- ============================================================================
 -- Remove deprecated platform form templates.
 --
--- Removes: TEMPORARY_CROWN, ZIRCONIA_ON_IMPLANT, TEMPORARY_ON_IMPLANT,
+-- Removes: ZIRCONIA_ON_IMPLANT, TEMPORARY_ON_IMPLANT,
 --          MOCKUP_WAXUP, REMOVABLE_PROSTHESIS
+--
+-- NOTE: TEMPORARY_CROWN was revived (it reuses the Crown & Bridge form) and is
+-- seeded by template-temporary-crown.sql — do NOT list it here.
 --
 -- IMPORTANT: This deletes the template rows AND their associated template
 -- fields. It does NOT affect existing lab_forms or lab_form_versions that
@@ -15,7 +18,6 @@
 do $$
 declare
   v_codes text[] := array[
-    'TEMPORARY_CROWN',
     'ZIRCONIA_ON_IMPLANT',
     'TEMPORARY_ON_IMPLANT',
     'MOCKUP_WAXUP',
@@ -41,6 +43,6 @@ end $$;
 select code, name
   from public.platform_form_templates
  where code in (
-   'TEMPORARY_CROWN', 'ZIRCONIA_ON_IMPLANT', 'TEMPORARY_ON_IMPLANT',
+   'ZIRCONIA_ON_IMPLANT', 'TEMPORARY_ON_IMPLANT',
    'MOCKUP_WAXUP', 'REMOVABLE_PROSTHESIS'
  );

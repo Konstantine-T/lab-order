@@ -1,4 +1,5 @@
 import type { FormConfiguration } from '@/types/database';
+import type { ShadeScale } from './cnbTypes';
 
 export const TEMPLATE_CODE_ESP = 'EVIDENT_SMILE';
 
@@ -62,6 +63,8 @@ export type EspAnswers = {
   maxLength: EspMaxLength | '';
   maxLengthOther: string;
   shade: string;
+  shadeScale: ShadeScale;
+  shadeNotes: string;
   smileType: EspSmileType | '';
   notes: string;
 };
@@ -89,6 +92,8 @@ export const emptyEspAnswers: EspAnswers = {
   maxLength: '',
   maxLengthOther: '',
   shade: '',
+  shadeScale: 'CLASSICAL',
+  shadeNotes: '',
   smileType: '',
   notes: '',
 };
@@ -132,6 +137,8 @@ export function coerceEspAnswers(raw: unknown): EspAnswers {
     maxLength: (typeof r.maxLength === 'string' ? r.maxLength : '') as EspMaxLength | '',
     maxLengthOther: typeof r.maxLengthOther === 'string' ? r.maxLengthOther : '',
     shade: typeof r.shade === 'string' ? r.shade : '',
+    shadeScale: r.shadeScale === '3D_MASTER' ? '3D_MASTER' : 'CLASSICAL',
+    shadeNotes: typeof r.shadeNotes === 'string' ? r.shadeNotes : '',
     smileType: (typeof r.smileType === 'string' ? r.smileType : '') as EspSmileType | '',
     notes: typeof r.notes === 'string' ? r.notes : '',
   };

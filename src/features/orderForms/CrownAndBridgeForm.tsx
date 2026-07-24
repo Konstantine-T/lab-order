@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { NumberedSection, PillGroup, MmInput, ErrorHelper } from './primitives';
 import { TreatmentBuilder } from './TreatmentBuilder';
 import {
-  SHADE_GROUPS,
+  SHADE_SCALES,
+  shadeGroupsForScale,
   coerceCnbAnswers,
   validateCnb,
   isSectionEnabled,
@@ -80,20 +81,40 @@ export function CrownAndBridgeForm({
 
       {enabled('shade') && (
         <NumberedSection number={next()} label={label('shade')}>
-          <Stack spacing={1.25}>
-            {SHADE_GROUPS.map((g) => (
-              <Stack key={g.family} direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                {g.shades.map((s) => (
-                  <ShadePill
-                    key={s}
-                    label={s}
-                    selected={value.shade === s}
-                    disabled={readOnly}
-                    onClick={() => set({ shade: s })}
-                  />
-                ))}
-              </Stack>
-            ))}
+          <Stack spacing={1.5}>
+            <PillGroup
+              value={value.shadeScale}
+              options={SHADE_SCALES}
+              getLabel={(s) => t(`cnbForm.shadeScales.${s}`, { defaultValue: s })}
+              onChange={(scale) => set({ shadeScale: scale, shade: '' })}
+              readOnly={readOnly}
+              size="small"
+            />
+            <Stack spacing={1.25}>
+              {shadeGroupsForScale(value.shadeScale).map((g) => (
+                <Stack key={g.family} direction="row" spacing={1} useFlexGap flexWrap="wrap">
+                  {g.shades.map((s) => (
+                    <ShadePill
+                      key={s}
+                      label={s}
+                      selected={value.shade === s}
+                      disabled={readOnly}
+                      onClick={() => set({ shade: s })}
+                    />
+                  ))}
+                </Stack>
+              ))}
+            </Stack>
+            <TextField
+              value={value.shadeNotes}
+              onChange={(e) => set({ shadeNotes: e.target.value })}
+              placeholder={t('cnbForm.shadeNotesPlaceholder')}
+              multiline
+              minRows={2}
+              fullWidth
+              InputProps={{ readOnly: !!readOnly }}
+              sx={{ maxWidth: 520 }}
+            />
           </Stack>
           <ErrorHelper>{errors.shade}</ErrorHelper>
         </NumberedSection>
@@ -365,5 +386,18 @@ function shadeSwatch(label: string): string {
     D3: '#bca680',
     D4: '#9c855f',
   };
+  // VITA 3D-MASTER tabs (e.g. "2M2", "3L1.5") — approximate by lightness group.
+  const g = /^([0-5])[LMR]/.exec(label);
+  if (g) {
+    const groupTone: Record<string, string> = {
+      '0': '#f6efe0',
+      '1': '#f3ead6',
+      '2': '#ecdcbf',
+      '3': '#ddc59c',
+      '4': '#c9ad7f',
+      '5': '#b0925f',
+    };
+    return groupTone[g[1]] ?? '#dddddd';
+  }
   return map[label] ?? '#dddddd';
 }

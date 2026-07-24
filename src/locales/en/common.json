@@ -20,7 +20,8 @@
     "saving": "Saving...",
     "viewDetails": "View details",
     "signOut": "Sign out",
-    "close": "Close"
+    "close": "Close",
+    "support": "Support"
   },
   "labApprovalStatus": {
     "PENDING_APPROVAL": "Pending approval",
@@ -91,19 +92,37 @@
   "templates": {
     "CROWN_AND_BRIDGE": {
       "name": "Crown & Bridge",
-      "description": "Crowns, bridges, pontics, veneers, inlays and onlays."
+      "description": "Crowns, bridges, pontics, veneers, inlays and onlays.",
+      "help": "Crowns, bridges, veneers, inlays and onlays. Choose which sections doctors see and which are required, then add your materials and set a price per tooth."
+    },
+    "TEMPORARY_CROWN": {
+      "name": "Temporary Crown",
+      "description": "Provisional / temporary crowns and bridges.",
+      "help": "Provisional crowns and bridges — identical to the Crown & Bridge form. Configure the same sections and per-material pricing."
     },
     "SURGICAL_GUIDE": {
       "name": "Surgical Guide",
-      "description": "Implant surgical guide."
+      "description": "Implant surgical guide.",
+      "help": "Implant surgical guide (pilot drill or full protocol). In Pricing, set the per-implant price for the pilot and/or full-protocol guide and any support fees."
+    },
+    "EVIDENT_SMILE": {
+      "help": "Smile-design cases with a tooth chart, materials and shade. In Fields, choose which questions the doctor answers and mark the required ones. In Pricing, add your materials and per-tooth prices (plus an optional gingival-reduction-guide fee)."
+    },
+    "CONSTRUCTIONS_ON_IMPLANTS": {
+      "help": "Implant-supported crowns, bridges and bar prostheses. The doctor marks implant positions on the tooth map and configures each one. In Pricing, add your implant brands, per-implant/base fees and crown materials."
     },
     "MODEL": {
       "name": "Print Model",
-      "description": "Printed dental model."
+      "description": "Printed dental model.",
+      "help": "Printed models — study, implant or ortho. In Fields, choose which options the doctor selects and mark the required ones. In Pricing, set a single fixed price."
+    },
+    "GINGIVAL_REDUCTION_GUIDE": {
+      "help": "Gingival reduction guide — a tooth map with wax-up and approval options. In Fields, choose which fields are shown and required. In Pricing, set your price."
     },
     "TITANIUM_MILLING": {
       "name": "Titanium Milling",
-      "description": "Titanium milled construction."
+      "description": "Titanium milled construction.",
+      "help": "Titanium-milled constructions — the same form as Print Model. In Fields, choose which options the doctor selects and mark the required ones. In Pricing, set a single fixed price."
     }
   },
   "errors": {

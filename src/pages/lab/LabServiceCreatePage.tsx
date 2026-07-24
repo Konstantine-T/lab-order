@@ -11,6 +11,7 @@ import {
   Tabs,
   Typography,
 } from '@mui/material';
+import SupportAgentIcon from '@mui/icons-material/SupportAgent';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -177,11 +178,22 @@ export function LabServiceCreatePage() {
 
   return (
     <Stack spacing={3} sx={{ maxWidth: 900 }}>
-      <Stack>
-        <Button component={RouterLink} to="/lab/services" size="small" sx={{ alignSelf: 'flex-start' }}>
-          ← {t('nav.services')}
+      <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={2}>
+        <Stack>
+          <Button component={RouterLink} to="/lab/services" size="small" sx={{ alignSelf: 'flex-start' }}>
+            ← {t('nav.services')}
+          </Button>
+          <Typography variant="h4">{t('services.create.title')}</Typography>
+        </Stack>
+        {/* Support entry point — placeholder (no action wired yet). */}
+        <Button
+          variant="outlined"
+          size="small"
+          startIcon={<SupportAgentIcon />}
+          sx={{ mt: 0.5, flexShrink: 0 }}
+        >
+          {tc('actions.support')}
         </Button>
-        <Typography variant="h4">{t('services.create.title')}</Typography>
       </Stack>
 
       {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}

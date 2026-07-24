@@ -27,7 +27,7 @@ import type {
 import {
   MATERIAL_COLORS,
   MAX_MATERIALS,
-  TEMPLATE_CODE_CNB,
+  isCnbTemplate,
 } from '@/features/orderForms/cnbTypes';
 import { TEMPLATE_CODE_SG, SG_SUPPORT_TYPES } from '@/features/orderForms/sgTypes';
 import { TEMPLATE_CODE_ESP } from '@/features/orderForms/espTypes';
@@ -59,7 +59,7 @@ export function PricingPanel({
   maxRushTurnaroundDays?: number;
 }) {
   const { t } = useTranslation('lab');
-  const isCnb = templateCode === TEMPLATE_CODE_CNB;
+  const isCnb = isCnbTemplate(templateCode);
   const isSg = templateCode === TEMPLATE_CODE_SG;
   const isEsp = templateCode === TEMPLATE_CODE_ESP;
   const isImplant = templateCode === TEMPLATE_CODE_IMPLANT;

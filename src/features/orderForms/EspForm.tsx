@@ -3,7 +3,7 @@ import { Chip, Stack, TextField, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { NumberedSection, PillGroup, MmInput, ErrorHelper } from './primitives';
 import { TreatmentBuilder } from './TreatmentBuilder';
-import { SHADE_GROUPS, type CnbNotation, type CnbToothAssignment } from './cnbTypes';
+import { SHADE_SCALES, shadeGroupsForScale, type CnbNotation, type CnbToothAssignment } from './cnbTypes';
 import {
   emptyEspAnswers,
   coerceEspAnswers,
@@ -224,22 +224,41 @@ export function EspForm({
           number={next()}
           label={`${t('cnbForm.sections.shade')}${star('esp_shade')}`}
         >
-          <Stack spacing={1.25}>
-            {SHADE_GROUPS.map((g) => (
-              <Stack key={g.family} direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-                {g.shades.map((s) => (
-                  <Chip
-                    key={s}
-                    label={s}
-                    variant={a.shade === s ? 'filled' : 'outlined'}
-                    color={a.shade === s ? 'primary' : 'default'}
-                    clickable={!readOnly}
-                    onClick={() => !readOnly && set({ shade: a.shade === s ? '' : s })}
-                    sx={{ borderRadius: 999, fontWeight: 500 }}
-                  />
-                ))}
-              </Stack>
-            ))}
+          <Stack spacing={1.5}>
+            <PillGroup
+              value={a.shadeScale}
+              options={SHADE_SCALES}
+              getLabel={(s) => t(`cnbForm.shadeScales.${s}`, { defaultValue: s })}
+              onChange={(scale) => set({ shadeScale: scale, shade: '' })}
+              readOnly={readOnly}
+            />
+            <Stack spacing={1.25}>
+              {shadeGroupsForScale(a.shadeScale).map((g) => (
+                <Stack key={g.family} direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {g.shades.map((s) => (
+                    <Chip
+                      key={s}
+                      label={s}
+                      variant={a.shade === s ? 'filled' : 'outlined'}
+                      color={a.shade === s ? 'primary' : 'default'}
+                      clickable={!readOnly}
+                      onClick={() => !readOnly && set({ shade: a.shade === s ? '' : s })}
+                      sx={{ borderRadius: 999, fontWeight: 500 }}
+                    />
+                  ))}
+                </Stack>
+              ))}
+            </Stack>
+            <TextField
+              value={a.shadeNotes}
+              onChange={(e) => set({ shadeNotes: e.target.value })}
+              placeholder={t('cnbForm.shadeNotesPlaceholder')}
+              multiline
+              minRows={2}
+              fullWidth
+              InputProps={{ readOnly: !!readOnly }}
+              sx={{ maxWidth: 520 }}
+            />
           </Stack>
           <ErrorHelper>{errors.shade}</ErrorHelper>
         </NumberedSection>

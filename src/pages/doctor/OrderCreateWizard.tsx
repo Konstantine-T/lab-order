@@ -742,12 +742,16 @@ export function FormStep({
   version: LabFormVersionRow;
   showErrors?: boolean;
 }) {
+  const { t } = useTranslation('doctor');
   // Estimated total on this step ignores rush — the rush toggle lives on the
   // next step. Doctors get an updated estimate including rush there.
   return (
     <Stack spacing={3}>
       <Card>
         <CardContent>
+          <Alert severity="info" sx={{ mb: 2.5 }}>
+            {t('orderCreate.digitalImpressionsNote')}
+          </Alert>
           <OrderForm
             configuration={version.configuration_json}
             pricing={version.pricing_configuration_json}

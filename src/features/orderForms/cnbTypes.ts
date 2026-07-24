@@ -20,6 +20,8 @@ export type CnbAnswers = {
   notation: CnbNotation;
   notes: string; // section 1 notes (under tooth chart)
   shade: string;
+  shadeScale: ShadeScale;
+  shadeNotes: string;
   gingivalContouring: CnbChoiceWithMm<'Yes' | 'No'>;
   verticalDimension: CnbChoiceWithMm<'Keep Existing' | 'Open Bite' | 'Make Ideal'>;
   maxLengthOfCentrals: CnbChoiceWithMm<'Ideal' | 'Other'>;
@@ -33,6 +35,8 @@ export const emptyCnbAnswers: CnbAnswers = {
   notation: 'Universal',
   notes: '',
   shade: '',
+  shadeScale: 'CLASSICAL',
+  shadeNotes: '',
   gingivalContouring: { choice: '', desiredLengthMm: null },
   verticalDimension: { choice: '', desiredLengthMm: null },
   maxLengthOfCentrals: { choice: '', desiredLengthMm: null },
@@ -48,7 +52,42 @@ export const SHADE_GROUPS: Array<{ family: string; shades: string[] }> = [
   { family: 'D', shades: ['D2', 'D3', 'D4'] },
 ];
 
+/** Shade scale the doctor picks from. Classical is the historical default. */
+export type ShadeScale = 'CLASSICAL' | '3D_MASTER';
+export const SHADE_SCALES: ShadeScale[] = ['CLASSICAL', '3D_MASTER'];
+
+/**
+ * VITA Toothguide 3D-MASTER — standard 26 tabs, grouped by lightness (value) 1–5.
+ * (The bleached 0M group is intentionally omitted; add it here if labs need it.)
+ */
+export const SHADE_GROUPS_3D_MASTER: Array<{ family: string; shades: string[] }> = [
+  { family: '1', shades: ['1M1', '1M2'] },
+  { family: '2', shades: ['2L1.5', '2L2.5', '2M1', '2M2', '2M3', '2R1.5', '2R2.5'] },
+  { family: '3', shades: ['3L1.5', '3L2.5', '3M1', '3M2', '3M3', '3R1.5', '3R2.5'] },
+  { family: '4', shades: ['4L1.5', '4L2.5', '4M1', '4M2', '4M3', '4R1.5', '4R2.5'] },
+  { family: '5', shades: ['5M1', '5M2', '5M3'] },
+];
+
+/** The shade groups (families → tabs) for the selected scale. */
+export function shadeGroupsForScale(
+  scale: ShadeScale,
+): Array<{ family: string; shades: string[] }> {
+  return scale === '3D_MASTER' ? SHADE_GROUPS_3D_MASTER : SHADE_GROUPS;
+}
+
 export const TEMPLATE_CODE_CNB = 'CROWN_AND_BRIDGE';
+
+/**
+ * Temporary Crown is a distinct platform template (its own picker card + service
+ * identity) that reuses the entire Crown & Bridge form — same fields, coercion,
+ * validation, and pricing — so it renders and behaves identically.
+ */
+export const TEMPLATE_CODE_TEMPORARY_CROWN = 'TEMPORARY_CROWN';
+
+/** True for both Crown & Bridge and Temporary Crown, which share one form. */
+export function isCnbTemplate(code: string | undefined | null): boolean {
+  return code === TEMPLATE_CODE_CNB || code === TEMPLATE_CODE_TEMPORARY_CROWN;
+}
 
 // Distinct color palette for material chips/teeth — index 0..4. Kept
 // visually distinct from the brand `#9292FF` so a tooth's material color
@@ -173,6 +212,8 @@ export function coerceCnbAnswers(
     notation,
     notes,
     shade: typeof r.shade === 'string' ? r.shade : '',
+    shadeScale: r.shadeScale === '3D_MASTER' ? '3D_MASTER' : 'CLASSICAL',
+    shadeNotes: typeof r.shadeNotes === 'string' ? r.shadeNotes : '',
     gingivalContouring: {
       choice: gc.choice as 'Yes' | 'No' | '',
       desiredLengthMm: gc.desiredLengthMm,

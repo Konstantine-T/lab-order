@@ -283,7 +283,11 @@ export function isPricingComplete(
     return (pricing.fixed_price ?? 0) > 0;
   }
   if (pricing.model === 'UNIT_BASED') {
-    if (templateCode === 'CROWN_AND_BRIDGE' || templateCode === 'EVIDENT_SMILE') {
+    if (
+      templateCode === 'CROWN_AND_BRIDGE' ||
+      templateCode === 'TEMPORARY_CROWN' ||
+      templateCode === 'EVIDENT_SMILE'
+    ) {
       const ms = pricing.materials ?? [];
       if (ms.length === 0) return false;
       return ms.every((m) => m.name.trim().length > 0 && (m.unit_price ?? 0) > 0);

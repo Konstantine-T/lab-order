@@ -29,6 +29,7 @@
     "continuingFor": "Продолжение проекта — выберите услугу."
   },
   "orderCreate": {
+    "digitalImpressionsNote": "На данном этапе мы работаем только с цифровыми слепками.",
     "title": "Новый заказ",
     "changeLabService": "Сменить лабораторию / услугу",
     "patient": {

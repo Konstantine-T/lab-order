@@ -1,5 +1,6 @@
 const TEMPLATE_IMAGE_FILES: Record<string, string> = {
   CROWN_AND_BRIDGE:          'crown-and-bridge.jpeg',
+  TEMPORARY_CROWN:           'crown-and-bridge.jpeg',
   SURGICAL_GUIDE:            'surgical-guide.jpeg',
   EVIDENT_SMILE:             'evident-smile.jpeg',
   CONSTRUCTIONS_ON_IMPLANTS: 'constructions-on-implants.jpeg',

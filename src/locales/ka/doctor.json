@@ -29,6 +29,7 @@
     "continuingFor": "პროექტის გაგრძელება — აირჩიეთ სერვისი."
   },
   "orderCreate": {
+    "digitalImpressionsNote": "ამ ეტაპზე ვმუშაობთ მხოლოდ ციფრულ ანაბეჭდზე.",
     "title": "ახალი შეკვეთა",
     "changeLabService": "ლაბორატორიის / სერვისის შეცვლა",
     "patient": {

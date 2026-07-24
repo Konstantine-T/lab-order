@@ -58,6 +58,11 @@
       "noMaterials": "No materials configured for this service. The lab must add at least one material in the service's Pricing tab before doctors can place orders."
     },
     "mmPlaceholder": "Desired length in mm",
+    "shadeScales": {
+      "CLASSICAL": "VITA Classical",
+      "3D_MASTER": "VITA 3D-Master"
+    },
+    "shadeNotesPlaceholder": "Shade notes (optional) — e.g. stump shade, incisal detail, layering",
     "options": {
       "Yes": "Yes",
       "No": "No",

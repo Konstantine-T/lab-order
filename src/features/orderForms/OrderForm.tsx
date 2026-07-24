@@ -7,7 +7,7 @@ import {
   validateCnb,
   type CnbAnswers,
 } from './CrownAndBridgeForm';
-import { TEMPLATE_CODE_CNB, emptyCnbAnswers } from './cnbTypes';
+import { isCnbTemplate, emptyCnbAnswers } from './cnbTypes';
 import {
   SurgicalGuideForm,
   coerceSgAnswers,
@@ -67,7 +67,7 @@ export function OrderForm({
   readOnly,
   showErrors,
 }: Props) {
-  if (configuration._templateCode === TEMPLATE_CODE_CNB) {
+  if (isCnbTemplate(configuration._templateCode)) {
     const cnb = coerceCnbAnswers(values, pricing?.materials);
     const customFields = configuration.fields.filter(
       (f) => f.type === 'custom_question' && f.enabled,
@@ -245,7 +245,7 @@ export function isOrderFormValid(
   values: OrderFormValue,
   pricing?: PricingConfig,
 ): boolean {
-  if (configuration._templateCode === TEMPLATE_CODE_CNB) {
+  if (isCnbTemplate(configuration._templateCode)) {
     const cnb = coerceCnbAnswers(values, pricing?.materials);
     return Object.keys(validateCnb(cnb, configuration)).length === 0;
   }

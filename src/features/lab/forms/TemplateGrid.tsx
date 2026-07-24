@@ -4,7 +4,8 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
-import { templateName, templateDescription } from './templateLabels';
+import { templateName, templateDescription, templateHelp } from './templateLabels';
+import { HelpTip } from '@/components/HelpTip';
 import type { PlatformFormTemplateRow } from '@/types/database';
 
 type Props = {
@@ -21,7 +22,7 @@ export function TemplateGrid({ selectedTemplateId, onSelect, disabled }: Props) 
       const { data, error } = await supabase
         .from('platform_form_templates')
         .select('*')
-        .not('code', 'in', '(TEMPORARY_CROWN,ZIRCONIA_ON_IMPLANT,TEMPORARY_ON_IMPLANT,MOCKUP_WAXUP,REMOVABLE_PROSTHESIS,OTHER_CUSTOM)')
+        .not('code', 'in', '(ZIRCONIA_ON_IMPLANT,TEMPORARY_ON_IMPLANT,MOCKUP_WAXUP,REMOVABLE_PROSTHESIS,OTHER_CUSTOM)')
         .order('name');
       if (error) throw error;
       return data as PlatformFormTemplateRow[];
@@ -42,6 +43,7 @@ export function TemplateGrid({ selectedTemplateId, onSelect, disabled }: Props) 
         const isSelected = tpl.id === selectedTemplateId;
         const localizedName = templateName(t, tpl.code, tpl.name);
         const localizedDescription = templateDescription(t, tpl.code, tpl.description);
+        const help = templateHelp(t, tpl.code);
         return (
           <Grid key={tpl.id} item xs={12} sm={6} md={4} lg={3}>
             <Card
@@ -70,9 +72,12 @@ export function TemplateGrid({ selectedTemplateId, onSelect, disabled }: Props) 
                       color={isSelected ? 'primary' : 'action'}
                       sx={{ fontSize: 32 }}
                     />
-                    <Typography variant="subtitle1" fontWeight={600}>
-                      {localizedName}
-                    </Typography>
+                    <Stack direction="row" alignItems="center" spacing={0.5}>
+                      <Typography variant="subtitle1" fontWeight={600}>
+                        {localizedName}
+                      </Typography>
+                      <HelpTip text={help} />
+                    </Stack>
                     {localizedDescription && (
                       <Typography variant="body2" color="text.secondary">
                         {localizedDescription}

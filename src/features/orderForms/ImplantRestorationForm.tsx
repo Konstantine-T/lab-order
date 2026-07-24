@@ -338,6 +338,19 @@ export function ImplantRestorationForm({
       {/* 2. Implant positions */}
       <NumberedSection number={positionSn} label={`${t('implantForm.sections.positions')} *`}>
         <Stack spacing={1.5}>
+          <Stack direction="row" spacing={1} alignItems="center" justifyContent="flex-end">
+            <Typography variant="caption" color="text.secondary">
+              {t('implantForm.notation')}:
+            </Typography>
+            <PillGroup
+              value={a.notation}
+              options={['Universal', 'FDI'] as const}
+              getLabel={(v) => v}
+              onChange={(v) => set({ notation: v as 'Universal' | 'FDI' })}
+              readOnly={readOnly}
+              size="small"
+            />
+          </Stack>
           <ToothMap
             value={a.implantPositions}
             toothColors={positionToothColors}
@@ -369,19 +382,6 @@ export function ImplantRestorationForm({
             );
           })()}
 
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Typography variant="caption" color="text.secondary">
-              {t('implantForm.notation')}:
-            </Typography>
-            <PillGroup
-              value={a.notation}
-              options={['Universal', 'FDI'] as const}
-              getLabel={(v) => v}
-              onChange={(v) => set({ notation: v as 'Universal' | 'FDI' })}
-              readOnly={readOnly}
-              size="small"
-            />
-          </Stack>
         </Stack>
         <ErrorHelper>{errors.implantPositions}</ErrorHelper>
       </NumberedSection>
