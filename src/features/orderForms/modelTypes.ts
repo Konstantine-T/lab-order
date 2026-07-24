@@ -1,6 +1,13 @@
 import type { FormConfiguration } from '@/types/database';
 
 export const TEMPLATE_CODE_MODEL = 'MODEL';
+/** Titanium milling ("ტიტანის გამოჩარხვა") reuses the Print Model form verbatim. */
+export const TEMPLATE_CODE_TITANIUM = 'TITANIUM_MILLING';
+
+/** True for every template rendered with the Model form (Print Model + Titanium Milling). */
+export function isModelTemplateCode(code: string | undefined): boolean {
+  return code === TEMPLATE_CODE_MODEL || code === TEMPLATE_CODE_TITANIUM;
+}
 
 export const MODEL_FIELD_CODES = [
   'model_type',

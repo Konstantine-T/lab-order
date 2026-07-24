@@ -19,7 +19,7 @@ import { FieldRenderer } from '@/components/DynamicForm';
 import { ToothMap } from '@/components/ToothMap';
 import { SHADE_GROUPS, TEMPLATE_CODE_CNB } from '@/features/orderForms/cnbTypes';
 import { TEMPLATE_CODE_SG } from '@/features/orderForms/sgTypes';
-import { TEMPLATE_CODE_MODEL } from '@/features/orderForms/modelTypes';
+import { isModelTemplateCode } from '@/features/orderForms/modelTypes';
 import { TEMPLATE_CODE_ESP } from '@/features/orderForms/espTypes';
 import { TEMPLATE_CODE_IMPLANT } from '@/features/orderForms/implantTypes';
 import type { FieldConfig, FormConfiguration } from '@/types/database';
@@ -35,7 +35,7 @@ export function FieldsPanel({
   const isStructured =
     config._templateCode === TEMPLATE_CODE_CNB ||
     config._templateCode === TEMPLATE_CODE_SG ||
-    config._templateCode === TEMPLATE_CODE_MODEL ||
+    isModelTemplateCode(config._templateCode) ||
     config._templateCode === TEMPLATE_CODE_ESP ||
     config._templateCode === TEMPLATE_CODE_IMPLANT;
 
@@ -70,7 +70,7 @@ export function FieldsPanel({
         <Alert severity="info">
           {config._templateCode === TEMPLATE_CODE_SG
             ? t('sgForm.fieldsLocked')
-            : config._templateCode === TEMPLATE_CODE_MODEL
+            : isModelTemplateCode(config._templateCode)
             ? t('modelForm.fieldsLocked')
             : config._templateCode === TEMPLATE_CODE_ESP
             ? t('espForm.fieldsLocked')

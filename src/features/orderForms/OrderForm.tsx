@@ -21,7 +21,7 @@ import {
   validateModel,
   type ModelAnswers,
 } from './ModelForm';
-import { TEMPLATE_CODE_MODEL, emptyModelAnswers } from './modelTypes';
+import { isModelTemplateCode, emptyModelAnswers } from './modelTypes';
 import {
   EspForm,
   coerceEspAnswers,
@@ -202,7 +202,7 @@ export function OrderForm({
     );
   }
 
-  if (configuration._templateCode === TEMPLATE_CODE_MODEL) {
+  if (isModelTemplateCode(configuration._templateCode)) {
     const model = coerceModelAnswers(values);
     const customFields = configuration.fields.filter(
       (f) => f.type === 'custom_question' && f.enabled,
@@ -257,7 +257,7 @@ export function isOrderFormValid(
     const esp = coerceEspAnswers(values);
     return Object.keys(validateEsp(esp, configuration)).length === 0;
   }
-  if (configuration._templateCode === TEMPLATE_CODE_MODEL) {
+  if (isModelTemplateCode(configuration._templateCode)) {
     const model = coerceModelAnswers(values);
     return Object.keys(validateModel(model, configuration)).length === 0;
   }

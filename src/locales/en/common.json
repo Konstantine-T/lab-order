@@ -96,6 +96,14 @@
     "SURGICAL_GUIDE": {
       "name": "Surgical Guide",
       "description": "Implant surgical guide."
+    },
+    "MODEL": {
+      "name": "Print Model",
+      "description": "Printed dental model."
+    },
+    "TITANIUM_MILLING": {
+      "name": "Titanium Milling",
+      "description": "Titanium milled construction."
     }
   },
   "errors": {
