@@ -5,11 +5,79 @@
     "services": "Услуги",
     "forms": "Формы",
     "orders": "Заказы",
+    "finances": "Финансы",
     "editedOrders": "Изменённые заказы",
     "invoices": "Счета",
     "debts": "Задолженности",
     "platformBilling": "Биллинг платформы",
     "staff": "Сотрудники"
+  },
+  "finances": {
+    "title": "Финансы",
+    "subtitle": "Отслеживайте, кто и сколько вам должен, и фиксируйте оплаты.",
+    "totals": {
+      "outstanding": "К оплате",
+      "billed": "Всего начислено",
+      "collected": "Получено",
+      "customers": "Должники"
+    },
+    "filters": {
+      "search": "Поиск по № заказа или клиенту",
+      "recipientType": "Плательщик",
+      "any": "Все",
+      "doctor": "Врач",
+      "clinic": "Клиника",
+      "status": "Статус оплаты",
+      "sort": "Сортировка",
+      "from": "С",
+      "to": "По",
+      "minAmount": "Мин. сумма",
+      "maxAmount": "Макс. сумма",
+      "overdueOnly": "Только просроченные",
+      "clear": "Сбросить фильтры",
+      "noResults": "Нет записей, соответствующих фильтрам."
+    },
+    "sort": {
+      "created_desc": "Сначала новые",
+      "created_asc": "Сначала старые",
+      "outstanding_desc": "Больше долг",
+      "outstanding_asc": "Меньше долг",
+      "due_asc": "Срок раньше",
+      "due_desc": "Срок позже"
+    },
+    "customers": {
+      "title": "По клиентам",
+      "customer": "Клиент",
+      "orders": "Заказы",
+      "billed": "Начислено",
+      "paid": "Оплачено",
+      "outstanding": "К оплате",
+      "viewing": "Показан: {{name}}"
+    },
+    "table": {
+      "order": "Заказ",
+      "customer": "Клиент",
+      "service": "Услуга",
+      "due": "Срок",
+      "billed": "Итог",
+      "paid": "Оплачено",
+      "outstanding": "К оплате",
+      "status": "Оплата",
+      "record": "Внести оплату",
+      "overdue": "Просрочено",
+      "empty": "Ни у одного заказа ещё нет подтверждённой цены."
+    },
+    "dialog": {
+      "title": "Внести оплату",
+      "order": "Заказ {{code}}",
+      "finalPrice": "Итоговая цена",
+      "amountLabel": "Оплачено (всего)",
+      "amountHelp": "Общая сумма, оплаченная по этому заказу на данный момент.",
+      "markPaid": "Отметить полностью оплаченным",
+      "outstandingAfter": "Остаток после: {{amount}}",
+      "save": "Сохранить",
+      "cancel": "Отмена"
+    }
   },
   "formFields": {
     "treatments": "Лечение (карта зубов)",

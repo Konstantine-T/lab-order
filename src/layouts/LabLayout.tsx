@@ -4,6 +4,7 @@ import StorefrontIcon from '@mui/icons-material/Storefront';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import GroupsIcon from '@mui/icons-material/Groups';
+import PaymentsIcon from '@mui/icons-material/Payments';
 import { useTranslation } from 'react-i18next';
 import { AppShell, type NavEntry } from './AppShell';
 
@@ -12,6 +13,7 @@ export function LabLayout() {
   const nav: NavEntry[] = [
     { to: '/lab', label: t('nav.dashboard'), icon: <DashboardIcon />, end: true },
     { to: '/lab/orders', label: t('nav.orders'), icon: <ListAltIcon /> },
+    { to: '/lab/finances', label: t('nav.finances'), icon: <PaymentsIcon /> },
     { to: '/lab/edited-orders', label: t('nav.editedOrders'), icon: <EditNoteIcon /> },
     { to: '/lab/services', label: t('nav.services'), icon: <StorefrontIcon /> },
     { to: '/lab/staff', label: t('nav.staff'), icon: <GroupsIcon /> },

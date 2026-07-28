@@ -35,6 +35,7 @@ import { LabServiceEditPage } from '@/pages/lab/LabServiceEditPage';
 import { LabOrdersDashboardPage } from '@/pages/lab/LabOrdersDashboardPage';
 import { LabEditedOrdersPage } from '@/pages/lab/LabEditedOrdersPage';
 import { LabOrderSheetPage } from '@/pages/lab/LabOrderSheetPage';
+import { LabFinancesPage } from '@/pages/lab/LabFinancesPage';
 import { LabStaffPage } from '@/pages/lab/LabStaffPage';
 
 import { AdminLayout } from '@/layouts/AdminLayout';
@@ -103,6 +104,7 @@ export function AppRoutes() {
         <Route path="services/new" element={<LabServiceCreatePage />} />
         <Route path="services/:serviceId" element={<LabServiceEditPage />} />
         <Route path="orders" element={<LabOrdersDashboardPage />} />
+        <Route path="finances" element={<LabFinancesPage />} />
         <Route path="edited-orders" element={<LabEditedOrdersPage />} />
         <Route path="orders/:orderId" element={<LabOrderSheetPage />} />
         <Route path="staff" element={<LabStaffPage />} />

@@ -5,11 +5,79 @@
     "services": "Services",
     "forms": "Forms",
     "orders": "Orders",
+    "finances": "Finances",
     "editedOrders": "Edited orders",
     "invoices": "Invoices",
     "debts": "Debts",
     "platformBilling": "Platform billing",
     "staff": "Staff"
+  },
+  "finances": {
+    "title": "Finances",
+    "subtitle": "Track who owes you and record payments.",
+    "totals": {
+      "outstanding": "Outstanding",
+      "billed": "Total billed",
+      "collected": "Collected",
+      "customers": "Customers with debt"
+    },
+    "filters": {
+      "search": "Search order # or customer",
+      "recipientType": "Billed to",
+      "any": "Any",
+      "doctor": "Doctor",
+      "clinic": "Clinic",
+      "status": "Payment status",
+      "sort": "Sort",
+      "from": "From",
+      "to": "To",
+      "minAmount": "Min owed",
+      "maxAmount": "Max owed",
+      "overdueOnly": "Overdue only",
+      "clear": "Clear filters",
+      "noResults": "No receivables match your filters."
+    },
+    "sort": {
+      "created_desc": "Newest first",
+      "created_asc": "Oldest first",
+      "outstanding_desc": "Most owed",
+      "outstanding_asc": "Least owed",
+      "due_asc": "Due soonest",
+      "due_desc": "Due latest"
+    },
+    "customers": {
+      "title": "By customer",
+      "customer": "Customer",
+      "orders": "Orders",
+      "billed": "Billed",
+      "paid": "Paid",
+      "outstanding": "Outstanding",
+      "viewing": "Showing {{name}}"
+    },
+    "table": {
+      "order": "Order",
+      "customer": "Customer",
+      "service": "Service",
+      "due": "Due",
+      "billed": "Final",
+      "paid": "Paid",
+      "outstanding": "Outstanding",
+      "status": "Payment",
+      "record": "Record payment",
+      "overdue": "Overdue",
+      "empty": "No orders have a confirmed price yet."
+    },
+    "dialog": {
+      "title": "Record payment",
+      "order": "Order {{code}}",
+      "finalPrice": "Final price",
+      "amountLabel": "Amount paid (total)",
+      "amountHelp": "The total amount paid on this order so far.",
+      "markPaid": "Mark fully paid",
+      "outstandingAfter": "Outstanding after: {{amount}}",
+      "save": "Save",
+      "cancel": "Cancel"
+    }
   },
   "formFields": {
     "treatments": "Treatments (tooth chart)",

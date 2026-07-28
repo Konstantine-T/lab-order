@@ -28,8 +28,9 @@ import { DatePicker } from '@mui/x-date-pickers';
 import dayjs, { type Dayjs } from 'dayjs';
 import { supabase } from '@/lib/supabase';
 import { formatGEL } from '@/utils/pricing';
-import { OrderStatusChip } from '@/components/OrderStatusChip';
+import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
+import { recordPayment } from '@/features/lab/finances/financeApi';
 import { OrderForm } from '@/features/orderForms/OrderForm';
 import { PillGroup } from '@/features/orderForms/primitives';
 import {
@@ -59,6 +60,7 @@ export function LabOrderSheetPage() {
   const qc = useQueryClient();
 
   const [finalPrice, setFinalPrice] = useState<string>('');
+  const [paidAmount, setPaidAmount] = useState<string>('');
   const [confirmedDue, setConfirmedDue] = useState<string>('');
   const [pendingStatus, setPendingStatus] = useState<OrderStatus | ''>('');
   const [success, setSuccess] = useState<string | null>(null);
@@ -126,6 +128,7 @@ export function LabOrderSheetPage() {
   useEffect(() => {
     if (order) {
       setFinalPrice(order.final_total?.toString() ?? '');
+      setPaidAmount(order.paid_total?.toString() ?? '0');
       setConfirmedDue(order.confirmed_due_date ?? '');
       setPendingStatus(order.status);
     }
@@ -141,6 +144,21 @@ export function LabOrderSheetPage() {
       setSuccess('Saved.');
       qc.invalidateQueries({ queryKey: ['lab-order', orderId] });
       qc.invalidateQueries({ queryKey: ['lab-orders'] });
+    },
+    onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
+  });
+
+  const recordPay = useMutation({
+    mutationFn: async (amount: number) => {
+      if (!orderId) return;
+      await recordPayment(orderId, amount);
+    },
+    onSuccess: () => {
+      setSuccess('Saved.');
+      qc.invalidateQueries({ queryKey: ['lab-order', orderId] });
+      qc.invalidateQueries({ queryKey: ['lab-orders'] });
+      qc.invalidateQueries({ queryKey: ['lab-receivables-by-customer'] });
+      qc.invalidateQueries({ queryKey: ['lab-receivables-list'] });
     },
     onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
   });
@@ -469,6 +487,27 @@ export function LabOrderSheetPage() {
               >
                 {t('orderSheet.setFinalPrice')}
               </Button>
+            </Stack>
+
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+              <TextField
+                type="number"
+                label={t('finances.dialog.amountLabel')}
+                value={paidAmount}
+                onChange={(e) => setPaidAmount(e.target.value)}
+                size="small"
+                disabled={order.final_total == null}
+                helperText={order.final_total != null ? t('finances.dialog.amountHelp') : undefined}
+              />
+              <Button
+                variant="outlined"
+                disabled={order.final_total == null || recordPay.isPending}
+                onClick={() => recordPay.mutate(paidAmount === '' ? 0 : Number(paidAmount))}
+                sx={{ mt: { xs: 0, sm: '4px' } }}
+              >
+                {t('finances.table.record')}
+              </Button>
+              <PaymentStatusChip status={order.payment_status} />
             </Stack>
 
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

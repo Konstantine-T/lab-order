@@ -388,6 +388,40 @@ export interface OrderRow {
   updated_at: string;
 }
 
+// ===== Lab finances / receivables (server-aggregated RPCs) ==================
+// Returned by the lab_receivables_* RPCs. Numeric columns may arrive as
+// strings from PostgREST — coerce with Number() before formatting.
+
+export interface LabReceivableCustomer {
+  customer_type: InvoiceRecipientType;
+  customer_id: string;
+  customer_name: string;
+  order_count: number;
+  total_billed: number;
+  total_paid: number;
+  total_outstanding: number;
+}
+
+export interface LabReceivableOrder {
+  order_id: string;
+  order_code: string;
+  order_status: OrderStatus;
+  customer_type: InvoiceRecipientType;
+  customer_id: string;
+  customer_name: string;
+  doctor_name: string | null;
+  service_name: string;
+  final_total: number;
+  paid_total: number;
+  outstanding: number;
+  payment_status: PaymentStatus;
+  confirmed_due_date: string | null;
+  requested_due_date: string | null;
+  created_at: string;
+  /** Full filtered size for pagination (identical on every row of a page). */
+  total_count: number;
+}
+
 export type EditReasonCode =
   | 'CORRECTION'
   | 'UNFORESEEN_LAB_INSTRUCTION'
