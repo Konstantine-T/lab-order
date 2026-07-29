@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import type { FeedbackRow } from '@/types/database';
 
 const MAX_MESSAGE_LENGTH = 2000;
 
@@ -37,14 +38,15 @@ export function FeedbackDialog({
       // No .select() — senders have no SELECT policy on feedback, so a
       // RETURNING clause would be blocked by RLS. A bare insert sends
       // Prefer: return=minimal, which is what this needs.
-      const { error } = await supabase.from('feedback').insert({
+      const payload: Pick<FeedbackRow, 'user_id' | 'message' | 'page_path' | 'lang'> = {
         user_id: user.id,
         message: message.trim(),
         page_path: pathname,
         // The language detector can return a region tag ("en-US"); the column
         // stores the plain two-letter code used everywhere else.
         lang: (i18n.resolvedLanguage ?? i18n.language).slice(0, 2),
-      });
+      };
+      const { error } = await supabase.from('feedback').insert(payload);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -83,6 +85,7 @@ export function FeedbackDialog({
           onChange={(e) => setMessage(e.target.value.slice(0, MAX_MESSAGE_LENGTH))}
           placeholder={t('feedback.placeholder')}
           inputProps={{ maxLength: MAX_MESSAGE_LENGTH }}
+          helperText={`${message.length}/${MAX_MESSAGE_LENGTH}`}
           sx={{ mt: 1 }}
         />
       </DialogContent>

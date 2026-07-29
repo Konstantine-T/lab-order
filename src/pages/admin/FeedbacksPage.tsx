@@ -115,7 +115,9 @@ export function FeedbacksPage() {
 
               <Divider sx={{ my: 1.5 }} />
 
-              <Typography sx={{ whiteSpace: 'pre-wrap' }}>{item.message}</Typography>
+              <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
+                {item.message}
+              </Typography>
 
               <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} flexWrap="wrap">
                 {item.page_path && (
