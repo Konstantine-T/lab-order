@@ -9,6 +9,26 @@
     "noMaterials": "No materials configured for this service. The lab must add at least one material (with a price) in the Pricing tab before doctors can order.",
     "fieldsLocked": "This form is fixed — the doctor picks a material and a quantity, and the price is generated. Configure your materials and prices in the Pricing tab."
   },
+  "customForm": {
+    "empty": "No questions yet. Add your first question below.",
+    "addQuestion": "Add question",
+    "questionLabel": "Question",
+    "questionPlaceholder": "Type your question…",
+    "inputType": "Answer type",
+    "inputTypes": {
+      "text": "Short text",
+      "textarea": "Paragraph",
+      "number": "Number",
+      "checkbox": "Yes / No",
+      "select": "Dropdown",
+      "chip_multi_select": "Multiple choice",
+      "date": "Date"
+    },
+    "options": "Options",
+    "optionPlaceholder": "Option",
+    "addOption": "Add option",
+    "helpText": "Help text (optional)"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "profile": "Lab profile",

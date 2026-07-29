@@ -1,5 +1,5 @@
 import { Stack } from '@mui/material';
-import { DynamicForm } from '@/components/DynamicForm';
+import { DynamicForm, validateFormAnswers } from '@/components/DynamicForm';
 import type { FormConfiguration, PricingConfig } from '@/types/database';
 import {
   CrownAndBridgeForm,
@@ -298,6 +298,7 @@ export function OrderForm({
       values={values}
       onChange={onChange}
       readOnly={readOnly}
+      errors={showErrors ? validateFormAnswers(configuration, values) : undefined}
     />
   );
 }
@@ -338,7 +339,7 @@ export function isOrderFormValid(
   if (configuration._templateCode === TEMPLATE_CODE_MILLING) {
     return Object.keys(validateMilling(coerceMillingAnswers(values))).length === 0;
   }
-  return true;
+  return Object.keys(validateFormAnswers(configuration, values)).length === 0;
 }
 
 export { emptyCnbAnswers, emptySgAnswers, emptyModelAnswers, emptyEspAnswers, emptyImplantAnswers, emptyGrgAnswers, emptyPrintAnswers, emptyMillingAnswers };

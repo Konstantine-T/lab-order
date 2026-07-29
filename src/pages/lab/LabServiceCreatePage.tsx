@@ -31,6 +31,7 @@ import { templateName } from '@/features/lab/forms/templateLabels';
 import { FieldsPanel } from '@/features/lab/forms/FieldsPanel';
 import { PricingPanel } from '@/features/lab/forms/PricingPanel';
 import { buildDefaultConfig } from '@/features/lab/forms/buildDefaultConfig';
+import { isCustomFormComplete } from '@/features/lab/forms/CustomFormBuilder';
 import { isPricingComplete } from '@/utils/pricing';
 import { OrderForm } from '@/features/orderForms/OrderForm';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
@@ -174,7 +175,9 @@ export function LabServiceCreatePage() {
 
   const canSave = !!templateId && !!config && !!pricing;
   const canPublish =
-    canSave && isPricingComplete(pricing ?? undefined, templateRow?.code);
+    canSave &&
+    isPricingComplete(pricing ?? undefined, templateRow?.code) &&
+    (templateRow?.code !== 'OTHER_CUSTOM' || (!!config && isCustomFormComplete(config)));
 
   return (
     <Stack spacing={3} sx={{ maxWidth: 900 }}>

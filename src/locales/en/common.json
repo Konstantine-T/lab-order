@@ -129,6 +129,11 @@
       "description": "Milling by material and selected teeth.",
       "help": "The lab lists its milling materials and a per-unit price. The doctor picks a material and selects teeth; the teeth count drives the generated price."
     },
+    "OTHER_CUSTOM": {
+      "name": "Custom Form",
+      "description": "Build your own form from any questions.",
+      "help": "A blank form you build yourself. Add any number of questions, pick each answer's input type (text, number, yes/no, dropdown, multiple choice, date), mark required ones, then set a fixed price."
+    },
     "TITANIUM_MILLING": {
       "name": "Titanium Milling",
       "description": "Titanium milled construction.",
