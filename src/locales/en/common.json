@@ -89,6 +89,9 @@
   "pagination": {
     "showing": "Showing {{from}}–{{to}} of {{total}}"
   },
+  "templatePicker": {
+    "orStartFromTemplate": "or start from a ready template"
+  },
   "templates": {
     "CROWN_AND_BRIDGE": {
       "name": "Crown & Bridge",

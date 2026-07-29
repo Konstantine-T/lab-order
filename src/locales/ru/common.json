@@ -89,6 +89,9 @@
   "pagination": {
     "showing": "Показаны {{from}}–{{to}} из {{total}}"
   },
+  "templatePicker": {
+    "orStartFromTemplate": "или начните с готового шаблона"
+  },
   "templates": {
     "CROWN_AND_BRIDGE": {
       "name": "Коронка и мост",

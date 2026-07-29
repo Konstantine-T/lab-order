@@ -89,6 +89,9 @@
   "pagination": {
     "showing": "ნაჩვენებია {{from}}–{{to}} / {{total}}"
   },
+  "templatePicker": {
+    "orStartFromTemplate": "ან დაიწყე მზა შაბლონიდან"
+  },
   "templates": {
     "CROWN_AND_BRIDGE": {
       "name": "გვირგვინი და ხიდი",
