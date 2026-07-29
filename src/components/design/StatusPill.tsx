@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Box, useTheme, type SxProps, type Theme } from '@mui/material';
 import { radii, tone, type Tone } from '@/theme/tokens';
 
@@ -16,7 +17,7 @@ export function StatusPill({
   sx,
 }: {
   tone?: Tone;
-  children: React.ReactNode;
+  children: ReactNode;
   /** Leading status dot, as on the dashboard stat labels. */
   dot?: boolean;
   sx?: SxProps<Theme>;
