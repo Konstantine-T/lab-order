@@ -42,6 +42,7 @@ import { AdminLayout } from '@/layouts/AdminLayout';
 import { AdminHomePage } from '@/pages/admin/AdminHomePage';
 import { LabApprovalQueuePage } from '@/pages/admin/LabApprovalQueuePage';
 import { LabReviewPage } from '@/pages/admin/LabReviewPage';
+import { FeedbacksPage } from '@/pages/admin/FeedbacksPage';
 
 import { ClinicLayout } from '@/layouts/ClinicLayout';
 import { ClinicHomePage } from '@/pages/clinic/ClinicHomePage';
@@ -125,6 +126,7 @@ export function AppRoutes() {
         <Route index element={<AdminHomePage />} />
         <Route path="labs" element={<LabApprovalQueuePage />} />
         <Route path="labs/:labId" element={<LabReviewPage />} />
+        <Route path="feedbacks" element={<FeedbacksPage />} />
       </Route>
 
       {/* Clinic */}

@@ -23,6 +23,12 @@
     "close": "Close",
     "support": "Support"
   },
+  "feedback": {
+    "tooltip": "Found a problem or have a suggestion? Write to us directly here.",
+    "title": "Feedback",
+    "placeholder": "Describe the problem or your suggestion…",
+    "success": "Thanks! Your message has been sent."
+  },
   "labApprovalStatus": {
     "PENDING_APPROVAL": "Pending approval",
     "CHANGES_REQUESTED": "Changes requested",

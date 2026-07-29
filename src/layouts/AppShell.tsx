@@ -26,6 +26,7 @@ import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useTranslation } from 'react-i18next';
 import { ColorModeToggle } from '@/components/ColorModeToggle';
+import { FeedbackButton } from '@/components/FeedbackButton';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { useAuth } from '@/auth/AuthProvider';
 
@@ -164,6 +165,7 @@ export function AppShell({ navEntries, brand }: { navEntries: NavEntry[]; brand:
           )}
           {!isMobile && <Box sx={{ flex: 1 }} />}
           <Stack direction="row" spacing={0.5} alignItems="center">
+            <FeedbackButton />
             <ColorModeToggle />
             <LanguageSwitcher variant="icon" />
             <Tooltip title={user ? `${user.first_name} ${user.last_name}` : ''}>
