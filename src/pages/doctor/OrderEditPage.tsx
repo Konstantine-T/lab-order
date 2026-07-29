@@ -50,12 +50,12 @@ const EDIT_REASONS: EditReasonCode[] = [
   'UNFORESEEN_EVENT',
 ];
 
-export function OrderEditPage() {
+export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: string } = {}) {
   const { orderId } = useParams<{ orderId: string }>();
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
   const { user } = useAuth();
-  const doctorId = user?.doctor_profile?.id;
+  const authDoctorId = user?.doctor_profile?.id;
   const navigate = useNavigate();
   const qc = useQueryClient();
 
@@ -81,6 +81,10 @@ export function OrderEditPage() {
       return data as DetailRow | null;
     },
   });
+
+  // The order's doctor — the logged-in doctor for a doctor, or the target doctor
+  // when a clinic admin edits on their behalf (edit_order authorizes via 0014).
+  const doctorId = order?.doctor_id ?? authDoctorId;
 
   const { data: answers = [], isSuccess: answersLoaded } = useQuery({
     queryKey: ['order-answers', orderId],
@@ -191,6 +195,9 @@ export function OrderEditPage() {
       // everywhere without a manual reload.
       qc.invalidateQueries({ queryKey: ['order', orderId] });
       qc.invalidateQueries({ queryKey: ['order-answers', orderId] });
+      qc.invalidateQueries({ queryKey: ['clinic-order', orderId] });
+      qc.invalidateQueries({ queryKey: ['clinic-order-answers', orderId] });
+      qc.invalidateQueries({ queryKey: ['clinic-orders'] });
       qc.invalidateQueries({ queryKey: ['doctor-orders'] });
       qc.invalidateQueries({ queryKey: ['doctor-patient-orders'] });
       qc.invalidateQueries({ queryKey: ['lab-order', orderId] });
@@ -198,7 +205,7 @@ export function OrderEditPage() {
       qc.invalidateQueries({ queryKey: ['lab-edited-orders'] });
       qc.invalidateQueries({ queryKey: ['lab-unreviewed-edits-count'] });
       qc.invalidateQueries({ queryKey: ['order-edits', orderId] });
-      navigate(`/doctor/orders/${orderId}`);
+      navigate(`${basePath}/${orderId}`);
     },
     onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
   });
@@ -251,7 +258,7 @@ export function OrderEditPage() {
         <Alert severity="error">{t('orderEdit.notEditable')}</Alert>
         <Button
           component={RouterLink}
-          to={`/doctor/orders/${orderId}`}
+          to={`${basePath}/${orderId}`}
           size="small"
           sx={{ alignSelf: 'flex-start' }}
         >
@@ -273,7 +280,7 @@ export function OrderEditPage() {
     <Stack spacing={3} sx={{ maxWidth: 920, mx: 'auto' }}>
       <Button
         component={RouterLink}
-        to={`/doctor/orders/${orderId}`}
+        to={`${basePath}/${orderId}`}
         size="small"
         sx={{ alignSelf: 'flex-start' }}
       >

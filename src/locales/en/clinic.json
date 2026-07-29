@@ -52,6 +52,15 @@
     "confirmedDueDate": "Confirmed due date",
     "dueDate": "Requested due date",
     "total": "Total",
-    "createdAt": "Created"
+    "createdAt": "Created",
+    "cancelOrder": "Cancel order",
+    "cancelledTitle": "Order cancelled",
+    "noReason": "No reason given",
+    "cancel": {
+      "title": "Cancel this order?",
+      "body": "This cancels the order on behalf of the doctor. The lab will see it as cancelled.",
+      "reasonLabel": "Reason (optional)",
+      "confirm": "Cancel order"
+    }
   }
 }

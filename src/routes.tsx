@@ -141,6 +141,7 @@ export function AppRoutes() {
         <Route path="doctors" element={<ClinicDoctorsPage />} />
         <Route path="orders" element={<ClinicOrdersPage />} />
         <Route path="orders/:orderId" element={<ClinicOrderDetailPage />} />
+        <Route path="orders/:orderId/edit" element={<OrderEditPage basePath="/clinic/orders" />} />
       </Route>
 
       {/* Root + 404 */}
