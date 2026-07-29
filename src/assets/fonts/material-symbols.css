@@ -1,0 +1,22 @@
+/* Material Symbols Rounded — subset containing only the icons this app uses.
+ *
+ * The upstream `material-symbols` npm package ships the COMPLETE font: 5.2 MB
+ * for the rounded style, which is unacceptable to download on every first load.
+ * This file is a Google-generated subset of the names listed in
+ * `scripts/icon-names.txt` — currently ~55 KB.
+ *
+ * The variable axes are preserved, so `font-variation-settings: 'FILL' 1`
+ * still works (that is how the mockups distinguish the active nav item).
+ *
+ * ADDING AN ICON: add its ligature name to scripts/icon-names.txt and run
+ *   npm run icons:fetch
+ * Forgetting this makes the icon render as literal text (e.g. "receipt_long"),
+ * which is obvious on sight.
+ */
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 300 600;
+  font-display: block;
+  src: url('./material-symbols-rounded-subset.woff2') format('woff2');
+}
