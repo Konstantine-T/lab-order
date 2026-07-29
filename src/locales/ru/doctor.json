@@ -17,7 +17,20 @@
     "title": "Одобренные лаборатории",
     "subtitle": "Выберите лабораторию и оформите новый заказ.",
     "empty": "Пока нет доступных лабораторий. Загляните позже.",
-    "search": "Поиск лабораторий"
+    "search": "Поиск лабораторий или услуг…",
+    "allCities": "Все города",
+    "turnaround": "СРОК",
+    "viewServices": "Смотреть услуги",
+    "new": "НОВАЯ",
+    "daysUnit": "дн.",
+    "days_one": "{{count}} день",
+    "days_few": "{{count}} дня",
+    "days_many": "{{count}} дней",
+    "days_other": "{{count}} дней",
+    "servicesCount_one": "{{count}} услуга",
+    "servicesCount_few": "{{count}} услуги",
+    "servicesCount_many": "{{count}} услуг",
+    "servicesCount_other": "{{count}} услуг"
   },
   "labProfile": {
     "back": "Назад к лабораториям",

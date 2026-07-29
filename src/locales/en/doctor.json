@@ -17,7 +17,16 @@
     "title": "Approved laboratories",
     "subtitle": "Browse approved labs and place a new order.",
     "empty": "No labs are available yet. Please check back later.",
-    "search": "Search labs"
+    "search": "Search labs or services…",
+    "allCities": "All cities",
+    "turnaround": "TURNAROUND",
+    "viewServices": "View services",
+    "new": "NEW",
+    "daysUnit": "days",
+    "days_one": "{{count}} day",
+    "days_other": "{{count}} days",
+    "servicesCount_one": "{{count}} service",
+    "servicesCount_other": "{{count}} services"
   },
   "labProfile": {
     "back": "Back to labs",

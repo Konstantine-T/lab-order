@@ -1,5 +1,7 @@
 {
-  "app": { "name": "Lab Order" },
+  "app": {
+    "name": "Lab Order"
+  },
   "actions": {
     "save": "Сохранить",
     "cancel": "Отмена",
@@ -91,7 +93,9 @@
     "switchToDark": "Тёмная тема",
     "switchToLight": "Светлая тема"
   },
-  "language": { "label": "Язык" },
+  "language": {
+    "label": "Язык"
+  },
   "pagination": {
     "showing": "Показаны {{from}}–{{to}} из {{total}}"
   },
@@ -181,5 +185,9 @@
     "UNFORESEEN_EVENT": "Непредвиденный случай"
   },
   "yes": "Да",
-  "no": "Нет"
+  "no": "Нет",
+  "orderCard": {
+    "due": "Срок",
+    "total": "Итого"
+  }
 }

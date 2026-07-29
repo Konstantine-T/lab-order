@@ -1,41 +1,52 @@
-import { Box, Divider, Stack, Typography } from '@mui/material';
+import { alpha, Box, Divider, Stack, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
+import { brand, motion } from '@/theme/tokens';
 
 type Props = {
-  /** Short order identifier shown as a monospaced badge. */
+  /** Short order identifier, shown next to the patient name. */
   code: string;
   /** Bold first line — patient name. */
   primary: string;
   /** Muted second line — usually "service · counterparty". */
   secondary?: string;
-  /** OrderStatusChip (and optionally a payment chip) rendered in the middle column. */
+  /** OrderStatusChip (and optionally a payment chip) rendered on the right. */
   status: ReactNode;
   paymentStatus?: ReactNode;
   /** Pre-formatted total string (or "—"). */
   total: string;
-  /** When set, renders as a struck-through line above `total` (discount indicator). */
+  /** When set, renders struck-through above `total` (discount indicator). */
   originalTotal?: string;
   /** Pre-formatted due-date string. */
   dueDate?: string;
-  /** What goes inside the avatar circle — usually patient initials. */
+  /** Renders the due date in danger colour — overdue or due imminently. */
+  dueUrgent?: boolean;
+  /** What goes inside the avatar tile — usually patient initials. */
   avatarText: string;
   onClick: () => void;
   /**
-   * Optional content rendered below the main row (inside the card, separated by a
-   * divider). Clicks inside this area do NOT propagate to the card's onClick.
+   * Optional content rendered below the main row (inside the card, separated by
+   * a divider). Clicks inside this area do NOT propagate to the card's onClick.
    */
   footer?: ReactNode;
   /**
-   * When true, paints the resting border + accent stripe in warning yellow so
-   * the row stands out — used to flag an unreviewed doctor edit in the lab list.
-   * Falsy keeps the default divider border exactly as before.
+   * Paints the resting border in warning yellow so the row stands out — used to
+   * flag an unreviewed doctor edit in the lab list.
    */
   highlight?: boolean;
 };
 
-/** Single order row in the modern card list. Subtle hover lift + tinted shadow,
- *  brand-gradient avatar, monospaced order code badge. Designed to read at a
- *  glance: patient + service first, status middle, money on the right. */
+// Deterministic avatar colour, so a given patient keeps the same tile across
+// renders. Matches the mockups, where each row has its own tile colour.
+const AVATAR_COLORS = ['#8A5CF6', '#6E6EE8', '#EC4899', '#10B981', '#F59E0B', '#0EA5E9'];
+
+/**
+ * One order row in the redesigned list: patient and service on the left, due
+ * date and money in labelled columns, status pill on the right.
+ *
+ * Shared by the doctor, lab and clinic order lists — the mockups draw the same
+ * row in all three areas.
+ */
 export function OrderRowCard({
   code,
   primary,
@@ -45,11 +56,14 @@ export function OrderRowCard({
   total,
   originalTotal,
   dueDate,
+  dueUrgent,
   avatarText,
   onClick,
   footer,
   highlight,
 }: Props) {
+  const { t } = useTranslation('common');
+
   const initials =
     avatarText
       .trim()
@@ -57,6 +71,10 @@ export function OrderRowCard({
       .slice(0, 2)
       .map((s) => s[0]?.toUpperCase() ?? '')
       .join('') || '·';
+
+  let hash = 0;
+  for (let i = 0; i < avatarText.length; i += 1) hash += avatarText.charCodeAt(i);
+  const avatarBg = AVATAR_COLORS[hash % AVATAR_COLORS.length];
 
   return (
     <Box
@@ -69,165 +87,132 @@ export function OrderRowCard({
           onClick();
         }
       }}
-      sx={(theme) => ({
-        display: 'flex',
-        flexDirection: 'column',
-        borderRadius: 2.5,
+      sx={{
+        borderRadius: '15px',
         border: 1,
-        // Unreviewed doctor edit → yellow resting border so it's noticed before
-        // opening; otherwise the usual subtle divider border.
         borderColor: highlight ? 'warning.main' : 'divider',
         bgcolor: 'background.paper',
         cursor: 'pointer',
-        position: 'relative',
         overflow: 'hidden',
-        transition:
-          'border-color 200ms ease, box-shadow 220ms ease, transform 220ms ease',
-        '&::before': {
-          // Brand accent stripe — invisible until hover, slides in from left.
-          content: '""',
-          position: 'absolute',
-          left: 0,
-          top: 0,
-          bottom: 0,
-          width: 3,
-          bgcolor: highlight ? 'warning.main' : 'primary.main',
-          opacity: 0,
-          transform: 'translateX(-3px)',
-          transition: 'opacity 220ms ease, transform 220ms ease',
-        },
+        transition: `border-color ${motion.base}, box-shadow ${motion.base}`,
         '&:hover': {
-          borderColor: 'primary.main',
-          boxShadow:
-            theme.palette.mode === 'dark'
-              ? '0 14px 32px rgba(146, 146, 255, 0.20)'
-              : '0 14px 32px rgba(99, 102, 241, 0.10)',
-          transform: 'translateY(-1px)',
-          '&::before': {
-            opacity: 1,
-            transform: 'translateX(0)',
-          },
+          borderColor: alpha(brand.main, 0.6),
+          boxShadow: `0 8px 24px ${alpha(brand.main, 0.12)}`,
         },
         '&:focus-visible': {
           outline: 'none',
           borderColor: 'primary.main',
-          boxShadow: '0 0 0 3px rgba(146, 146, 255, 0.32)',
+          boxShadow: `0 0 0 3px ${alpha(brand.main, 0.32)}`,
         },
-      })}
+      }}
     >
-      {/* ── Main row ── */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: {
-            xs: 'auto 1fr',
-            md: 'auto minmax(0, 1fr) auto auto',
-          },
+          gridTemplateColumns: { xs: 'auto 1fr', md: 'auto minmax(0, 1fr) auto' },
           gridTemplateAreas: {
-            xs: `"avatar info" "status status" "money money"`,
-            md: `"avatar info status money"`,
+            xs: `"avatar info" "meta meta"`,
+            md: `"avatar info meta"`,
           },
-          gap: { xs: 1.25, md: 2.5 },
+          gap: { xs: 1.5, md: 2.25 },
           alignItems: 'center',
-          px: { xs: 2, md: 2.5 },
+          px: 2.5,
           py: 2,
         }}
       >
         <Box
           sx={{
             gridArea: 'avatar',
-            width: 46,
-            height: 46,
-            borderRadius: '50%',
+            width: 40,
+            height: 40,
+            borderRadius: '12px',
             display: 'grid',
             placeItems: 'center',
             flexShrink: 0,
-            background: 'linear-gradient(135deg, #A6A6FF 0%, #7575F2 100%)',
+            bgcolor: avatarBg,
             color: '#fff',
-            fontWeight: 700,
-            fontSize: 14,
-            letterSpacing: 0.6,
-            boxShadow: '0 6px 14px rgba(117, 117, 242, 0.32)',
+            fontWeight: 800,
+            fontSize: '0.75rem',
           }}
           aria-hidden
         >
           {initials}
         </Box>
 
-        <Stack spacing={0.4} sx={{ gridArea: 'info', minWidth: 0 }}>
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-            <Typography
-              variant="subtitle1"
-              fontWeight={600}
-              noWrap
-              sx={{ flexShrink: 1, minWidth: 0 }}
-            >
+        <Box sx={{ gridArea: 'info', minWidth: 0 }}>
+          <Stack direction="row" spacing={1.125} alignItems="center" flexWrap="wrap">
+            <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, minWidth: 0 }} noWrap>
               {primary}
             </Typography>
-            <Box
+            <Typography
               component="span"
-              sx={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                px: 0.9,
-                py: 0.15,
-                fontFamily:
-                  'ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace',
-                fontSize: 11.5,
-                fontWeight: 600,
-                letterSpacing: 0.6,
-                bgcolor: 'action.hover',
-                borderRadius: 1,
-                color: 'text.secondary',
-                flexShrink: 0,
-              }}
+              sx={{ fontSize: '0.71875rem', fontWeight: 700, color: 'primary.dark', flexShrink: 0 }}
             >
               {code}
-            </Box>
+            </Typography>
           </Stack>
           {secondary && (
-            <Typography variant="body2" color="text.secondary" noWrap>
+            <Typography
+              sx={{ fontSize: '0.78125rem', color: 'text.secondary', mt: 0.25 }}
+              noWrap
+            >
               {secondary}
             </Typography>
           )}
-        </Stack>
+        </Box>
 
         <Stack
           direction="row"
-          spacing={1}
+          spacing={2.25}
           alignItems="center"
-          sx={{ gridArea: 'status' }}
-          flexWrap="wrap"
-          useFlexGap
+          sx={{ gridArea: 'meta', flexShrink: 0, flexWrap: 'wrap', gap: 1.5 }}
         >
-          {status}
-          {paymentStatus}
-        </Stack>
-
-        <Stack
-          alignItems={{ xs: 'flex-start', md: 'flex-end' }}
-          sx={{ gridArea: 'money', minWidth: { md: 110 } }}
-        >
-          {originalTotal && (
-            <Typography
-              variant="caption"
-              sx={{ textDecoration: 'line-through', color: 'text.secondary' }}
-            >
-              {originalTotal}
-            </Typography>
-          )}
-          <Typography variant="subtitle1" fontWeight={700} color={originalTotal ? 'primary.main' : undefined}>
-            {total}
-          </Typography>
           {dueDate && (
-            <Typography variant="caption" color="text.secondary">
-              {dueDate}
-            </Typography>
+            <Box sx={{ textAlign: { md: 'right' } }}>
+              <Typography
+                sx={{ fontSize: '0.65625rem', fontWeight: 600, color: 'text.secondary' }}
+              >
+                {t('orderCard.due')}
+              </Typography>
+              <Typography
+                sx={{
+                  fontSize: '0.78125rem',
+                  fontWeight: 700,
+                  color: dueUrgent ? 'error.main' : 'text.primary',
+                }}
+              >
+                {dueDate}
+              </Typography>
+            </Box>
           )}
+
+          <Box sx={{ textAlign: { md: 'right' } }}>
+            <Typography sx={{ fontSize: '0.65625rem', fontWeight: 600, color: 'text.secondary' }}>
+              {t('orderCard.total')}
+            </Typography>
+            <Stack direction="row" spacing={0.75} alignItems="baseline">
+              {originalTotal && (
+                <Typography
+                  sx={{
+                    fontSize: '0.6875rem',
+                    textDecoration: 'line-through',
+                    color: 'text.secondary',
+                  }}
+                >
+                  {originalTotal}
+                </Typography>
+              )}
+              <Typography sx={{ fontSize: '0.8125rem', fontWeight: 800 }}>{total}</Typography>
+            </Stack>
+          </Box>
+
+          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+            {status}
+            {paymentStatus}
+          </Stack>
         </Stack>
       </Box>
 
-      {/* ── Optional footer (clicks don't navigate) ── */}
       {footer && (
         <Box onClick={(e) => e.stopPropagation()}>
           <Divider />
