@@ -476,3 +476,30 @@ export interface OrderFileRow {
   file_source: FileSource;
   created_at: string;
 }
+
+export interface FeedbackRow {
+  id: string;
+  user_id: string;
+  message: string;
+  page_path: string | null;
+  lang: string | null;
+  created_at: string;
+}
+
+/** One row of the `admin_feedback_list()` RPC: the message plus the sender's
+ *  live contact card. `org_name` is the sender's lab or clinic name, null for
+ *  doctors. */
+export interface AdminFeedbackListRow {
+  id: string;
+  message: string;
+  page_path: string | null;
+  lang: string | null;
+  created_at: string;
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string | null;
+  role: UserRole;
+  org_name: string | null;
+}
