@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import {
   Box,
+  Button,
   Card,
   CardContent,
   CircularProgress,
@@ -80,21 +81,30 @@ export function ClinicOrdersPage() {
           <Typography variant="h4">{t('orders.title')}</Typography>
           <Typography color="text.secondary">{t('orders.subtitle')}</Typography>
         </Stack>
-        <FormControl size="small" sx={{ minWidth: 220 }}>
-          <InputLabel>{t('orders.filterByDoctor')}</InputLabel>
-          <Select
-            label={t('orders.filterByDoctor')}
-            value={doctorFilter}
-            onChange={(e) => setDoctorFilter(e.target.value)}
+        <Stack direction="row" spacing={1.5} alignItems="center">
+          <FormControl size="small" sx={{ minWidth: 220 }}>
+            <InputLabel>{t('orders.filterByDoctor')}</InputLabel>
+            <Select
+              label={t('orders.filterByDoctor')}
+              value={doctorFilter}
+              onChange={(e) => setDoctorFilter(e.target.value)}
+            >
+              <MenuItem value="ALL">{t('orders.allDoctors')}</MenuItem>
+              {doctors.map((d) => (
+                <MenuItem key={d.doctor_id} value={d.doctor_id}>
+                  {d.first_name} {d.last_name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Button
+            variant="contained"
+            onClick={() => navigate('/clinic/orders/new')}
+            sx={{ flexShrink: 0 }}
           >
-            <MenuItem value="ALL">{t('orders.allDoctors')}</MenuItem>
-            {doctors.map((d) => (
-              <MenuItem key={d.doctor_id} value={d.doctor_id}>
-                {d.first_name} {d.last_name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+            {t('orders.newOrder')}
+          </Button>
+        </Stack>
       </Stack>
 
       {isLoading ? (

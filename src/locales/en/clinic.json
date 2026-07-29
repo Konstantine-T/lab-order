@@ -42,7 +42,19 @@
     "subtitle": "All orders from doctors under your clinic",
     "empty": "No orders yet.",
     "filterByDoctor": "Filter by doctor",
-    "allDoctors": "All doctors"
+    "allDoctors": "All doctors",
+    "newOrder": "New order"
+  },
+  "orderCreate": {
+    "title": "New order",
+    "doctor": "For which doctor?",
+    "lab": "Lab",
+    "service": "Service",
+    "submit": "Submit order",
+    "success": "Order created.",
+    "pickDoctor": "Pick a doctor.",
+    "pickService": "Pick a lab and service.",
+    "noLocations": "This doctor has no work locations. Add one on the doctor's account first."
   },
   "orderDetail": {
     "back": "Back to orders",
