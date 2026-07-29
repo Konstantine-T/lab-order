@@ -18,6 +18,7 @@ import {
   Typography,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import EditIcon from '@mui/icons-material/Edit';
 import { Link as RouterLink, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -161,11 +162,22 @@ export function ClinicOrderDetailPage() {
               <PaymentStatusChip status={order.payment_status} />
               {!isTerminal && (
                 <Button
+                  component={RouterLink}
+                  to={`/clinic/orders/${order.id}/edit`}
+                  variant="outlined"
+                  size="small"
+                  startIcon={<EditIcon fontSize="small" />}
+                  sx={{ ml: { sm: 'auto' } }}
+                >
+                  {tc('actions.edit')}
+                </Button>
+              )}
+              {!isTerminal && (
+                <Button
                   color="error"
                   variant="outlined"
                   size="small"
                   onClick={() => setCancelOpen(true)}
-                  sx={{ ml: { sm: 'auto' } }}
                 >
                   {t('orderDetail.cancelOrder')}
                 </Button>
