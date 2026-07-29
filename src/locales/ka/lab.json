@@ -1,4 +1,24 @@
 {
+  "customForm": {
+    "empty": "ჯერ კითხვები არ არის. დაამატე პირველი კითხვა ქვემოთ.",
+    "addQuestion": "კითხვის დამატება",
+    "questionLabel": "კითხვა",
+    "questionPlaceholder": "ჩაწერე შენი კითხვა…",
+    "inputType": "პასუხის ტიპი",
+    "inputTypes": {
+      "text": "მოკლე ტექსტი",
+      "textarea": "აბზაცი",
+      "number": "რიცხვი",
+      "checkbox": "დიახ / არა",
+      "select": "ჩამოსაშლელი სია",
+      "chip_multi_select": "მრავალი არჩევანი",
+      "date": "თარიღი"
+    },
+    "options": "ვარიანტები",
+    "optionPlaceholder": "ვარიანტი",
+    "addOption": "ვარიანტის დამატება",
+    "helpText": "დამხმარე ტექსტი (არასავალდებულო)"
+  },
   "nav": {
     "dashboard": "დაფა",
     "profile": "ლაბორატორიის პროფილი",

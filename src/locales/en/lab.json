@@ -1,4 +1,24 @@
 {
+  "customForm": {
+    "empty": "No questions yet. Add your first question below.",
+    "addQuestion": "Add question",
+    "questionLabel": "Question",
+    "questionPlaceholder": "Type your question…",
+    "inputType": "Answer type",
+    "inputTypes": {
+      "text": "Short text",
+      "textarea": "Paragraph",
+      "number": "Number",
+      "checkbox": "Yes / No",
+      "select": "Dropdown",
+      "chip_multi_select": "Multiple choice",
+      "date": "Date"
+    },
+    "options": "Options",
+    "optionPlaceholder": "Option",
+    "addOption": "Add option",
+    "helpText": "Help text (optional)"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "profile": "Lab profile",

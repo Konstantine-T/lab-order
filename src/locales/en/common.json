@@ -119,6 +119,11 @@
     "GINGIVAL_REDUCTION_GUIDE": {
       "help": "Gingival reduction guide — a tooth map with wax-up and approval options. In Fields, choose which fields are shown and required. In Pricing, set your price."
     },
+    "OTHER_CUSTOM": {
+      "name": "Custom Form",
+      "description": "Build your own form from any questions.",
+      "help": "A blank form you build yourself. Add any number of questions, pick each answer's input type (text, number, yes/no, dropdown, multiple choice, date), mark required ones, then set a fixed price."
+    },
     "TITANIUM_MILLING": {
       "name": "Titanium Milling",
       "description": "Titanium milled construction.",

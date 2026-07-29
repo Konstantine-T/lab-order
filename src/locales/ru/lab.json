@@ -1,4 +1,24 @@
 {
+  "customForm": {
+    "empty": "Вопросов пока нет. Добавьте первый вопрос ниже.",
+    "addQuestion": "Добавить вопрос",
+    "questionLabel": "Вопрос",
+    "questionPlaceholder": "Введите ваш вопрос…",
+    "inputType": "Тип ответа",
+    "inputTypes": {
+      "text": "Короткий текст",
+      "textarea": "Абзац",
+      "number": "Число",
+      "checkbox": "Да / Нет",
+      "select": "Выпадающий список",
+      "chip_multi_select": "Множественный выбор",
+      "date": "Дата"
+    },
+    "options": "Варианты",
+    "optionPlaceholder": "Вариант",
+    "addOption": "Добавить вариант",
+    "helpText": "Подсказка (необязательно)"
+  },
   "nav": {
     "dashboard": "Панель",
     "profile": "Профиль лаборатории",

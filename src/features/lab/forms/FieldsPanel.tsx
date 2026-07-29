@@ -23,6 +23,7 @@ import { isModelTemplateCode } from '@/features/orderForms/modelTypes';
 import { TEMPLATE_CODE_ESP } from '@/features/orderForms/espTypes';
 import { TEMPLATE_CODE_IMPLANT } from '@/features/orderForms/implantTypes';
 import type { FieldConfig, FormConfiguration } from '@/types/database';
+import { CustomFormBuilder } from './CustomFormBuilder';
 
 export function FieldsPanel({
   config,
@@ -63,6 +64,10 @@ export function FieldsPanel({
     };
     onChange({ ...config, fields: [...config.fields, newField] });
   };
+
+  if (config._templateCode === 'OTHER_CUSTOM') {
+    return <CustomFormBuilder config={config} onChange={onChange} />;
+  }
 
   return (
     <Stack spacing={2}>

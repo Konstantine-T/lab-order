@@ -12,6 +12,8 @@ import {
   Typography,
 } from '@mui/material';
 import { ToothMap } from './ToothMap';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
 import type { FieldConfig, FormConfiguration } from '@/types/database';
 
 const SHADE_OPTIONS = [
@@ -259,6 +261,18 @@ export function FieldRenderer({
             />
           }
           label={field.label}
+        />
+      );
+    case 'date':
+      return (
+        <DatePicker
+          label={`${field.label}${field.required ? ' *' : ''}`}
+          value={value ? dayjs(value as string) : null}
+          onChange={(d) => onChange(d ? d.format('YYYY-MM-DD') : null)}
+          readOnly={!!readOnly}
+          slotProps={{
+            textField: { fullWidth: true, helperText: helper, error: !!error },
+          }}
         />
       );
     default:
