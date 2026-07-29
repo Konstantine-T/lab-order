@@ -1,4 +1,14 @@
 {
+  "fabForm": {
+    "material": "Material",
+    "unit": "unit",
+    "units": "Number of units",
+    "teeth": "Teeth",
+    "teethCount": "{{count}} selected",
+    "notes": "Notes",
+    "noMaterials": "No materials configured for this service. The lab must add at least one material (with a price) in the Pricing tab before doctors can order.",
+    "fieldsLocked": "This form is fixed — the doctor picks a material and a quantity, and the price is generated. Configure your materials and prices in the Pricing tab."
+  },
   "nav": {
     "dashboard": "Dashboard",
     "profile": "Lab profile",

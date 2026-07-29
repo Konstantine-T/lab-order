@@ -119,6 +119,16 @@
     "GINGIVAL_REDUCTION_GUIDE": {
       "help": "Gingival reduction guide — a tooth map with wax-up and approval options. In Fields, choose which fields are shown and required. In Pricing, set your price."
     },
+    "PRINT": {
+      "name": "Print",
+      "description": "Printing by material and unit count.",
+      "help": "The lab lists its print materials and a per-unit price. The doctor picks a material and enters the number of units; the price is generated from that."
+    },
+    "MILLING": {
+      "name": "Milling",
+      "description": "Milling by material and selected teeth.",
+      "help": "The lab lists its milling materials and a per-unit price. The doctor picks a material and selects teeth; the teeth count drives the generated price."
+    },
     "TITANIUM_MILLING": {
       "name": "Titanium Milling",
       "description": "Titanium milled construction.",

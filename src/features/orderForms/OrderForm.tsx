@@ -45,6 +45,17 @@ import {
   type GrgAnswers,
 } from './GingivalReductionGuideForm';
 import { TEMPLATE_CODE_GRG } from './grgTypes';
+import { PrintForm, MillingForm } from './FabForm';
+import {
+  TEMPLATE_CODE_PRINT,
+  TEMPLATE_CODE_MILLING,
+  coercePrintAnswers,
+  coerceMillingAnswers,
+  validatePrint,
+  validateMilling,
+  emptyPrintAnswers,
+  emptyMillingAnswers,
+} from './fabTypes';
 
 export type OrderFormValue = Record<string, unknown>;
 
@@ -229,6 +240,58 @@ export function OrderForm({
     );
   }
 
+  if (configuration._templateCode === TEMPLATE_CODE_PRINT) {
+    const print = coercePrintAnswers(values);
+    const customFields = configuration.fields.filter(
+      (f) => f.type === 'custom_question' && f.enabled,
+    );
+    return (
+      <Stack spacing={4}>
+        <PrintForm
+          pricing={pricing}
+          value={print}
+          onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
+          readOnly={readOnly}
+          showErrors={showErrors}
+        />
+        {customFields.length > 0 && (
+          <DynamicForm
+            configuration={{ ...configuration, fields: customFields }}
+            values={values}
+            onChange={onChange}
+            readOnly={readOnly}
+          />
+        )}
+      </Stack>
+    );
+  }
+
+  if (configuration._templateCode === TEMPLATE_CODE_MILLING) {
+    const milling = coerceMillingAnswers(values);
+    const customFields = configuration.fields.filter(
+      (f) => f.type === 'custom_question' && f.enabled,
+    );
+    return (
+      <Stack spacing={4}>
+        <MillingForm
+          pricing={pricing}
+          value={milling}
+          onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
+          readOnly={readOnly}
+          showErrors={showErrors}
+        />
+        {customFields.length > 0 && (
+          <DynamicForm
+            configuration={{ ...configuration, fields: customFields }}
+            values={values}
+            onChange={onChange}
+            readOnly={readOnly}
+          />
+        )}
+      </Stack>
+    );
+  }
+
   return (
     <DynamicForm
       configuration={configuration}
@@ -269,8 +332,14 @@ export function isOrderFormValid(
     const grg = coerceGrgAnswers(values);
     return Object.keys(validateGrg(grg, configuration)).length === 0;
   }
+  if (configuration._templateCode === TEMPLATE_CODE_PRINT) {
+    return Object.keys(validatePrint(coercePrintAnswers(values))).length === 0;
+  }
+  if (configuration._templateCode === TEMPLATE_CODE_MILLING) {
+    return Object.keys(validateMilling(coerceMillingAnswers(values))).length === 0;
+  }
   return true;
 }
 
-export { emptyCnbAnswers, emptySgAnswers, emptyModelAnswers, emptyEspAnswers, emptyImplantAnswers, emptyGrgAnswers };
+export { emptyCnbAnswers, emptySgAnswers, emptyModelAnswers, emptyEspAnswers, emptyImplantAnswers, emptyGrgAnswers, emptyPrintAnswers, emptyMillingAnswers };
 export type { CnbAnswers, SgAnswers, ModelAnswers, EspAnswers, ImplantRestorationAnswers, GrgAnswers };

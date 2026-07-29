@@ -72,6 +72,24 @@ export function calculatePrice(
         subtotal += fee;
         lineItems.push({ i18nKey: 'gingivalReduction', label: 'Gingival reduction guide', amount: fee });
       }
+    } else if (
+      typeof (answers as { materialId?: unknown }).materialId === 'string' &&
+      Array.isArray(pricing.materials)
+    ) {
+      // Print / Milling: one material × unit count (typed units for Print,
+      // selected-teeth count for Milling).
+      const a = answers as { materialId?: string; units?: unknown; teeth?: unknown };
+      const mat = pricing.materials.find((m) => m.id === a.materialId);
+      const unitPrice = mat?.unit_price ?? 0;
+      const qty = Array.isArray(a.teeth)
+        ? a.teeth.length
+        : typeof a.units === 'number'
+          ? a.units
+          : 0;
+      subtotal = unitPrice * qty;
+      if (subtotal > 0 && mat) {
+        lineItems.push({ label: mat.name, qty, unitAmount: unitPrice, amount: subtotal });
+      }
     } else if (typeof (answers as Record<string, unknown>).guideProtocol === 'string') {
       // Surgical Guide: protocol unit price × implant count + support type fees.
       const sg = answers as {
@@ -286,7 +304,9 @@ export function isPricingComplete(
     if (
       templateCode === 'CROWN_AND_BRIDGE' ||
       templateCode === 'TEMPORARY_CROWN' ||
-      templateCode === 'EVIDENT_SMILE'
+      templateCode === 'EVIDENT_SMILE' ||
+      templateCode === 'PRINT' ||
+      templateCode === 'MILLING'
     ) {
       const ms = pricing.materials ?? [];
       if (ms.length === 0) return false;

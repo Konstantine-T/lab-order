@@ -5,6 +5,7 @@ import type {
 } from '@/types/database';
 import { DEFAULT_IMPLANT_PRICE_CONFIG } from '@/features/orderForms/implantTypes';
 import { isCnbTemplate } from '@/features/orderForms/cnbTypes';
+import { isFabTemplate } from '@/features/orderForms/fabTypes';
 
 export function buildDefaultConfig(
   templateFields: PlatformTemplateFieldRow[],
@@ -36,9 +37,10 @@ export function buildDefaultConfig(
   const isSg = templateCode === 'SURGICAL_GUIDE';
   const isEsp = templateCode === 'EVIDENT_SMILE';
   const isImplant = templateCode === 'CONSTRUCTIONS_ON_IMPLANTS';
+  const isFab = isFabTemplate(templateCode);
   const pricing: PricingConfig = {
-    model: toothField || isSg || isEsp || isImplant ? 'UNIT_BASED' : 'FIXED_PRICE',
-    materials: isCnbTemplate(templateCode) || isEsp ? [] : undefined,
+    model: toothField || isSg || isEsp || isImplant || isFab ? 'UNIT_BASED' : 'FIXED_PRICE',
+    materials: isCnbTemplate(templateCode) || isEsp || isFab ? [] : undefined,
     sg_support_fees: isSg ? [] : undefined,
     implant_price_config: isImplant ? DEFAULT_IMPLANT_PRICE_CONFIG : undefined,
     implant_crown_materials: isImplant ? [] : undefined,

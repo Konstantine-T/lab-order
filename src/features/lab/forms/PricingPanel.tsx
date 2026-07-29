@@ -32,6 +32,7 @@ import {
 import { TEMPLATE_CODE_SG, SG_SUPPORT_TYPES } from '@/features/orderForms/sgTypes';
 import { TEMPLATE_CODE_ESP } from '@/features/orderForms/espTypes';
 import { TEMPLATE_CODE_IMPLANT, DEFAULT_IMPLANT_PRICE_CONFIG } from '@/features/orderForms/implantTypes';
+import { isFabTemplate } from '@/features/orderForms/fabTypes';
 import type { SgSupportFee, ImplantPriceItem } from '@/types/database';
 
 function makeId(): string {
@@ -63,6 +64,7 @@ export function PricingPanel({
   const isSg = templateCode === TEMPLATE_CODE_SG;
   const isEsp = templateCode === TEMPLATE_CODE_ESP;
   const isImplant = templateCode === TEMPLATE_CODE_IMPLANT;
+  const isFab = isFabTemplate(templateCode);
 
   const setMaterials = (next: MaterialOption[]) =>
     onChange({ ...pricing, materials: next });
@@ -105,7 +107,7 @@ export function PricingPanel({
           </TextField>
 
           {/* CnB / ESP UNIT_BASED — materials editor */}
-          {pricing.model === 'UNIT_BASED' && (isCnb || isEsp) && (
+          {pricing.model === 'UNIT_BASED' && (isCnb || isEsp || isFab) && (
             <Stack spacing={2}>
               <Stack>
                 <Typography variant="subtitle2">

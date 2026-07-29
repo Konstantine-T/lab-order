@@ -22,6 +22,7 @@ import { TEMPLATE_CODE_SG } from '@/features/orderForms/sgTypes';
 import { isModelTemplateCode } from '@/features/orderForms/modelTypes';
 import { TEMPLATE_CODE_ESP } from '@/features/orderForms/espTypes';
 import { TEMPLATE_CODE_IMPLANT } from '@/features/orderForms/implantTypes';
+import { isFabTemplate } from '@/features/orderForms/fabTypes';
 import type { FieldConfig, FormConfiguration } from '@/types/database';
 
 export function FieldsPanel({
@@ -37,7 +38,8 @@ export function FieldsPanel({
     config._templateCode === TEMPLATE_CODE_SG ||
     isModelTemplateCode(config._templateCode) ||
     config._templateCode === TEMPLATE_CODE_ESP ||
-    config._templateCode === TEMPLATE_CODE_IMPLANT;
+    config._templateCode === TEMPLATE_CODE_IMPLANT ||
+    isFabTemplate(config._templateCode);
 
   const updateField = (i: number, patch: Partial<FieldConfig>) => {
     onChange({
@@ -76,6 +78,8 @@ export function FieldsPanel({
             ? t('espForm.fieldsLocked')
             : config._templateCode === TEMPLATE_CODE_IMPLANT
             ? t('implantForm.fieldsLocked')
+            : isFabTemplate(config._templateCode)
+            ? t('fabForm.fieldsLocked')
             : t('services.edit.cnbFieldsLocked')}
         </Alert>
       )}
