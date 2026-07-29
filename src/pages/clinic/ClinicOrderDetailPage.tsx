@@ -1,17 +1,25 @@
+import { useState } from 'react';
 import {
   Alert,
+  AlertTitle,
   Box,
   Button,
   Card,
   CardContent,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   Stack,
+  TextField,
   Typography,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { Link as RouterLink, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { supabase } from '@/lib/supabase';
@@ -90,6 +98,26 @@ export function ClinicOrderDetailPage() {
     },
   });
 
+  const qc = useQueryClient();
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [reason, setReason] = useState('');
+  const cancelMut = useMutation({
+    mutationFn: async () => {
+      // Allowed by the orders_clinic_update RLS policy (0014) — the clinic can
+      // cancel a linked doctor's non-terminal order.
+      const { error } = await supabase
+        .from('orders')
+        .update({ status: 'CANCELLED', cancellation_reason: reason.trim() || null })
+        .eq('id', orderId!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setCancelOpen(false);
+      qc.invalidateQueries({ queryKey: ['clinic-order', orderId] });
+      qc.invalidateQueries({ queryKey: ['clinic-orders'] });
+    },
+  });
+
   if (isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
@@ -104,6 +132,7 @@ export function ClinicOrderDetailPage() {
   const answersMap: Record<string, unknown> = {};
   for (const a of answers) answersMap[a.field_code] = a.answer_json;
   const total = order.final_total ?? order.generated_total;
+  const isTerminal = order.status === 'COMPLETED' || order.status === 'CANCELLED';
 
   return (
     <Stack spacing={3}>
@@ -116,6 +145,13 @@ export function ClinicOrderDetailPage() {
         {t('orderDetail.back')}
       </Button>
 
+      {order.status === 'CANCELLED' && (
+        <Alert severity="error">
+          <AlertTitle>{t('orderDetail.cancelledTitle')}</AlertTitle>
+          {order.cancellation_reason || t('orderDetail.noReason')}
+        </Alert>
+      )}
+
       <Card>
         <CardContent>
           <Stack spacing={1.5}>
@@ -123,6 +159,17 @@ export function ClinicOrderDetailPage() {
               <Typography variant="h5">{order.order_code}</Typography>
               <OrderStatusChip status={order.status} />
               <PaymentStatusChip status={order.payment_status} />
+              {!isTerminal && (
+                <Button
+                  color="error"
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setCancelOpen(true)}
+                  sx={{ ml: { sm: 'auto' } }}
+                >
+                  {t('orderDetail.cancelOrder')}
+                </Button>
+              )}
             </Stack>
             <Divider />
             <Row k={t('orderDetail.lab')} v={labSnap?.public_name} />
@@ -165,6 +212,33 @@ export function ClinicOrderDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} maxWidth="xs" fullWidth>
+        <DialogTitle>{t('orderDetail.cancel.title')}</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>{t('orderDetail.cancel.body')}</DialogContentText>
+          <TextField
+            label={t('orderDetail.cancel.reasonLabel')}
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            multiline
+            minRows={2}
+            fullWidth
+            autoFocus
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setCancelOpen(false)}>{tc('actions.close')}</Button>
+          <Button
+            color="error"
+            variant="contained"
+            onClick={() => cancelMut.mutate()}
+            disabled={cancelMut.isPending}
+          >
+            {t('orderDetail.cancel.confirm')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   );
 }
