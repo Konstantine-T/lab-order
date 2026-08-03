@@ -1,19 +1,11 @@
 import { useEffect, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Divider,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, Button, Stack } from '@mui/material';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { CardStack, PageHeader, SectionCard } from '@/components/design';
 import { RHFTextField } from '@/components/RHFTextField';
 import { LabApprovalBanner } from '@/features/lab/LabApprovalBanner';
 import {
@@ -133,12 +125,10 @@ export function LabProfilePage() {
   };
 
   return (
-    <Stack spacing={3} sx={{ maxWidth: 900 }}>
-      <Stack spacing={1}>
-        <Typography variant="h4">{t('profile.title')}</Typography>
-        <Typography color="text.secondary">{t('profile.subtitle')}</Typography>
-      </Stack>
+    <>
+      <PageHeader title={t('profile.title')} subtitle={t('profile.subtitle')} />
 
+      <CardStack sx={{ maxWidth: 900 }}>
       <LabApprovalBanner status={lab.approval_status} note={lab.approval_note} />
 
       {success && <Alert severity="success">{success}</Alert>}
@@ -147,11 +137,8 @@ export function LabProfilePage() {
       <FormProvider {...methods}>
         <form onSubmit={methods.handleSubmit(handleSave)} noValidate>
           <Stack spacing={3}>
-            <Card>
-              <CardContent>
+            <SectionCard icon="store" title={t('profile.sections.public')}>
                 <Stack spacing={2}>
-                  <Typography variant="h6">{t('profile.sections.public')}</Typography>
-                  <Divider />
                   <RHFTextField name="public_name" label={t('profile.fields.publicName')} required />
                   <RHFTextField
                     name="short_description"
@@ -161,14 +148,10 @@ export function LabProfilePage() {
                   />
                   <RHFTextField name="logo_url" label={t('profile.fields.logoUrl')} />
                 </Stack>
-              </CardContent>
-            </Card>
+            </SectionCard>
 
-            <Card>
-              <CardContent>
+            <SectionCard icon="description" title={t('profile.sections.legal')}>
                 <Stack spacing={2}>
-                  <Typography variant="h6">{t('profile.sections.legal')}</Typography>
-                  <Divider />
                   <RHFTextField name="legal_name" label={t('profile.fields.legalName')} required />
                   <RHFTextField
                     name="identification_code"
@@ -190,14 +173,10 @@ export function LabProfilePage() {
                     <RHFTextField name="country" label={t('profile.fields.country')} required />
                   </Stack>
                 </Stack>
-              </CardContent>
-            </Card>
+            </SectionCard>
 
-            <Card>
-              <CardContent>
+            <SectionCard icon="call" title={t('profile.sections.contact')}>
                 <Stack spacing={2}>
-                  <Typography variant="h6">{t('profile.sections.contact')}</Typography>
-                  <Divider />
                   <RHFTextField
                     name="contact_person_name"
                     label={t('profile.fields.contactPersonName')}
@@ -217,14 +196,10 @@ export function LabProfilePage() {
                     />
                   </Stack>
                 </Stack>
-              </CardContent>
-            </Card>
+            </SectionCard>
 
-            <Card>
-              <CardContent>
+            <SectionCard icon="payments" title={t('profile.sections.billing')}>
                 <Stack spacing={2}>
-                  <Typography variant="h6">{t('profile.sections.billing')}</Typography>
-                  <Divider />
                   <RHFTextField name="bank_name" label={t('profile.fields.bankName')} required />
                   <RHFTextField
                     name="bank_account_iban"
@@ -239,8 +214,7 @@ export function LabProfilePage() {
                     required
                   />
                 </Stack>
-              </CardContent>
-            </Card>
+            </SectionCard>
 
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
               <Button
@@ -273,6 +247,7 @@ export function LabProfilePage() {
           </Stack>
         </form>
       </FormProvider>
-    </Stack>
+      </CardStack>
+    </>
   );
 }

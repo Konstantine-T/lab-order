@@ -1,7 +1,6 @@
 import { IconButton, Tooltip } from '@mui/material';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
-import LightModeIcon from '@mui/icons-material/LightMode';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/design';
 import { useColorMode } from '@/theme/ColorModeProvider';
 
 export function ColorModeToggle() {
@@ -12,7 +11,7 @@ export function ColorModeToggle() {
   return (
     <Tooltip title={label}>
       <IconButton onClick={toggle} color="inherit" aria-label={t('theme.toggle')}>
-        {mode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
+        {mode === 'light' ? <Icon name="dark_mode" size={20} /> : <Icon name="light_mode" size={20} />}
       </IconButton>
     </Tooltip>
   );

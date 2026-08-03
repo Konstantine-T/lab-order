@@ -1,5 +1,5 @@
 import { Box, Tooltip } from '@mui/material';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import { Icon } from '@/components/design';
 
 /**
  * A small "?" help affordance: an info icon that reveals `text` in a tooltip.
@@ -12,7 +12,7 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 export function HelpTip({
   text,
   label = 'Help',
-  size = 18,
+  size = 16,
 }: {
   text?: string | null;
   label?: string;
@@ -37,7 +37,7 @@ export function HelpTip({
           '&:hover': { color: 'text.primary' },
         }}
       >
-        <HelpOutlineIcon sx={{ fontSize: size }} />
+        <Icon name="help" size={size} />
       </Box>
     </Tooltip>
   );

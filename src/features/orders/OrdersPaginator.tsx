@@ -1,11 +1,6 @@
-import {
-  MenuItem,
-  Pagination,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { MenuItem, Stack, TextField, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { Pager } from '@/components/design';
 
 type Props = {
   page: number;
@@ -59,13 +54,10 @@ export function OrdersPaginator({
           ))}
         </TextField>
       </Stack>
-      <Pagination
-        page={Math.min(page, pageCount)}
-        count={pageCount}
-        onChange={(_, p) => onPageChange(p)}
-        color="primary"
-        shape="rounded"
-        size="small"
+      <Pager
+        page={Math.min(page, pageCount) - 1}
+        pageCount={pageCount}
+        onChange={(p) => onPageChange(p + 1)}
       />
     </Stack>
   );

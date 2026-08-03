@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Box, Stack, Typography, useTheme } from '@mui/material';
+import { Box, Stack, useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { MetaChip } from '@/components/design';
 
 // Universal Numbering System (1–32) — adult permanent dentition.
 //   1–16: maxillary (upper), patient's right (1) → patient's left (16)
@@ -128,10 +129,13 @@ export function ToothMap({
   const baseStroke = isLight ? 'rgba(15, 23, 42, 0.55)' : 'rgba(229, 231, 240, 0.7)';
   const midlineStroke = isLight ? 'rgba(15, 23, 42, 0.18)' : 'rgba(229, 231, 240, 0.22)';
   const labelColor = isLight ? '#0F172A' : '#E5E7F0';
+  // The mockups' quiet arch captions — present but never competing with a tooth.
+  const axisColor = isLight ? 'rgba(15, 23, 42, 0.26)' : 'rgba(229, 231, 240, 0.3)';
+  const sideColor = isLight ? 'rgba(15, 23, 42, 0.35)' : 'rgba(229, 231, 240, 0.4)';
 
   return (
     <Box sx={{ width: '100%' }}>
-      <Box sx={{ maxWidth: 380, mx: 'auto' }}>
+      <Box sx={{ maxWidth: 340, mx: 'auto' }}>
         <Box
           component="svg"
           viewBox="20 30 400 660"
@@ -158,6 +162,52 @@ export function ToothMap({
             strokeWidth={0.6}
             strokeDasharray="3,3"
           />
+
+          {/* Arch and side captions, as in the mockups. */}
+          <text
+            x={219}
+            y={196}
+            textAnchor="middle"
+            fontSize={12}
+            fontWeight={700}
+            letterSpacing={2.5}
+            fill={axisColor}
+            style={{ pointerEvents: 'none', userSelect: 'none' }}
+          >
+            {t('toothMap.upper').toUpperCase()}
+          </text>
+          <text
+            x={219}
+            y={524}
+            textAnchor="middle"
+            fontSize={12}
+            fontWeight={700}
+            letterSpacing={2.5}
+            fill={axisColor}
+            style={{ pointerEvents: 'none', userSelect: 'none' }}
+          >
+            {t('toothMap.lower').toUpperCase()}
+          </text>
+          <text
+            x={27}
+            y={350}
+            fontSize={11}
+            fontWeight={700}
+            fill={sideColor}
+            style={{ pointerEvents: 'none', userSelect: 'none' }}
+          >
+            {t('toothMap.right')}
+          </text>
+          <text
+            x={404}
+            y={350}
+            fontSize={11}
+            fontWeight={700}
+            fill={sideColor}
+            style={{ pointerEvents: 'none', userSelect: 'none' }}
+          >
+            {t('toothMap.left')}
+          </text>
 
           {TEETH.map((t) => {
             const isSel = selected.has(t.num);
@@ -256,26 +306,28 @@ export function ToothMap({
         </Box>
       </Box>
 
+      {/* Selection summary — the mockups' capsule row under the chart. */}
       {value.length > 0 && (
         <Stack
           direction="row"
-          spacing={3}
           justifyContent="center"
-          sx={{ mt: 1, color: 'text.secondary' }}
+          sx={{ mt: 1, flexWrap: 'wrap', gap: 0.75 }}
         >
           {upperSelected.length > 0 && (
-            <Typography variant="caption">
-              {t('toothMap.upper')}: {upperSelected.map((n) => toDisplayLabel(n, notation)).join(', ')}
-            </Typography>
+            <MetaChip>
+              {t('toothMap.upper')}:{' '}
+              {upperSelected.map((n) => toDisplayLabel(n, notation)).join(', ')}
+            </MetaChip>
           )}
           {lowerSelected.length > 0 && (
-            <Typography variant="caption">
-              {t('toothMap.lower')}: {lowerSelected.map((n) => toDisplayLabel(n, notation)).join(', ')}
-            </Typography>
+            <MetaChip>
+              {t('toothMap.lower')}:{' '}
+              {lowerSelected.map((n) => toDisplayLabel(n, notation)).join(', ')}
+            </MetaChip>
           )}
-          <Typography variant="caption" fontWeight={600}>
+          <MetaChip color="inherit">
             {t('toothMap.total')}: {value.length}
-          </Typography>
+          </MetaChip>
         </Stack>
       )}
     </Box>

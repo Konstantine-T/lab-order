@@ -1,8 +1,6 @@
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   Divider,
   FormControlLabel,
@@ -12,7 +10,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import { Icon } from '@/components/design';
 import { useTranslation } from 'react-i18next';
 import { ToothMap } from '@/components/ToothMap';
 import { NumberedSection, PillGroup, ErrorHelper } from './primitives';
@@ -530,7 +528,7 @@ function ImplantSystemSection({
             <Box>
               <Button
                 size="small"
-                startIcon={<ContentCopyIcon />}
+                startIcon={<Icon name="content_copy" size={16} />}
                 variant="outlined"
                 onClick={applyAll}
               >
@@ -588,8 +586,16 @@ function ImplantDetailCard({
   const sg = (k: string) => t(`sgForm.${k}`);
 
   return (
-    <Card variant="outlined" sx={{ borderRadius: 2 }}>
-      <CardContent>
+    <Box
+      sx={{
+        px: 2.25,
+        py: 2,
+        borderRadius: '14px',
+        border: 1,
+        borderColor: 'divider',
+        bgcolor: 'background.default',
+      }}
+    >
         <Stack spacing={2}>
           <Stack direction="row" alignItems="center" justifyContent="space-between">
             <Typography variant="subtitle2" fontWeight={600}>
@@ -598,7 +604,7 @@ function ImplantDetailCard({
             {isFirst && onApplyAll && (
               <Button
                 size="small"
-                startIcon={<ContentCopyIcon />}
+                startIcon={<Icon name="content_copy" size={16} />}
                 onClick={onApplyAll}
                 variant="text"
               >
@@ -656,8 +662,7 @@ function ImplantDetailCard({
             InputProps={{ readOnly: !!readOnly }}
           />
         </Stack>
-      </CardContent>
-    </Card>
+    </Box>
   );
 }
 

@@ -13,10 +13,10 @@ import {
   Switch,
   TextField,
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
 import { DatePicker } from '@mui/x-date-pickers';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/design';
 import type { InvoiceRecipientType, PaymentStatus } from '@/types/database';
 import {
   RECEIVABLE_SORTS,
@@ -58,7 +58,7 @@ export function FinanceFilterBar({
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
-                <SearchIcon fontSize="small" />
+                <Icon name="search" size={18} />
               </InputAdornment>
             ),
           }}

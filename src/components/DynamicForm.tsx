@@ -12,16 +12,10 @@ import {
   Typography,
 } from '@mui/material';
 import { ToothMap } from './ToothMap';
+import { ShadePicker } from './ShadePicker';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import type { FieldConfig, FormConfiguration } from '@/types/database';
-
-const SHADE_OPTIONS = [
-  'A1', 'A2', 'A3', 'A3.5', 'A4',
-  'B1', 'B2', 'B3', 'B4',
-  'C1', 'C2', 'C3', 'C4',
-  'D2', 'D3', 'D4',
-];
 
 const MATERIAL_OPTIONS = ['Standard zirconia', 'Premium zirconia', 'PMMA', 'E.max', 'Other'];
 
@@ -143,29 +137,29 @@ export function FieldRenderer({
       );
     }
     case 'shade_picker':
+      // The mockups pick a shade from swatch pills, not a dropdown.
       return (
-        <FormControl fullWidth error={!!error}>
-          <InputLabel>
-            {field.label}
-            {field.required ? ' *' : ''}
-          </InputLabel>
-          <Select
-            label={`${field.label}${field.required ? ' *' : ''}`}
+        <Stack spacing={1.25}>
+          <Stack direction="row" alignItems="baseline" spacing={1}>
+            <Typography variant="subtitle2">
+              {field.label}
+              {field.required ? ' *' : ''}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
+              VITA classical
+            </Typography>
+          </Stack>
+          <ShadePicker
             value={(value as string) ?? ''}
-            onChange={(e) => onChange(e.target.value)}
-            readOnly={!!readOnly}
-          >
-            <MenuItem value="">
-              <em>—</em>
-            </MenuItem>
-            {SHADE_OPTIONS.map((s) => (
-              <MenuItem key={s} value={s}>
-                {s}
-              </MenuItem>
-            ))}
-          </Select>
-          {helper && <FormHelperText>{helper}</FormHelperText>}
-        </FormControl>
+            onChange={(code) => onChange(code)}
+            readOnly={readOnly}
+          />
+          {helper && (
+            <FormHelperText error={!!error} sx={{ ml: 0 }}>
+              {helper}
+            </FormHelperText>
+          )}
+        </Stack>
       );
     case 'material_select':
       return (

@@ -3,9 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
-  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -18,12 +15,16 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import StarIcon from '@mui/icons-material/Star';
-import StarOutlineIcon from '@mui/icons-material/StarOutline';
-import ArchiveIcon from '@mui/icons-material/Archive';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  CardStack,
+  EmptyState,
+  Icon,
+  MetaChip,
+  PageHeader,
+  SectionCard,
+  StatusPill,
+} from '@/components/design';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -160,101 +161,94 @@ export function WorkLocationsPage() {
   };
 
   return (
-    <Stack spacing={3}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={2}>
-        <Stack>
-          <Typography variant="h4">{t('workLocations.title')}</Typography>
-          <Typography color="text.secondary">{t('workLocations.subtitle')}</Typography>
-        </Stack>
-        <Box>
-          <Button startIcon={<AddIcon />} variant="contained" onClick={openCreate}>
+    <>
+      <PageHeader
+        title={t('workLocations.title')}
+        subtitle={t('workLocations.subtitle')}
+        actions={
+          <Button startIcon={<Icon name="add" size={17} />} variant="contained" onClick={openCreate}>
             {t('workLocations.addNew')}
           </Button>
-        </Box>
-      </Stack>
+        }
+      />
 
-      {error && <Alert severity="error">{tc('errors.loadFailed')}</Alert>}
+      <CardStack>
+        {error && <Alert severity="error">{tc('errors.loadFailed')}</Alert>}
 
-      {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress />
-        </Box>
-      ) : locations.length === 0 ? (
-        <Card>
-          <CardContent>
-            <Typography color="text.secondary">{t('workLocations.empty')}</Typography>
-          </CardContent>
-        </Card>
-      ) : (
-        <Stack spacing={2}>
-          {locations.map((loc) => (
-            <Card key={loc.id}>
-              <CardContent>
-                <Stack
-                  direction={{ xs: 'column', sm: 'row' }}
-                  justifyContent="space-between"
-                  spacing={2}
-                >
-                  <Stack spacing={0.5} flex={1}>
-                    <Stack direction="row" spacing={1} alignItems="center">
-                      <Typography variant="h6">
-                        {loc.clinic_name}
-                        {loc.branch_name ? ` · ${loc.branch_name}` : ''}
-                      </Typography>
-                      {loc.is_default && (
-                        <Chip
-                          color="primary"
-                          size="small"
-                          icon={<StarIcon />}
-                          label={t('workLocations.default')}
-                        />
-                      )}
-                    </Stack>
-                    <Typography variant="body2" color="text.secondary">
-                      {loc.address}, {loc.city}
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+            <CircularProgress />
+          </Box>
+        ) : locations.length === 0 ? (
+          <EmptyState
+            icon="location_on"
+            title={t('workLocations.empty')}
+            onClick={openCreate}
+            minHeight={220}
+          />
+        ) : (
+          locations.map((loc) => (
+            <SectionCard key={loc.id}>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                justifyContent="space-between"
+                spacing={2}
+              >
+                <Stack spacing={1} flex={1} sx={{ minWidth: 0 }}>
+                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
+                    <Typography variant="h5">
+                      {loc.clinic_name}
+                      {loc.branch_name ? ` · ${loc.branch_name}` : ''}
                     </Typography>
+                    {loc.is_default && (
+                      <StatusPill tone="brand" dot>
+                        {t('workLocations.default')}
+                      </StatusPill>
+                    )}
+                  </Stack>
+                  <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.75 }}>
+                    <MetaChip icon={<Icon name="location_on" size={13} />}>
+                      {loc.address}, {loc.city}
+                    </MetaChip>
                     {loc.phone && (
-                      <Typography variant="body2" color="text.secondary">
-                        {loc.phone}
-                      </Typography>
+                      <MetaChip icon={<Icon name="call" size={13} />}>{loc.phone}</MetaChip>
                     )}
                     {loc.clinic_identification_code && (
-                      <Typography variant="body2" color="text.secondary">
-                        {t('workLocations.fields.clinicIdentificationCode')}:{' '}
+                      <MetaChip icon={<Icon name="badge" size={13} />}>
                         {loc.clinic_identification_code}
-                      </Typography>
+                      </MetaChip>
                     )}
                     {loc.clinic_invoice_email && (
-                      <Typography variant="body2" color="text.secondary">
+                      <MetaChip icon={<Icon name="mail" size={13} />}>
                         {loc.clinic_invoice_email}
-                      </Typography>
+                      </MetaChip>
                     )}
-                  </Stack>
-                  <Stack direction="row" spacing={0.5}>
-                    {!loc.is_default && (
-                      <Tooltip title={t('workLocations.makeDefault')}>
-                        <IconButton onClick={() => setDefaultMutation.mutate(loc.id)}>
-                          <StarOutlineIcon />
-                        </IconButton>
-                      </Tooltip>
-                    )}
-                    <Tooltip title={tc('actions.edit')}>
-                      <IconButton onClick={() => openEdit(loc)}>
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title={tc('actions.archive')}>
-                      <IconButton onClick={() => setArchiveTarget(loc)}>
-                        <ArchiveIcon />
-                      </IconButton>
-                    </Tooltip>
                   </Stack>
                 </Stack>
-              </CardContent>
-            </Card>
-          ))}
-        </Stack>
-      )}
+                <Stack direction="row" spacing={0.5} sx={{ flexShrink: 0 }}>
+                  {!loc.is_default && (
+                    <Tooltip title={t('workLocations.makeDefault')}>
+                      <IconButton onClick={() => setDefaultMutation.mutate(loc.id)}>
+                        <Icon name="star" size={19} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  <Tooltip title={tc('actions.edit')}>
+                    <IconButton onClick={() => openEdit(loc)}>
+                      <Icon name="edit" size={19} />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title={tc('actions.archive')}>
+                    <IconButton onClick={() => setArchiveTarget(loc)}>
+                      <Icon name="archive" size={19} />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+              </Stack>
+            </SectionCard>
+          ))
+        )}
+      </CardStack>
 
       <WorkLocationDialog
         open={dialogOpen}
@@ -294,6 +288,6 @@ export function WorkLocationsPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Stack>
+    </>
   );
 }

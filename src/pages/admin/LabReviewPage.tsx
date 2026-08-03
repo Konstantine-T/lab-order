@@ -3,19 +3,23 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Divider,
   Stack,
   TextField,
-  Typography,
 } from '@mui/material';
-import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  Callout,
+  CardStack,
+  DetailList,
+  DetailRow,
+  PageHeader,
+  SectionCard,
+} from '@/components/design';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
@@ -157,69 +161,49 @@ export function LabReviewPage() {
   const canSuspend = status === 'APPROVED_ACTIVE';
 
   return (
-    <Stack spacing={3} sx={{ maxWidth: 900 }}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start">
-        <Stack spacing={1} flex={1}>
-          <Button component={RouterLink} to="/admin/labs" size="small" sx={{ alignSelf: 'flex-start' }}>
-            ← {t('nav.labs')}
-          </Button>
-          <Typography variant="h4">{lab.public_name}</Typography>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <LabStatusChip status={lab.approval_status} />
-            <Typography variant="body2" color="text.secondary">
-              {dayjs(lab.created_at).format('YYYY-MM-DD')}
-            </Typography>
-          </Stack>
-        </Stack>
-      </Stack>
+    <>
+      <PageHeader
+        backTo="/admin/labs"
+        title={lab.public_name}
+        subtitle={dayjs(lab.created_at).format('YYYY-MM-DD')}
+        chips={<LabStatusChip status={lab.approval_status} />}
+      />
 
+      <CardStack sx={{ maxWidth: 900 }}>
       {success && <Alert severity="success" onClose={() => setSuccess(null)}>{success}</Alert>}
-      {!complete && <Alert severity="warning">{t('labs.review.incomplete')}</Alert>}
+      {!complete && <Callout tone="warning">{t('labs.review.incomplete')}</Callout>}
       {lab.approval_note && (
-        <Alert severity="info">
-          <Typography variant="body2" fontWeight={600}>
-            Last note:
-          </Typography>
-          <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
-            {lab.approval_note}
-          </Typography>
-        </Alert>
+        <Callout tone="brand" title={t('labs.review.lastNote')}>
+          {lab.approval_note}
+        </Callout>
       )}
 
-      <Card>
-        <CardContent>
-          <Stack spacing={2}>
-            <Typography variant="h6">{t('labs.review.viewProfile')}</Typography>
-            <Divider />
-            <DetailRow label="Public name" value={lab.public_name} />
-            <DetailRow label="Short description" value={lab.short_description} />
-            <DetailRow label="Logo URL" value={lab.logo_url} />
-          </Stack>
-        </CardContent>
-      </Card>
+      <SectionCard icon="store" title={t('labs.review.viewProfile')}>
+        <DetailList>
+          <DetailRow label={t('labs.fields.publicName')} labelWidth={200}>{lab.public_name || '—'}</DetailRow>
+          <DetailRow label={t('labs.fields.shortDescription')} labelWidth={200}>{lab.short_description || '—'}</DetailRow>
+          <DetailRow label={t('labs.fields.logoUrl')} labelWidth={200}>{lab.logo_url || '—'}</DetailRow>
+        </DetailList>
+      </SectionCard>
 
-      <Card>
-        <CardContent>
-          <Stack spacing={2}>
-            <Typography variant="h6">{t('labs.review.viewLegal')}</Typography>
-            <Divider />
-            <DetailRow label="Legal name" value={lab.legal_name} />
-            <DetailRow label="Identification code" value={lab.identification_code} />
-            <DetailRow label="Legal address" value={lab.legal_address} />
-            <DetailRow label="Working address" value={lab.working_address} />
-            <DetailRow label="City" value={lab.city} />
-            <DetailRow label="Country" value={lab.country} />
-            <Divider />
-            <DetailRow label="Contact person" value={lab.contact_person_name} />
-            <DetailRow label="Contact phone" value={lab.contact_phone} />
-            <DetailRow label="Contact email" value={lab.contact_email} />
-            <Divider />
-            <DetailRow label="Bank name" value={lab.bank_name} />
-            <DetailRow label="Bank account / IBAN" value={lab.bank_account_iban} />
-            <DetailRow label="Payment instructions" value={lab.payment_instructions} multiline />
-          </Stack>
-        </CardContent>
-      </Card>
+      <SectionCard icon="description" title={t('labs.review.viewLegal')}>
+        <DetailList>
+          <DetailRow label={t('labs.fields.legalName')} labelWidth={200}>{lab.legal_name || '—'}</DetailRow>
+          <DetailRow label={t('labs.fields.identificationCode')} labelWidth={200}>{lab.identification_code || '—'}</DetailRow>
+          <DetailRow label={t('labs.fields.legalAddress')} labelWidth={200}>{lab.legal_address || '—'}</DetailRow>
+          <DetailRow label={t('labs.fields.workingAddress')} labelWidth={200}>{lab.working_address || '—'}</DetailRow>
+          <DetailRow label={t('labs.fields.city')} labelWidth={200}>{lab.city || '—'}</DetailRow>
+          <DetailRow label={t('labs.fields.country')} labelWidth={200}>{lab.country || '—'}</DetailRow>
+          <DetailRow label={t('labs.fields.contactPerson')} labelWidth={200}>{lab.contact_person_name || '—'}</DetailRow>
+          <DetailRow label={t('labs.fields.contactPhone')} labelWidth={200}>{lab.contact_phone || '—'}</DetailRow>
+          <DetailRow label={t('labs.fields.contactEmail')} labelWidth={200}>{lab.contact_email || '—'}</DetailRow>
+          <DetailRow label={t('labs.fields.bankName')} labelWidth={200}>{lab.bank_name || '—'}</DetailRow>
+          <DetailRow label={t('labs.fields.bankAccount')} labelWidth={200}>{lab.bank_account_iban || '—'}</DetailRow>
+          <DetailRow label={t('labs.fields.paymentInstructions')} labelWidth={200}>
+            <Box sx={{ whiteSpace: 'pre-wrap' }}>{lab.payment_instructions || '—'}</Box>
+          </DetailRow>
+        </DetailList>
+      </SectionCard>
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} flexWrap="wrap">
         {canApprove && (
@@ -329,30 +313,7 @@ export function LabReviewPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Stack>
-  );
-}
-
-function DetailRow({
-  label,
-  value,
-  multiline,
-}: {
-  label: string;
-  value: string | null | undefined;
-  multiline?: boolean;
-}) {
-  return (
-    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
-      <Typography variant="body2" color="text.secondary" sx={{ minWidth: 200 }}>
-        {label}
-      </Typography>
-      <Typography
-        variant="body2"
-        sx={{ flex: 1, whiteSpace: multiline ? 'pre-wrap' : undefined }}
-      >
-        {value || <em style={{ color: 'gray' }}>—</em>}
-      </Typography>
-    </Stack>
+      </CardStack>
+    </>
   );
 }

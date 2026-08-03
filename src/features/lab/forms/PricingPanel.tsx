@@ -1,8 +1,6 @@
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   Divider,
   FormControlLabel,
   IconButton,
@@ -13,9 +11,8 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useTranslation } from 'react-i18next';
+import { Icon, SectionCard } from '@/components/design';
 import { NumberField } from '@/components/NumberField';
 import type {
   FieldConfig,
@@ -86,11 +83,8 @@ export function PricingPanel({
   };
 
   return (
-    <Card>
-      <CardContent>
+    <SectionCard icon="payments" title={t('forms.editor.pricing.title')}>
         <Stack spacing={3}>
-          <Typography variant="h6">{t('forms.editor.pricing.title')}</Typography>
-
           <TextField
             select
             label={t('forms.editor.pricing.model')}
@@ -158,7 +152,7 @@ export function PricingPanel({
                       sx={{ width: 200 }}
                     />
                     <IconButton onClick={() => removeMaterial(mat.id)} size="small">
-                      <DeleteOutlineIcon fontSize="small" />
+                      <Icon name="delete" size={18} />
                     </IconButton>
                   </Stack>
                 );
@@ -166,7 +160,7 @@ export function PricingPanel({
 
               <Box>
                 <Button
-                  startIcon={<AddIcon />}
+                  startIcon={<Icon name="add" size={17} />}
                   variant="outlined"
                   onClick={addMaterial}
                   disabled={(pricing.materials ?? []).length >= MAX_MATERIALS}
@@ -386,8 +380,7 @@ export function PricingPanel({
             </Stack>
           )}
         </Stack>
-      </CardContent>
-    </Card>
+    </SectionCard>
   );
 }
 
@@ -491,14 +484,14 @@ function ImplantPricingSection({
                 sx={{ flex: 1 }}
               />
               <IconButton onClick={() => removeBrand(brand.id)} size="small">
-                <DeleteOutlineIcon fontSize="small" />
+                <Icon name="delete" size={18} />
               </IconButton>
             </Stack>
           ))}
         </Stack>
         <Box mt={1}>
           <Button
-            startIcon={<AddIcon />}
+            startIcon={<Icon name="add" size={17} />}
             variant="outlined"
             onClick={addBrand}
             size="small"
@@ -562,7 +555,7 @@ function ImplantPricingSection({
                   sx={{ width: 200 }}
                 />
                 <IconButton onClick={() => removeCrownMaterial(mat.id)} size="small">
-                  <DeleteOutlineIcon fontSize="small" />
+                  <Icon name="delete" size={18} />
                 </IconButton>
               </Stack>
             );
@@ -570,7 +563,7 @@ function ImplantPricingSection({
         </Stack>
         <Box mt={1}>
           <Button
-            startIcon={<AddIcon />}
+            startIcon={<Icon name="add" size={17} />}
             variant="outlined"
             onClick={addCrownMaterial}
             disabled={crownMaterials.length >= MAX_MATERIALS}

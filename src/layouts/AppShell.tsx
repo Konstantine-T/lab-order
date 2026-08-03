@@ -1,9 +1,8 @@
-import { useState, type ReactNode } from 'react';
-import { Link as RouterLink, NavLink, Outlet } from 'react-router-dom';
+import { useEffect, useState, type ReactNode } from 'react';
+import { Link as RouterLink, NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
   alpha,
   AppBar,
-  Avatar,
   Box,
   Divider,
   Drawer,
@@ -17,204 +16,255 @@ import {
   MenuItem,
   Stack,
   Toolbar,
-  Tooltip,
   Typography,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import LogoutIcon from '@mui/icons-material/Logout';
 import { useTranslation } from 'react-i18next';
 import { ColorModeToggle } from '@/components/ColorModeToggle';
 import { FeedbackButton } from '@/components/FeedbackButton';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
+import { Icon } from '@/components/design/Icon';
 import { useAuth } from '@/auth/AuthProvider';
+import { brand as brandTokens, layout, radii } from '@/theme/tokens';
 
 export type NavEntry = {
   to: string;
   label: string;
-  icon?: ReactNode;
+  /** Material Symbols Rounded ligature name, e.g. `receipt_long`. */
+  icon: string;
   end?: boolean;
+  /** Optional count pill rendered at the right of the row. */
+  badge?: ReactNode;
 };
 
-const DRAWER_WIDTH = 248;
+const SIDEBAR_WIDTH = layout.sidebarWidth;
+const CONTENT_MAX = layout.contentMax;
 
+/**
+ * The application shell from the July 2026 redesign: a fixed white sidebar and
+ * a content column. There is no desktop top bar — page titles live inside the
+ * content column via `PageHeader`.
+ *
+ * Below `md` the sidebar collapses into a temporary drawer and a slim top bar
+ * appears to hold its trigger. The mockups are desktop-only; that bar is the
+ * extrapolation agreed in the foundation spec, and exists on mobile only.
+ */
 export function AppShell({ navEntries, brand }: { navEntries: NavEntry[]; brand: string }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [avatarAnchor, setAvatarAnchor] = useState<HTMLElement | null>(null);
+  const [userAnchor, setUserAnchor] = useState<HTMLElement | null>(null);
   const { user, signOut } = useAuth();
   const { t } = useTranslation('common');
+  const { pathname } = useLocation();
+
+  // Navigating from inside the temporary drawer must close it, or the new page
+  // renders behind a still-open overlay.
+  useEffect(() => setMobileOpen(false), [pathname]);
 
   const initials = user
     ? `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase()
     : '?';
 
-  const drawerContent = (
+  // Lab and clinic admins get an organisation card under the logo, as in the
+  // mockups. Doctors and platform admins have no organisation to show.
+  const org = user?.lab ?? user?.clinic ?? null;
+  const orgInitials = org
+    ? org.public_name
+        .split(/\s+/)
+        .slice(0, 2)
+        .map((w) => w.charAt(0))
+        .join('')
+        .toUpperCase()
+    : '';
+
+  const sidebar = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Toolbar sx={{ minHeight: { xs: 64, md: 64 }, px: 3 }}>
-        <Typography
-          variant="h6"
-          noWrap
-          component={RouterLink}
-          to="/"
+      <Stack
+        direction="row"
+        alignItems="center"
+        spacing={1.25}
+        component={RouterLink}
+        to="/"
+        sx={{ px: 2.25, pt: 2.25, pb: 1.75, color: 'text.primary', textDecoration: 'none' }}
+      >
+        <Box
           sx={{
-            color: 'text.primary',
-            textDecoration: 'none',
-            fontWeight: 700,
-            letterSpacing: '-0.01em',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
+            width: 30,
+            height: 30,
+            borderRadius: '9px',
+            bgcolor: 'primary.main',
+            display: 'grid',
+            placeItems: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <Icon name="dentistry" size={19} filled color="#fff" />
+        </Box>
+        <Typography sx={{ fontSize: '1rem', fontWeight: 800, letterSpacing: '-0.02em' }} noWrap>
+          {brand}
+        </Typography>
+      </Stack>
+
+      {org && (
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1}
+          sx={{
+            mx: 1.5,
+            mb: 1,
+            px: 1.25,
+            py: 1,
+            borderRadius: `${radii.control}px`,
+            bgcolor: alpha(brandTokens.main, 0.08),
+            border: 1,
+            borderColor: alpha(brandTokens.main, 0.25),
           }}
         >
           <Box
             sx={{
-              width: 24,
-              height: 24,
-              borderRadius: 1.5,
-              bgcolor: 'primary.main',
-              display: 'inline-block',
+              width: 26,
+              height: 26,
+              borderRadius: '8px',
+              background: `linear-gradient(135deg, ${brandTokens.main}, ${brandTokens.link})`,
+              color: '#fff',
+              fontSize: 9,
+              fontWeight: 800,
+              display: 'grid',
+              placeItems: 'center',
+              flexShrink: 0,
             }}
-          />
-          {brand}
-        </Typography>
-      </Toolbar>
-      <Box sx={{ flex: 1, py: 1.5, px: 1.5 }}>
+          >
+            {orgInitials}
+          </Box>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography sx={{ fontSize: '0.75rem', fontWeight: 700 }} noWrap>
+              {org.public_name}
+            </Typography>
+            {user?.lab && (
+              <Typography
+                sx={{ fontSize: '0.625rem', fontWeight: 600, color: 'success.main' }}
+                noWrap
+              >
+                {t(`labApprovalStatus.${user.lab.approval_status}`)}
+              </Typography>
+            )}
+          </Box>
+        </Stack>
+      )}
+
+      <Box sx={{ px: 1.5, flex: 1, overflowY: 'auto' }}>
         <List disablePadding>
           {navEntries.map((entry) => (
-            <ListItem key={entry.to} disablePadding sx={{ mb: 0.5 }}>
+            <ListItem key={entry.to} disablePadding sx={{ mb: 0.25 }}>
               <ListItemButton
                 component={NavLink}
                 to={entry.to}
                 end={entry.end}
-                onClick={() => setMobileOpen(false)}
                 sx={{
-                  borderRadius: 2,
-                  px: 1.5,
-                  py: 1,
                   color: 'text.secondary',
-                  '& .MuiListItemIcon-root': {
-                    minWidth: 36,
-                    color: 'text.secondary',
-                    transition: 'color 160ms ease',
-                  },
-                  '& .MuiListItemText-primary': {
-                    fontSize: '0.92rem',
-                    fontWeight: 500,
-                  },
-                  '&:hover': {
-                    bgcolor: 'action.hover',
-                    color: 'text.primary',
-                    '& .MuiListItemIcon-root': { color: 'text.primary' },
-                  },
+                  '& .MuiListItemIcon-root': { minWidth: 32, color: 'inherit' },
+                  '& .MuiListItemText-primary': { fontSize: '0.84375rem', fontWeight: 500 },
+                  '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
                   '&.active': {
-                    bgcolor: alpha(theme.palette.primary.main, theme.palette.mode === 'light' ? 0.1 : 0.16),
-                    color: 'primary.main',
-                    '& .MuiListItemIcon-root': { color: 'primary.main' },
+                    bgcolor: 'action.selected',
+                    color: 'primary.dark',
                     '& .MuiListItemText-primary': { fontWeight: 600 },
+                    // The FILL axis is how the mockups mark the active item;
+                    // there is no separate filled glyph to swap in.
+                    '& .material-symbols-rounded': { fontVariationSettings: "'FILL' 1" },
                   },
                 }}
               >
-                {entry.icon && <ListItemIcon>{entry.icon}</ListItemIcon>}
+                <ListItemIcon>
+                  <Icon name={entry.icon} size={20} />
+                </ListItemIcon>
                 <ListItemText primary={entry.label} />
+                {entry.badge}
               </ListItemButton>
             </ListItem>
           ))}
         </List>
       </Box>
+
+      <Box sx={{ p: 1.5, borderTop: 1, borderColor: 'divider' }}>
+        <Stack direction="row" spacing={0.25} sx={{ mb: 0.5 }}>
+          <FeedbackButton />
+          <ColorModeToggle />
+          <LanguageSwitcher variant="icon" />
+        </Stack>
+
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1.25}
+          onClick={(e) => setUserAnchor(e.currentTarget)}
+          sx={{
+            px: 1.25,
+            py: 1,
+            borderRadius: `${radii.control}px`,
+            cursor: 'pointer',
+            '&:hover': { bgcolor: 'action.hover' },
+          }}
+        >
+          <Box
+            sx={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              bgcolor: 'primary.light',
+              color: '#fff',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              display: 'grid',
+              placeItems: 'center',
+              flexShrink: 0,
+            }}
+          >
+            {initials}
+          </Box>
+          <Box sx={{ flex: 1, minWidth: 0 }}>
+            <Typography sx={{ fontSize: '0.78125rem', fontWeight: 700 }} noWrap>
+              {user?.first_name} {user?.last_name}
+            </Typography>
+            <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }} noWrap>
+              {user ? t(`roles.${user.role}`) : ''}
+            </Typography>
+          </Box>
+          <Icon name="unfold_more" size={18} sx={{ color: 'text.secondary' }} />
+        </Stack>
+      </Box>
+
+      <Menu
+        anchorEl={userAnchor}
+        open={!!userAnchor}
+        onClose={() => setUserAnchor(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Box sx={{ px: 2, py: 1.25 }}>
+          <Typography variant="subtitle2">
+            {user?.first_name} {user?.last_name}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" display="block">
+            {user?.email}
+          </Typography>
+        </Box>
+        <Divider sx={{ mx: 1 }} />
+        <MenuItem onClick={() => void signOut()}>
+          <ListItemIcon sx={{ minWidth: 32 }}>
+            <Icon name="logout" size={18} />
+          </ListItemIcon>
+          <ListItemText>{t('actions.signOut')}</ListItemText>
+        </MenuItem>
+      </Menu>
     </Box>
   );
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
-      <AppBar
-        position="fixed"
-        elevation={0}
-        sx={{
-          zIndex: (t2) => t2.zIndex.drawer + 1,
-          bgcolor: alpha(theme.palette.background.paper, 0.85),
-          color: 'text.primary',
-          backdropFilter: 'saturate(180%) blur(12px)',
-          WebkitBackdropFilter: 'saturate(180%) blur(12px)',
-          borderBottom: 1,
-          borderColor: 'divider',
-        }}
-      >
-        <Toolbar sx={{ minHeight: { xs: 64, md: 64 } }}>
-          {isMobile && (
-            <IconButton
-              edge="start"
-              color="inherit"
-              onClick={() => setMobileOpen((v) => !v)}
-              sx={{ mr: 1 }}
-              aria-label="open navigation"
-            >
-              <MenuIcon />
-            </IconButton>
-          )}
-          {isMobile && (
-            <Typography
-              variant="h6"
-              noWrap
-              sx={{ flexGrow: 1, fontWeight: 700, letterSpacing: '-0.01em' }}
-            >
-              {brand}
-            </Typography>
-          )}
-          {!isMobile && <Box sx={{ flex: 1 }} />}
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <FeedbackButton />
-            <ColorModeToggle />
-            <LanguageSwitcher variant="icon" />
-            <Tooltip title={user ? `${user.first_name} ${user.last_name}` : ''}>
-              <IconButton
-                onClick={(e) => setAvatarAnchor(e.currentTarget)}
-                size="small"
-                sx={{ ml: 0.5 }}
-              >
-                <Avatar
-                  sx={{
-                    width: 32,
-                    height: 32,
-                    bgcolor: 'primary.main',
-                    color: 'primary.contrastText',
-                    fontWeight: 600,
-                    fontSize: '0.85rem',
-                  }}
-                >
-                  {initials}
-                </Avatar>
-              </IconButton>
-            </Tooltip>
-            <Menu
-              anchorEl={avatarAnchor}
-              open={!!avatarAnchor}
-              onClose={() => setAvatarAnchor(null)}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-            >
-              <Box sx={{ px: 2, py: 1.5 }}>
-                <Typography variant="body2" fontWeight={600}>
-                  {user?.first_name} {user?.last_name}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {user?.email}
-                </Typography>
-              </Box>
-              <Divider sx={{ mx: 1 }} />
-              <MenuItem onClick={() => void signOut()}>
-                <ListItemIcon>
-                  <LogoutIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>{t('actions.signOut')}</ListItemText>
-              </MenuItem>
-            </Menu>
-          </Stack>
-        </Toolbar>
-      </AppBar>
-
       {isMobile ? (
         <Drawer
           variant="temporary"
@@ -223,45 +273,73 @@ export function AppShell({ navEntries, brand }: { navEntries: NavEntry[]; brand:
           ModalProps={{ keepMounted: true }}
           sx={{
             '& .MuiDrawer-paper': {
-              width: DRAWER_WIDTH,
+              width: SIDEBAR_WIDTH,
               borderRight: 0,
-              borderColor: 'divider',
               backgroundImage: 'none',
             },
           }}
         >
-          {drawerContent}
+          {sidebar}
         </Drawer>
       ) : (
-        <Drawer
-          variant="permanent"
+        <Box
+          component="nav"
           sx={{
-            width: DRAWER_WIDTH,
+            width: SIDEBAR_WIDTH,
             flexShrink: 0,
-            '& .MuiDrawer-paper': {
-              width: DRAWER_WIDTH,
-              boxSizing: 'border-box',
-              borderRight: 1,
-              borderColor: 'divider',
-              backgroundImage: 'none',
-              bgcolor: 'background.paper',
-            },
+            position: 'sticky',
+            top: 0,
+            height: '100vh',
+            bgcolor: 'background.paper',
+            borderRight: 1,
+            borderColor: 'divider',
           }}
         >
-          {drawerContent}
-        </Drawer>
+          {sidebar}
+        </Box>
       )}
 
-      <Box
-        component="main"
-        sx={{
-          flexGrow: 1,
-          width: { md: `calc(100% - ${DRAWER_WIDTH}px)` },
-          bgcolor: 'background.default',
-        }}
-      >
-        <Toolbar />
-        <Box sx={{ p: { xs: 2.5, md: 4 }, maxWidth: 1280, mx: 'auto' }}>
+      <Box component="main" sx={{ flex: 1, minWidth: 0 }}>
+        {isMobile && (
+          <AppBar
+            position="sticky"
+            elevation={0}
+            sx={{
+              bgcolor: alpha(theme.palette.background.default, 0.88),
+              backdropFilter: 'saturate(180%) blur(10px)',
+              WebkitBackdropFilter: 'saturate(180%) blur(10px)',
+              color: 'text.primary',
+              borderBottom: 1,
+              borderColor: 'divider',
+            }}
+          >
+            <Toolbar sx={{ minHeight: layout.mobileBar, height: layout.mobileBar }}>
+              <IconButton
+                edge="start"
+                color="inherit"
+                onClick={() => setMobileOpen(true)}
+                aria-label="open navigation"
+              >
+                <Icon name="menu" size={22} />
+              </IconButton>
+              <Typography sx={{ ml: 1, fontSize: '0.9375rem', fontWeight: 800 }} noWrap>
+                {brand}
+              </Typography>
+            </Toolbar>
+          </AppBar>
+        )}
+
+        <Box
+          sx={{
+            maxWidth: CONTENT_MAX,
+            mx: 'auto',
+            px: layout.gutter,
+            // `PageHeader` cancels this top padding to reach the column's top
+            // edge; pages without one keep it.
+            pt: { xs: 2.5, md: 3.25 },
+            pb: 10,
+          }}
+        >
           <Outlet />
         </Box>
       </Box>

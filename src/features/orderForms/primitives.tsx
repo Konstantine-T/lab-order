@@ -1,14 +1,18 @@
-import type { ReactNode } from 'react';
-import {
-  alpha,
-  Box,
-  InputAdornment,
-  Stack,
-  TextField,
-  Typography,
-  useTheme,
-} from '@mui/material';
+import { createContext, useContext, type ReactNode } from 'react';
+import { alpha, Box, InputAdornment, Stack, TextField, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { SectionCard } from '@/components/design';
+import { brand, motion, radii } from '@/theme/tokens';
+
+/**
+ * How a form's numbered sections should be chrome'd.
+ *
+ * `card` is the wizard: every section is its own white card, as the mockups
+ * draw them. `plain` is the read-only rendering on an order detail screen,
+ * where all sections already sit inside one "Order details" card.
+ */
+const SectionChromeContext = createContext<'card' | 'plain'>('plain');
+export const SectionChrome = SectionChromeContext.Provider;
 
 // ===== NumberedSection =====================================================
 export function NumberedSection({
@@ -22,36 +26,42 @@ export function NumberedSection({
   hint?: string;
   children: ReactNode;
 }) {
-  const theme = useTheme();
+  const chrome = useContext(SectionChromeContext);
+
+  if (chrome === 'card') {
+    return (
+      <SectionCard step={number} title={label} meta={hint}>
+        {children}
+      </SectionCard>
+    );
+  }
+
   return (
-    <Stack spacing={2}>
-      <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+    <Stack spacing={1.75}>
+      <Stack direction="row" spacing={1.25} alignItems="center" flexWrap="wrap">
         <Box
           sx={{
-            width: 28,
-            height: 28,
+            width: 26,
+            height: 26,
             borderRadius: '50%',
-            bgcolor: alpha(
-              theme.palette.primary.main,
-              theme.palette.mode === 'light' ? 0.12 : 0.2,
-            ),
-            color: 'primary.main',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: 13,
+            bgcolor: alpha(brand.main, 0.13),
+            color: 'primary.dark',
+            display: 'grid',
+            placeItems: 'center',
+            fontSize: '0.78125rem',
             fontWeight: 700,
             flexShrink: 0,
-            letterSpacing: '0.01em',
           }}
         >
           {number}
         </Box>
-        <Typography sx={{ fontSize: 17, fontWeight: 600, letterSpacing: '-0.01em' }}>
+        <Typography
+          sx={{ fontSize: '0.96875rem', fontWeight: 700, letterSpacing: '-0.01em' }}
+        >
           {label}
         </Typography>
         {hint && (
-          <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+          <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
             {hint}
           </Typography>
         )}
@@ -69,6 +79,7 @@ export function Pill({
   readOnly,
   onClick,
   size = 'medium',
+  swatch,
 }: {
   label: string;
   selected?: boolean;
@@ -80,8 +91,11 @@ export function Pill({
   readOnly?: boolean;
   onClick?: () => void;
   size?: 'small' | 'medium';
+  /** Colour dot before the label — a material or a shade swatch. */
+  swatch?: string;
 }) {
   const inert = disabled || readOnly;
+  const md = size === 'medium';
   return (
     <Box
       role="button"
@@ -97,31 +111,51 @@ export function Pill({
         }
       }}
       sx={{
-        px: size === 'small' ? 1.75 : 2.5,
-        py: size === 'small' ? 0.5 : 0.85,
-        fontSize: size === 'small' ? 13 : 14,
-        fontWeight: 500,
-        borderRadius: 999,
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 0.875,
+        px: md ? 2.25 : 1.75,
+        py: md ? 1 : 0.75,
+        fontSize: md ? '0.84375rem' : '0.78125rem',
+        fontWeight: 600,
+        lineHeight: 1.3,
+        borderRadius: `${radii.pill}px`,
         border: 1,
         borderColor: selected ? 'primary.main' : 'divider',
         bgcolor: selected ? 'primary.main' : 'background.paper',
         color: selected ? 'primary.contrastText' : 'text.primary',
-        boxShadow: selected ? 0 : 1,
         cursor: inert ? 'default' : 'pointer',
         userSelect: 'none',
         whiteSpace: 'nowrap',
         // Only fade for *disabled*. Read-only stays full contrast so the lab
         // can read the doctor's selections clearly.
-        opacity: disabled ? 0.6 : 1,
-        transition: 'background-color 120ms, color 120ms, border-color 120ms',
+        opacity: disabled ? 0.5 : 1,
+        transition: `all ${motion.fast}`,
         '&:hover': inert
           ? {}
           : {
-              bgcolor: selected ? 'primary.dark' : 'action.hover',
+              bgcolor: selected ? 'primary.dark' : alpha(brand.main, 0.06),
               borderColor: 'primary.main',
             },
+        '&:focus-visible': {
+          outline: 'none',
+          boxShadow: `0 0 0 3px ${alpha(brand.main, 0.28)}`,
+        },
       }}
     >
+      {swatch && (
+        <Box
+          component="span"
+          sx={{
+            width: 11,
+            height: 11,
+            borderRadius: '50%',
+            bgcolor: swatch,
+            border: '1px solid rgba(0,0,0,0.15)',
+            flexShrink: 0,
+          }}
+        />
+      )}
       {label}
     </Box>
   );
@@ -135,6 +169,7 @@ export function PillGroup<T extends string>({
   readOnly,
   size,
   getLabel,
+  getSwatch,
   allowDeselect,
 }: {
   value: T | '';
@@ -144,17 +179,20 @@ export function PillGroup<T extends string>({
   size?: 'small' | 'medium';
   /** Optional label resolver — defaults to the option value itself. */
   getLabel?: (option: T) => string;
+  /** Optional colour dot resolver, for material / shade pickers. */
+  getSwatch?: (option: T) => string | undefined;
   /** When true, clicking an already-selected pill deselects it (sets value to ''). */
   allowDeselect?: boolean;
 }) {
   return (
-    <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+    <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 1 }}>
       {options.map((opt) => (
         <Pill
           key={opt}
           label={getLabel ? getLabel(opt) : opt}
           selected={value === opt}
           readOnly={readOnly}
+          swatch={getSwatch?.(opt)}
           onClick={() => {
             if (allowDeselect && value === opt) {
               onChange('' as unknown as T);

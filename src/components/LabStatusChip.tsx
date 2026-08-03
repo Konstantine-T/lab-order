@@ -1,16 +1,17 @@
-import { Chip, type ChipProps } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { StatusPill } from '@/components/design/StatusPill';
+import type { Tone } from '@/theme/tokens';
 import type { LabApprovalStatus } from '@/types/database';
 
-const COLORS: Record<LabApprovalStatus, ChipProps['color']> = {
+const TONES: Record<LabApprovalStatus, Tone> = {
   PENDING_APPROVAL: 'warning',
-  CHANGES_REQUESTED: 'info',
+  CHANGES_REQUESTED: 'warning',
   APPROVED_ACTIVE: 'success',
-  REJECTED: 'error',
-  SUSPENDED: 'default',
+  REJECTED: 'danger',
+  SUSPENDED: 'neutral',
 };
 
 export function LabStatusChip({ status }: { status: LabApprovalStatus }) {
   const { t } = useTranslation('common');
-  return <Chip size="small" color={COLORS[status]} label={t(`labApprovalStatus.${status}`)} />;
+  return <StatusPill tone={TONES[status]}>{t(`labApprovalStatus.${status}`)}</StatusPill>;
 }

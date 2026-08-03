@@ -1,15 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  Box,
   Button,
-  Card,
-  CardContent,
   FormControl,
-  FormControlLabel,
   InputLabel,
   MenuItem,
-  Radio,
-  RadioGroup,
   Select,
   Stack,
   TextField,
@@ -17,7 +13,16 @@ import {
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers';
 import dayjs from 'dayjs';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import {
+  Callout,
+  CardStack,
+  FieldLabel,
+  Icon,
+  PageHeader,
+  SectionCard,
+  Segmented,
+} from '@/components/design';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
@@ -207,28 +212,43 @@ export function ClinicOrderCreatePage() {
 
   if (okId) {
     return (
-      <Stack spacing={3} sx={{ maxWidth: 600 }}>
-        <Alert severity="success">{t('orderCreate.success')}</Alert>
-        <Stack direction="row" spacing={2}>
+      <Stack spacing={2} alignItems="center" sx={{ maxWidth: 520, mx: 'auto', py: 8 }}>
+        <Box
+          sx={{
+            width: 64,
+            height: 64,
+            borderRadius: '50%',
+            display: 'grid',
+            placeItems: 'center',
+            bgcolor: 'success.main',
+            color: '#fff',
+          }}
+        >
+          <Icon name="check" size={34} />
+        </Box>
+        <Typography variant="h3" component="h1" sx={{ textAlign: 'center' }}>
+          {t('orderCreate.success')}
+        </Typography>
+        <Stack direction="row" spacing={1.5} sx={{ pt: 1 }}>
           <Button variant="contained" onClick={() => navigate(`/clinic/orders/${okId}`)}>
             {tc('actions.viewDetails')}
           </Button>
-          <Button onClick={() => navigate('/clinic/orders')}>{t('orderDetail.back')}</Button>
+          <Button variant="outlined" onClick={() => navigate('/clinic/orders')}>
+            {t('orderDetail.back')}
+          </Button>
         </Stack>
       </Stack>
     );
   }
 
   return (
-    <Stack spacing={3} sx={{ maxWidth: 920, mx: 'auto' }}>
-      <Button component={RouterLink} to="/clinic/orders" size="small" sx={{ alignSelf: 'flex-start' }}>
-        ← {t('orderDetail.back')}
-      </Button>
-      <Typography variant="h4">{t('orderCreate.title')}</Typography>
+    <>
+      <PageHeader backTo="/clinic/orders" title={t('orderCreate.title')} />
+
+      <CardStack>
       {error && <Alert severity="error">{error}</Alert>}
 
-      <Card>
-        <CardContent>
+      <SectionCard icon="assignment" title={t('orderCreate.title')}>
           <Stack spacing={2.5}>
             <FormControl fullWidth error={attempted && !doctorId}>
               <InputLabel>{t('orderCreate.doctor')}</InputLabel>
@@ -271,20 +291,17 @@ export function ClinicOrderCreatePage() {
               </Select>
             </FormControl>
           </Stack>
-        </CardContent>
-      </Card>
+      </SectionCard>
 
       {doctorId && version && (
         <>
           <PatientStep state={state} update={update} doctorId={doctorId} patientAttempted={attempted} />
 
-          <Card>
-            <CardContent>
-              <Stack spacing={3}>
-                <Stack spacing={1}>
-                  <Typography variant="h6">{td('orderCreate.filesAndDue.workLocation')}</Typography>
+          <SectionCard icon="location_on" title={td('orderCreate.filesAndDue.workLocation')}>
+              <Stack spacing={2.5}>
+                <Box>
                   {locations.length === 0 ? (
-                    <Alert severity="warning">{t('orderCreate.noLocations')}</Alert>
+                    <Callout tone="warning">{t('orderCreate.noLocations')}</Callout>
                   ) : (
                     <TextField
                       select
@@ -300,43 +317,52 @@ export function ClinicOrderCreatePage() {
                       ))}
                     </TextField>
                   )}
-                </Stack>
+                </Box>
 
-                <Stack spacing={1}>
-                  <Typography variant="h6">{td('orderCreate.review.invoiceRecipient')}</Typography>
-                  <RadioGroup
+                <Box>
+                  <FieldLabel sx={{ mb: 0.75 }}>
+                    {td('orderCreate.review.invoiceRecipient')}
+                  </FieldLabel>
+                  <Segmented
                     value={state.invoice_recipient_type}
-                    onChange={(e) =>
-                      update({ invoice_recipient_type: e.target.value as 'DOCTOR' | 'CLINIC' })
-                    }
-                  >
-                    <FormControlLabel value="DOCTOR" control={<Radio />} label={td('orderCreate.review.invoiceDoctor')} />
-                    <FormControlLabel value="CLINIC" control={<Radio />} label={td('orderCreate.review.invoiceClinic')} />
-                  </RadioGroup>
-                </Stack>
+                    onChange={(v) => update({ invoice_recipient_type: v })}
+                    options={[
+                      { value: 'DOCTOR' as const, label: td('orderCreate.review.invoiceDoctor') },
+                      { value: 'CLINIC' as const, label: td('orderCreate.review.invoiceClinic') },
+                    ]}
+                    sx={{ maxWidth: 360 }}
+                  />
+                </Box>
 
-                <Stack spacing={1}>
-                  <Typography variant="h6">{td('orderCreate.filesAndDue.dueDate')}</Typography>
+                <Box>
+                  <FieldLabel sx={{ mb: 0.75 }}>
+                    {td('orderCreate.filesAndDue.dueDate')}
+                  </FieldLabel>
                   <DatePicker
                     value={state.requested_due_date ? dayjs(state.requested_due_date) : null}
                     onChange={(d) => update({ requested_due_date: d ? d.format('YYYY-MM-DD') : '' })}
                     minDate={dayjs().add(1, 'day')}
                     slotProps={{ textField: { fullWidth: true } }}
                   />
-                </Stack>
+                </Box>
               </Stack>
-            </CardContent>
-          </Card>
+          </SectionCard>
 
           <FormStep state={state} update={update} version={version} showErrors={attempted} />
 
           <Stack direction="row" justifyContent="flex-end">
-            <Button variant="contained" onClick={handleSubmit} disabled={submit.isPending}>
+            <Button
+              variant="contained"
+              size="large"
+              onClick={handleSubmit}
+              disabled={submit.isPending}
+            >
               {t('orderCreate.submit')}
             </Button>
           </Stack>
         </>
       )}
-    </Stack>
+      </CardStack>
+    </>
   );
 }

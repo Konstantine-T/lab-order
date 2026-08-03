@@ -2,11 +2,8 @@ import { useEffect, useState } from 'react';
 import {
   Alert,
   Button,
-  Card,
-  CardContent,
   Link,
   Stack,
-  Typography,
 } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { FormProvider, useForm } from 'react-hook-form';
@@ -77,30 +74,19 @@ export function ResetPasswordPage() {
 
   if (!sessionReady) {
     return (
-      <PublicAuthLayout>
-        <Card>
-          <CardContent>
-            <Stack spacing={3}>
-              <Stack spacing={0.5}>
-                <Typography variant="h4">{t('resetPassword.expiredTitle')}</Typography>
-                <Typography color="text.secondary">{t('resetPassword.expiredMessage')}</Typography>
-              </Stack>
+      <PublicAuthLayout title={t('resetPassword.expiredTitle')} subtitle={t('resetPassword.expiredMessage')}>
+        <Stack spacing={2.5}>
               <Link component={RouterLink} to="/forgot-password" variant="body2">
                 {t('resetPassword.requestNewLink')}
               </Link>
             </Stack>
-          </CardContent>
-        </Card>
       </PublicAuthLayout>
     );
   }
 
   return (
-    <PublicAuthLayout>
-      <Card>
-        <CardContent>
-          <Stack spacing={3}>
-            <Typography variant="h4">{t('resetPassword.title')}</Typography>
+    <PublicAuthLayout title={t('resetPassword.title')}>
+          <Stack spacing={2.5}>
             {success && <Alert severity="success">{t('resetPassword.success')}</Alert>}
             {serverError && <Alert severity="error">{serverError}</Alert>}
             {!success && (
@@ -132,8 +118,6 @@ export function ResetPasswordPage() {
               </FormProvider>
             )}
           </Stack>
-        </CardContent>
-      </Card>
     </PublicAuthLayout>
   );
 }

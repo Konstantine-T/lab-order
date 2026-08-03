@@ -12,9 +12,8 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/design';
 import { FieldRenderer } from '@/components/DynamicForm';
 import { ToothMap } from '@/components/ToothMap';
 import { SHADE_GROUPS, isCnbTemplate } from '@/features/orderForms/cnbTypes';
@@ -98,7 +97,7 @@ export function FieldsPanel({
       ))}
       <Button
         variant="outlined"
-        startIcon={<AddIcon />}
+        startIcon={<Icon name="add" size={17} />}
         onClick={addCustomQuestion}
         sx={{ alignSelf: 'flex-start' }}
       >
@@ -129,7 +128,7 @@ function FieldCard({
         const isOn = isCustom || field.enabled;
         const isLight = theme.palette.mode === 'light';
         return {
-          borderRadius: 2,
+          borderRadius: '14px',
           overflow: 'hidden',
           transition: 'opacity 0.15s, background-color 0.15s, border-color 0.15s',
           borderLeftWidth: 4,
@@ -181,7 +180,7 @@ function FieldCard({
 
         {isCustom ? (
           <IconButton size="small" color="error" onClick={onDelete} sx={{ flexShrink: 0 }}>
-            <DeleteOutlineIcon fontSize="small" />
+            <Icon name="delete" size={18} />
           </IconButton>
         ) : (
           <FormControlLabel

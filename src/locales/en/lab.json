@@ -153,7 +153,8 @@
       "material": "Material",
       "selectTooth": "Select Tooth",
       "notesPlaceholder": "for example: specify which teeth should have bridge in",
-      "noMaterials": "No materials configured for this service. The lab must add at least one material in the service's Pricing tab before doctors can place orders."
+      "noMaterials": "No materials configured for this service. The lab must add at least one material in the service's Pricing tab before doctors can place orders.",
+      "clear": "Clear"
     },
     "mmPlaceholder": "Desired length in mm",
     "shadeScales": {
@@ -227,7 +228,12 @@
     "deleteConfirm": {
       "title": "Delete this service?",
       "body": "Existing orders for this service are not affected. The service will simply disappear from your catalog."
-    }
+    },
+    "marketplaceRule": "A service appears in the marketplace only when it is active AND its form is published. Editing a form creates a new version — running orders keep the version they were submitted with.",
+    "turnaroundDays": "{{n}} days avg",
+    "fieldsAndPricing": "Fields & pricing",
+    "addFromTemplate": "Add a service from a template",
+    "addFromTemplateHint": "Crown & Bridge, Surgical Guide, Implants, Model, Evident Smile, Gingival Reduction Guide"
   },
   "forms": {
     "title": "Order forms",
@@ -315,8 +321,24 @@
     "dueSoonHint": "Due within 2 days",
     "editedOrdersBox": {
       "title": "Orders edited by doctors",
-      "hint": "Awaiting your review"
-    }
+      "hint": "Awaiting your review",
+      "count": "{{n}} order(s) were edited by doctors"
+    },
+    "addService": "Add service",
+    "newOrders": "New orders",
+    "newOrdersHint": "awaiting acceptance",
+    "dueThisWeek": "Due this week",
+    "unpaidDelivered": "Unpaid, delivered",
+    "acrossOrders": "across {{n}} orders",
+    "dueSoonTitle": "Due soon",
+    "nothingDue": "Nothing is due in the near future.",
+    "viewAll": "View all",
+    "attention": "Needs your attention",
+    "allClear": "Nothing needs your attention right now.",
+    "overdueCount": "{{n}} order(s) past their due date",
+    "dueSoonCount": "{{n}} order(s) due within 2 days",
+    "clarificationCount": "{{n}} clarification(s) waiting on the doctor",
+    "noFinalPriceCount": "{{n}} order(s) have no final price set"
   },
   "ordersDashboard": {
     "title": "Orders",
@@ -342,12 +364,25 @@
       "total": "Total",
       "due": "Due",
       "created": "Created"
+    },
+    "subtitle": "Everything doctors have sent you",
+    "unreviewedEdits": "Unreviewed edits",
+    "moreFilters": "More filters",
+    "quick": {
+      "all": "All",
+      "new": "New",
+      "inProgress": "In progress",
+      "clarification": "Needs clarification",
+      "ready": "Ready",
+      "edited": "Edited",
+      "completed": "Completed"
     }
   },
   "editedOrders": {
     "title": "Edited orders",
     "empty": "No edited orders yet.",
-    "unconfirmedBadge": "Edited"
+    "unconfirmedBadge": "Edited",
+    "subtitle": "Every order a doctor changed after submitting it"
   },
   "orderSheet": {
     "back": "Back to orders",
@@ -406,7 +441,14 @@
       "keep": "Keep order",
       "confirm": "Cancel order",
       "success": "Order cancelled."
-    }
+    },
+    "createdOn": "Created {{date}}",
+    "editedTimes": "Edited × {{n}}",
+    "saveStatus": "Save status",
+    "statusSaved": "Saved",
+    "workLocation": "Work location",
+    "invoice": "Invoice",
+    "answersMeta": "As submitted by the doctor · read-only"
   },
   "approvalBanner": {
     "PENDING_APPROVAL": {
@@ -856,6 +898,12 @@
         "unaddedHint": "These people couldn't be added automatically — share the invite link with them:",
         "error": "Couldn't create the chat. Please try again."
       }
+    }
+  },
+  "!cnbForm": {
+    "builder": {
+      "material": "Pick a material, then click teeth to paint them",
+      "selectTooth": "Click a tooth to assign the selected material; click it again to remove it"
     }
   }
 }

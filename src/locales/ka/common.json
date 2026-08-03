@@ -1,5 +1,7 @@
 {
-  "app": { "name": "Lab Order" },
+  "app": {
+    "name": "Lab Order"
+  },
   "actions": {
     "save": "შენახვა",
     "cancel": "გაუქმება",
@@ -73,7 +75,9 @@
     "lower": "ქვედა",
     "total": "სულ",
     "ariaLabel": "კბილების რუკა",
-    "notation": "ნუმერაცია"
+    "notation": "ნუმერაცია",
+    "right": "მარჯ",
+    "left": "მარცხ"
   },
   "rush": {
     "none": "არა",
@@ -91,7 +95,9 @@
     "switchToDark": "მუქი რეჟიმი",
     "switchToLight": "ღია რეჟიმი"
   },
-  "language": { "label": "ენა" },
+  "language": {
+    "label": "ენა"
+  },
   "pagination": {
     "showing": "ნაჩვენებია {{from}}–{{to}} / {{total}}"
   },
@@ -181,5 +187,9 @@
     "UNFORESEEN_EVENT": "გაუთვალისწინებელი შემთხვევა"
   },
   "yes": "კი",
-  "no": "არა"
+  "no": "არა",
+  "orderCard": {
+    "due": "ვადა",
+    "total": "ჯამი"
+  }
 }

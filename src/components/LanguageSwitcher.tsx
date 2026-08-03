@@ -7,8 +7,8 @@ import {
   MenuItem,
   Tooltip,
 } from '@mui/material';
-import CheckIcon from '@mui/icons-material/Check';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/design';
 import { LANGUAGES, type LanguageCode } from '@/i18n';
 import { GlobeIcon } from './GlobeIcon';
 
@@ -70,7 +70,7 @@ export function LanguageSwitcher(_props: { variant?: 'icon' | 'text' } = {}) {
             >
               <ListItemIcon>{flag}</ListItemIcon>
               <ListItemText>{label}</ListItemText>
-              {isSelected && <CheckIcon fontSize="small" sx={{ ml: 1, opacity: 0.7 }} />}
+              {isSelected && <Icon name="check" size={18} />}
             </MenuItem>
           );
         })}

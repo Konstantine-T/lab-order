@@ -1,12 +1,8 @@
 import { useState } from 'react';
 import {
   Alert,
-  Avatar,
   Box,
   Button,
-  Card,
-  CardContent,
-  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -20,10 +16,16 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import PersonAddIcon from '@mui/icons-material/PersonAdd';
-import PersonRemoveIcon from '@mui/icons-material/PersonRemove';
-import CloseIcon from '@mui/icons-material/Close';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  CardStack,
+  EmptyState,
+  Icon,
+  InitialsAvatar,
+  PageHeader,
+  SectionCard,
+  StatusPill,
+} from '@/components/design';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -121,20 +123,16 @@ export function ClinicDoctorsPage() {
   };
 
   return (
-    <Stack spacing={3}>
-      <Stack>
-        <Typography variant="h4">{t('doctors.title')}</Typography>
-        <Typography color="text.secondary">{t('doctors.subtitle')}</Typography>
-      </Stack>
+    <>
+      <PageHeader title={t('doctors.title')} subtitle={t('doctors.subtitle')} />
 
+      <CardStack>
       {/* Invite */}
-      <Card>
-        <CardContent>
-          <Stack spacing={1.5}>
-            <Typography variant="h6">{t('doctors.invite.title')}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {t('doctors.invite.hint')}
-            </Typography>
+      <SectionCard
+        icon="group_add"
+        title={t('doctors.invite.title')}
+        meta={t('doctors.invite.hint')}
+      >
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} alignItems="flex-start">
               <TextField
                 size="small"
@@ -150,7 +148,7 @@ export function ClinicDoctorsPage() {
               />
               <Button
                 variant="contained"
-                startIcon={<PersonAddIcon />}
+                startIcon={<Icon name="group_add" size={17} />}
                 disabled={invite.isPending}
                 onClick={submitInvite}
                 sx={{ mt: { xs: 0, sm: 0.5 } }}
@@ -158,16 +156,12 @@ export function ClinicDoctorsPage() {
                 {t('doctors.invite.action')}
               </Button>
             </Stack>
-          </Stack>
-        </CardContent>
-      </Card>
+      </SectionCard>
 
       {/* Pending invites */}
       {pendingInvites.length > 0 && (
-        <Card>
-          <CardContent>
+        <SectionCard icon="mail" title={t('doctors.pending.title')}>
             <Stack spacing={1.5}>
-              <Typography variant="h6">{t('doctors.pending.title')}</Typography>
               {pendingInvites.map((inv) => (
                 <Stack
                   key={inv.id}
@@ -177,8 +171,10 @@ export function ClinicDoctorsPage() {
                   justifyContent="space-between"
                 >
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <Chip size="small" label={t('doctors.pending.badge')} color="warning" variant="outlined" />
-                    <Typography variant="body2">{inv.doctor_email}</Typography>
+                    <StatusPill tone="warning" dot>
+                      {t('doctors.pending.badge')}
+                    </StatusPill>
+                    <Typography variant="body1">{inv.doctor_email}</Typography>
                   </Stack>
                   <Tooltip title={t('doctors.pending.revoke')}>
                     <IconButton
@@ -186,14 +182,13 @@ export function ClinicDoctorsPage() {
                       disabled={revoke.isPending}
                       onClick={() => revoke.mutate(inv.id)}
                     >
-                      <CloseIcon fontSize="small" />
+                      <Icon name="close" size={17} />
                     </IconButton>
                   </Tooltip>
                 </Stack>
               ))}
             </Stack>
-          </CardContent>
-        </Card>
+        </SectionCard>
       )}
 
       {/* Roster */}
@@ -202,29 +197,25 @@ export function ClinicDoctorsPage() {
           <CircularProgress />
         </Box>
       ) : doctors.length === 0 ? (
-        <Card>
-          <CardContent>
-            <Typography color="text.secondary">{t('doctors.empty')}</Typography>
-          </CardContent>
-        </Card>
+        <EmptyState icon="groups" title={t('doctors.empty')} minHeight={200} />
       ) : (
-        <Card>
-          <CardContent>
+        <SectionCard icon="groups" title={t('doctors.roster.title', { n: doctors.length })}>
             <Stack spacing={1}>
-              <Typography variant="h6" gutterBottom>
-                {t('doctors.roster.title', { n: doctors.length })}
-              </Typography>
               {doctors.map((doc, i) => (
                 <Box key={doc.doctor_id}>
                   {i > 0 && <Divider sx={{ my: 1 }} />}
                   <Stack direction="row" spacing={2} alignItems="center" justifyContent="space-between">
                     <Stack direction="row" spacing={2} alignItems="center" sx={{ minWidth: 0 }}>
-                      <Avatar>{(doc.first_name[0] ?? '') + (doc.last_name[0] ?? '')}</Avatar>
+                      <InitialsAvatar
+                        name={`${doc.first_name} ${doc.last_name}`}
+                        size={36}
+                        shape="circle"
+                      />
                       <Stack sx={{ minWidth: 0 }}>
-                        <Typography noWrap>
+                        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }} noWrap>
                           {doc.first_name} {doc.last_name}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary" noWrap>
+                        <Typography variant="body1" color="text.secondary" noWrap>
                           {doc.email}
                           {doc.specialty ? ` · ${doc.specialty}` : ''}
                         </Typography>
@@ -236,15 +227,14 @@ export function ClinicDoctorsPage() {
                         disabled={remove.isPending}
                         onClick={() => setRemoveTarget(doc)}
                       >
-                        <PersonRemoveIcon />
+                        <Icon name="delete" size={19} />
                       </IconButton>
                     </Tooltip>
                   </Stack>
                 </Box>
               ))}
             </Stack>
-          </CardContent>
-        </Card>
+        </SectionCard>
       )}
 
       {/* Remove confirm */}
@@ -287,6 +277,7 @@ export function ClinicDoctorsPage() {
           {tc('errors.generic')}
         </Alert>
       </Snackbar>
-    </Stack>
+      </CardStack>
+    </>
   );
 }

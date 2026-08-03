@@ -1,47 +1,16 @@
-import { Card, CardActionArea, CardContent, Grid, Stack, Typography } from '@mui/material';
-import GroupsIcon from '@mui/icons-material/Groups';
-import AssignmentIcon from '@mui/icons-material/Assignment';
-import MailIcon from '@mui/icons-material/Mail';
-import { Link as RouterLink } from 'react-router-dom';
+import { Button } from '@mui/material';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import { Icon, PageHeader, StatGrid, StatTile } from '@/components/design';
 import type { ClinicDoctorRow } from '@/types/database';
-
-function StatCard({
-  icon,
-  value,
-  label,
-  to,
-}: {
-  icon: React.ReactNode;
-  value: number | string;
-  label: string;
-  to: string;
-}) {
-  return (
-    <Card>
-      <CardActionArea component={RouterLink} to={to} sx={{ height: '100%' }}>
-        <CardContent>
-          <Stack spacing={1}>
-            <Stack direction="row" spacing={1} alignItems="center" color="primary.main">
-              {icon}
-              <Typography variant="h4" fontWeight={700}>
-                {value}
-              </Typography>
-            </Stack>
-            <Typography color="text.secondary">{label}</Typography>
-          </Stack>
-        </CardContent>
-      </CardActionArea>
-    </Card>
-  );
-}
 
 export function ClinicHomePage() {
   const { t } = useTranslation('clinic');
   const { user } = useAuth();
+  const navigate = useNavigate();
   const clinicId = user?.clinic?.id;
   const clinicName = user?.clinic?.public_name;
 
@@ -78,34 +47,46 @@ export function ClinicHomePage() {
   });
 
   return (
-    <Stack spacing={3}>
-      <Typography variant="h4">{clinicName || t('home.fallbackName')}</Typography>
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={4}>
-          <StatCard
-            icon={<GroupsIcon />}
-            value={doctors.length}
-            label={t('home.stats.doctors')}
-            to="/clinic/doctors"
-          />
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <StatCard
-            icon={<AssignmentIcon />}
-            value={orderCount}
-            label={t('home.stats.orders')}
-            to="/clinic/orders"
-          />
-        </Grid>
-        <Grid item xs={12} sm={4}>
-          <StatCard
-            icon={<MailIcon />}
-            value={pendingInvites}
-            label={t('home.stats.pendingInvites')}
-            to="/clinic/doctors"
-          />
-        </Grid>
-      </Grid>
-    </Stack>
+    <>
+      <PageHeader
+        size="h3"
+        title={clinicName || t('home.fallbackName')}
+        subtitle={t('home.subtitle')}
+        actions={
+          <Button
+            component={RouterLink}
+            to="/clinic/orders/new"
+            variant="contained"
+            startIcon={<Icon name="add" size={17} />}
+          >
+            {t('orders.newOrder')}
+          </Button>
+        }
+      />
+
+      <StatGrid columns={3}>
+        <StatTile
+          icon="groups"
+          tone="brand"
+          value={doctors.length}
+          label={t('home.stats.doctors')}
+          onClick={() => navigate('/clinic/doctors')}
+        />
+        <StatTile
+          icon="receipt_long"
+          tone="success"
+          value={orderCount}
+          label={t('home.stats.orders')}
+          onClick={() => navigate('/clinic/orders')}
+        />
+        <StatTile
+          icon="mail"
+          tone="warning"
+          value={pendingInvites}
+          label={t('home.stats.pendingInvites')}
+          onClick={() => navigate('/clinic/doctors')}
+        />
+      </StatGrid>
+    </>
   );
 }

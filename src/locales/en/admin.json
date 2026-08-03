@@ -13,7 +13,11 @@
   "home": {
     "title": "Platform admin",
     "pendingLabs": "Pending laboratories",
-    "openQueue": "Open approval queue"
+    "openQueue": "Open approval queue",
+    "pendingCaption": "awaiting review",
+    "activeLabs": "Active laboratories",
+    "activeCaption": "approved and orderable",
+    "feedbackCaption": "messages received"
   },
   "labs": {
     "queueTitle": "Lab approval queue",
@@ -61,7 +65,27 @@
       "rejectSuccess": "Laboratory rejected.",
       "changesRequestedSuccess": "Change request sent.",
       "suspendedSuccess": "Laboratory suspended.",
-      "incomplete": "This laboratory has not yet completed its mandatory legal/billing information."
+      "incomplete": "This laboratory has not yet completed its mandatory legal/billing information.",
+      "lastNote": "Last note to the laboratory"
+    },
+    "queueSubtitle": "Every laboratory that has registered on the platform",
+    "empty": "No laboratories match this filter.",
+    "fields": {
+      "publicName": "Public name",
+      "shortDescription": "Short description",
+      "logoUrl": "Logo URL",
+      "legalName": "Legal name",
+      "identificationCode": "Identification code",
+      "legalAddress": "Legal address",
+      "workingAddress": "Working address",
+      "city": "City",
+      "country": "Country",
+      "contactPerson": "Contact person",
+      "contactPhone": "Contact phone",
+      "contactEmail": "Contact email",
+      "bankName": "Bank name",
+      "bankAccount": "Bank account / IBAN",
+      "paymentInstructions": "Payment instructions"
     }
   },
   "feedbacks": {
@@ -70,6 +94,7 @@
     "sentFrom": "Sent from",
     "deleteConfirmTitle": "Delete this feedback?",
     "deleteConfirmBody": "This permanently removes the message from {{name}}.",
-    "deleteAction": "Delete"
+    "deleteAction": "Delete",
+    "subtitle": "Messages sent from the in-app feedback button"
   }
 }

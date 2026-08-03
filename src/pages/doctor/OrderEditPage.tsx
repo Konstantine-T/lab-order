@@ -1,25 +1,22 @@
 import { useEffect, useMemo, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  CircularProgress,
-  FormControlLabel,
-  MenuItem,
-  Radio,
-  RadioGroup,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material';
-import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
+import { Alert, Box, Button, CircularProgress, MenuItem, Stack, TextField } from '@mui/material';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { isOrderFormValid } from '@/features/orderForms/OrderForm';
+import { PriceBreakdown } from '@/components/PriceBreakdown';
+import {
+  Callout,
+  DetailList,
+  DetailRow,
+  FieldLabel,
+  PageHeader,
+  SectionCard,
+  Segmented,
+  SplitLayout,
+} from '@/components/design';
 import { calculatePrice, formatGEL } from '@/utils/pricing';
 import { scrollToFirstError } from '@/features/orderForms/scrollToFirstError';
 import { PatientStep, FormStep } from '@/pages/doctor/OrderCreateWizard';
@@ -32,7 +29,7 @@ import type {
   OrderRow,
 } from '@/types/database';
 
-type DetailRow = OrderRow & {
+type OrderDetail = OrderRow & {
   patients: {
     first_name: string;
     last_name: string;
@@ -78,7 +75,7 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
         .eq('id', orderId!)
         .maybeSingle();
       if (error) throw error;
-      return data as DetailRow | null;
+      return data as OrderDetail | null;
     },
   });
 
@@ -254,17 +251,14 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
   const isTerminal = order.status === 'COMPLETED' || order.status === 'CANCELLED';
   if (isTerminal) {
     return (
-      <Stack spacing={2} sx={{ maxWidth: 600 }}>
-        <Alert severity="error">{t('orderEdit.notEditable')}</Alert>
-        <Button
-          component={RouterLink}
-          to={`${basePath}/${orderId}`}
-          size="small"
-          sx={{ alignSelf: 'flex-start' }}
-        >
-          ← {t('orderEdit.back')}
-        </Button>
-      </Stack>
+      <>
+        <PageHeader
+          backTo={`${basePath}/${orderId}`}
+          title={t('orderEdit.title')}
+          subtitle={order.order_code}
+        />
+        <Callout tone="danger" title={t('orderEdit.notEditable')} />
+      </>
     );
   }
 
@@ -277,138 +271,136 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
         : formatGEL(order.rush_value ?? 0);
 
   return (
-    <Stack spacing={3} sx={{ maxWidth: 920, mx: 'auto' }}>
-      <Button
-        component={RouterLink}
-        to={`${basePath}/${orderId}`}
-        size="small"
-        sx={{ alignSelf: 'flex-start' }}
-      >
-        ← {t('orderEdit.back')}
-      </Button>
-
-      <Typography variant="h4">
-        {t('orderEdit.title')} · {order.order_code}
-      </Typography>
-
-      {error && <Alert severity="error">{error}</Alert>}
-
-      <PatientStep
-        state={state}
-        update={update}
-        doctorId={doctorId ?? ''}
-        patientAttempted={attempted}
+    <>
+      <PageHeader
+        backTo={`${basePath}/${orderId}`}
+        title={t('orderEdit.title')}
+        subtitle={order.order_code}
       />
 
-      {/* Work location + invoice recipient */}
-      <Card>
-        <CardContent>
-          <Stack spacing={3}>
-            <Stack spacing={1}>
-              <Typography variant="h6">{t('orderCreate.filesAndDue.workLocation')}</Typography>
-              {locations.length === 0 ? (
-                <Alert severity="warning">{t('orderCreate.filesAndDue.noLocations')}</Alert>
-              ) : (
+      <SplitLayout
+        rail={
+          <>
+            <SectionCard title={t('orderEdit.reasonLabel')}>
+              <Stack spacing={1.75}>
                 <TextField
                   select
-                  value={state.doctor_work_location_id}
-                  onChange={(e) => update({ doctor_work_location_id: e.target.value })}
+                  required
+                  size="small"
+                  label={t('orderEdit.reasonLabel')}
+                  value={reason}
+                  onChange={(e) => setReason(e.target.value as EditReasonCode)}
+                  error={attempted && !reason}
                   fullWidth
                 >
-                  {locations.map((l) => (
-                    <MenuItem key={l.id} value={l.id}>
-                      {l.clinic_name}
-                      {l.branch_name ? ` · ${l.branch_name}` : ''} — {l.city}
+                  {EDIT_REASONS.map((r) => (
+                    <MenuItem key={r} value={r}>
+                      {tc(`editReasons.${r}`)}
                     </MenuItem>
                   ))}
                 </TextField>
-              )}
-            </Stack>
+                <TextField
+                  label={t('orderEdit.commentLabel')}
+                  size="small"
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  error={attempted && commentMissing}
+                  helperText={
+                    commentRequired ? t('orderEdit.commentRequiredForUnforeseen') : undefined
+                  }
+                  multiline
+                  minRows={3}
+                  fullWidth
+                />
+                <Button
+                  variant="contained"
+                  size="large"
+                  fullWidth
+                  onClick={handleSave}
+                  disabled={save.isPending}
+                >
+                  {t('orderEdit.save')}
+                </Button>
+              </Stack>
+            </SectionCard>
 
-            <Stack spacing={1}>
-              <Typography variant="h6">{t('orderCreate.review.invoiceRecipient')}</Typography>
-              <RadioGroup
-                value={state.invoice_recipient_type}
-                onChange={(e) =>
-                  update({ invoice_recipient_type: e.target.value as 'DOCTOR' | 'CLINIC' })
-                }
+            {version && (
+              <SectionCard title={tc('priceBreakdown.priceDetails')}>
+                <PriceBreakdown
+                  variant="plain"
+                  pricing={version.pricing_configuration_json}
+                  answers={state.answers}
+                  rush={rush}
+                />
+              </SectionCard>
+            )}
+
+            {/* Locked fields — shown so the doctor sees them but can't change them */}
+            <SectionCard title={t('orderEdit.locked')}>
+              <DetailList>
+                <DetailRow label={t('orderCreate.filesAndDue.dueDate')} labelWidth={120}>
+                  {order.requested_due_date ?? '—'}
+                </DetailRow>
+                <DetailRow label={t('orderCreate.filesAndDue.rush')} labelWidth={120}>
+                  {rushText}
+                </DetailRow>
+              </DetailList>
+            </SectionCard>
+
+            <Callout tone="warning">{t('orderEdit.priceWarning')}</Callout>
+          </>
+        }
+      >
+        {error && <Alert severity="error">{error}</Alert>}
+
+        <PatientStep
+          state={state}
+          update={update}
+          doctorId={doctorId ?? ''}
+          patientAttempted={attempted}
+        />
+
+        {/* Work location + invoice recipient */}
+        <SectionCard icon="location_on" title={t('orderCreate.filesAndDue.workLocation')}>
+          <Stack spacing={2.5}>
+            {locations.length === 0 ? (
+              <Callout tone="warning">{t('orderCreate.filesAndDue.noLocations')}</Callout>
+            ) : (
+              <TextField
+                select
+                value={state.doctor_work_location_id}
+                onChange={(e) => update({ doctor_work_location_id: e.target.value })}
+                fullWidth
               >
-                <FormControlLabel value="DOCTOR" control={<Radio />} label={t('orderCreate.review.invoiceDoctor')} />
-                <FormControlLabel value="CLINIC" control={<Radio />} label={t('orderCreate.review.invoiceClinic')} />
-              </RadioGroup>
-            </Stack>
+                {locations.map((l) => (
+                  <MenuItem key={l.id} value={l.id}>
+                    {l.clinic_name}
+                    {l.branch_name ? ` · ${l.branch_name}` : ''} — {l.city}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+
+            <Box>
+              <FieldLabel sx={{ mb: 0.75 }}>{t('orderCreate.review.invoiceRecipient')}</FieldLabel>
+              <Segmented
+                value={state.invoice_recipient_type}
+                onChange={(v) => update({ invoice_recipient_type: v })}
+                options={[
+                  { value: 'DOCTOR' as const, label: t('orderCreate.review.invoiceDoctor') },
+                  { value: 'CLINIC' as const, label: t('orderCreate.review.invoiceClinic') },
+                ]}
+                sx={{ maxWidth: 360 }}
+              />
+            </Box>
           </Stack>
-        </CardContent>
-      </Card>
+        </SectionCard>
 
-      {/* Dental form answers (editable) + live estimate */}
-      {version && (
-        <FormStep state={state} update={update} version={version} showErrors={attempted} />
-      )}
-
-      {/* Locked fields — shown so the doctor sees them but can't change them */}
-      <Card>
-        <CardContent>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField
-              label={t('orderCreate.filesAndDue.dueDate')}
-              value={order.requested_due_date ?? '—'}
-              helperText={t('orderEdit.lockedDueDate')}
-              fullWidth
-              disabled
-            />
-            <TextField
-              label={t('orderCreate.filesAndDue.rush')}
-              value={rushText}
-              helperText={t('orderEdit.lockedRush')}
-              fullWidth
-              disabled
-            />
-          </Stack>
-        </CardContent>
-      </Card>
-
-      {/* Reason + comment */}
-      <Card>
-        <CardContent>
-          <Stack spacing={2}>
-            <Typography variant="h6">{t('orderEdit.reasonLabel')}</Typography>
-            <TextField
-              select
-              required
-              label={t('orderEdit.reasonLabel')}
-              value={reason}
-              onChange={(e) => setReason(e.target.value as EditReasonCode)}
-              error={attempted && !reason}
-              fullWidth
-            >
-              {EDIT_REASONS.map((r) => (
-                <MenuItem key={r} value={r}>
-                  {tc(`editReasons.${r}`)}
-                </MenuItem>
-              ))}
-            </TextField>
-            <TextField
-              label={t('orderEdit.commentLabel')}
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              error={attempted && commentMissing}
-              helperText={commentRequired ? t('orderEdit.commentRequiredForUnforeseen') : undefined}
-              multiline
-              minRows={3}
-              fullWidth
-            />
-          </Stack>
-        </CardContent>
-      </Card>
-
-      <Alert severity="warning">{t('orderEdit.priceWarning')}</Alert>
-
-      <Stack direction="row" justifyContent="flex-end">
-        <Button variant="contained" onClick={handleSave} disabled={save.isPending}>
-          {t('orderEdit.save')}
-        </Button>
-      </Stack>
-    </Stack>
+        {/* Dental form answers (editable) */}
+        {version && (
+          <FormStep state={state} update={update} version={version} showErrors={attempted} />
+        )}
+      </SplitLayout>
+    </>
   );
 }

@@ -3,8 +3,6 @@ import {
   Alert,
   Autocomplete,
   Button,
-  Card,
-  CardContent,
   Chip,
   Divider,
   Link as MuiLink,
@@ -13,12 +11,10 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import GroupsIcon from '@mui/icons-material/Groups';
-import TelegramIcon from '@mui/icons-material/Telegram';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { Link as RouterLink } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { Icon, SectionCard } from '@/components/design';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import type {
@@ -158,19 +154,8 @@ export function OrderTeamSection({ orderId, labId, disabled = false }: Props) {
   const unadded = chat?.unadded_members ?? createChat.data?.unadded_members ?? [];
 
   return (
-    <Card>
-      <CardContent>
+    <SectionCard icon="groups" title={t('staff.team.title')} meta={t('staff.team.subtitle')}>
         <Stack spacing={2}>
-          <Stack direction="row" spacing={1} alignItems="center">
-            <GroupsIcon color="action" />
-            <Stack>
-              <Typography variant="h6">{t('staff.team.title')}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {t('staff.team.subtitle')}
-              </Typography>
-            </Stack>
-          </Stack>
-
           {assignments.length === 0 ? (
             <Typography variant="body2" color="text.secondary">
               {t('staff.team.empty')}
@@ -254,13 +239,13 @@ export function OrderTeamSection({ orderId, labId, disabled = false }: Props) {
                         rel="noopener"
                         variant="contained"
                         size="small"
-                        startIcon={<TelegramIcon />}
+                        startIcon={<Icon name="send" size={17} />}
                       >
                         {t('staff.team.chat.open')}
                       </Button>
                       <Button
                         size="small"
-                        startIcon={<ContentCopyIcon />}
+                        startIcon={<Icon name="content_copy" size={16} />}
                         onClick={() => copyLink(inviteLink)}
                       >
                         {copied ? t('staff.team.chat.copied') : t('staff.team.chat.copyLink')}
@@ -289,7 +274,7 @@ export function OrderTeamSection({ orderId, labId, disabled = false }: Props) {
                     <Button
                       variant="contained"
                       size="small"
-                      startIcon={<TelegramIcon />}
+                      startIcon={<Icon name="send" size={17} />}
                       disabled={disabled || createChat.isPending}
                       onClick={() => createChat.mutate()}
                     >
@@ -312,18 +297,17 @@ export function OrderTeamSection({ orderId, labId, disabled = false }: Props) {
             </>
           )}
         </Stack>
-      </CardContent>
 
-      <Snackbar
-        open={actionError}
-        autoHideDuration={5000}
-        onClose={() => setActionError(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert severity="error" onClose={() => setActionError(false)} variant="filled">
-          {tc('errors.generic')}
-        </Alert>
-      </Snackbar>
-    </Card>
+        <Snackbar
+          open={actionError}
+          autoHideDuration={5000}
+          onClose={() => setActionError(false)}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <Alert severity="error" onClose={() => setActionError(false)} variant="filled">
+            {tc('errors.generic')}
+          </Alert>
+        </Snackbar>
+    </SectionCard>
   );
 }

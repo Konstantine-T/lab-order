@@ -13,10 +13,8 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/design';
 import { ToothMap } from '@/components/ToothMap';
 import { NumberedSection, PillGroup, ErrorHelper } from './primitives';
 import { CrownAndBridgeForm, coerceCnbAnswers } from './CrownAndBridgeForm';
@@ -431,7 +429,15 @@ export function ImplantRestorationForm({
 
               <Stack spacing={2}>
                 {editGroup.length > 0 && (
-                  <Paper variant="outlined" sx={{ borderRadius: 2, p: 2.5 }}>
+                  <Box
+                    sx={{
+                      borderRadius: '14px',
+                      border: 1,
+                      borderColor: 'divider',
+                      bgcolor: 'background.default',
+                      p: 2.5,
+                    }}
+                  >
                     <Typography variant="caption" color="text.secondary" fontWeight={700} textTransform="uppercase" letterSpacing={0.8}>
                       {editGroup.length === 1
                         ? t('implantForm.configure.editingOne', { pos: posLabel(editGroup[0], a.notation) })
@@ -615,7 +621,7 @@ export function ImplantRestorationForm({
                       </Box>
 
                     </Stack>
-                  </Paper>
+                  </Box>
                 )}
 
                 {/* Per-position summary */}
@@ -805,7 +811,7 @@ function PositionTile({
       <Paper
         variant="outlined"
         sx={{
-          width: 96, minWidth: 96, minHeight: 92, borderRadius: 2, borderWidth: 2,
+          width: 96, minWidth: 96, minHeight: 92, borderRadius: '14px', borderWidth: 2,
           borderColor: 'error.main',
           display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
@@ -851,7 +857,7 @@ function PositionTile({
         onClick={readOnly ? undefined : onTileClick}
         sx={{
           position: 'relative',
-          width: 96, minWidth: 96, minHeight: 92, borderRadius: 2,
+          width: 96, minWidth: 96, minHeight: 92, borderRadius: '14px',
           borderWidth: 2,
           cursor: readOnly ? 'default' : 'pointer',
           borderColor: inGroup ? 'primary.main' : tileError ? 'error.main' : 'divider',
@@ -883,8 +889,8 @@ function PositionTile({
           </Typography>
           <Stack direction="row" alignItems="center" spacing={0.25}>
             {complete
-              ? <CheckCircleOutlineIcon sx={{ fontSize: 12, color: 'success.main' }} />
-              : <RadioButtonUncheckedIcon sx={{ fontSize: 12, color: hasError ? 'error.main' : 'warning.main' }} />
+              ? <Icon name="check_circle" size={16} sx={{ color: 'success.main' }} />
+              : <Icon name="radio_button_unchecked" size={16} sx={{ color: hasError ? 'error.main' : 'warning.main' }} />
             }
             <Typography sx={{
               fontSize: 10.5, lineHeight: 1.2, fontWeight: 500, textAlign: 'center',
@@ -914,7 +920,7 @@ function PositionTile({
               '&:focus-visible': { opacity: 1 },
             }}
           >
-            <DeleteOutlineIcon />
+            <Icon name="delete" size={18} />
           </IconButton>
         )}
       </Paper>
@@ -1003,7 +1009,16 @@ function PositionDetailList({
         }
 
         return (
-          <Paper key={pos} variant="outlined" sx={{ borderRadius: 2, overflow: 'hidden', borderColor: brandColor ?? 'divider' }}>
+          <Box
+            key={pos}
+            sx={{
+              borderRadius: '14px',
+              border: 1,
+              overflow: 'hidden',
+              borderColor: brandColor ?? 'divider',
+              bgcolor: 'background.paper',
+            }}
+          >
             <Stack
               direction="row"
               alignItems="center"
@@ -1048,7 +1063,7 @@ function PositionDetailList({
                 </Typography>
               </Box>
             )}
-          </Paper>
+          </Box>
         );
       })}
     </Stack>
@@ -1110,8 +1125,8 @@ function PositionSummary({
             }}
           >
             {complete
-              ? <CheckCircleOutlineIcon sx={{ fontSize: 16, color: 'success.main', flexShrink: 0 }} />
-              : <RadioButtonUncheckedIcon sx={{ fontSize: 16, color: hasError ? 'error.main' : 'warning.main', flexShrink: 0 }} />
+              ? <Icon name="check_circle" size={16} sx={{ color: 'success.main', flexShrink: 0 }} />
+              : <Icon name="radio_button_unchecked" size={16} sx={{ color: hasError ? 'error.main' : 'warning.main', flexShrink: 0 }} />
             }
             {brandColor && (
               <Box sx={{ width: 10, height: 10, borderRadius: '50%', bgcolor: brandColor, flexShrink: 0 }} />

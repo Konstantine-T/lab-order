@@ -9,6 +9,24 @@ const TEMPLATE_IMAGE_FILES: Record<string, string> = {
   ZIRCONIA_CROWN:            'zirconia-crown.jpeg',
 };
 
+/**
+ * Per-template icon and accent colour from the Lab Services mockup. Unmapped
+ * codes fall back to a brand-neutral pair, so a new template still renders.
+ */
+const TEMPLATE_LOOK: Record<string, { icon: string; color: string }> = {
+  CROWN_AND_BRIDGE: { icon: 'dentistry', color: '#6366F1' },
+  TEMPORARY_CROWN: { icon: 'dentistry', color: '#6366F1' },
+  ZIRCONIA_CROWN: { icon: 'diamond', color: '#0284C7' },
+  SURGICAL_GUIDE: { icon: 'biotech', color: '#0EA5E9' },
+  CONSTRUCTIONS_ON_IMPLANTS: { icon: 'construction', color: '#10B981' },
+  MODEL: { icon: 'deployed_code', color: '#F59E0B' },
+  EVIDENT_SMILE: { icon: 'auto_awesome', color: '#EC4899' },
+  GINGIVAL_REDUCTION_GUIDE: { icon: 'content_cut', color: '#8A5CF6' },
+};
+
+export const templateLook = (code: string | null | undefined) =>
+  (code && TEMPLATE_LOOK[code]) || { icon: 'category', color: '#6E6EE8' };
+
 const BUCKET = 'service-defaults';
 
 /** Public URL of the default image for a template code, or null if none mapped. */

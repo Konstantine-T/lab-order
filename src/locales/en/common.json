@@ -1,5 +1,7 @@
 {
-  "app": { "name": "Lab Order" },
+  "app": {
+    "name": "Lab Order"
+  },
   "actions": {
     "save": "Save",
     "cancel": "Cancel",
@@ -73,7 +75,9 @@
     "lower": "Lower",
     "total": "Total",
     "ariaLabel": "Dental chart",
-    "notation": "Notation"
+    "notation": "Notation",
+    "right": "R",
+    "left": "L"
   },
   "rush": {
     "none": "None",
@@ -91,7 +95,9 @@
     "switchToDark": "Switch to dark mode",
     "switchToLight": "Switch to light mode"
   },
-  "language": { "label": "Language" },
+  "language": {
+    "label": "Language"
+  },
   "pagination": {
     "showing": "Showing {{from}}–{{to}} of {{total}}"
   },
@@ -181,5 +187,9 @@
     "UNFORESEEN_EVENT": "Unforeseen event"
   },
   "yes": "Yes",
-  "no": "No"
+  "no": "No",
+  "orderCard": {
+    "due": "Due",
+    "total": "Total"
+  }
 }

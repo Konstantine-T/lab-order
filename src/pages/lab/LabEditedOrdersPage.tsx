@@ -1,11 +1,6 @@
-import {
-  Box,
-  Chip,
-  CircularProgress,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Box, CircularProgress, Stack } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { PageHeader, StatusPill } from '@/components/design';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
@@ -51,51 +46,37 @@ export function LabEditedOrdersPage() {
   });
 
   return (
-    <Stack spacing={3}>
-      <Typography variant="h4" fontWeight={600}>
-        {t('editedOrders.title')}
-      </Typography>
+    <>
+      <PageHeader title={t('editedOrders.title')} subtitle={t('editedOrders.subtitle')} />
 
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
           <CircularProgress />
         </Box>
       ) : orders.length === 0 ? (
-        <OrdersEmptyState title={t('editedOrders.empty')} />
+        <OrdersEmptyState icon="difference" title={t('editedOrders.empty')} />
       ) : (
-        <Stack spacing={1.5}>
+        <Stack spacing={1.25}>
           {orders.map((row) => {
             const ds = row.doctor_snapshot ?? {};
             const doctorName = [ds.first_name, ds.last_name].filter(Boolean).join(' ') || '—';
             const serviceName = row.lab_services?.name ?? row.service_snapshot?.name ?? '';
             const total = row.final_total ?? row.generated_total;
             const dueRaw = row.confirmed_due_date ?? row.requested_due_date;
-            const due = dueRaw
-              ? t('ordersDashboard.dueOn', { date: dayjs(dueRaw).format('MMM D, YYYY') })
-              : undefined;
+            const due = dueRaw ? dayjs(dueRaw).format('MMM D') : undefined;
             return (
               <OrderRowCard
                 key={row.id}
                 code={row.order_code}
                 primary={doctorName}
                 secondary={serviceName}
-                status={
-                  <Stack direction="row" spacing={0.5} alignItems="center">
-                    <OrderStatusChip status={row.status} />
-                    {row.has_unreviewed_edits && (
-                      <Chip
-                        label={t('editedOrders.unconfirmedBadge')}
-                        size="small"
-                        sx={{
-                          bgcolor: 'info.main',
-                          color: 'info.contrastText',
-                          fontWeight: 600,
-                          fontSize: 11,
-                        }}
-                      />
-                    )}
-                  </Stack>
+                highlight={row.has_unreviewed_edits}
+                flag={
+                  row.has_unreviewed_edits ? (
+                    <StatusPill tone="warning">{t('editedOrders.unconfirmedBadge')}</StatusPill>
+                  ) : undefined
                 }
+                status={<OrderStatusChip status={row.status} />}
                 total={total != null ? formatGEL(total) : '—'}
                 dueDate={due}
                 avatarText={doctorName}
@@ -105,6 +86,6 @@ export function LabEditedOrdersPage() {
           })}
         </Stack>
       )}
-    </Stack>
+    </>
   );
 }

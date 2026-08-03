@@ -3,17 +3,14 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
-  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Divider,
   FormControl,
+  InputAdornment,
   InputLabel,
   MenuItem,
   Select,
@@ -21,7 +18,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { Link as RouterLink, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { DatePicker } from '@mui/x-date-pickers';
@@ -30,9 +27,20 @@ import { supabase } from '@/lib/supabase';
 import { formatGEL } from '@/utils/pricing';
 import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
+import {
+  ChoicePill,
+  FactCell,
+  FieldLabel,
+  Icon,
+  PageHeader,
+  PillRow,
+  SectionCard,
+  SplitLayout,
+  StatusPill,
+} from '@/components/design';
+import { tone } from '@/theme/tokens';
 import { recordPayment } from '@/features/lab/finances/financeApi';
 import { OrderForm } from '@/features/orderForms/OrderForm';
-import { PillGroup } from '@/features/orderForms/primitives';
 import {
   diffStates,
   stateFromLive,
@@ -248,113 +256,270 @@ export function LabOrderSheetPage() {
 
   const doctor = order.doctor_snapshot ?? {};
   const doctorFullName = [doctor.first_name, doctor.last_name].filter(Boolean).join(' ');
-  const labSnap = order.lab_snapshot as { public_name?: string };
   const serviceSnap = order.service_snapshot as { name?: string };
+  const locSnap = order.work_location_snapshot as {
+    clinic_name?: string;
+    branch_name?: string;
+    city?: string;
+  };
+  const statusDirty = !!pendingStatus && pendingStatus !== order.status;
 
   return (
-    <Stack spacing={3} sx={{ maxWidth: 920 }}>
-      <Button component={RouterLink} to="/lab/orders" size="small" sx={{ alignSelf: 'flex-start' }}>
-        ← {t('orderSheet.back')}
-      </Button>
-
-      {success && <Alert severity="success" onClose={() => setSuccess(null)}>{success}</Alert>}
-      {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
-
-      <OrderLineage
-        orderId={order.id}
-        basePath="/lab/orders"
-        label={t('orderSheet.lineage.continuesFrom')}
+    <>
+      <PageHeader
+        backTo="/lab/orders"
+        title={order.order_code}
+        subtitle={t('orderSheet.createdOn', {
+          date: dayjs(order.created_at).format('YYYY-MM-DD HH:mm'),
+        })}
+        chips={
+          <>
+            <OrderStatusChip status={order.status} />
+            {edits.length > 0 && (
+              <StatusPill tone="warning">
+                <Icon name="difference" size={14} />
+                {t('orderSheet.editedTimes', { n: edits.length })}
+              </StatusPill>
+            )}
+          </>
+        }
       />
 
-      <Card>
-        <CardContent>
-          <Stack spacing={2}>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-              <Typography variant="h4">{order.order_code}</Typography>
-              <OrderStatusChip status={order.status} />
-            </Stack>
-            <Divider />
-            <Row k={t('orderSheet.doctor')} v={doctorFullName} />
-            <Row k={t('orderSheet.doctorPhone')} v={doctor.phone ?? ''} />
-            <Row k={t('orderSheet.service')} v={serviceSnap?.name} />
-            <Row k="Lab" v={labSnap?.public_name} />
-            <Row
-              k={order.confirmed_due_date
-                ? t('orderSheet.confirmedDueDate')
-                : t('orderSheet.dueDate')}
-              v={order.confirmed_due_date ?? order.requested_due_date ?? '—'}
-            />
-            <Row
-              k={t('orderSheet.createdAt')}
-              v={dayjs(order.created_at).format('YYYY-MM-DD HH:mm')}
-            />
-            <Divider />
-            <PillGroup
-              value={pendingStatus}
-              onChange={(s) => setPendingStatus(s)}
-              options={LAB_SELECTABLE_STATUSES}
-              getLabel={(s) => tc(`orderStatus.${s}`)}
-            />
-            <Stack direction="row" justifyContent="flex-end" spacing={1}>
-              {!isTerminal && (
+      <SplitLayout
+        rail={
+          <>
+            {/* Status switcher */}
+            <SectionCard title={t('orderSheet.statusTitle')} meta={t('orderSheet.statusHelp')}>
+              <PillRow>
+                {LAB_SELECTABLE_STATUSES.map((s) => (
+                  <ChoicePill
+                    key={s}
+                    selected={(pendingStatus || order.status) === s}
+                    onClick={() => setPendingStatus(s)}
+                    disabled={isTerminal}
+                  >
+                    {tc(`orderStatus.${s}`)}
+                  </ChoicePill>
+                ))}
+              </PillRow>
+              <Stack direction="row" spacing={1} sx={{ mt: 1.75 }}>
+                {!isTerminal && (
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    fullWidth
+                    size="small"
+                    onClick={() => setCancelOpen(true)}
+                  >
+                    {t('orderSheet.cancelOrder')}
+                  </Button>
+                )}
                 <Button
-                  variant="outlined"
-                  color="error"
+                  variant="contained"
+                  fullWidth
                   size="small"
-                  onClick={() => setCancelOpen(true)}
+                  disabled={update.isPending || !statusDirty || isTerminal}
+                  onClick={() => pendingStatus && update.mutate({ status: pendingStatus })}
                 >
-                  {t('orderSheet.cancelOrder')}
+                  {statusDirty ? t('orderSheet.saveStatus') : t('orderSheet.statusSaved')}
                 </Button>
-              )}
-              <Button
-                variant="contained"
-                size="small"
-                disabled={
-                  update.isPending ||
-                  !pendingStatus ||
-                  pendingStatus === order.status ||
-                  isTerminal
-                }
-                onClick={() => pendingStatus && update.mutate({ status: pendingStatus })}
-              >
-                {tc('actions.save')}
-              </Button>
-            </Stack>
-          </Stack>
-        </CardContent>
-      </Card>
+              </Stack>
+            </SectionCard>
 
-      <OrderTeamSection orderId={order.id} labId={order.lab_id} disabled={isTerminal} />
+            {/* Final price + confirmed due date */}
+            <SectionCard>
+              <Stack spacing={2.25}>
+                <Box>
+                  <Typography sx={{ fontSize: '0.84375rem', fontWeight: 700, mb: 1 }}>
+                    {t('orderSheet.finalPriceLabel')}
+                  </Typography>
+                  <Stack direction="row" spacing={1}>
+                    <TextField
+                      type="number"
+                      size="small"
+                      value={finalPrice}
+                      onChange={(e) => setFinalPrice(e.target.value)}
+                      fullWidth
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Typography sx={{ color: 'text.secondary' }}>₾</Typography>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                    <Button
+                      variant="outlined"
+                      onClick={() => {
+                        if (finalPrice !== '' && order.generated_total != null) {
+                          const amount = Number(finalPrice);
+                          const floor = order.generated_total * 0.5;
+                          if (amount < floor) {
+                            setError(
+                              t('orderSheet.finalPriceTooLow', { min: formatGEL(floor) }),
+                            );
+                            return;
+                          }
+                        }
+                        update.mutate({
+                          final_total: finalPrice === '' ? null : Number(finalPrice),
+                        });
+                      }}
+                      disabled={update.isPending}
+                      sx={{ flexShrink: 0 }}
+                    >
+                      {t('orderSheet.setFinalPrice')}
+                    </Button>
+                  </Stack>
+                  {order.generated_total != null && (
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.625, display: 'block' }}>
+                      {t('orderSheet.finalPriceMin', {
+                        min: formatGEL(order.generated_total * 0.5),
+                      })}
+                    </Typography>
+                  )}
+                </Box>
 
-      {/* ── Edit review: banner + history dropdown + before/after diff ── */}
-      {editReview && (
-        <Card sx={{ borderColor: 'info.main', borderWidth: 1, borderStyle: 'solid' }}>
-          <CardContent>
+                <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
+                  <Typography sx={{ fontSize: '0.84375rem', fontWeight: 700 }}>
+                    {t('orderSheet.confirmedDueDate')}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+                    {t('orderSheet.dueDate')}: {order.requested_due_date ?? '—'}
+                  </Typography>
+                  <Stack direction="row" spacing={1}>
+                    <DatePicker
+                      value={confirmedDue ? dayjs(confirmedDue) : null}
+                      onChange={(d: Dayjs | null) =>
+                        setConfirmedDue(d && d.isValid() ? d.format('YYYY-MM-DD') : '')
+                      }
+                      format="YYYY-MM-DD"
+                      slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                    />
+                    <Button
+                      variant="outlined"
+                      onClick={() => update.mutate({ confirmed_due_date: confirmedDue || null })}
+                      disabled={update.isPending}
+                      sx={{ flexShrink: 0 }}
+                    >
+                      {t('orderSheet.confirmDue')}
+                    </Button>
+                  </Stack>
+                </Box>
+
+                <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
+                  <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+                    <Typography sx={{ fontSize: '0.84375rem', fontWeight: 700 }}>
+                      {t('finances.dialog.amountLabel')}
+                    </Typography>
+                    <Box sx={{ ml: 'auto' }}>
+                      <PaymentStatusChip status={order.payment_status} />
+                    </Box>
+                  </Stack>
+                  <Stack direction="row" spacing={1}>
+                    <TextField
+                      type="number"
+                      size="small"
+                      value={paidAmount}
+                      onChange={(e) => setPaidAmount(e.target.value)}
+                      disabled={order.final_total == null}
+                      fullWidth
+                    />
+                    <Button
+                      variant="outlined"
+                      disabled={order.final_total == null || recordPay.isPending}
+                      onClick={() => recordPay.mutate(paidAmount === '' ? 0 : Number(paidAmount))}
+                      sx={{ flexShrink: 0 }}
+                    >
+                      {t('finances.table.record')}
+                    </Button>
+                  </Stack>
+                </Box>
+              </Stack>
+            </SectionCard>
+
+            <OrderTeamSection orderId={order.id} labId={order.lab_id} disabled={isTerminal} />
+          </>
+        }
+      >
+        {success && (
+          <Alert severity="success" onClose={() => setSuccess(null)}>
+            {success}
+          </Alert>
+        )}
+        {error && (
+          <Alert severity="error" onClose={() => setError(null)}>
+            {error}
+          </Alert>
+        )}
+
+        <OrderLineage
+          orderId={order.id}
+          basePath="/lab/orders"
+          label={t('orderSheet.lineage.continuesFrom')}
+        />
+
+        {/* The mockup's six-cell fact grid across the top of the sheet. */}
+        <SectionCard>
+          <Box
+            sx={{
+              display: 'grid',
+              gap: 1.75,
+              gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, minmax(0, 1fr))' },
+            }}
+          >
+            <FactCell label={t('orderSheet.doctor')} value={doctorFullName || '—'} hint={doctor.phone ?? undefined} />
+            <FactCell label={t('orderSheet.service')} value={serviceSnap?.name ?? '—'} />
+            <FactCell
+              label={t('orderSheet.dueDate')}
+              value={order.requested_due_date ?? '—'}
+              hint={
+                order.confirmed_due_date
+                  ? `${t('orderSheet.confirmedDueDate')}: ${order.confirmed_due_date}`
+                  : undefined
+              }
+            />
+            <FactCell
+              label={t('orderSheet.workLocation')}
+              value={locSnap?.clinic_name ?? '—'}
+              hint={[locSnap?.branch_name, locSnap?.city].filter(Boolean).join(' · ') || undefined}
+            />
+            <FactCell
+              label={t('orderSheet.invoice')}
+              value={t(`orderSheet.diff.invoice.${order.invoice_recipient_type}`)}
+              hint={tc(`paymentStatus.${order.payment_status}`)}
+            />
+            <FactCell
+              label={t('orderSheet.createdAt')}
+              value={dayjs(order.created_at).format('YYYY-MM-DD')}
+              hint={dayjs(order.created_at).format('HH:mm')}
+            />
+          </Box>
+        </SectionCard>
+
+        {/* ── Edit review: banner + history dropdown + before/after diff ── */}
+        {editReview && (
+          <SectionCard
+            accent="warning"
+            icon="difference"
+            title={t('orderSheet.editBanner.text')}
+            meta={t('orderSheet.diff.highlightHint')}
+          >
             <Stack spacing={2}>
-              <Alert severity="info">{t('orderSheet.editBanner.text')}</Alert>
-
               {/* Pull the reason out of the dropdown line so it's immediately
                   visible; reflects whichever edit is selected below. */}
               {(() => {
                 const sel = edits[editReview.idx];
                 if (!sel) return null;
                 return (
-                  <Stack spacing={0.75}>
-                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-                      <Typography variant="body2" color="text.secondary">
-                        {t('orderSheet.reasonLabel')}
-                      </Typography>
-                      <Chip
-                        label={tc(`editReasons.${sel.reason_code}`)}
-                        color="warning"
-                        variant="filled"
-                        size="small"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    </Stack>
+                  <Stack direction="row" alignItems="center" sx={{ flexWrap: 'wrap', gap: 1.25 }}>
+                    <Typography variant="body1" color="text.secondary">
+                      {t('orderSheet.reasonLabel')}
+                    </Typography>
+                    <StatusPill tone="warning">{tc(`editReasons.${sel.reason_code}`)}</StatusPill>
                     {sel.comment && (
-                      <Typography variant="body2" sx={{ pl: 0.5 }}>
-                        {sel.comment}
+                      <Typography variant="body1" sx={{ fontStyle: 'italic' }}>
+                        “{sel.comment}”
                       </Typography>
                     )}
                   </Stack>
@@ -378,7 +543,7 @@ export function LabOrderSheetPage() {
                 </Select>
               </FormControl>
 
-              <Stack spacing={1.5}>
+              <Stack spacing={1}>
                 {/* Patient rows omitted on purpose — patient PII is doctor-only
                     and must never surface on the lab side. */}
                 <DiffRow
@@ -386,197 +551,55 @@ export function LabOrderSheetPage() {
                   changed={editReview.diff.workLocation}
                   before={editReview.before.workLocationDisplay}
                   after={editReview.after.workLocationDisplay}
-                  beforeLabel={t('orderSheet.diff.before')}
-                  afterLabel={t('orderSheet.diff.after')}
                 />
                 <DiffRow
                   label={t('orderSheet.diff.fields.invoiceRecipient')}
                   changed={editReview.diff.invoiceRecipient}
                   before={t(`orderSheet.diff.invoice.${editReview.before.invoiceRecipientType}`)}
                   after={t(`orderSheet.diff.invoice.${editReview.after.invoiceRecipientType}`)}
-                  beforeLabel={t('orderSheet.diff.before')}
-                  afterLabel={t('orderSheet.diff.after')}
                 />
               </Stack>
             </Stack>
-          </CardContent>
-        </Card>
-      )}
+          </SectionCard>
+        )}
 
-      {version && (
-        <Card>
-          <CardContent>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              {t('orderSheet.answers')}
-            </Typography>
-            {editReview && (
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                {t('orderSheet.diff.highlightHint')}
-              </Typography>
-            )}
-            {editReview ? (
-              <OrderAnswersDiff
-                configuration={version.configuration_json}
-                pricing={version.pricing_configuration_json}
-                before={editReview.before.answers}
-                after={editReview.after.answers}
-              />
-            ) : (
-              <OrderForm
-                configuration={version.configuration_json}
-                pricing={version.pricing_configuration_json}
-                values={answersMap}
-                onChange={() => {}}
-                readOnly
-              />
-            )}
-            <Box sx={{ mt: 3 }}>
+        {version && (
+          <>
+            <SectionCard
+              icon="assignment"
+              title={t('orderSheet.answers')}
+              meta={t('orderSheet.answersMeta')}
+            >
+              {editReview ? (
+                <OrderAnswersDiff
+                  configuration={version.configuration_json}
+                  pricing={version.pricing_configuration_json}
+                  before={editReview.before.answers}
+                  after={editReview.after.answers}
+                />
+              ) : (
+                <OrderForm
+                  configuration={version.configuration_json}
+                  pricing={version.pricing_configuration_json}
+                  values={answersMap}
+                  onChange={() => {}}
+                  readOnly
+                />
+              )}
+            </SectionCard>
+
+            <SectionCard icon="payments" title={tc('priceBreakdown.priceDetails')}>
               <PriceBreakdown
+                variant="plain"
                 pricing={version.pricing_configuration_json}
                 answers={answersMap}
                 rush={{ type: order.rush_type, value: order.rush_value ?? 0 }}
                 finalTotal={order.final_total}
               />
-            </Box>
-          </CardContent>
-        </Card>
-      )}
-
-      <Card>
-        <CardContent>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            {t('orderSheet.actions')}
-          </Typography>
-          <Stack spacing={3}>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start">
-              <TextField
-                type="number"
-                label={t('orderSheet.finalPriceLabel')}
-                value={finalPrice}
-                onChange={(e) => setFinalPrice(e.target.value)}
-                size="small"
-                helperText={
-                  order.generated_total != null
-                    ? t('orderSheet.finalPriceMin', {
-                        min: formatGEL(order.generated_total * 0.5),
-                      })
-                    : undefined
-                }
-              />
-              <Button
-                variant="outlined"
-                onClick={() => {
-                  if (finalPrice !== '' && order.generated_total != null) {
-                    const amount = Number(finalPrice);
-                    const floor = order.generated_total * 0.5;
-                    if (amount < floor) {
-                      setError(
-                        t('orderSheet.finalPriceTooLow', {
-                          min: formatGEL(floor),
-                        }),
-                      );
-                      return;
-                    }
-                  }
-                  update.mutate({
-                    final_total: finalPrice === '' ? null : Number(finalPrice),
-                  });
-                }}
-                disabled={update.isPending}
-                sx={{ mt: { xs: 0, sm: '4px' } }}
-              >
-                {t('orderSheet.setFinalPrice')}
-              </Button>
-            </Stack>
-
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-              <TextField
-                type="number"
-                label={t('finances.dialog.amountLabel')}
-                value={paidAmount}
-                onChange={(e) => setPaidAmount(e.target.value)}
-                size="small"
-                disabled={order.final_total == null}
-                helperText={order.final_total != null ? t('finances.dialog.amountHelp') : undefined}
-              />
-              <Button
-                variant="outlined"
-                disabled={order.final_total == null || recordPay.isPending}
-                onClick={() => recordPay.mutate(paidAmount === '' ? 0 : Number(paidAmount))}
-                sx={{ mt: { xs: 0, sm: '4px' } }}
-              >
-                {t('finances.table.record')}
-              </Button>
-              <PaymentStatusChip status={order.payment_status} />
-            </Stack>
-
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <DatePicker
-                label={t('orderSheet.confirmedDueDate')}
-                value={confirmedDue ? dayjs(confirmedDue) : null}
-                onChange={(d: Dayjs | null) =>
-                  setConfirmedDue(d && d.isValid() ? d.format('YYYY-MM-DD') : '')
-                }
-                format="YYYY-MM-DD"
-                slotProps={{ textField: { size: 'small' } }}
-              />
-              <Button
-                variant="outlined"
-                onClick={() =>
-                  update.mutate({ confirmed_due_date: confirmedDue || null })
-                }
-                disabled={update.isPending}
-              >
-                {t('orderSheet.confirmDue')}
-              </Button>
-            </Stack>
-          </Stack>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent>
-          <Stack spacing={2}>
-            <Stack>
-              <Typography variant="h6">{t('orderSheet.statusTitle')}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {t('orderSheet.statusHelp')}
-              </Typography>
-            </Stack>
-            <PillGroup
-              value={pendingStatus}
-              onChange={(s) => setPendingStatus(s)}
-              options={LAB_SELECTABLE_STATUSES}
-              getLabel={(s) => tc(`orderStatus.${s}`)}
-            />
-            <Stack direction="row" justifyContent="flex-end" spacing={1}>
-              {!isTerminal && (
-                <Button
-                  variant="outlined"
-                  color="error"
-                  onClick={() => setCancelOpen(true)}
-                >
-                  {t('orderSheet.cancelOrder')}
-                </Button>
-              )}
-              <Button
-                variant="contained"
-                disabled={
-                  update.isPending ||
-                  !pendingStatus ||
-                  pendingStatus === order.status ||
-                  isTerminal
-                }
-                onClick={() =>
-                  pendingStatus && update.mutate({ status: pendingStatus })
-                }
-              >
-                {tc('actions.save')}
-              </Button>
-            </Stack>
-          </Stack>
-        </CardContent>
-      </Card>
+            </SectionCard>
+          </>
+        )}
+      </SplitLayout>
 
       <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>{t('orderSheet.cancelModal.title')}</DialogTitle>
@@ -608,60 +631,54 @@ export function LabOrderSheetPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Stack>
+    </>
   );
 }
 
-function Row({ k, v }: { k: string; v: string | undefined | null }) {
-  return (
-    <Stack direction="row" spacing={2}>
-      <Typography variant="body2" color="text.secondary" sx={{ minWidth: 160 }}>
-        {k}
-      </Typography>
-      <Typography variant="body2" sx={{ flex: 1 }}>
-        {v || '—'}
-      </Typography>
-    </Stack>
-  );
-}
-
-// One field in the edit diff. Unchanged → plain row. Changed → yellow-bordered
-// box showing the previous value (struck) above the current one.
+/**
+ * One field in the edit diff, drawn as the mockup does it: a tinted box with
+ * the old value struck through, an arrow, then the new one. Unchanged fields
+ * keep the same box on a neutral fill so the set reads as one block.
+ */
 function DiffRow({
   label,
   changed,
   before,
   after,
-  beforeLabel,
-  afterLabel,
 }: {
   label: string;
   changed: boolean;
   before: string | undefined | null;
   after: string | undefined | null;
-  beforeLabel: string;
-  afterLabel: string;
 }) {
-  if (!changed) return <Row k={label} v={after} />;
   return (
-    <Box sx={{ border: 1, borderColor: 'warning.main', borderRadius: 1, p: 1.5 }}>
-      <Typography variant="body2" color="text.secondary" sx={{ mb: 0.5 }}>
-        {label}
-      </Typography>
-      <Stack spacing={0.25}>
-        <Typography variant="caption" color="text.secondary">
-          {beforeLabel}
-        </Typography>
-        <Typography
-          variant="body2"
-          sx={{ textDecoration: 'line-through', color: 'text.secondary' }}
-        >
-          {before || '—'}
-        </Typography>
-        <Typography variant="caption" color="text.secondary">
-          {afterLabel}
-        </Typography>
-        <Typography variant="body2">{after || '—'}</Typography>
+    <Box
+      sx={(theme) => ({
+        border: 1,
+        borderRadius: `${11}px`,
+        px: 1.875,
+        py: 1.375,
+        borderColor: changed
+          ? tone('warning', theme.palette.mode).border
+          : theme.palette.divider,
+        bgcolor: changed
+          ? tone('warning', theme.palette.mode).bg
+          : tone('neutral', theme.palette.mode).bg,
+      })}
+    >
+      <FieldLabel>{label}</FieldLabel>
+      <Stack direction="row" alignItems="center" sx={{ mt: 0.625, flexWrap: 'wrap', gap: 1.25 }}>
+        {changed && (
+          <>
+            <Typography
+              sx={{ fontSize: '0.8125rem', color: 'text.secondary', textDecoration: 'line-through' }}
+            >
+              {before || '—'}
+            </Typography>
+            <Icon name="arrow_forward" size={15} sx={{ color: 'warning.dark' }} />
+          </>
+        )}
+        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }}>{after || '—'}</Typography>
       </Stack>
     </Box>
   );

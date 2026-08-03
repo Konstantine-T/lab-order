@@ -1,13 +1,6 @@
-import {
-  Box,
-  Button,
-  CircularProgress,
-  Stack,
-  Typography,
-} from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import { Link as RouterLink, useParams, useNavigate } from 'react-router-dom';
+import { Box, Button, CircularProgress, Stack } from '@mui/material';
+import { useParams, useNavigate } from 'react-router-dom';
+import { Icon, PageHeader } from '@/components/design';
 import { useQuery } from '@tanstack/react-query';
 import { useContinueProject } from '@/features/doctor/orderCreate/useContinueProject';
 import { useTranslation } from 'react-i18next';
@@ -73,24 +66,12 @@ export function PatientOrdersPage() {
     : '…';
 
   return (
-    <Stack spacing={3}>
-      <Button
-        component={RouterLink}
-        to="/doctor/patients"
-        size="small"
-        sx={{ alignSelf: 'flex-start' }}
-      >
-        ← {t('patientOrders.back')}
-      </Button>
-
-      <Stack>
-        <Typography variant="h4" fontWeight={600}>
-          {patientName}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {t('patientOrders.title')}
-        </Typography>
-      </Stack>
+    <>
+      <PageHeader
+        backTo="/doctor/patients"
+        title={patientName}
+        subtitle={t('patientOrders.title')}
+      />
 
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -99,7 +80,7 @@ export function PatientOrdersPage() {
       ) : orders.length === 0 ? (
         <OrdersEmptyState title={t('patientOrders.empty')} />
       ) : (
-        <Stack spacing={1.5}>
+        <Stack spacing={1.25}>
           {orders.map((row) => {
             const serviceName =
               row.lab_services?.name ?? row.service_snapshot?.name ?? '';
@@ -110,9 +91,7 @@ export function PatientOrdersPage() {
               row.final_total < row.generated_total;
             const total = row.final_total ?? row.generated_total;
             const dueRaw = row.confirmed_due_date ?? row.requested_due_date;
-            const due = dueRaw
-              ? t('orders.dueOn', { date: dayjs(dueRaw).format('MMM D, YYYY') })
-              : undefined;
+            const due = dueRaw ? dayjs(dueRaw).format('MMM D') : undefined;
             return (
               <OrderRowCard
                 key={row.id}
@@ -132,7 +111,7 @@ export function PatientOrdersPage() {
                       {row.status !== 'COMPLETED' && (
                         <Button
                           size="small"
-                          startIcon={<EditIcon fontSize="small" />}
+                          startIcon={<Icon name="edit" size={16} />}
                           onClick={() => navigate(`/doctor/orders/${row.id}/edit`)}
                         >
                           {t('orders.editButton')}
@@ -142,7 +121,7 @@ export function PatientOrdersPage() {
                         <Button
                           size="small"
                           variant="contained"
-                          startIcon={<PlayArrowIcon fontSize="small" />}
+                          startIcon={<Icon name="add" size={16} />}
                           onClick={() => continueProject.start(row.lab_id, patientId, row.id)}
                         >
                           {t('orders.continueProject')}
@@ -157,6 +136,6 @@ export function PatientOrdersPage() {
         </Stack>
       )}
       {continueProject.modal}
-    </Stack>
+    </>
   );
 }

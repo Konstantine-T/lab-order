@@ -2,17 +2,15 @@ import { useMemo, useState } from 'react';
 import {
   Box,
   Button,
-  Card,
-  CardContent,
   CircularProgress,
   FormControl,
   InputLabel,
   MenuItem,
   Select,
   Stack,
-  Typography,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { EmptyState, Icon, PageHeader } from '@/components/design';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
@@ -70,55 +68,47 @@ export function ClinicOrdersPage() {
     doctorFilter === 'ALL' ? orders : orders.filter((o) => o.doctor_id === doctorFilter);
 
   return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        justifyContent="space-between"
-        alignItems={{ sm: 'center' }}
-        spacing={2}
-      >
-        <Stack>
-          <Typography variant="h4">{t('orders.title')}</Typography>
-          <Typography color="text.secondary">{t('orders.subtitle')}</Typography>
-        </Stack>
-        <Stack direction="row" spacing={1.5} alignItems="center">
-          <FormControl size="small" sx={{ minWidth: 220 }}>
-            <InputLabel>{t('orders.filterByDoctor')}</InputLabel>
-            <Select
-              label={t('orders.filterByDoctor')}
-              value={doctorFilter}
-              onChange={(e) => setDoctorFilter(e.target.value)}
+    <>
+      <PageHeader
+        title={t('orders.title')}
+        subtitle={t('orders.subtitle')}
+        actions={
+          <>
+            <FormControl size="small" sx={{ minWidth: 200 }}>
+              <InputLabel>{t('orders.filterByDoctor')}</InputLabel>
+              <Select
+                label={t('orders.filterByDoctor')}
+                value={doctorFilter}
+                onChange={(e) => setDoctorFilter(e.target.value)}
+              >
+                <MenuItem value="ALL">{t('orders.allDoctors')}</MenuItem>
+                {doctors.map((d) => (
+                  <MenuItem key={d.doctor_id} value={d.doctor_id}>
+                    {d.first_name} {d.last_name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+            <Button
+              variant="contained"
+              startIcon={<Icon name="add" size={17} />}
+              onClick={() => navigate('/clinic/orders/new')}
+              sx={{ flexShrink: 0 }}
             >
-              <MenuItem value="ALL">{t('orders.allDoctors')}</MenuItem>
-              {doctors.map((d) => (
-                <MenuItem key={d.doctor_id} value={d.doctor_id}>
-                  {d.first_name} {d.last_name}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <Button
-            variant="contained"
-            onClick={() => navigate('/clinic/orders/new')}
-            sx={{ flexShrink: 0 }}
-          >
-            {t('orders.newOrder')}
-          </Button>
-        </Stack>
-      </Stack>
+              {t('orders.newOrder')}
+            </Button>
+          </>
+        }
+      />
 
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
           <CircularProgress />
         </Box>
       ) : visible.length === 0 ? (
-        <Card>
-          <CardContent>
-            <Typography color="text.secondary">{t('orders.empty')}</Typography>
-          </CardContent>
-        </Card>
+        <EmptyState icon="inbox" title={t('orders.empty')} minHeight={240} />
       ) : (
-        <Stack spacing={1.5}>
+        <Stack spacing={1.25}>
           {visible.map((o) => {
             const patient = o.patients
               ? `${o.patients.first_name} ${o.patients.last_name}`
@@ -143,6 +133,6 @@ export function ClinicOrdersPage() {
           })}
         </Stack>
       )}
-    </Stack>
+    </>
   );
 }

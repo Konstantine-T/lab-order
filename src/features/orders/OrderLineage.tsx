@@ -1,7 +1,8 @@
 import { Fragment } from 'react';
-import { Alert, Link, Stack, Typography } from '@mui/material';
+import { Link, Stack, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { Callout } from '@/components/design';
 
 type LineageItem = { id: string; order_code: string };
 
@@ -57,15 +58,20 @@ export function OrderLineage({ orderId, basePath, label }: Props) {
   if (chain.length === 0) return null;
 
   return (
-    <Alert severity="info">
-      <Stack direction="row" spacing={0.75} alignItems="center" flexWrap="wrap" useFlexGap>
-        <Typography variant="body2" sx={{ fontWeight: 600 }}>
+    <Callout tone="brand" icon="repeat">
+      <Stack
+        component="span"
+        direction="row"
+        alignItems="center"
+        sx={{ display: 'inline-flex', flexWrap: 'wrap', gap: 0.75 }}
+      >
+        <Typography component="span" variant="body1" sx={{ fontWeight: 600 }}>
           {label}
         </Typography>
         {chain.map((item, i) => (
           <Fragment key={item.id}>
             {i > 0 && (
-              <Typography variant="body2" color="text.secondary">
+              <Typography component="span" variant="body1" color="text.secondary">
                 ›
               </Typography>
             )}
@@ -73,14 +79,13 @@ export function OrderLineage({ orderId, basePath, label }: Props) {
               href={`${basePath}/${item.id}`}
               target="_blank"
               rel="noopener"
-              variant="body2"
-              sx={{ fontWeight: 600 }}
+              variant="body1"
             >
               {item.order_code}
             </Link>
           </Fragment>
         ))}
       </Stack>
-    </Alert>
+    </Callout>
   );
 }

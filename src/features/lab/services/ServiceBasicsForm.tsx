@@ -1,14 +1,8 @@
-import {
-  Card,
-  CardContent,
-  FormControlLabel,
-  Stack,
-  Switch,
-  Typography,
-} from '@mui/material';
+import { FormControlLabel, Stack, Switch } from '@mui/material';
 import { Controller, useFormContext } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { RHFTextField } from '@/components/RHFTextField';
+import { SectionCard } from '@/components/design';
 import type { ServiceBasicsInput } from './serviceBasicsSchema';
 
 export function ServiceBasicsForm() {
@@ -16,16 +10,12 @@ export function ServiceBasicsForm() {
   const { control } = useFormContext<ServiceBasicsInput>();
 
   return (
-    <Card>
-      <CardContent>
+    <SectionCard
+      icon="edit_note"
+      title={t('services.basics.title')}
+      meta={t('services.basics.subtitle')}
+    >
         <Stack spacing={2.5}>
-          <Stack>
-            <Typography variant="h6">{t('services.basics.title')}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {t('services.basics.subtitle')}
-            </Typography>
-          </Stack>
-
           <RHFTextField name="name" label={t('services.fields.name')} required />
           <RHFTextField
             name="short_description"
@@ -59,7 +49,6 @@ export function ServiceBasicsForm() {
             )}
           />
         </Stack>
-      </CardContent>
-    </Card>
+    </SectionCard>
   );
 }
