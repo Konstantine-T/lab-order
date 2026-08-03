@@ -4,16 +4,8 @@ import {
   Button,
   Chip,
   CircularProgress,
-  Grid,
   Link,
-  Paper,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   Typography,
 } from '@mui/material';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -22,6 +14,16 @@ import dayjs from 'dayjs';
 import { useAuth } from '@/auth/AuthProvider';
 import { formatGEL } from '@/utils/pricing';
 import { PaymentStatusChip } from '@/components/OrderStatusChip';
+import {
+  type Column,
+  DataRow,
+  DataTable,
+  PageHeader,
+  SectionCard,
+  StatCard,
+  StatGrid,
+  StatusPill,
+} from '@/components/design';
 import { OrdersPaginator } from '@/features/orders/OrdersPaginator';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { RecordPaymentDialog } from '@/features/lab/finances/RecordPaymentDialog';
@@ -35,18 +37,25 @@ import {
 } from '@/features/lab/finances/financeApi';
 import type { LabReceivableOrder } from '@/types/database';
 
-function StatCard({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
-  return (
-    <Paper variant="outlined" sx={{ p: 2, height: '100%' }}>
-      <Typography variant="body2" color="text.secondary" noWrap>
-        {label}
-      </Typography>
-      <Typography variant="h5" fontWeight={700} color={accent ? 'error.main' : 'text.primary'}>
-        {value}
-      </Typography>
-    </Paper>
-  );
-}
+const CUSTOMER_COLUMNS: Column[] = [
+  { key: 'customer', width: 'minmax(0, 2fr)' },
+  { key: 'orders', width: '80px', align: 'right' },
+  { key: 'billed', width: '110px', align: 'right' },
+  { key: 'paid', width: '110px', align: 'right' },
+  { key: 'outstanding', width: '120px', align: 'right' },
+];
+
+const ORDER_COLUMNS: Column[] = [
+  { key: 'order', width: '96px' },
+  { key: 'customer', width: 'minmax(0, 1.2fr)' },
+  { key: 'service', width: 'minmax(0, 1.2fr)' },
+  { key: 'due', width: '116px' },
+  { key: 'billed', width: '96px', align: 'right' },
+  { key: 'paid', width: '96px', align: 'right' },
+  { key: 'outstanding', width: '104px', align: 'right' },
+  { key: 'status', width: '104px' },
+  { key: 'record', width: '92px', align: 'right' },
+];
 
 function isOverdue(o: LabReceivableOrder): boolean {
   return (
@@ -121,34 +130,33 @@ export function LabFinancesPage() {
   const loading = byCustomer.isLoading || list.isLoading;
 
   return (
-    <Stack spacing={3}>
-      <Stack>
-        <Typography variant="h4" fontWeight={600}>
-          {t('finances.title')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          {t('finances.subtitle')}
-        </Typography>
-      </Stack>
+    <>
+      <PageHeader title={t('finances.title')} subtitle={t('finances.subtitle')} />
 
+      <Stack spacing={2.5}>
       {/* ── Totals ── */}
-      <Grid container spacing={2}>
-        <Grid item xs={6} md={3}>
-          <StatCard label={t('finances.totals.outstanding')} value={formatGEL(totals.outstanding)} accent />
-        </Grid>
-        <Grid item xs={6} md={3}>
-          <StatCard label={t('finances.totals.billed')} value={formatGEL(totals.billed)} />
-        </Grid>
-        <Grid item xs={6} md={3}>
-          <StatCard label={t('finances.totals.collected')} value={formatGEL(totals.collected)} />
-        </Grid>
-        <Grid item xs={6} md={3}>
-          <StatCard
-            label={t('finances.totals.customers')}
-            value={String(totals.customers)}
-          />
-        </Grid>
-      </Grid>
+      <StatGrid>
+        <StatCard
+          dotColor="#DC2626"
+          label={t('finances.totals.outstanding')}
+          value={formatGEL(totals.outstanding)}
+        />
+        <StatCard
+          dotColor="#9292FF"
+          label={t('finances.totals.billed')}
+          value={formatGEL(totals.billed)}
+        />
+        <StatCard
+          dotColor="#16A34A"
+          label={t('finances.totals.collected')}
+          value={formatGEL(totals.collected)}
+        />
+        <StatCard
+          dotColor="#F59E0B"
+          label={t('finances.totals.customers')}
+          value={String(totals.customers)}
+        />
+      </StatGrid>
 
       <FinanceFilterBar
         filters={filters}
@@ -181,121 +189,123 @@ export function LabFinancesPage() {
         <>
           {/* ── By customer ── */}
           {!selectedCustomer && (
-            <Paper variant="outlined">
-              <Typography variant="subtitle1" fontWeight={600} sx={{ px: 2, pt: 2 }}>
-                {t('finances.customers.title')}
-              </Typography>
-              <TableContainer>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>{t('finances.customers.customer')}</TableCell>
-                      <TableCell align="right">{t('finances.customers.orders')}</TableCell>
-                      <TableCell align="right">{t('finances.customers.billed')}</TableCell>
-                      <TableCell align="right">{t('finances.customers.paid')}</TableCell>
-                      <TableCell align="right">{t('finances.customers.outstanding')}</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {(byCustomer.data ?? []).map((c) => (
-                      <TableRow key={`${c.customer_type}:${c.customer_id}`} hover>
-                        <TableCell>
-                          <Link
-                            component="button"
-                            underline="hover"
-                            onClick={() => setFilters({ ...filters, customerId: c.customer_id })}
-                            sx={{ textAlign: 'left' }}
-                          >
-                            {c.customer_name}
-                          </Link>
-                          <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                            {t(`finances.filters.${c.customer_type === 'CLINIC' ? 'clinic' : 'doctor'}`)}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="right">{Number(c.order_count)}</TableCell>
-                        <TableCell align="right">{formatGEL(Number(c.total_billed))}</TableCell>
-                        <TableCell align="right">{formatGEL(Number(c.total_paid))}</TableCell>
-                        <TableCell align="right">
-                          <Typography variant="body2" fontWeight={600} color="error.main">
-                            {formatGEL(Number(c.total_outstanding))}
-                          </Typography>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </Paper>
+            <SectionCard title={t('finances.customers.title')} icon="groups" dense>
+              <DataTable
+                columns={CUSTOMER_COLUMNS.map((c) => ({
+                  ...c,
+                  label: t(`finances.customers.${c.key}`),
+                }))}
+                minWidth={620}
+                sx={{ border: 0, borderRadius: 0 }}
+              >
+                {(byCustomer.data ?? []).map((c) => (
+                  <DataRow key={`${c.customer_type}:${c.customer_id}`} columns={CUSTOMER_COLUMNS}>
+                    <Box sx={{ minWidth: 0 }}>
+                      <Link
+                        component="button"
+                        underline="hover"
+                        onClick={() => setFilters({ ...filters, customerId: c.customer_id })}
+                        sx={{ textAlign: 'left', fontSize: '0.8125rem', fontWeight: 600 }}
+                      >
+                        {c.customer_name}
+                      </Link>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                        {t(`finances.filters.${c.customer_type === 'CLINIC' ? 'clinic' : 'doctor'}`)}
+                      </Typography>
+                    </Box>
+                    <Typography sx={{ fontSize: '0.8125rem', textAlign: 'right' }}>
+                      {Number(c.order_count)}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.8125rem', textAlign: 'right' }}>
+                      {formatGEL(Number(c.total_billed))}
+                    </Typography>
+                    <Typography sx={{ fontSize: '0.8125rem', textAlign: 'right' }}>
+                      {formatGEL(Number(c.total_paid))}
+                    </Typography>
+                    <Typography
+                      sx={{
+                        fontSize: '0.8125rem',
+                        fontWeight: 700,
+                        textAlign: 'right',
+                        color: 'error.main',
+                      }}
+                    >
+                      {formatGEL(Number(c.total_outstanding))}
+                    </Typography>
+                  </DataRow>
+                ))}
+              </DataTable>
+            </SectionCard>
           )}
 
           {/* ── Receivable orders ── */}
-          <Paper variant="outlined">
-            <TableContainer>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>{t('finances.table.order')}</TableCell>
-                    <TableCell>{t('finances.table.customer')}</TableCell>
-                    <TableCell>{t('finances.table.service')}</TableCell>
-                    <TableCell>{t('finances.table.due')}</TableCell>
-                    <TableCell align="right">{t('finances.table.billed')}</TableCell>
-                    <TableCell align="right">{t('finances.table.paid')}</TableCell>
-                    <TableCell align="right">{t('finances.table.outstanding')}</TableCell>
-                    <TableCell>{t('finances.table.status')}</TableCell>
-                    <TableCell align="right" />
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {(list.data ?? []).map((o) => (
-                    <TableRow key={o.order_id} hover>
-                      <TableCell>{o.order_code}</TableCell>
-                      <TableCell>{o.customer_name}</TableCell>
-                      <TableCell>{o.service_name || '—'}</TableCell>
-                      <TableCell>
-                        {o.confirmed_due_date ? (
-                          <Stack direction="row" spacing={0.5} alignItems="center">
-                            <span>{dayjs(o.confirmed_due_date).format('MMM D, YYYY')}</span>
-                            {isOverdue(o) && (
-                              <Chip label={t('finances.table.overdue')} size="small" color="error" />
-                            )}
-                          </Stack>
-                        ) : (
-                          '—'
-                        )}
-                      </TableCell>
-                      <TableCell align="right">{formatGEL(Number(o.final_total))}</TableCell>
-                      <TableCell align="right">{formatGEL(Number(o.paid_total))}</TableCell>
-                      <TableCell align="right">
-                        <Typography variant="body2" fontWeight={600} color="error.main">
-                          {formatGEL(Number(o.outstanding))}
-                        </Typography>
-                      </TableCell>
-                      <TableCell>
-                        <PaymentStatusChip status={o.payment_status} />
-                      </TableCell>
-                      <TableCell align="right">
-                        <Button size="small" onClick={() => setPayingOrder(o)}>
-                          {t('finances.table.record')}
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-            <Box sx={{ p: 1 }}>
-              <OrdersPaginator
-                page={page}
-                pageSize={pageSize}
-                total={totalCount}
-                onPageChange={setPage}
-                onPageSizeChange={(s) => {
-                  setPageSize(s);
-                  setPage(1);
-                }}
-              />
-            </Box>
-          </Paper>
+          <DataTable
+            columns={ORDER_COLUMNS.map((c) =>
+              c.key === 'record' ? c : { ...c, label: t(`finances.table.${c.key}`) },
+            )}
+            minWidth={980}
+            footer={
+              <Box sx={{ width: '100%' }}>
+                <OrdersPaginator
+                  page={page}
+                  pageSize={pageSize}
+                  total={totalCount}
+                  onPageChange={setPage}
+                  onPageSizeChange={(s) => {
+                    setPageSize(s);
+                    setPage(1);
+                  }}
+                />
+              </Box>
+            }
+          >
+            {(list.data ?? []).map((o) => (
+              <DataRow key={o.order_id} columns={ORDER_COLUMNS}>
+                <Typography
+                  sx={{ fontSize: '0.78125rem', fontWeight: 700, color: 'primary.dark' }}
+                  noWrap
+                >
+                  {o.order_code}
+                </Typography>
+                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }} noWrap>
+                  {o.customer_name}
+                </Typography>
+                <Typography variant="body1" color="text.secondary" noWrap>
+                  {o.service_name || '—'}
+                </Typography>
+                <Stack direction="row" spacing={0.75} alignItems="center">
+                  <Typography variant="body1" noWrap>
+                    {o.confirmed_due_date ? dayjs(o.confirmed_due_date).format('MMM D') : '—'}
+                  </Typography>
+                  {isOverdue(o) && (
+                    <StatusPill tone="danger">{t('finances.table.overdue')}</StatusPill>
+                  )}
+                </Stack>
+                <Typography sx={{ fontSize: '0.8125rem', textAlign: 'right' }}>
+                  {formatGEL(Number(o.final_total))}
+                </Typography>
+                <Typography sx={{ fontSize: '0.8125rem', textAlign: 'right' }}>
+                  {formatGEL(Number(o.paid_total))}
+                </Typography>
+                <Typography
+                  sx={{
+                    fontSize: '0.8125rem',
+                    fontWeight: 700,
+                    textAlign: 'right',
+                    color: 'error.main',
+                  }}
+                >
+                  {formatGEL(Number(o.outstanding))}
+                </Typography>
+                <PaymentStatusChip status={o.payment_status} />
+                <Box sx={{ textAlign: 'right' }}>
+                  <Button size="small" onClick={() => setPayingOrder(o)}>
+                    {t('finances.table.record')}
+                  </Button>
+                </Box>
+              </DataRow>
+            ))}
+          </DataTable>
         </>
       )}
 
@@ -308,6 +318,7 @@ export function LabFinancesPage() {
           refetchAll();
         }}
       />
-    </Stack>
+      </Stack>
+    </>
   );
 }

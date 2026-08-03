@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import {
   Alert,
+  Box,
   Button,
-  Card,
-  CardContent,
   Link,
   Stack,
   Typography,
@@ -14,6 +13,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
 import { PublicAuthLayout } from '@/layouts/PublicAuthLayout';
+import { Icon } from '@/components/design';
 import { RHFTextField } from '@/components/RHFTextField';
 import { supabase } from '@/lib/supabase';
 
@@ -78,18 +78,31 @@ export function DoctorRegisterPage() {
 
   if (success) {
     return (
-      <PublicAuthLayout>
-        <Card>
-          <CardContent>
-            <Stack spacing={3} alignItems="flex-start">
-              <Typography variant="h4">{t('registrationSuccess.title')}</Typography>
-              <Typography color="text.secondary">{t('registrationSuccess.body')}</Typography>
-              <Button variant="contained" onClick={() => navigate('/login')}>
-                {t('registrationSuccess.goToLogin')}
-              </Button>
-            </Stack>
-          </CardContent>
-        </Card>
+      <PublicAuthLayout maxWidth="xs">
+        <Stack spacing={1.5} alignItems="center" sx={{ textAlign: 'center', py: 1 }}>
+          <Box
+            sx={{
+              width: 56,
+              height: 56,
+              borderRadius: '50%',
+              display: 'grid',
+              placeItems: 'center',
+              bgcolor: 'success.main',
+              color: '#fff',
+            }}
+          >
+            <Icon name="check" size={30} />
+          </Box>
+          <Typography variant="h3" component="h1">
+            {t('registrationSuccess.title')}
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {t('registrationSuccess.body')}
+          </Typography>
+          <Button variant="contained" onClick={() => navigate('/login')} sx={{ mt: 1 }}>
+            {t('registrationSuccess.goToLogin')}
+          </Button>
+        </Stack>
       </PublicAuthLayout>
     );
   }
@@ -103,14 +116,8 @@ export function DoctorRegisterPage() {
   };
 
   return (
-    <PublicAuthLayout>
-      <Card>
-        <CardContent>
-          <Stack spacing={3}>
-            <Stack spacing={0.5}>
-              <Typography variant="h4">{t('register.doctor.title')}</Typography>
-              <Typography color="text.secondary">{t('register.doctor.subtitle')}</Typography>
-            </Stack>
+    <PublicAuthLayout title={t('register.doctor.title')} subtitle={t('register.doctor.subtitle')}>
+        <Stack spacing={2.5}>
 
             {serverError && <Alert severity="error">{serverError}</Alert>}
 
@@ -166,8 +173,6 @@ export function DoctorRegisterPage() {
               </Link>
             </Typography>
           </Stack>
-        </CardContent>
-      </Card>
     </PublicAuthLayout>
   );
 }

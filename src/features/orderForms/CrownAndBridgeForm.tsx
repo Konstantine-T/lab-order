@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Box, Stack, TextField, Typography } from '@mui/material';
+import { Stack, TextField } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { ShadePicker } from '@/components/ShadePicker';
 import { NumberedSection, PillGroup, MmInput, ErrorHelper } from './primitives';
 import { TreatmentBuilder } from './TreatmentBuilder';
 import {
@@ -90,21 +91,12 @@ export function CrownAndBridgeForm({
               readOnly={readOnly}
               size="small"
             />
-            <Stack spacing={1.25}>
-              {shadeGroupsForScale(value.shadeScale).map((g) => (
-                <Stack key={g.family} direction="row" spacing={1} useFlexGap flexWrap="wrap">
-                  {g.shades.map((s) => (
-                    <ShadePill
-                      key={s}
-                      label={s}
-                      selected={value.shade === s}
-                      disabled={readOnly}
-                      onClick={() => set({ shade: s })}
-                    />
-                  ))}
-                </Stack>
-              ))}
-            </Stack>
+            <ShadePicker
+              value={value.shade}
+              onChange={(shade) => set({ shade })}
+              readOnly={readOnly}
+              groups={shadeGroupsForScale(value.shadeScale)}
+            />
             <TextField
               value={value.shadeNotes}
               onChange={(e) => set({ shadeNotes: e.target.value })}
@@ -299,105 +291,3 @@ function ConditionalRow({
   );
 }
 
-function ShadePill({
-  label,
-  selected,
-  disabled,
-  onClick,
-}: {
-  label: string;
-  selected?: boolean;
-  disabled?: boolean;
-  onClick?: () => void;
-}) {
-  // A small color swatch matching the family. Subtle — text is the source of truth.
-  const swatch = shadeSwatch(label);
-  return (
-    <Box
-      role="button"
-      aria-pressed={selected}
-      tabIndex={disabled ? -1 : 0}
-      onClick={() => !disabled && onClick?.()}
-      onKeyDown={(e) => {
-        if (disabled) return;
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onClick?.();
-        }
-      }}
-      sx={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 0.75,
-        px: 2,
-        py: 0.85,
-        fontSize: 14,
-        fontWeight: 600,
-        borderRadius: 999,
-        border: 1,
-        borderColor: selected ? 'primary.main' : 'divider',
-        bgcolor: selected ? 'primary.main' : 'background.paper',
-        color: selected ? 'primary.contrastText' : 'text.primary',
-        boxShadow: selected ? 0 : 1,
-        cursor: disabled ? 'default' : 'pointer',
-        userSelect: 'none',
-        '&:hover': disabled
-          ? {}
-          : {
-              bgcolor: selected ? 'primary.dark' : 'action.hover',
-              borderColor: 'primary.main',
-            },
-      }}
-    >
-      <Box
-        sx={{
-          width: 12,
-          height: 12,
-          borderRadius: '50%',
-          bgcolor: swatch,
-          border: 1,
-          borderColor: 'rgba(0,0,0,0.15)',
-        }}
-      />
-      <Typography component="span" variant="body2" fontWeight={600}>
-        {label}
-      </Typography>
-    </Box>
-  );
-}
-
-// Approximate Vita Classical shade colors (hex). Reference only — not a clinical match.
-function shadeSwatch(label: string): string {
-  const map: Record<string, string> = {
-    A1: '#f3e7d2',
-    A2: '#ecd9b6',
-    A3: '#dcc196',
-    'A3.5': '#cfae7e',
-    A4: '#b89464',
-    B1: '#f4ebd1',
-    B2: '#e8d8a9',
-    B3: '#d3bc7d',
-    B4: '#bb9c5b',
-    C1: '#dccfb6',
-    C2: '#c8b790',
-    C3: '#aa9669',
-    C4: '#8b7849',
-    D2: '#d3bfa1',
-    D3: '#bca680',
-    D4: '#9c855f',
-  };
-  // VITA 3D-MASTER tabs (e.g. "2M2", "3L1.5") — approximate by lightness group.
-  const g = /^([0-5])[LMR]/.exec(label);
-  if (g) {
-    const groupTone: Record<string, string> = {
-      '0': '#f6efe0',
-      '1': '#f3ead6',
-      '2': '#ecdcbf',
-      '3': '#ddc59c',
-      '4': '#c9ad7f',
-      '5': '#b0925f',
-    };
-    return groupTone[g[1]] ?? '#dddddd';
-  }
-  return map[label] ?? '#dddddd';
-}

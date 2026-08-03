@@ -1,12 +1,22 @@
 import { useMemo, useState } from 'react';
-import { Box, Stack, Tab, Tabs, Typography } from '@mui/material';
-import { DataGrid, type GridColDef } from '@mui/x-data-grid';
+import { Box, CircularProgress, Stack, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { supabase } from '@/lib/supabase';
 import { LabStatusChip } from '@/components/LabStatusChip';
+import {
+  ChoicePill,
+  type Column,
+  DataRow,
+  DataTable,
+  EmptyState,
+  Icon,
+  InitialsAvatar,
+  PageHeader,
+  PillRow,
+} from '@/components/design';
 import type { LabApprovalStatus, LabRow } from '@/types/database';
 
 type FilterValue = 'ALL' | LabApprovalStatus;
@@ -20,6 +30,15 @@ const FILTERS: { value: FilterValue; labelKey: string }[] = [
   { value: 'SUSPENDED', labelKey: 'labs.filters.suspended' },
 ];
 
+const COLUMNS: Column[] = [
+  { key: 'publicName', width: 'minmax(0, 1.4fr)' },
+  { key: 'legalName', width: 'minmax(0, 1.2fr)' },
+  { key: 'city', width: '120px' },
+  { key: 'contactEmail', width: 'minmax(0, 1.3fr)' },
+  { key: 'status', width: '150px' },
+  { key: 'submittedAt', width: '110px' },
+];
+
 export function LabApprovalQueuePage() {
   const { t } = useTranslation('admin');
   const navigate = useNavigate();
@@ -28,10 +47,7 @@ export function LabApprovalQueuePage() {
   const { data: labs = [], isLoading } = useQuery({
     queryKey: ['admin-labs', filter],
     queryFn: async () => {
-      let q = supabase
-        .from('labs')
-        .select('*')
-        .order('created_at', { ascending: false });
+      let q = supabase.from('labs').select('*').order('created_at', { ascending: false });
       if (filter !== 'ALL') q = q.eq('approval_status', filter);
       const { data, error } = await q;
       if (error) throw error;
@@ -39,55 +55,65 @@ export function LabApprovalQueuePage() {
     },
   });
 
-  const columns = useMemo<GridColDef<LabRow>[]>(
-    () => [
-      { field: 'public_name', headerName: t('labs.columns.publicName'), flex: 1, minWidth: 180 },
-      { field: 'legal_name', headerName: t('labs.columns.legalName'), flex: 1, minWidth: 180 },
-      { field: 'city', headerName: t('labs.columns.city'), width: 140 },
-      { field: 'contact_email', headerName: t('labs.columns.contactEmail'), flex: 1, minWidth: 200 },
-      {
-        field: 'approval_status',
-        headerName: t('labs.columns.status'),
-        width: 180,
-        renderCell: ({ row }) => <LabStatusChip status={row.approval_status} />,
-      },
-      {
-        field: 'created_at',
-        headerName: t('labs.columns.submittedAt'),
-        width: 160,
-        valueFormatter: (value) => (value ? dayjs(value as string).format('YYYY-MM-DD') : ''),
-      },
-    ],
+  const columns = useMemo(
+    () => COLUMNS.map((c) => ({ ...c, label: t(`labs.columns.${c.key}` as const) })),
     [t],
   );
 
   return (
-    <Stack spacing={3}>
-      <Typography variant="h4">{t('labs.queueTitle')}</Typography>
+    <>
+      <PageHeader title={t('labs.queueTitle')} subtitle={t('labs.queueSubtitle')} />
 
-      <Tabs
-        value={filter}
-        onChange={(_, v: FilterValue) => setFilter(v)}
-        variant="scrollable"
-        scrollButtons="auto"
-      >
-        {FILTERS.map((f) => (
-          <Tab key={f.value} label={t(f.labelKey)} value={f.value} />
-        ))}
-      </Tabs>
+      <Stack spacing={2}>
+        <PillRow>
+          {FILTERS.map((f) => (
+            <ChoicePill key={f.value} selected={filter === f.value} onClick={() => setFilter(f.value)}>
+              {t(f.labelKey)}
+            </ChoicePill>
+          ))}
+        </PillRow>
 
-      <Box sx={{ height: 600, width: '100%' }}>
-        <DataGrid<LabRow>
-          rows={labs}
-          columns={columns}
-          loading={isLoading}
-          disableRowSelectionOnClick
-          onRowClick={(params) => navigate(`/admin/labs/${params.id}`)}
-          sx={{ '& .MuiDataGrid-row': { cursor: 'pointer' } }}
-          initialState={{ pagination: { paginationModel: { pageSize: 25 } } }}
-          pageSizeOptions={[25, 50, 100]}
-        />
-      </Box>
-    </Stack>
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <CircularProgress />
+          </Box>
+        ) : labs.length === 0 ? (
+          <EmptyState icon="verified" title={t('labs.empty')} minHeight={220} />
+        ) : (
+          <DataTable columns={columns} minWidth={900}>
+            {labs.map((lab) => (
+              <DataRow
+                key={lab.id}
+                columns={COLUMNS}
+                onClick={() => navigate(`/admin/labs/${lab.id}`)}
+              >
+                <Stack direction="row" alignItems="center" spacing={1.125} sx={{ minWidth: 0 }}>
+                  <InitialsAvatar name={lab.public_name || '?'} size={28} shape="circle" />
+                  <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }} noWrap>
+                    {lab.public_name}
+                  </Typography>
+                </Stack>
+                <Typography variant="body1" color="text.secondary" noWrap>
+                  {lab.legal_name ?? '—'}
+                </Typography>
+                <Typography variant="body1" color="text.secondary" noWrap>
+                  {lab.city ?? '—'}
+                </Typography>
+                <Typography variant="body1" color="text.secondary" noWrap>
+                  {lab.contact_email ?? '—'}
+                </Typography>
+                <LabStatusChip status={lab.approval_status} />
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <Typography variant="body2" color="text.secondary" noWrap>
+                    {lab.created_at ? dayjs(lab.created_at).format('YYYY-MM-DD') : '—'}
+                  </Typography>
+                  <Icon name="chevron_right" size={16} sx={{ color: 'text.disabled' }} />
+                </Stack>
+              </DataRow>
+            ))}
+          </DataTable>
+        )}
+      </Stack>
+    </>
   );
 }

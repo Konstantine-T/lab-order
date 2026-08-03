@@ -3,9 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
-  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -15,10 +12,9 @@ import {
   Stack,
   Tab,
   Tabs,
-  Typography,
 } from '@mui/material';
-import DescriptionIcon from '@mui/icons-material/Description';
-import { Link as RouterLink, useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Callout, CardStack, PageHeader, SectionCard, StatusPill } from '@/components/design';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -250,33 +246,27 @@ export function LabServiceEditPage() {
   void labId;
 
   return (
-    <Stack spacing={3} sx={{ maxWidth: 900 }}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ sm: 'center' }}>
-        <Stack flex={1}>
-          <Button component={RouterLink} to="/lab/services" size="small" sx={{ alignSelf: 'flex-start' }}>
-            ← {t('nav.services')}
+    <>
+      <PageHeader
+        backTo="/lab/services"
+        title={t('services.edit.title')}
+        subtitle={service.name}
+        chips={
+          form && (
+            <StatusPill tone={isPublished ? 'success' : 'warning'} dot>
+              {isPublished ? t('services.formPublished') : t('services.formDraft')}
+              {version ? ` · v${version.version_number}` : ''}
+            </StatusPill>
+          )
+        }
+        actions={
+          <Button color="error" variant="outlined" onClick={() => setDeleteOpen(true)}>
+            {tc('actions.delete')}
           </Button>
-          <Typography variant="h4">{t('services.edit.title')}</Typography>
-          {form && (
-            <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
-              <Chip
-                size="small"
-                color={isPublished ? 'success' : 'default'}
-                label={form.status}
-              />
-              {version && (
-                <Typography variant="caption" color="text.secondary">
-                  v{version.version_number}
-                </Typography>
-              )}
-            </Stack>
-          )}
-        </Stack>
-        <Button color="error" variant="outlined" onClick={() => setDeleteOpen(true)}>
-          {tc('actions.delete')}
-        </Button>
-      </Stack>
+        }
+      />
 
+      <CardStack sx={{ maxWidth: 900 }}>
       {success && <Alert severity="success" onClose={() => setSuccess(null)}>{success}</Alert>}
       {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
 
@@ -285,32 +275,14 @@ export function LabServiceEditPage() {
       </FormProvider>
 
       {template && (
-        <Card variant="outlined" sx={{ bgcolor: 'background.default' }}>
-          <CardContent>
-            <Stack direction="row" spacing={2} alignItems="center">
-              <DescriptionIcon color="primary" />
-              <Stack flex={1}>
-                <Typography variant="overline" color="text.secondary">
-                  {t('services.edit.template')}
-                </Typography>
-                <Typography variant="subtitle1" fontWeight={600}>
-                  {templateName(tc, template.code, template.name)}
-                </Typography>
-              </Stack>
-              <Typography variant="caption" color="text.secondary">
-                {t('services.edit.templateLocked')}
-              </Typography>
-            </Stack>
-          </CardContent>
-        </Card>
+        <Callout tone="neutral" icon="lock" title={templateName(tc, template.code, template.name)}>
+          {t('services.edit.templateLocked')}
+        </Callout>
       )}
 
       {canShowCustomize && config && pricing && (
-        <Card>
-          <CardContent>
+        <SectionCard icon="tune" title={t('services.edit.customize')}>
             <Stack spacing={2}>
-              <Typography variant="h6">{t('services.edit.customize')}</Typography>
-
               <Tabs value={tab} onChange={(_, v: CustomizeTab) => setTab(v)}>
                 <Tab value="fields" label={t('forms.editor.tabs.fields')} />
                 <Tab value="pricing" label={t('forms.editor.tabs.pricing')} />
@@ -340,8 +312,7 @@ export function LabServiceEditPage() {
                 </Stack>
               )}
             </Stack>
-          </CardContent>
-        </Card>
+        </SectionCard>
       )}
 
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="flex-end">
@@ -365,7 +336,7 @@ export function LabServiceEditPage() {
       </Stack>
 
       {form?.status === 'DRAFT' && canShowCustomize && !canPublish && (
-        <Alert severity="info">{t('services.create.pricingRequiredForPublish')}</Alert>
+        <Callout tone="brand">{t('services.create.pricingRequiredForPublish')}</Callout>
       )}
 
       <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
@@ -380,6 +351,7 @@ export function LabServiceEditPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Stack>
+      </CardStack>
+    </>
   );
 }

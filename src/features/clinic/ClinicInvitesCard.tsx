@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Alert, Button, Card, CardContent, Snackbar, Stack, Typography } from '@mui/material';
+import { Alert, Button, Snackbar, Stack, Typography } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
+import { SectionCard } from '@/components/design';
 
 type MyInvite = {
   invite_id: string;
@@ -55,10 +56,8 @@ export function ClinicInvitesCard() {
   if (invites.length === 0) return null;
 
   return (
-    <Card sx={{ borderColor: 'primary.main', borderWidth: 1, borderStyle: 'solid' }}>
-      <CardContent>
+    <SectionCard accent="brand" icon="mail" title={t('clinicInvites.title')}>
         <Stack spacing={2}>
-          <Typography variant="h6">{t('clinicInvites.title')}</Typography>
           {invites.map((inv) => (
             <Stack
               key={inv.invite_id}
@@ -91,7 +90,6 @@ export function ClinicInvitesCard() {
             </Stack>
           ))}
         </Stack>
-      </CardContent>
 
       <Snackbar
         open={!!errorMsg}
@@ -103,6 +101,6 @@ export function ClinicInvitesCard() {
           {errorMsg}
         </Alert>
       </Snackbar>
-    </Card>
+    </SectionCard>
   );
 }

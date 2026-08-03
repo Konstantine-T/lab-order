@@ -1,16 +1,6 @@
 import { useEffect, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Divider,
-  MenuItem,
-  Stack,
-  TextField,
-  Typography,
-} from '@mui/material';
+import { Alert, Box, Button, MenuItem, Stack, TextField } from '@mui/material';
+import { CardStack, PageHeader, SectionCard } from '@/components/design';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -33,6 +23,7 @@ type FormValues = z.infer<typeof schema>;
 
 export function DoctorProfilePage() {
   const { t, i18n } = useTranslation('doctor');
+  const { t: tc } = useTranslation('common');
   const { user, refreshUser } = useAuth();
   const { pref, setPref } = useColorMode();
   const [success, setSuccess] = useState(false);
@@ -107,13 +98,12 @@ export function DoctorProfilePage() {
   };
 
   return (
-    <Stack spacing={3} sx={{ maxWidth: 720 }}>
-      <Typography variant="h4">{t('profile.title')}</Typography>
+    <>
+      <PageHeader title={t('profile.title')} />
 
-      <Card>
-        <CardContent>
+      <CardStack sx={{ maxWidth: 760 }}>
+        <SectionCard icon="person" title={t('profile.personalInfo')}>
           <Stack spacing={2}>
-            <Typography variant="h6">{t('profile.personalInfo')}</Typography>
             {success && <Alert severity="success">{t('profile.saveSuccess')}</Alert>}
             {error && <Alert severity="error">{error}</Alert>}
 
@@ -146,52 +136,46 @@ export function DoctorProfilePage() {
                       variant="contained"
                       disabled={methods.formState.isSubmitting}
                     >
-                      {methods.formState.isSubmitting ? '...' : 'Save'}
+                      {methods.formState.isSubmitting ? tc('actions.saving') : tc('actions.save')}
                     </Button>
                   </Box>
                 </Stack>
               </form>
             </FormProvider>
           </Stack>
-        </CardContent>
-      </Card>
+        </SectionCard>
 
-      <Card>
-        <CardContent>
-          <Stack spacing={2}>
-            <Typography variant="h6">{t('profile.preferences')}</Typography>
-            <Divider />
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <TextField
-                select
-                label={t('profile.language')}
-                value={i18n.resolvedLanguage ?? 'en'}
-                onChange={(e) => void onLanguageChange(e.target.value)}
-                fullWidth
-              >
-                {LANGUAGES.map((l) => (
-                  <MenuItem key={l.code} value={l.code}>
-                    {l.flag} {l.label}
-                  </MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                label={t('profile.colorMode')}
-                value={pref}
-                onChange={(e) =>
-                  void onColorModeChange(e.target.value as 'light' | 'dark' | 'system')
-                }
-                fullWidth
-              >
-                <MenuItem value="light">{t('profile.modeOptions.light')}</MenuItem>
-                <MenuItem value="dark">{t('profile.modeOptions.dark')}</MenuItem>
-                <MenuItem value="system">{t('profile.modeOptions.system')}</MenuItem>
-              </TextField>
-            </Stack>
+        <SectionCard icon="tune" title={t('profile.preferences')}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            <TextField
+              select
+              label={t('profile.language')}
+              value={i18n.resolvedLanguage ?? 'en'}
+              onChange={(e) => void onLanguageChange(e.target.value)}
+              fullWidth
+            >
+              {LANGUAGES.map((l) => (
+                <MenuItem key={l.code} value={l.code}>
+                  {l.flag} {l.label}
+                </MenuItem>
+              ))}
+            </TextField>
+            <TextField
+              select
+              label={t('profile.colorMode')}
+              value={pref}
+              onChange={(e) =>
+                void onColorModeChange(e.target.value as 'light' | 'dark' | 'system')
+              }
+              fullWidth
+            >
+              <MenuItem value="light">{t('profile.modeOptions.light')}</MenuItem>
+              <MenuItem value="dark">{t('profile.modeOptions.dark')}</MenuItem>
+              <MenuItem value="system">{t('profile.modeOptions.system')}</MenuItem>
+            </TextField>
           </Stack>
-        </CardContent>
-      </Card>
-    </Stack>
+        </SectionCard>
+      </CardStack>
+    </>
   );
 }

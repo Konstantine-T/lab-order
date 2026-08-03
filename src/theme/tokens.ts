@@ -28,32 +28,113 @@ export const motion = {
   slow: '160ms ease',
 } as const;
 
+/**
+ * Page geometry from the mockups. The content column is centred at
+ * `contentMax`, and `gutter` is the horizontal padding either side of it — in
+ * theme spacing units, so `PageHeader` can negate it exactly to bleed its
+ * translucent band to the edge of the main column.
+ */
+export const layout = {
+  sidebarWidth: 224,
+  contentMax: 1080,
+  gutter: { xs: 2, sm: 3, md: 3.5 },
+  gutterNeg: { xs: -2, sm: -3, md: -3.5 },
+  /** Height of the mobile top bar; sticky elements offset by it below `md`. */
+  mobileBar: 56,
+  /** What a sticky right rail clears: the page header band. */
+  railTop: 76,
+  railWidth: 316,
+} as const;
+
+/** Hover lift for interactive cards, straight from the mockups. */
+export const lift = {
+  card: `0 8px 24px ${alpha(BRAND, 0.12)}`,
+  cardStrong: `0 10px 28px ${alpha(BRAND, 0.1)}`,
+  cta: `0 6px 16px ${alpha(BRAND, 0.3)}`,
+} as const;
+
+/**
+ * The row-avatar palette. Colour is picked by hashing a name so a given
+ * patient keeps the same tile everywhere, as in the mockups.
+ */
+export const AVATAR_COLORS = [
+  '#8A5CF6',
+  '#6E6EE8',
+  '#EC4899',
+  '#10B981',
+  '#F59E0B',
+  '#0EA5E9',
+] as const;
+
+export const avatarColor = (seed: string) => {
+  let hash = 0;
+  for (let i = 0; i < seed.length; i += 1) hash += seed.charCodeAt(i);
+  return AVATAR_COLORS[hash % AVATAR_COLORS.length];
+};
+
+export const initialsOf = (text: string, max = 2) =>
+  text
+    .trim()
+    .split(/\s+/)
+    .slice(0, max)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('') || '·';
+
 /** Brand focus ring — border colour plus glow. */
 export const focusRing = {
   borderColor: BRAND,
   boxShadow: `0 0 0 3px ${alpha(BRAND, 0.18)}`,
 } as const;
 
-export type Tone = 'brand' | 'success' | 'warning' | 'danger' | 'neutral';
+export type Tone = 'brand' | 'success' | 'warning' | 'danger' | 'info' | 'neutral';
 
-type ToneStyle = { fg: string; bg: string; border: string };
+type ToneStyle = { fg: string; bg: string; border: string; dot: string };
 
 const LIGHT_TONES: Record<Tone, ToneStyle> = {
-  brand: { fg: BRAND_STRONG, bg: alpha(BRAND, 0.12), border: alpha(BRAND, 0.25) },
-  success: { fg: '#15803D', bg: '#E3F4E8', border: 'rgba(22,163,74,0.25)' },
-  warning: { fg: '#B45309', bg: '#FEF3E2', border: 'rgba(180,83,9,0.25)' },
-  danger: { fg: '#DC2626', bg: '#FDEAEA', border: 'rgba(220,38,38,0.22)' },
-  neutral: { fg: '#5B6477', bg: '#FBFBFD', border: 'rgba(15,23,42,0.08)' },
+  brand: { fg: BRAND_STRONG, bg: alpha(BRAND, 0.12), border: alpha(BRAND, 0.4), dot: BRAND },
+  success: { fg: '#15803D', bg: '#E3F4E8', border: 'rgba(22,163,74,0.25)', dot: '#16A34A' },
+  warning: { fg: '#B45309', bg: '#FEF3E2', border: 'rgba(180,83,9,0.25)', dot: '#F59E0B' },
+  danger: { fg: '#DC2626', bg: '#FDEAEA', border: 'rgba(220,38,38,0.22)', dot: '#DC2626' },
+  // The mockups' sky tone: "Sent to clinic", "Try-in phase", a due date that is
+  // close but not late.
+  info: { fg: '#0369A1', bg: '#E5F3FB', border: 'rgba(3,105,161,0.25)', dot: '#0284C7' },
+  neutral: { fg: '#5B6477', bg: '#FBFBFD', border: 'rgba(15,23,42,0.08)', dot: '#64748B' },
 };
 
 // Dark tones follow the pattern the mockups' dark surfaces establish: a light
 // foreground on a ~12% fill with a ~30% border.
 const DARK_TONES: Record<Tone, ToneStyle> = {
-  brand: { fg: BRAND_SOFT, bg: alpha(BRAND, 0.15), border: alpha(BRAND, 0.35) },
-  success: { fg: '#4ADE80', bg: 'rgba(74,222,128,0.12)', border: 'rgba(74,222,128,0.3)' },
-  warning: { fg: '#FBBF24', bg: 'rgba(251,191,36,0.12)', border: 'rgba(251,191,36,0.3)' },
-  danger: { fg: '#F87171', bg: 'rgba(248,113,113,0.12)', border: 'rgba(248,113,113,0.3)' },
-  neutral: { fg: '#A1A6BD', bg: 'rgba(255,255,255,0.04)', border: 'rgba(255,255,255,0.09)' },
+  brand: { fg: BRAND_SOFT, bg: alpha(BRAND, 0.15), border: alpha(BRAND, 0.35), dot: BRAND },
+  success: {
+    fg: '#4ADE80',
+    bg: 'rgba(74,222,128,0.12)',
+    border: 'rgba(74,222,128,0.3)',
+    dot: '#4ADE80',
+  },
+  warning: {
+    fg: '#FBBF24',
+    bg: 'rgba(251,191,36,0.12)',
+    border: 'rgba(251,191,36,0.3)',
+    dot: '#FBBF24',
+  },
+  danger: {
+    fg: '#F87171',
+    bg: 'rgba(248,113,113,0.12)',
+    border: 'rgba(248,113,113,0.3)',
+    dot: '#F87171',
+  },
+  info: {
+    fg: '#7DD3FC',
+    bg: 'rgba(125,211,252,0.12)',
+    border: 'rgba(125,211,252,0.3)',
+    dot: '#7DD3FC',
+  },
+  neutral: {
+    fg: '#A1A6BD',
+    bg: 'rgba(255,255,255,0.04)',
+    border: 'rgba(255,255,255,0.09)',
+    dot: '#8A91A5',
+  },
 };
 
 /** Tinted status colours — the fill/text pairing behind pills and alert rows. */
@@ -329,7 +410,60 @@ const tokens = (mode: PaletteMode) => {
       },
 
       MuiDivider: { styleOverrides: { root: { borderColor: divider } } },
-      MuiDialog: { styleOverrides: { paper: { borderRadius: radii.card } } },
+
+      // The mockups' modal: an 18-radius sheet with a deep shadow, an 800-weight
+      // title and generous but not airy padding.
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            borderRadius: 18,
+            boxShadow: light
+              ? '0 24px 60px rgba(15, 23, 42, 0.3)'
+              : '0 24px 60px rgba(0, 0, 0, 0.55)',
+          },
+        },
+      },
+      MuiDialogTitle: {
+        styleOverrides: {
+          root: {
+            fontSize: '1rem',
+            fontWeight: 800,
+            letterSpacing: '-0.01em',
+            padding: '24px 26px 8px',
+          },
+        },
+      },
+      MuiDialogContent: {
+        styleOverrides: { root: { padding: '0 26px 8px' } },
+      },
+      MuiDialogContentText: {
+        styleOverrides: { root: { fontSize: '0.8125rem', lineHeight: 1.55 } },
+      },
+      MuiDialogActions: {
+        styleOverrides: { root: { padding: '14px 26px 22px', gap: 8 } },
+      },
+
+      MuiLink: {
+        defaultProps: { underline: 'hover' as const },
+        styleOverrides: {
+          root: {
+            color: light ? BRAND_LINK : BRAND_SOFT,
+            fontWeight: 600,
+            transition: `color ${motion.fast}`,
+            '&:hover': { color: light ? BRAND_STRONG : '#D0D0FF' },
+          },
+        },
+      },
+
+      MuiAutocomplete: {
+        styleOverrides: {
+          paper: {
+            borderRadius: 12,
+            border: `1px solid ${divider}`,
+          },
+          option: { fontSize: '0.8125rem', borderRadius: 8, margin: '2px 6px' },
+        },
+      },
 
       MuiMenu: {
         styleOverrides: {

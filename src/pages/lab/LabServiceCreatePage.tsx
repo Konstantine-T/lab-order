@@ -1,18 +1,7 @@
 import { useEffect, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Card,
-  CardContent,
-  CircularProgress,
-  Stack,
-  Tab,
-  Tabs,
-  Typography,
-} from '@mui/material';
-import SupportAgentIcon from '@mui/icons-material/SupportAgent';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Alert, Box, Button, CircularProgress, Stack, Tab, Tabs } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { Callout, CardStack, Icon, PageHeader, SectionCard } from '@/components/design';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -180,44 +169,32 @@ export function LabServiceCreatePage() {
     (templateRow?.code !== 'OTHER_CUSTOM' || (!!config && isCustomFormComplete(config)));
 
   return (
-    <Stack spacing={3} sx={{ maxWidth: 900 }}>
-      <Stack direction="row" alignItems="flex-start" justifyContent="space-between" spacing={2}>
-        <Stack>
-          <Button component={RouterLink} to="/lab/services" size="small" sx={{ alignSelf: 'flex-start' }}>
-            ← {t('nav.services')}
+    <>
+      <PageHeader
+        backTo="/lab/services"
+        title={t('services.create.title')}
+        subtitle={t('services.create.pickTemplateHelp')}
+        actions={
+          <Button variant="outlined" size="small" startIcon={<Icon name="contact_support" size={16} />}>
+            {tc('actions.support')}
           </Button>
-          <Typography variant="h4">{t('services.create.title')}</Typography>
-        </Stack>
-        {/* Support entry point — placeholder (no action wired yet). */}
-        <Button
-          variant="outlined"
-          size="small"
-          startIcon={<SupportAgentIcon />}
-          sx={{ mt: 0.5, flexShrink: 0 }}
-        >
-          {tc('actions.support')}
-        </Button>
-      </Stack>
+        }
+      />
 
+      <CardStack sx={{ maxWidth: 900 }}>
       {error && <Alert severity="error" onClose={() => setError(null)}>{error}</Alert>}
 
       <FormProvider {...methods}>
         <ServiceBasicsForm />
       </FormProvider>
 
-      <Card>
-        <CardContent>
-          <Stack spacing={2}>
-            <Stack>
-              <Typography variant="h6">{t('services.create.pickTemplate')}</Typography>
-              <Typography variant="body2" color="text.secondary">
-                {t('services.create.pickTemplateHelp')}
-              </Typography>
-            </Stack>
-            <TemplateGrid selectedTemplateId={templateId} onSelect={setTemplateId} />
-          </Stack>
-        </CardContent>
-      </Card>
+      <SectionCard
+        icon="category"
+        title={t('services.create.pickTemplate')}
+        meta={t('services.create.pickTemplateHelp')}
+      >
+        <TemplateGrid selectedTemplateId={templateId} onSelect={setTemplateId} />
+      </SectionCard>
 
       {templateId && loadingTemplate && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
@@ -226,20 +203,14 @@ export function LabServiceCreatePage() {
       )}
 
       {templateId && config && pricing && !loadingTemplate && (
-        <Card>
-          <CardContent>
+        <SectionCard
+          icon="tune"
+          title={t('services.create.customize', {
+            template: templateName(tc, templateRow?.code, templateRow?.name),
+          })}
+          meta={t('services.create.customizeHelp')}
+        >
             <Stack spacing={2}>
-              <Stack>
-                <Typography variant="h6">
-                  {t('services.create.customize', {
-                    template: templateName(tc, templateRow?.code, templateRow?.name),
-                  })}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {t('services.create.customizeHelp')}
-                </Typography>
-              </Stack>
-
               <Tabs value={tab} onChange={(_, v: CustomizeTab) => setTab(v)}>
                 <Tab value="fields" label={t('forms.editor.tabs.fields')} />
                 <Tab value="pricing" label={t('forms.editor.tabs.pricing')} />
@@ -269,14 +240,11 @@ export function LabServiceCreatePage() {
                 </Stack>
               )}
             </Stack>
-          </CardContent>
-        </Card>
+        </SectionCard>
       )}
 
       {canSave && !canPublish && (
-        <Alert severity="info">
-          {t('services.create.pricingRequiredForPublish')}
-        </Alert>
+        <Callout tone="brand">{t('services.create.pricingRequiredForPublish')}</Callout>
       )}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="flex-end">
         <Button onClick={() => navigate('/lab/services')}>{tc('actions.cancel')}</Button>
@@ -295,6 +263,7 @@ export function LabServiceCreatePage() {
           {t('services.create.publish')}
         </Button>
       </Stack>
-    </Stack>
+      </CardStack>
+    </>
   );
 }

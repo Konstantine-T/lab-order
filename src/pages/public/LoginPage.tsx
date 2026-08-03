@@ -1,14 +1,5 @@
 import { useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  CardContent,
-  Divider,
-  Link,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Alert, Button, Divider, Link, Stack, Typography } from '@mui/material';
 import { Link as RouterLink, Navigate, useLocation } from 'react-router-dom';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -51,71 +42,83 @@ export function LoginPage() {
   };
 
   return (
-    <PublicAuthLayout>
-      <Card>
-        <CardContent>
-          <Stack spacing={3}>
-            <Stack spacing={0.5}>
-              <Typography variant="h4">{t('login.title')}</Typography>
-              <Typography color="text.secondary">{t('login.subtitle')}</Typography>
+    <PublicAuthLayout title={t('login.title')} subtitle={t('login.subtitle')}>
+      <Stack spacing={2.5}>
+        {serverError && <Alert severity="error">{serverError}</Alert>}
+
+        <FormProvider {...methods}>
+          <form onSubmit={methods.handleSubmit(onSubmit)} noValidate>
+            <Stack spacing={2}>
+              <RHFTextField
+                name="email"
+                type="email"
+                label={t('login.email')}
+                autoComplete="email"
+              />
+              <RHFTextField
+                name="password"
+                type="password"
+                label={t('login.password')}
+                autoComplete="current-password"
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                size="large"
+                disabled={methods.formState.isSubmitting}
+              >
+                {t('login.submit')}
+              </Button>
             </Stack>
+          </form>
+        </FormProvider>
 
-            {serverError && <Alert severity="error">{serverError}</Alert>}
+        <Link
+          component={RouterLink}
+          to="/forgot-password"
+          variant="body1"
+          sx={{ alignSelf: 'flex-start', fontWeight: 600 }}
+        >
+          {t('login.forgotPassword')}
+        </Link>
 
-            <FormProvider {...methods}>
-              <form onSubmit={methods.handleSubmit(onSubmit)} noValidate>
-                <Stack spacing={2}>
-                  <RHFTextField
-                    name="email"
-                    type="email"
-                    label={t('login.email')}
-                    autoComplete="email"
-                  />
-                  <RHFTextField
-                    name="password"
-                    type="password"
-                    label={t('login.password')}
-                    autoComplete="current-password"
-                  />
-                  <Button
-                    type="submit"
-                    variant="contained"
-                    size="large"
-                    disabled={methods.formState.isSubmitting}
-                  >
-                    {t('login.submit')}
-                  </Button>
-                </Stack>
-              </form>
-            </FormProvider>
+        <Divider />
 
-            <Stack direction="row" justifyContent="space-between">
-              <Link component={RouterLink} to="/forgot-password" variant="body2">
-                {t('login.forgotPassword')}
-              </Link>
-            </Stack>
-
-            <Divider />
-
-            <Stack spacing={1} alignItems="center">
-              <Typography variant="body2" color="text.secondary">
-                {t('login.noAccount')}
-              </Typography>
-              <Stack direction="row" spacing={1}>
-                <Button component={RouterLink} to="/register/doctor" variant="outlined" size="small">
-                  {t('login.registerAsDoctor')}
-                </Button>
-                <Button component={RouterLink} to="/register/lab" variant="outlined" size="small">
-                  {t('login.registerAsLab')}
-                </Button>
-                <Button component={RouterLink} to="/register/clinic" variant="outlined" size="small">
-                  {t('login.registerAsClinic')}
-                </Button>
-              </Stack>
-            </Stack>
+        <Stack spacing={1.25} alignItems="center">
+          <Typography variant="body1" color="text.secondary">
+            {t('login.noAccount')}
+          </Typography>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ width: '100%' }}>
+            <Button
+              component={RouterLink}
+              to="/register/doctor"
+              variant="outlined"
+              size="small"
+              fullWidth
+            >
+              {t('login.registerAsDoctor')}
+            </Button>
+            <Button
+              component={RouterLink}
+              to="/register/lab"
+              variant="outlined"
+              size="small"
+              fullWidth
+            >
+              {t('login.registerAsLab')}
+            </Button>
+            <Button
+              component={RouterLink}
+              to="/register/clinic"
+              variant="outlined"
+              size="small"
+              fullWidth
+            >
+              {t('login.registerAsClinic')}
+            </Button>
           </Stack>
-        </CardContent>
-      </Card>
+        </Stack>
+      </Stack>
     </PublicAuthLayout>
   );
 }

@@ -1,6 +1,6 @@
 import { Box, Chip, Divider, Stack, Typography } from '@mui/material';
-import HistoryIcon from '@mui/icons-material/History';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/design';
 import { FieldRenderer } from '@/components/DynamicForm';
 import { OrderForm } from '@/features/orderForms/OrderForm';
 import { valuesEqual } from '@/features/lab/orderEdits/diff';
@@ -75,7 +75,7 @@ export function OrderAnswersDiff({ configuration, pricing, before, after }: Prop
                 sx={{ my: 2, '&::before, &::after': { borderColor: 'warning.main' } }}
               >
                 <Chip
-                  icon={<HistoryIcon />}
+                  icon={<Icon name="history" size={16} />}
                   label={t('orderSheet.diff.previousVersion')}
                   size="small"
                   color="warning"

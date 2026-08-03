@@ -75,7 +75,9 @@
     "lower": "Lower",
     "total": "Total",
     "ariaLabel": "Dental chart",
-    "notation": "Notation"
+    "notation": "Notation",
+    "right": "R",
+    "left": "L"
   },
   "rush": {
     "none": "None",

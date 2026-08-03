@@ -75,7 +75,9 @@
     "lower": "ქვედა",
     "total": "სულ",
     "ariaLabel": "კბილების რუკა",
-    "notation": "ნუმერაცია"
+    "notation": "ნუმერაცია",
+    "right": "მარჯ",
+    "left": "მარცხ"
   },
   "rush": {
     "none": "არა",

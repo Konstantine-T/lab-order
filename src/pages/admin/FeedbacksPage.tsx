@@ -3,9 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
-  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -18,8 +15,17 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import {
+  CardStack,
+  EmptyState,
+  Icon,
+  InitialsAvatar,
+  MetaChip,
+  PageHeader,
+  SectionCard,
+  StatusPill,
+} from '@/components/design';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { supabase } from '@/lib/supabase';
@@ -55,8 +61,10 @@ export function FeedbacksPage() {
   });
 
   return (
-    <Stack spacing={3}>
-      <Typography variant="h4">{t('feedbacks.title')}</Typography>
+    <>
+      <PageHeader title={t('feedbacks.title')} subtitle={t('feedbacks.subtitle')} />
+
+      <CardStack>
 
       {isLoading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
@@ -67,72 +75,75 @@ export function FeedbacksPage() {
       {isError && <Alert severity="error">{tc('errors.loadFailed')}</Alert>}
 
       {!isLoading && !isError && items.length === 0 && (
-        <Typography color="text.secondary">{t('feedbacks.empty')}</Typography>
+        <EmptyState icon="feedback" title={t('feedbacks.empty')} minHeight={220} />
       )}
 
-      <Stack spacing={2}>
-        {items.map((item) => (
-          <Card key={item.id} variant="outlined">
-            <CardContent>
-              <Stack
-                direction="row"
-                justifyContent="space-between"
-                alignItems="flex-start"
-                spacing={2}
-              >
-                <Stack spacing={0.5} sx={{ minWidth: 0 }}>
-                  <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap">
-                    <Typography fontWeight={600}>
-                      {item.first_name} {item.last_name}
-                    </Typography>
-                    <Chip size="small" label={tc(`roles.${item.role}`)} />
-                    <Typography variant="body2" color="text.secondary">
-                      {item.org_name ?? '—'}
-                    </Typography>
-                  </Stack>
-                  <Typography variant="body2" color="text.secondary">
-                    {item.email}
-                    {item.phone ? ` · ${item.phone}` : ''}
+      {items.map((item) => (
+        <SectionCard key={item.id}>
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={2}>
+            <Stack direction="row" spacing={1.5} sx={{ minWidth: 0 }}>
+              <InitialsAvatar
+                name={`${item.first_name} ${item.last_name}`}
+                size={36}
+                shape="circle"
+              />
+              <Stack spacing={0.5} sx={{ minWidth: 0 }}>
+                <Stack direction="row" alignItems="center" sx={{ flexWrap: 'wrap', gap: 1 }}>
+                  <Typography sx={{ fontSize: '0.84375rem', fontWeight: 700 }}>
+                    {item.first_name} {item.last_name}
                   </Typography>
+                  <StatusPill tone="brand">{tc(`roles.${item.role}`)}</StatusPill>
+                  {item.org_name && (
+                    <Typography variant="body1" color="text.secondary" noWrap>
+                      {item.org_name}
+                    </Typography>
+                  )}
                 </Stack>
-
-                <Stack direction="row" spacing={1} alignItems="center">
-                  <Typography variant="caption" color="text.secondary" noWrap>
-                    {dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}
-                  </Typography>
-                  <Tooltip title={t('feedbacks.deleteAction')}>
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => setDeleteTarget(item)}
-                      aria-label={t('feedbacks.deleteAction')}
-                    >
-                      <DeleteOutlineIcon fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                </Stack>
+                <Typography variant="body1" color="text.secondary">
+                  {item.email}
+                  {item.phone ? ` · ${item.phone}` : ''}
+                </Typography>
               </Stack>
+            </Stack>
 
-              <Divider sx={{ my: 1.5 }} />
-
-              <Typography sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>
-                {item.message}
+            <Stack direction="row" spacing={1} alignItems="center" sx={{ flexShrink: 0 }}>
+              <Typography variant="caption" color="text.secondary" noWrap>
+                {dayjs(item.created_at).format('YYYY-MM-DD HH:mm')}
               </Typography>
+              <Tooltip title={t('feedbacks.deleteAction')}>
+                <IconButton
+                  size="small"
+                  color="error"
+                  onClick={() => setDeleteTarget(item)}
+                  aria-label={t('feedbacks.deleteAction')}
+                >
+                  <Icon name="delete" size={18} />
+                </IconButton>
+              </Tooltip>
+            </Stack>
+          </Stack>
 
-              <Stack direction="row" spacing={1} sx={{ mt: 1.5 }} flexWrap="wrap">
-                {item.page_path && (
-                  <Chip
-                    size="small"
-                    variant="outlined"
-                    label={`${t('feedbacks.sentFrom')}: ${item.page_path}`}
-                  />
-                )}
-                {item.lang && <Chip size="small" variant="outlined" label={item.lang} />}
-              </Stack>
-            </CardContent>
-          </Card>
-        ))}
-      </Stack>
+          <Divider sx={{ my: 1.75 }} />
+
+          <Typography
+            variant="body1"
+            sx={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', lineHeight: 1.6 }}
+          >
+            {item.message}
+          </Typography>
+
+          <Stack direction="row" sx={{ mt: 1.75, flexWrap: 'wrap', gap: 0.75 }}>
+            {item.page_path && (
+              <MetaChip icon={<Icon name="link" size={13} />}>
+                {t('feedbacks.sentFrom')}: {item.page_path}
+              </MetaChip>
+            )}
+            {item.lang && (
+              <MetaChip icon={<Icon name="language" size={13} />}>{item.lang}</MetaChip>
+            )}
+          </Stack>
+        </SectionCard>
+      ))}
 
       <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)}>
         <DialogTitle>{t('feedbacks.deleteConfirmTitle')}</DialogTitle>
@@ -173,6 +184,7 @@ export function FeedbacksPage() {
           {tc('errors.generic')}
         </Alert>
       </Snackbar>
-    </Stack>
+      </CardStack>
+    </>
   );
 }

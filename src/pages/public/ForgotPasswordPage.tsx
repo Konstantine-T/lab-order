@@ -1,13 +1,5 @@
 import { useState } from 'react';
-import {
-  Alert,
-  Button,
-  Card,
-  CardContent,
-  Link,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { Alert, Button, Link, Stack } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -43,14 +35,8 @@ export function ForgotPasswordPage() {
   };
 
   return (
-    <PublicAuthLayout>
-      <Card>
-        <CardContent>
-          <Stack spacing={3}>
-            <Stack spacing={0.5}>
-              <Typography variant="h4">{t('forgotPassword.title')}</Typography>
-              <Typography color="text.secondary">{t('forgotPassword.subtitle')}</Typography>
-            </Stack>
+    <PublicAuthLayout title={t('forgotPassword.title')} subtitle={t('forgotPassword.subtitle')}>
+        <Stack spacing={2.5}>
 
             {done && <Alert severity="success">{t('forgotPassword.checkInbox')}</Alert>}
             {serverError && <Alert severity="error">{serverError}</Alert>}
@@ -82,8 +68,6 @@ export function ForgotPasswordPage() {
               {t('forgotPassword.backToLogin')}
             </Link>
           </Stack>
-        </CardContent>
-      </Card>
     </PublicAuthLayout>
   );
 }

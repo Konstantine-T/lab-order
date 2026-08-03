@@ -4,8 +4,8 @@ import {
   Box,
   Button,
   Checkbox,
-  Chip,
   CircularProgress,
+  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
@@ -21,11 +21,6 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import SearchIcon from '@mui/icons-material/Search';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import { DatePicker } from '@mui/x-date-pickers';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -34,10 +29,19 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
+import {
+  ChoicePill,
+  Icon,
+  PageHeader,
+  PillRow,
+  ProgressBar,
+  StatusPill,
+} from '@/components/design';
 import { formatGEL } from '@/utils/pricing';
 import { OrderRowCard } from '@/features/orders/OrderRowCard';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { OrdersPaginator } from '@/features/orders/OrdersPaginator';
+import { ORDER_PIPELINE, pipelineIndex } from '@/features/orders/pipeline';
 import type { OrderRow, OrderStatus } from '@/types/database';
 import {
   loadDraft,
@@ -59,11 +63,25 @@ const ALL_STATUSES: readonly OrderStatus[] = [
   'CANCELLED',
 ];
 
+/** The mockups' four quick filters, above the finer status/date controls. */
+const QUICK = ['all', 'active', 'needsAction', 'completed'] as const;
+type Quick = (typeof QUICK)[number];
+
+/** Statuses where the ball is in the doctor's court. */
+const NEEDS_ACTION: readonly OrderStatus[] = ['NEEDS_CLARIFICATION', 'TRY_IN_PHASE'];
+
 type Row = OrderRow & {
   patients: { first_name: string; last_name: string } | null;
   labs: { public_name: string } | null;
   lab_services: { name: string } | null;
   service_snapshot: { name?: string } | null;
+};
+
+const matchesQuick = (row: Row, quick: Quick) => {
+  if (quick === 'all') return true;
+  if (quick === 'completed') return row.status === 'COMPLETED';
+  if (quick === 'needsAction') return NEEDS_ACTION.includes(row.status as OrderStatus);
+  return row.status !== 'COMPLETED' && row.status !== 'CANCELLED';
 };
 
 export function OrdersListPage() {
@@ -79,9 +97,11 @@ export function OrdersListPage() {
   const [pageSize, setPageSize] = useState(25);
 
   const [search, setSearch] = useState('');
+  const [quick, setQuick] = useState<Quick>('all');
   const [statuses, setStatuses] = useState<OrderStatus[]>([]);
   const [dateFrom, setDateFrom] = useState<Dayjs | null>(null);
   const [dateTo, setDateTo] = useState<Dayjs | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const [draftModalOpen, setDraftModalOpen] = useState(false);
   const [draftSeen, setDraftSeen] = useState(false);
@@ -145,10 +165,16 @@ export function OrdersListPage() {
     },
   });
 
-  const hasFilters = !!(search || statuses.length > 0 || dateFrom?.isValid() || dateTo?.isValid());
+  const hasFilters = !!(
+    search ||
+    quick !== 'all' ||
+    statuses.length > 0 ||
+    dateFrom?.isValid() ||
+    dateTo?.isValid()
+  );
 
   const filtered = useMemo(() => {
-    let result = orders;
+    let result = orders.filter((row) => matchesQuick(row, quick));
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       result = result.filter((row) => {
@@ -187,7 +213,15 @@ export function OrdersListPage() {
       });
     }
     return result;
-  }, [orders, search, statuses, dateFrom, dateTo]);
+  }, [orders, quick, search, statuses, dateFrom, dateTo]);
+
+  const quickCounts = useMemo(
+    () =>
+      Object.fromEntries(
+        QUICK.map((q) => [q, orders.filter((row) => matchesQuick(row, q)).length]),
+      ) as Record<Quick, number>,
+    [orders],
+  );
 
   const visible = useMemo(
     () => filtered.slice((page - 1) * pageSize, page * pageSize),
@@ -197,10 +231,11 @@ export function OrdersListPage() {
   useEffect(() => {
     setPage(1);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, statuses, dateFrom?.format('YYYY-MM-DD'), dateTo?.format('YYYY-MM-DD')]);
+  }, [search, quick, statuses, dateFrom?.format('YYYY-MM-DD'), dateTo?.format('YYYY-MM-DD')]);
 
   const clearFilters = () => {
     setSearch('');
+    setQuick('all');
     setStatuses([]);
     setDateFrom(null);
     setDateTo(null);
@@ -223,7 +258,38 @@ export function OrdersListPage() {
     : '';
 
   return (
-    <Stack spacing={3}>
+    <>
+      <PageHeader
+        title={t('orders.title')}
+        subtitle={t('orders.subtitle')}
+        actions={
+          <>
+            <TextField
+              placeholder={t('orders.filters.search')}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              size="small"
+              sx={{ width: { sm: 250 } }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Icon name="search" size={18} sx={{ color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <Button
+              variant="contained"
+              component={RouterLink}
+              to="/doctor/marketplace"
+              startIcon={<Icon name="add" size={17} />}
+            >
+              {t('orders.newOrder')}
+            </Button>
+          </>
+        }
+      />
+
       {/* Draft resume modal */}
       <Dialog open={draftModalOpen} onClose={() => setDraftModalOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>
@@ -232,9 +298,9 @@ export function OrdersListPage() {
         <DialogContent>
           <Stack spacing={1} sx={{ mt: 0.5 }}>
             <Stack spacing={0.5}>
-              <Typography variant="body2" fontWeight={600}>{draftPatientName}</Typography>
+              <Typography variant="subtitle1">{draftPatientName}</Typography>
               {draft && (
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body1" color="text.secondary">
                   {[draft.labName, draft.serviceName].filter(Boolean).join(' · ')}
                 </Typography>
               )}
@@ -260,235 +326,253 @@ export function OrdersListPage() {
         </DialogActions>
       </Dialog>
 
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        justifyContent="space-between"
-        alignItems={{ sm: 'center' }}
-        spacing={2}
-      >
-        <Stack>
-          <Typography variant="h4" fontWeight={600}>
-            {t('orders.title')}
-          </Typography>
-          {!isLoading && orders.length > 0 && (
-            <Typography variant="body2" color="text.secondary">
-              {hasFilters
-                ? t('orders.countFiltered', {
-                    count: filtered.length,
-                    total: orders.length,
-                  })
-                : t('orders.count', { count: orders.length })}
-            </Typography>
-          )}
-        </Stack>
-        <Button
-          startIcon={<AddIcon />}
-          variant="contained"
-          component={RouterLink}
-          to="/doctor/marketplace"
-          sx={{ alignSelf: { xs: 'flex-start', sm: 'auto' } }}
-        >
-          {t('orders.newOrder')}
-        </Button>
-      </Stack>
-
-      {/* ── Filters ── */}
-      {!isLoading && orders.length > 0 && (
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={1.5}
-          flexWrap="wrap"
-          useFlexGap
-          alignItems={{ sm: 'center' }}
-        >
-          <TextField
-            placeholder={t('orders.filters.search')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            size="small"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon fontSize="small" />
-                </InputAdornment>
-              ),
-            }}
-            sx={{ flex: 1, minWidth: 220 }}
-          />
-          <FormControl size="small" sx={{ minWidth: 190 }}>
-            <InputLabel>{t('orders.filters.status')}</InputLabel>
-            <Select
-              multiple
-              value={statuses}
-              onChange={(e) => setStatuses(e.target.value as OrderStatus[])}
-              input={<OutlinedInput label={t('orders.filters.status')} />}
-              renderValue={(sel) =>
-                sel.length === 0
-                  ? ''
-                  : sel.map((s) => tc(`orderStatus.${s}`)).join(', ')
-              }
-            >
-              {ALL_STATUSES.map((s) => (
-                <MenuItem key={s} value={s}>
-                  <Checkbox checked={statuses.includes(s)} size="small" />
-                  <ListItemText primary={tc(`orderStatus.${s}`)} />
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-          <DatePicker
-            label={t('orders.filters.from')}
-            value={dateFrom}
-            onChange={(d) => setDateFrom(d)}
-            format="YYYY-MM-DD"
-            slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
-          />
-          <DatePicker
-            label={t('orders.filters.to')}
-            value={dateTo}
-            onChange={(d) => setDateTo(d)}
-            format="YYYY-MM-DD"
-            slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
-          />
-          {hasFilters && (
-            <Button size="small" onClick={clearFilters} sx={{ whiteSpace: 'nowrap' }}>
-              {t('orders.filters.clear')}
-            </Button>
-          )}
-        </Stack>
-      )}
-
-      {/* Draft row — always visible at top when a saved draft exists */}
-      {draft && !isLoading && (
-        <OrderRowCard
-          code="—"
-          primary={draftPatientName}
-          secondary={[draft.labName, draft.serviceName].filter(Boolean).join(' · ')}
-          status={
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <Chip
-                label={t('orders.draft.label')}
-                size="small"
-                sx={{
-                  bgcolor: 'warning.main',
-                  color: 'warning.contrastText',
-                  fontWeight: 600,
-                  fontSize: 11,
-                }}
-              />
-              {draftBroken?.broken && (
-                <WarningAmberIcon
-                  fontSize="small"
-                  color="warning"
-                  titleAccess={t('orders.draft.brokenTooltip')}
-                />
-              )}
-            </Stack>
-          }
-          total="—"
-          avatarText={draftPatientName}
-          onClick={() => setDraftModalOpen(true)}
-        />
-      )}
-
-      {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-          <CircularProgress />
-        </Box>
-      ) : orders.length === 0 ? (
-        <OrdersEmptyState
-          title={t('orders.empty')}
-          action={
-            <Button
-              startIcon={<AddIcon />}
-              variant="contained"
-              component={RouterLink}
-              to="/doctor/marketplace"
-            >
-              {t('orders.newOrder')}
-            </Button>
-          }
-        />
-      ) : filtered.length === 0 ? (
-        <OrdersEmptyState title={t('orders.filters.noResults')} />
-      ) : (
-        <Stack spacing={2}>
-          <Stack spacing={1.5}>
-            {visible.map((row) => {
-              const patientName = row.patients
-                ? `${row.patients.first_name} ${row.patients.last_name}`
-                : '—';
-              const serviceName =
-                row.lab_services?.name ?? row.service_snapshot?.name ?? '';
-              const labName = row.labs?.public_name ?? '';
-              const hasDiscount =
-                row.final_total != null &&
-                row.generated_total != null &&
-                row.final_total < row.generated_total;
-              const total = row.final_total ?? row.generated_total;
-              const dueRaw = row.confirmed_due_date ?? row.requested_due_date;
-              const due = dueRaw
-                ? t('orders.dueOn', {
-                    date: dayjs(dueRaw).format('MMM D, YYYY'),
-                  })
-                : undefined;
-              return (
-                <OrderRowCard
-                  key={row.id}
-                  code={row.order_code}
-                  primary={patientName}
-                  secondary={[serviceName, labName].filter(Boolean).join(' · ')}
-                  status={<OrderStatusChip status={row.status} />}
-                  paymentStatus={<PaymentStatusChip status={row.payment_status} />}
-                  total={total != null ? formatGEL(total) : '—'}
-                  originalTotal={hasDiscount ? formatGEL(row.generated_total!) : undefined}
-                  dueDate={due}
-                  avatarText={patientName}
-                  onClick={() => navigate(`/doctor/orders/${row.id}`)}
-                  footer={
-                    row.status === 'CANCELLED' ? undefined : (
-                      <Stack direction="row" spacing={1} sx={{ px: 2.5, py: 1.25 }}>
-                        {row.status !== 'COMPLETED' && (
-                          <Button
-                            size="small"
-                            startIcon={<EditIcon fontSize="small" />}
-                            onClick={() => navigate(`/doctor/orders/${row.id}/edit`)}
-                          >
-                            {t('orders.editButton')}
-                          </Button>
-                        )}
-                        {row.status === 'COMPLETED' && (
-                          <Button
-                            size="small"
-                            variant="contained"
-                            startIcon={<PlayArrowIcon fontSize="small" />}
-                            onClick={() =>
-                              continueProject.start(row.lab_id, row.patient_id, row.id)
-                            }
-                          >
-                            {t('orders.continueProject')}
-                          </Button>
-                        )}
-                      </Stack>
-                    )
-                  }
-                />
-              );
+      <Stack spacing={2}>
+        {/* Unfinished-draft banner — the mockups' brand-tinted resume strip. */}
+        {draft && !isLoading && (
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            alignItems={{ sm: 'center' }}
+            spacing={1.5}
+            sx={(theme) => ({
+              px: 2.25,
+              py: 1.625,
+              borderRadius: '14px',
+              border: 1,
+              borderColor: 'primary.main',
+              bgcolor:
+                theme.palette.mode === 'light'
+                  ? 'rgba(146,146,255,0.09)'
+                  : 'rgba(146,146,255,0.14)',
             })}
+          >
+            <Icon name="draft" size={21} sx={{ color: 'primary.dark' }} />
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }}>
+                {t('orders.draft.bannerTitle')}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" noWrap>
+                {[draftPatientName, draft.labName, draft.serviceName]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </Typography>
+            </Box>
+            {draftBroken?.broken && (
+              <StatusPill tone="warning">{t('orders.draft.brokenTooltip')}</StatusPill>
+            )}
+            <Button size="small" variant="contained" onClick={handleDraftContinue}>
+              {t('orders.draft.resume')}
+            </Button>
+            <Button size="small" color="inherit" onClick={handleDraftDiscard}>
+              {t('orders.draft.discard')}
+            </Button>
           </Stack>
-          <OrdersPaginator
-            page={page}
-            pageSize={pageSize}
-            total={filtered.length}
-            onPageChange={setPage}
-            onPageSizeChange={(s) => {
-              setPageSize(s);
-              setPage(1);
-            }}
+        )}
+
+        {/* Quick filters + the finer controls behind a toggle. */}
+        {!isLoading && orders.length > 0 && (
+          <Box>
+            <PillRow>
+              {QUICK.map((q) => (
+                <ChoicePill
+                  key={q}
+                  selected={quick === q}
+                  count={quickCounts[q]}
+                  onClick={() => setQuick(q)}
+                >
+                  {t(`orders.quick.${q}`)}
+                </ChoicePill>
+              ))}
+              <ChoicePill
+                selected={advancedOpen}
+                onClick={() => setAdvancedOpen((v) => !v)}
+                sx={{ ml: 'auto' }}
+              >
+                <Icon name="tune" size={15} />
+                {t('orders.moreFilters')}
+              </ChoicePill>
+            </PillRow>
+
+            <Collapse in={advancedOpen}>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1.5}
+                flexWrap="wrap"
+                useFlexGap
+                alignItems={{ sm: 'center' }}
+                sx={{ mt: 1.75 }}
+              >
+                <FormControl size="small" sx={{ minWidth: 190 }}>
+                  <InputLabel>{t('orders.filters.status')}</InputLabel>
+                  <Select
+                    multiple
+                    value={statuses}
+                    onChange={(e) => setStatuses(e.target.value as OrderStatus[])}
+                    input={<OutlinedInput label={t('orders.filters.status')} />}
+                    renderValue={(sel) =>
+                      sel.length === 0 ? '' : sel.map((s) => tc(`orderStatus.${s}`)).join(', ')
+                    }
+                  >
+                    {ALL_STATUSES.map((s) => (
+                      <MenuItem key={s} value={s}>
+                        <Checkbox checked={statuses.includes(s)} size="small" />
+                        <ListItemText primary={tc(`orderStatus.${s}`)} />
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <DatePicker
+                  label={t('orders.filters.from')}
+                  value={dateFrom}
+                  onChange={(d) => setDateFrom(d)}
+                  format="YYYY-MM-DD"
+                  slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
+                />
+                <DatePicker
+                  label={t('orders.filters.to')}
+                  value={dateTo}
+                  onChange={(d) => setDateTo(d)}
+                  format="YYYY-MM-DD"
+                  slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
+                />
+                {hasFilters && (
+                  <Button size="small" onClick={clearFilters} sx={{ whiteSpace: 'nowrap' }}>
+                    {t('orders.filters.clear')}
+                  </Button>
+                )}
+              </Stack>
+            </Collapse>
+          </Box>
+        )}
+
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+            <CircularProgress />
+          </Box>
+        ) : orders.length === 0 ? (
+          <OrdersEmptyState
+            title={t('orders.empty')}
+            action={
+              <Button
+                startIcon={<Icon name="add" size={17} />}
+                variant="contained"
+                component={RouterLink}
+                to="/doctor/marketplace"
+              >
+                {t('orders.newOrder')}
+              </Button>
+            }
           />
-        </Stack>
-      )}
+        ) : filtered.length === 0 ? (
+          <OrdersEmptyState icon="filter_alt_off" title={t('orders.filters.noResults')} />
+        ) : (
+          <Stack spacing={2}>
+            <Stack spacing={1.25}>
+              {visible.map((row) => {
+                const patientName = row.patients
+                  ? `${row.patients.first_name} ${row.patients.last_name}`
+                  : '—';
+                const serviceName = row.lab_services?.name ?? row.service_snapshot?.name ?? '';
+                const labName = row.labs?.public_name ?? '';
+                const hasDiscount =
+                  row.final_total != null &&
+                  row.generated_total != null &&
+                  row.final_total < row.generated_total;
+                const total = row.final_total ?? row.generated_total;
+                const dueRaw = row.confirmed_due_date ?? row.requested_due_date;
+                const due = dueRaw ? dayjs(dueRaw).format('MMM D') : undefined;
+                const overdue =
+                  !!dueRaw &&
+                  row.status !== 'COMPLETED' &&
+                  row.status !== 'CANCELLED' &&
+                  dayjs(dueRaw).diff(dayjs(), 'day') <= 1;
+                const step = pipelineIndex(row.status as OrderStatus);
+                const needsAction = NEEDS_ACTION.includes(row.status as OrderStatus);
+                const next = step != null ? ORDER_PIPELINE[step + 1] : undefined;
+
+                return (
+                  <OrderRowCard
+                    key={row.id}
+                    code={row.order_code}
+                    primary={patientName}
+                    secondary={[serviceName, labName].filter(Boolean).join(' · ')}
+                    status={<OrderStatusChip status={row.status} />}
+                    paymentStatus={<PaymentStatusChip status={row.payment_status} />}
+                    total={total != null ? formatGEL(total) : '—'}
+                    originalTotal={hasDiscount ? formatGEL(row.generated_total!) : undefined}
+                    dueDate={due}
+                    dueUrgent={overdue}
+                    avatarText={patientName}
+                    highlight={needsAction}
+                    flag={
+                      needsAction ? (
+                        <StatusPill tone="warning">{tc(`orderStatus.${row.status}`)}</StatusPill>
+                      ) : undefined
+                    }
+                    onClick={() => navigate(`/doctor/orders/${row.id}`)}
+                    progress={
+                      step == null ? undefined : (
+                        <ProgressBar
+                          total={ORDER_PIPELINE.length}
+                          current={step}
+                          complete={row.status === 'COMPLETED'}
+                          caption={
+                            row.status === 'COMPLETED'
+                              ? t('orders.pipelineDone')
+                              : next
+                                ? t('orders.pipelineNext', {
+                                    current: tc(`orderStatus.${ORDER_PIPELINE[step]}`),
+                                    next: tc(`orderStatus.${next}`),
+                                  })
+                                : tc(`orderStatus.${ORDER_PIPELINE[step]}`)
+                          }
+                        />
+                      )
+                    }
+                    footer={
+                      row.status === 'CANCELLED' ? undefined : (
+                        <Stack direction="row" spacing={1} sx={{ px: 2.5, py: 1.25 }}>
+                          {row.status !== 'COMPLETED' && (
+                            <Button
+                              size="small"
+                              startIcon={<Icon name="edit" size={16} />}
+                              onClick={() => navigate(`/doctor/orders/${row.id}/edit`)}
+                            >
+                              {t('orders.editButton')}
+                            </Button>
+                          )}
+                          {row.status === 'COMPLETED' && (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              startIcon={<Icon name="add" size={16} />}
+                              onClick={() =>
+                                continueProject.start(row.lab_id, row.patient_id, row.id)
+                              }
+                            >
+                              {t('orders.continueProject')}
+                            </Button>
+                          )}
+                        </Stack>
+                      )
+                    }
+                  />
+                );
+              })}
+            </Stack>
+            <OrdersPaginator
+              page={page}
+              pageSize={pageSize}
+              total={filtered.length}
+              onPageChange={setPage}
+              onPageSizeChange={(s) => {
+                setPageSize(s);
+                setPage(1);
+              }}
+            />
+          </Stack>
+        )}
+      </Stack>
       {continueProject.modal}
-    </Stack>
+    </>
   );
 }

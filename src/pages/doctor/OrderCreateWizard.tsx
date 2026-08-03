@@ -3,17 +3,11 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  Divider,
-  FormControlLabel,
   MenuItem,
-  Radio,
-  RadioGroup,
   Stack,
   Switch,
   TextField,
@@ -28,6 +22,16 @@ import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { OrderForm, isOrderFormValid } from '@/features/orderForms/OrderForm';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
+import {
+  Callout,
+  FieldLabel,
+  Icon,
+  InitialsAvatar,
+  PageHeader,
+  SectionCard,
+  Segmented,
+  SplitLayout,
+} from '@/components/design';
 import { calculatePrice, formatGEL } from '@/utils/pricing';
 import type {
   DoctorWorkLocationRow,
@@ -411,13 +415,30 @@ export function OrderCreateWizard() {
 
   if (submittedOrderId) {
     return (
-      <Stack spacing={3} sx={{ maxWidth: 600, mx: 'auto', py: 4 }}>
-        <Alert severity="success">{t('orderCreate.review.submitSuccess')}</Alert>
-        <Stack direction="row" spacing={2}>
+      <Stack spacing={2} alignItems="center" sx={{ maxWidth: 520, mx: 'auto', py: 8 }}>
+        <Box
+          sx={{
+            width: 64,
+            height: 64,
+            borderRadius: '50%',
+            display: 'grid',
+            placeItems: 'center',
+            bgcolor: 'success.main',
+            color: '#fff',
+          }}
+        >
+          <Icon name="check" size={34} />
+        </Box>
+        <Typography variant="h3" component="h1" sx={{ textAlign: 'center' }}>
+          {t('orderCreate.review.submitSuccess')}
+        </Typography>
+        <Stack direction="row" spacing={1.5} sx={{ pt: 1 }}>
           <Button variant="contained" onClick={() => navigate(`/doctor/orders/${submittedOrderId}`)}>
             {tc('actions.viewDetails')}
           </Button>
-          <Button onClick={() => navigate('/doctor/orders')}>{t('nav.orders')}</Button>
+          <Button variant="outlined" onClick={() => navigate('/doctor/orders')}>
+            {t('nav.orders')}
+          </Button>
         </Stack>
       </Stack>
     );
@@ -426,118 +447,141 @@ export function OrderCreateWizard() {
   // Selected work location — drives the clinic-code warning in the invoice card.
   const selectedLoc = locations.find((l) => l.id === state.doctor_work_location_id);
 
+  const patientName = `${state.patient.first_name} ${state.patient.last_name}`.trim();
+
   return (
-    <Stack spacing={3} sx={{ maxWidth: 920, mx: 'auto' }}>
-      <Typography variant="h4">{t('orderCreate.title')}</Typography>
-
-      {lab && selectedService && (
-        <Alert severity="info" icon={false} sx={{ '.MuiAlert-message': { width: '100%' } }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1}>
-            <Typography variant="body2">
-              <strong>{lab.public_name}</strong>
-              {lab.city ? ` · ${lab.city}` : ''} — {selectedService.name}
-            </Typography>
-            <Button
-              size="small"
-              onClick={() => navigate('/doctor/marketplace')}
-              sx={{ alignSelf: { xs: 'flex-start', sm: 'center' } }}
-            >
-              {t('orderCreate.changeLabService')}
-            </Button>
-          </Stack>
-        </Alert>
-      )}
-
-      {isBroken && (
-        <Alert severity="warning">
-          {t('orderCreate.brokenDraft.alert')}
-          <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-            <Button size="small" onClick={() => setDismissedBroken(true)}>
-              {t('orderCreate.brokenDraft.keepAnswers')}
-            </Button>
-            <Button
-              size="small"
-              color="error"
-              onClick={async () => {
-                if (doctorId) await clearDraft(doctorId);
-                setDismissedBroken(false);
-                setState({ ...initialState, lab_id: labParam, lab_service_id: serviceParam });
+    <>
+      <PageHeader
+        backTo="/doctor/marketplace"
+        title={t('orderCreate.title')}
+        subtitle={`${t('nav.orders')} / ${t('orderCreate.title')}`}
+        chips={
+          lab &&
+          selectedService && (
+            // The lab + service capsule the mockup pins next to the title, with
+            // its own "Change" escape hatch back to the marketplace.
+            <Stack
+              direction="row"
+              alignItems="center"
+              spacing={1.125}
+              sx={{
+                bgcolor: 'background.paper',
+                border: 1,
+                borderColor: 'divider',
+                borderRadius: 999,
+                pl: 0.75,
+                pr: 1,
+                py: 0.75,
               }}
             >
-              {t('orderCreate.brokenDraft.discard')}
-            </Button>
+              <InitialsAvatar name={lab.public_name} size={24} shape="circle" variant="brand" />
+              <Typography sx={{ fontSize: '0.78125rem', fontWeight: 600 }}>
+                {lab.public_name}{' '}
+                <Box component="span" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                  · {selectedService.name}
+                </Box>
+              </Typography>
+              <Button size="small" sx={{ p: 0.5, minWidth: 0 }} onClick={() => navigate('/doctor/marketplace')}>
+                {t('orderCreate.changeLabService')}
+              </Button>
+            </Stack>
+          )
+        }
+        actions={
+          <Stack direction="row" alignItems="center" spacing={0.75}>
+            <Icon name="cloud_done" size={15} sx={{ color: 'success.main' }} />
+            <Typography variant="body2" color="text.secondary" noWrap>
+              {t('orderCreate.draftSaved')}
+            </Typography>
           </Stack>
-        </Alert>
-      )}
-
-      {error && <Alert severity="error">{error}</Alert>}
-
-      {/* Single scrolling page: all sections stacked top-to-bottom. */}
-      <PatientStep
-        state={state}
-        update={update}
-        doctorId={doctorId ?? ''}
-        patientAttempted={patientAttempted}
-        readOnly={isContinuation}
+        }
       />
 
-      {version && (
-        <FormStep state={state} update={update} version={version} showErrors={submitAttempted} />
-      )}
-
-      <FilesAndDueStep
-        state={state}
-        update={update}
-        locations={locations}
-        pricing={version?.pricing_configuration_json}
-        averageTurnaroundDays={selectedService?.average_turnaround_days ?? null}
-        filesAttempted={filesAttempted}
-        onAddLocation={() => {
-          navigate('/doctor/work-locations');
-        }}
-      />
-
-      {/* Invoice recipient — moved out of the old Review step. */}
-      <Card>
-        <CardContent>
-          <Typography variant="h6">{t('orderCreate.review.invoiceRecipient')}</Typography>
-          <RadioGroup
-            value={state.invoice_recipient_type}
-            onChange={(e) =>
-              update({ invoice_recipient_type: e.target.value as 'DOCTOR' | 'CLINIC' })
-            }
-          >
-            <FormControlLabel
-              value="DOCTOR"
-              control={<Radio />}
-              label={t('orderCreate.review.invoiceDoctor')}
+      <SplitLayout
+        rail={
+          <>
+            <SummaryRail
+              state={state}
+              update={update}
+              locations={locations}
+              version={version}
+              rush={rush}
+              selectedLoc={selectedLoc}
+              averageTurnaroundDays={selectedService?.average_turnaround_days ?? null}
+              filesAttempted={filesAttempted}
+              patientName={patientName}
+              submitting={submit.isPending}
+              disabled={isBroken}
+              showError={submitAttempted && !!error}
+              onSubmit={handleSubmit}
+              onAddLocation={() => navigate('/doctor/work-locations')}
             />
-            <FormControlLabel
-              value="CLINIC"
-              control={<Radio />}
-              label={t('orderCreate.review.invoiceClinic')}
-            />
-          </RadioGroup>
-          {state.invoice_recipient_type === 'CLINIC' &&
-            selectedLoc &&
-            !selectedLoc.clinic_identification_code && (
-              <Alert severity="warning" sx={{ mt: 1 }}>
-                {t('orderCreate.review.clinicCodeWarning')}
-              </Alert>
-            )}
-        </CardContent>
-      </Card>
+            <Callout tone="brand">{t('orderCreate.railHint')}</Callout>
+          </>
+        }
+      >
+        {isBroken && (
+          <Callout tone="warning" title={t('orderCreate.brokenDraft.alert')}>
+            <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+              <Button size="small" onClick={() => setDismissedBroken(true)}>
+                {t('orderCreate.brokenDraft.keepAnswers')}
+              </Button>
+              <Button
+                size="small"
+                color="error"
+                onClick={async () => {
+                  if (doctorId) await clearDraft(doctorId);
+                  setDismissedBroken(false);
+                  setState({ ...initialState, lab_id: labParam, lab_service_id: serviceParam });
+                }}
+              >
+                {t('orderCreate.brokenDraft.discard')}
+              </Button>
+            </Stack>
+          </Callout>
+        )}
 
-      <Stack direction="row" justifyContent="flex-end">
-        <Button
-          variant="contained"
-          onClick={handleSubmit}
-          disabled={submit.isPending || isBroken}
-        >
-          {t('orderCreate.review.submit')}
-        </Button>
-      </Stack>
-    </Stack>
+        {error && <Alert severity="error">{error}</Alert>}
+
+        {/* Single scrolling page: all sections stacked top-to-bottom. */}
+        <PatientStep
+          state={state}
+          update={update}
+          doctorId={doctorId ?? ''}
+          patientAttempted={patientAttempted}
+          readOnly={isContinuation}
+        />
+
+        {version && (
+          <FormStep state={state} update={update} version={version} showErrors={submitAttempted} />
+        )}
+
+        <FilesCard />
+      </SplitLayout>
+    </>
+  );
+}
+
+// ============================================================================
+// Files
+// ============================================================================
+/**
+ * The wizard's Files card. Uploads land in a later phase, so this shows the
+ * mockup's dropzone chrome with the "coming soon" note rather than a control
+ * that would do nothing.
+ */
+function FilesCard() {
+  const { t } = useTranslation('doctor');
+  return (
+    <SectionCard
+      icon="upload_file"
+      title={t('orderCreate.filesAndDue.files')}
+      meta={t('orderCreate.filesAndDue.uploadHint')}
+    >
+      <Callout tone="neutral" icon="cloud_upload">
+        {t('orderCreate.filesAndDue.filesComingSoon')}
+      </Callout>
+    </SectionCard>
   );
 }
 
@@ -599,13 +643,18 @@ export function PatientStep({
     readOnly,
   ]);
 
+  const complete = !!state.patient.first_name.trim() && !!state.patient.last_name.trim();
+
   return (
-    <Card>
-      <CardContent>
+    <SectionCard
+      icon="person"
+      title={t('orderCreate.patient.header')}
+      done={complete}
+      error={patientAttempted && !complete ? t('orderCreate.required') : undefined}
+    >
         <Stack spacing={2}>
-          <Typography variant="h6">{t('orderCreate.patient.header')}</Typography>
           {readOnly && (
-            <Alert severity="info">{t('orderCreate.patient.lockedForContinuation')}</Alert>
+            <Callout tone="brand">{t('orderCreate.patient.lockedForContinuation')}</Callout>
           )}
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
             <TextField
@@ -686,10 +735,11 @@ export function PatientStep({
             </TextField>
           </Stack>
           {state.patient.existing_id && !readOnly && (
-            <Alert severity="info">{t('orderCreate.patient.continuingExisting')}</Alert>
+            <Callout tone="brand" icon="how_to_reg">
+              {t('orderCreate.patient.continuingExisting')}
+            </Callout>
           )}
         </Stack>
-      </CardContent>
       <Dialog open={matchOpen && !state.patient.existing_id && !readOnly} onClose={() => setMatchOpen(false)}>
         <DialogTitle>{t('orderCreate.patient.match.title')}</DialogTitle>
         <DialogContent>
@@ -723,7 +773,7 @@ export function PatientStep({
           </Button>
         </DialogActions>
       </Dialog>
-    </Card>
+    </SectionCard>
   );
 }
 
@@ -743,54 +793,63 @@ export function FormStep({
   showErrors?: boolean;
 }) {
   const { t } = useTranslation('doctor');
-  // Estimated total on this step ignores rush — the rush toggle lives on the
-  // next step. Doctors get an updated estimate including rush there.
+  // The running total lives in the summary rail, where the mockups put it —
+  // this step is purely the clinical form, one card per numbered section.
   return (
-    <Stack spacing={3}>
-      <Card>
-        <CardContent>
-          <Alert severity="info" sx={{ mb: 2.5 }}>
-            {t('orderCreate.digitalImpressionsNote')}
-          </Alert>
-          <OrderForm
-            configuration={version.configuration_json}
-            pricing={version.pricing_configuration_json}
-            values={state.answers}
-            onChange={(answers) => update({ answers })}
-            showErrors={showErrors}
-          />
-        </CardContent>
-      </Card>
-      <PriceBreakdown
+    <Stack spacing={2}>
+      <Callout tone="brand">{t('orderCreate.digitalImpressionsNote')}</Callout>
+      <OrderForm
+        configuration={version.configuration_json}
         pricing={version.pricing_configuration_json}
-        answers={state.answers}
-        rush={{ type: 'NONE', value: 0 }}
+        values={state.answers}
+        onChange={(answers) => update({ answers })}
+        showErrors={showErrors}
       />
     </Stack>
   );
 }
 
 // ============================================================================
-// Step 4 — Files & Due
+// Summary rail
 // ============================================================================
-function FilesAndDueStep({
+/**
+ * The sticky right rail from the wizard mockup: a live price estimate, then
+ * every non-clinical decision — rush, due date, work location, who gets the
+ * invoice — and the submit button.
+ */
+function SummaryRail({
   state,
   update,
   locations,
-  pricing,
+  version,
+  rush,
+  selectedLoc,
   averageTurnaroundDays,
   filesAttempted,
+  patientName,
+  submitting,
+  disabled,
+  showError,
+  onSubmit,
   onAddLocation,
 }: {
   state: WizardState;
   update: (p: Partial<WizardState>) => void;
   locations: DoctorWorkLocationRow[];
-  pricing: PricingConfig | undefined;
+  version: LabFormVersionRow | null | undefined;
+  rush: { type: RushType; value: number } | undefined;
+  selectedLoc: DoctorWorkLocationRow | undefined;
   averageTurnaroundDays: number | null;
   filesAttempted?: boolean;
+  patientName: string;
+  submitting: boolean;
+  disabled: boolean;
+  showError: boolean;
+  onSubmit: () => void;
   onAddLocation: () => void;
 }) {
   const { t } = useTranslation('doctor');
+  const pricing = version?.pricing_configuration_json;
 
   const labRush = pricing?.rush;
   const rushAvailable = !!labRush && labRush.type !== 'NONE';
@@ -803,136 +862,169 @@ function FilesAndDueStep({
     const nextMinDays = minTurnaroundDays(averageTurnaroundDays, pricing, checked);
     const nextMin = dayjs().startOf('day').add(nextMinDays, 'day');
     const next: Partial<WizardState> = { rush_requested: checked };
-    if (
-      state.requested_due_date &&
-      dayjs(state.requested_due_date).isBefore(nextMin, 'day')
-    ) {
+    if (state.requested_due_date && dayjs(state.requested_due_date).isBefore(nextMin, 'day')) {
       next.requested_due_date = '';
     }
     update(next);
   };
 
   return (
-    <Card>
-      <CardContent>
-        <Stack spacing={3}>
-          <Stack>
-            <Typography variant="h6">{t('orderCreate.filesAndDue.workLocation')}</Typography>
-            <Box data-form-error={filesAttempted && !state.doctor_work_location_id ? 'true' : undefined}>
-              {locations.length === 0 ? (
-                <Alert
-                  severity="warning"
-                  sx={{ mt: 1 }}
-                  action={
-                    <Button color="inherit" size="small" onClick={onAddLocation}>
-                      {t('orderCreate.filesAndDue.addLocation')}
-                    </Button>
-                  }
-                >
-                  {t('orderCreate.filesAndDue.noLocations')}
-                </Alert>
-              ) : (
-                <TextField
-                  select
-                  value={state.doctor_work_location_id}
-                  onChange={(e) => update({ doctor_work_location_id: e.target.value })}
-                  fullWidth
-                  sx={{ mt: 1 }}
-                >
-                  {locations.map((l) => (
-                    <MenuItem key={l.id} value={l.id}>
-                      {l.clinic_name}
-                      {l.branch_name ? ` · ${l.branch_name}` : ''} — {l.city}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              )}
-            </Box>
-          </Stack>
+    <SectionCard dense>
+      <Box sx={{ px: 2.5, pt: 2, pb: 1.75, borderBottom: 1, borderColor: 'divider' }}>
+        <Typography sx={{ fontSize: '0.90625rem', fontWeight: 700 }}>
+          {t('orderCreate.summary')}
+        </Typography>
+        <Typography variant="body2" color="text.secondary" noWrap>
+          {patientName || t('orderCreate.patient.header')}
+        </Typography>
+      </Box>
 
-          <Stack spacing={1}>
-            <Typography variant="h6">{t('orderCreate.filesAndDue.rush')}</Typography>
-            {rushAvailable ? (
-              <>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={state.rush_requested}
-                      onChange={(e) => handleRushToggle(e.target.checked)}
-                    />
-                  }
-                  label={t('orderCreate.filesAndDue.rushToggle')}
-                />
-                <Stack
-                  direction="row"
-                  spacing={2}
-                  flexWrap="wrap"
-                  useFlexGap
-                  alignItems="center"
-                >
-                  <Typography variant="body2" color="text.secondary">
-                    {labRush!.type === 'PERCENTAGE'
-                      ? t('orderCreate.filesAndDue.rushSurchargePercent', {
-                          value: labRush!.value,
-                        })
-                      : t('orderCreate.filesAndDue.rushSurchargeFixed', {
-                          amount: formatGEL(labRush!.value ?? 0),
-                        })}
-                  </Typography>
-                  {labRush!.turnaround_days != null && labRush!.turnaround_days > 0 && (
-                    <Typography variant="body2" color="text.secondary">
-                      {labRush!.turnaround_days === 1
+      {version && (
+        <Box sx={{ px: 2.5, py: 1.75, borderBottom: 1, borderColor: 'divider' }}>
+          <PriceBreakdown
+            variant="plain"
+            pricing={version.pricing_configuration_json}
+            answers={state.answers}
+            rush={rush}
+          />
+        </Box>
+      )}
+
+      <Stack spacing={1.75} sx={{ px: 2.5, py: 2 }}>
+        {rushAvailable && (
+          <Stack
+            direction="row"
+            alignItems="center"
+            spacing={1.25}
+            onClick={() => handleRushToggle(!state.rush_requested)}
+            sx={{
+              px: 1.625,
+              py: 1.25,
+              borderRadius: `${11}px`,
+              border: 1,
+              borderColor: 'divider',
+              bgcolor: 'background.default',
+              cursor: 'pointer',
+            }}
+          >
+            <Switch
+              checked={state.rush_requested}
+              onChange={(e) => handleRushToggle(e.target.checked)}
+              onClick={(e) => e.stopPropagation()}
+              size="small"
+            />
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontSize: '0.78125rem', fontWeight: 700 }}>
+                {t('orderCreate.filesAndDue.rush')}
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+                {labRush!.type === 'PERCENTAGE'
+                  ? t('orderCreate.filesAndDue.rushSurchargePercent', { value: labRush!.value })
+                  : t('orderCreate.filesAndDue.rushSurchargeFixed', {
+                      amount: formatGEL(labRush!.value ?? 0),
+                    })}
+                {labRush!.turnaround_days != null && labRush!.turnaround_days > 0
+                  ? ` · ${
+                      labRush!.turnaround_days === 1
                         ? t('orderCreate.filesAndDue.rushTurnaroundOne')
                         : t('orderCreate.filesAndDue.rushTurnaroundOther', {
                             count: labRush!.turnaround_days,
-                          })}
-                    </Typography>
-                  )}
-                </Stack>
-              </>
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                {t('orderCreate.filesAndDue.rushUnavailable')}
+                          })
+                    }`
+                  : ''}
               </Typography>
-            )}
-          </Stack>
-
-          <Divider />
-
-          <Stack spacing={1}>
-            <Box data-form-error={filesAttempted && !state.requested_due_date ? 'true' : undefined}>
-              <DatePicker
-                label={t('orderCreate.filesAndDue.dueDate')}
-                value={state.requested_due_date ? dayjs(state.requested_due_date) : null}
-                onChange={(d: Dayjs | null) =>
-                  update({
-                    requested_due_date: d && d.isValid() ? d.format('YYYY-MM-DD') : '',
-                  })
-                }
-                format="YYYY-MM-DD"
-                minDate={minDate}
-                slotProps={{ textField: { fullWidth: true } }}
-              />
             </Box>
-            <Typography variant="caption" color="text.secondary">
-              {t('orderCreate.filesAndDue.dueDateHint', { count: minDays })}
-            </Typography>
           </Stack>
+        )}
 
-          <Divider />
+        <Box data-form-error={filesAttempted && !state.requested_due_date ? 'true' : undefined}>
+          <FieldLabel sx={{ mb: 0.625 }}>{t('orderCreate.filesAndDue.dueDate')} *</FieldLabel>
+          <DatePicker
+            value={state.requested_due_date ? dayjs(state.requested_due_date) : null}
+            onChange={(d: Dayjs | null) =>
+              update({ requested_due_date: d && d.isValid() ? d.format('YYYY-MM-DD') : '' })
+            }
+            format="YYYY-MM-DD"
+            minDate={minDate}
+            slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+          />
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+            {t('orderCreate.filesAndDue.dueDateHint', { count: minDays })}
+          </Typography>
+        </Box>
 
-          <Stack>
-            <Typography variant="h6">{t('orderCreate.filesAndDue.files')}</Typography>
-            <Typography variant="body2" color="text.secondary">
-              {t('orderCreate.filesAndDue.uploadHint')}
-            </Typography>
-            <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-              {t('orderCreate.filesAndDue.filesComingSoon')}
-            </Typography>
-          </Stack>
+        <Box data-form-error={filesAttempted && !state.doctor_work_location_id ? 'true' : undefined}>
+          <FieldLabel sx={{ mb: 0.625 }}>{t('orderCreate.filesAndDue.workLocation')}</FieldLabel>
+          {locations.length === 0 ? (
+            <Callout
+              tone="warning"
+              title={t('orderCreate.filesAndDue.noLocations')}
+              action={
+                <Button size="small" onClick={onAddLocation}>
+                  {t('orderCreate.filesAndDue.addLocation')}
+                </Button>
+              }
+            />
+          ) : (
+            <TextField
+              select
+              size="small"
+              value={state.doctor_work_location_id}
+              onChange={(e) => update({ doctor_work_location_id: e.target.value })}
+              fullWidth
+            >
+              {locations.map((l) => (
+                <MenuItem key={l.id} value={l.id}>
+                  {l.clinic_name}
+                  {l.branch_name ? ` · ${l.branch_name}` : ''} — {l.city}
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
+        </Box>
+
+        <Box>
+          <FieldLabel sx={{ mb: 0.75 }}>{t('orderCreate.review.invoiceRecipient')}</FieldLabel>
+          <Segmented
+            value={state.invoice_recipient_type}
+            onChange={(v) => update({ invoice_recipient_type: v })}
+            options={[
+              { value: 'DOCTOR' as const, label: t('orderCreate.review.invoiceDoctor') },
+              { value: 'CLINIC' as const, label: t('orderCreate.review.invoiceClinic') },
+            ]}
+          />
+          {state.invoice_recipient_type === 'CLINIC' &&
+            selectedLoc &&
+            !selectedLoc.clinic_identification_code && (
+              <Callout tone="warning" sx={{ mt: 1 }}>
+                {t('orderCreate.review.clinicCodeWarning')}
+              </Callout>
+            )}
+        </Box>
+
+        {showError && (
+          <Callout tone="danger" title={t('orderCreate.review.missingFields')} />
+        )}
+
+        <Button
+          variant="contained"
+          size="large"
+          fullWidth
+          onClick={onSubmit}
+          disabled={submitting || disabled}
+        >
+          {t('orderCreate.review.submit')}
+        </Button>
+
+        <Stack direction="row" spacing={0.75} alignItems="center" justifyContent="center">
+          <Icon name="lock" size={14} sx={{ color: 'text.secondary' }} />
+          <Typography variant="caption" color="text.secondary">
+            {t('orderCreate.privateToLab')}
+          </Typography>
         </Stack>
-      </CardContent>
-    </Card>
+      </Stack>
+    </SectionCard>
   );
 }
+
 

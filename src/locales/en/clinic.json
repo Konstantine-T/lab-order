@@ -11,7 +11,8 @@
       "doctors": "Doctors",
       "orders": "Orders",
       "pendingInvites": "Pending invites"
-    }
+    },
+    "subtitle": "Your doctors, their orders and pending invitations"
   },
   "doctors": {
     "title": "Doctors",

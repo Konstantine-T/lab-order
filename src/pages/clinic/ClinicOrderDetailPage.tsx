@@ -4,22 +4,16 @@ import {
   AlertTitle,
   Box,
   Button,
-  Card,
-  CardContent,
   CircularProgress,
   Dialog,
   DialogActions,
   DialogContent,
   DialogContentText,
   DialogTitle,
-  Divider,
-  Stack,
   TextField,
-  Typography,
 } from '@mui/material';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import EditIcon from '@mui/icons-material/Edit';
 import { Link as RouterLink, useParams } from 'react-router-dom';
+import { CardStack, FactCell, Icon, PageHeader, SectionCard } from '@/components/design';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
@@ -32,20 +26,6 @@ import type { LabFormVersionRow, OrderAnswerRow, OrderRow } from '@/types/databa
 type DetailRow = OrderRow & {
   patients: { first_name: string; last_name: string; date_of_birth: string | null } | null;
 };
-
-function Row({ k, v }: { k: string; v: string | undefined | null }) {
-  if (!v) return null;
-  return (
-    <Stack direction="row" spacing={2} justifyContent="space-between">
-      <Typography variant="body2" color="text.secondary">
-        {k}
-      </Typography>
-      <Typography variant="body2" sx={{ textAlign: 'right' }}>
-        {v}
-      </Typography>
-    </Stack>
-  );
-}
 
 /**
  * Read-only order detail for a clinic admin — full order data of a doctor under
@@ -136,16 +116,48 @@ export function ClinicOrderDetailPage() {
   const isTerminal = order.status === 'COMPLETED' || order.status === 'CANCELLED';
 
   return (
-    <Stack spacing={3}>
-      <Button
-        component={RouterLink}
-        to="/clinic/orders"
-        startIcon={<ArrowBackIcon />}
-        sx={{ alignSelf: 'flex-start' }}
-      >
-        {t('orderDetail.back')}
-      </Button>
+    <>
+      <PageHeader
+        backTo="/clinic/orders"
+        title={order.order_code}
+        subtitle={[
+          order.patients ? `${order.patients.first_name} ${order.patients.last_name}` : null,
+          serviceSnap?.name,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+        chips={
+          <>
+            <OrderStatusChip status={order.status} />
+            <PaymentStatusChip status={order.payment_status} />
+          </>
+        }
+        actions={
+          !isTerminal && (
+            <>
+              <Button
+                component={RouterLink}
+                to={`/clinic/orders/${order.id}/edit`}
+                variant="outlined"
+                size="small"
+                startIcon={<Icon name="edit" size={16} />}
+              >
+                {tc('actions.edit')}
+              </Button>
+              <Button
+                color="error"
+                variant="outlined"
+                size="small"
+                onClick={() => setCancelOpen(true)}
+              >
+                {t('orderDetail.cancelOrder')}
+              </Button>
+            </>
+          )
+        }
+      />
 
+      <CardStack>
       {order.status === 'CANCELLED' && (
         <Alert severity="error">
           <AlertTitle>{t('orderDetail.cancelledTitle')}</AlertTitle>
@@ -153,76 +165,55 @@ export function ClinicOrderDetailPage() {
         </Alert>
       )}
 
-      <Card>
-        <CardContent>
-          <Stack spacing={1.5}>
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-              <Typography variant="h5">{order.order_code}</Typography>
-              <OrderStatusChip status={order.status} />
-              <PaymentStatusChip status={order.payment_status} />
-              {!isTerminal && (
-                <Button
-                  component={RouterLink}
-                  to={`/clinic/orders/${order.id}/edit`}
-                  variant="outlined"
-                  size="small"
-                  startIcon={<EditIcon fontSize="small" />}
-                  sx={{ ml: { sm: 'auto' } }}
-                >
-                  {tc('actions.edit')}
-                </Button>
-              )}
-              {!isTerminal && (
-                <Button
-                  color="error"
-                  variant="outlined"
-                  size="small"
-                  onClick={() => setCancelOpen(true)}
-                >
-                  {t('orderDetail.cancelOrder')}
-                </Button>
-              )}
-            </Stack>
-            <Divider />
-            <Row k={t('orderDetail.lab')} v={labSnap?.public_name} />
-            <Row k={t('orderDetail.service')} v={serviceSnap?.name} />
-            <Row
-              k={t('orderDetail.patient')}
-              v={
-                order.patients
-                  ? `${order.patients.first_name} ${order.patients.last_name}` +
-                    (order.patients.date_of_birth ? ` · ${order.patients.date_of_birth}` : '')
-                  : ''
-              }
-            />
-            <Row
-              k={order.confirmed_due_date ? t('orderDetail.confirmedDueDate') : t('orderDetail.dueDate')}
-              v={order.confirmed_due_date ?? order.requested_due_date ?? '—'}
-            />
-            <Row k={t('orderDetail.total')} v={total != null ? formatGEL(total) : '—'} />
-            <Row
-              k={t('orderDetail.createdAt')}
-              v={dayjs(order.created_at).format('YYYY-MM-DD HH:mm')}
-            />
-          </Stack>
-        </CardContent>
-      </Card>
+      <SectionCard>
+        <Box
+          sx={{
+            display: 'grid',
+            gap: 1.75,
+            gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, minmax(0, 1fr))' },
+          }}
+        >
+          <FactCell label={t('orderDetail.lab')} value={labSnap?.public_name ?? '—'} />
+          <FactCell label={t('orderDetail.service')} value={serviceSnap?.name ?? '—'} />
+          <FactCell
+            label={t('orderDetail.patient')}
+            value={
+              order.patients
+                ? `${order.patients.first_name} ${order.patients.last_name}`
+                : '—'
+            }
+            hint={order.patients?.date_of_birth ?? undefined}
+          />
+          <FactCell
+            label={
+              order.confirmed_due_date
+                ? t('orderDetail.confirmedDueDate')
+                : t('orderDetail.dueDate')
+            }
+            value={order.confirmed_due_date ?? order.requested_due_date ?? '—'}
+          />
+          <FactCell
+            label={t('orderDetail.total')}
+            value={total != null ? formatGEL(total) : '—'}
+          />
+          <FactCell
+            label={t('orderDetail.createdAt')}
+            value={dayjs(order.created_at).format('YYYY-MM-DD')}
+            hint={dayjs(order.created_at).format('HH:mm')}
+          />
+        </Box>
+      </SectionCard>
 
       {version && (
-        <Card>
-          <CardContent>
-            <Typography variant="h6" sx={{ mb: 2 }}>
-              {td('orderDetail.answers')}
-            </Typography>
-            <OrderForm
-              configuration={version.configuration_json}
-              pricing={version.pricing_configuration_json}
-              values={answersMap}
-              onChange={() => {}}
-              readOnly
-            />
-          </CardContent>
-        </Card>
+        <SectionCard icon="assignment" title={td('orderDetail.answers')}>
+          <OrderForm
+            configuration={version.configuration_json}
+            pricing={version.pricing_configuration_json}
+            values={answersMap}
+            onChange={() => {}}
+            readOnly
+          />
+        </SectionCard>
       )}
 
       <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} maxWidth="xs" fullWidth>
@@ -251,6 +242,7 @@ export function ClinicOrderDetailPage() {
           </Button>
         </DialogActions>
       </Dialog>
-    </Stack>
+      </CardStack>
+    </>
   );
 }

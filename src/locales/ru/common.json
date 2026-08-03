@@ -75,7 +75,9 @@
     "lower": "Низ",
     "total": "Всего",
     "ariaLabel": "Карта зубов",
-    "notation": "Нумерация"
+    "notation": "Нумерация",
+    "right": "П",
+    "left": "Л"
   },
   "rush": {
     "none": "Нет",

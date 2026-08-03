@@ -1,4 +1,5 @@
 import { Stack } from '@mui/material';
+import { SectionChrome } from './primitives';
 import { DynamicForm, validateFormAnswers } from '@/components/DynamicForm';
 import type { FormConfiguration, PricingConfig } from '@/types/database';
 import {
@@ -70,7 +71,22 @@ type Props = {
   showErrors?: boolean;
 };
 
-export function OrderForm({
+/**
+ * Renders the right dental form for a template.
+ *
+ * Editable renderings put every numbered section in its own card — the wizard
+ * layout from the mockups. Read-only ones render plain, because the order
+ * detail screens already wrap the whole answer set in one card.
+ */
+export function OrderForm(props: Props) {
+  return (
+    <SectionChrome value={props.readOnly ? 'plain' : 'card'}>
+      <OrderFormBody {...props} />
+    </SectionChrome>
+  );
+}
+
+function OrderFormBody({
   configuration,
   pricing,
   values,
@@ -78,13 +94,17 @@ export function OrderForm({
   readOnly,
   showErrors,
 }: Props) {
+  // Cards carry their own padding, so they need less air between them than
+  // the plain read-only sections do.
+  const gap = readOnly ? 4 : 2;
+
   if (isCnbTemplate(configuration._templateCode)) {
     const cnb = coerceCnbAnswers(values, pricing?.materials);
     const customFields = configuration.fields.filter(
       (f) => f.type === 'custom_question' && f.enabled,
     );
     return (
-      <Stack spacing={4}>
+      <Stack spacing={gap}>
         <CrownAndBridgeForm
           configuration={configuration}
           pricing={pricing}
@@ -111,7 +131,7 @@ export function OrderForm({
       (f) => f.type === 'custom_question' && f.enabled,
     );
     return (
-      <Stack spacing={4}>
+      <Stack spacing={gap}>
         <SurgicalGuideForm
           configuration={configuration}
           pricing={pricing}
@@ -138,7 +158,7 @@ export function OrderForm({
       (f) => f.type === 'custom_question' && f.enabled,
     );
     return (
-      <Stack spacing={4}>
+      <Stack spacing={gap}>
         <ImplantRestorationForm
           configuration={configuration}
           pricing={pricing}
@@ -165,7 +185,7 @@ export function OrderForm({
       (f) => f.type === 'custom_question' && f.enabled,
     );
     return (
-      <Stack spacing={4}>
+      <Stack spacing={gap}>
         <GingivalReductionGuideForm
           configuration={configuration}
           pricing={pricing}
@@ -192,7 +212,7 @@ export function OrderForm({
       (f) => f.type === 'custom_question' && f.enabled,
     );
     return (
-      <Stack spacing={4}>
+      <Stack spacing={gap}>
         <EspForm
           configuration={configuration}
           pricing={pricing}
@@ -219,7 +239,7 @@ export function OrderForm({
       (f) => f.type === 'custom_question' && f.enabled,
     );
     return (
-      <Stack spacing={4}>
+      <Stack spacing={gap}>
         <ModelForm
           configuration={configuration}
           pricing={pricing}
@@ -246,7 +266,7 @@ export function OrderForm({
       (f) => f.type === 'custom_question' && f.enabled,
     );
     return (
-      <Stack spacing={4}>
+      <Stack spacing={gap}>
         <PrintForm
           pricing={pricing}
           value={print}
@@ -272,7 +292,7 @@ export function OrderForm({
       (f) => f.type === 'custom_question' && f.enabled,
     );
     return (
-      <Stack spacing={4}>
+      <Stack spacing={gap}>
         <MillingForm
           pricing={pricing}
           value={milling}

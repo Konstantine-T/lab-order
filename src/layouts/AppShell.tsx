@@ -26,7 +26,7 @@ import { FeedbackButton } from '@/components/FeedbackButton';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Icon } from '@/components/design/Icon';
 import { useAuth } from '@/auth/AuthProvider';
-import { brand as brandTokens, radii } from '@/theme/tokens';
+import { brand as brandTokens, layout, radii } from '@/theme/tokens';
 
 export type NavEntry = {
   to: string;
@@ -38,8 +38,8 @@ export type NavEntry = {
   badge?: ReactNode;
 };
 
-const SIDEBAR_WIDTH = 224;
-const CONTENT_MAX = 1060;
+const SIDEBAR_WIDTH = layout.sidebarWidth;
+const CONTENT_MAX = layout.contentMax;
 
 /**
  * The application shell from the July 2026 redesign: a fixed white sidebar and
@@ -313,7 +313,7 @@ export function AppShell({ navEntries, brand }: { navEntries: NavEntry[]; brand:
               borderColor: 'divider',
             }}
           >
-            <Toolbar sx={{ minHeight: 56 }}>
+            <Toolbar sx={{ minHeight: layout.mobileBar, height: layout.mobileBar }}>
               <IconButton
                 edge="start"
                 color="inherit"
@@ -333,7 +333,9 @@ export function AppShell({ navEntries, brand }: { navEntries: NavEntry[]; brand:
           sx={{
             maxWidth: CONTENT_MAX,
             mx: 'auto',
-            px: { xs: 2, sm: 3, md: 3.5 },
+            px: layout.gutter,
+            // `PageHeader` cancels this top padding to reach the column's top
+            // edge; pages without one keep it.
             pt: { xs: 2.5, md: 3.25 },
             pb: 10,
           }}

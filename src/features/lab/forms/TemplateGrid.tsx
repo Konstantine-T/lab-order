@@ -1,22 +1,12 @@
-import {
-  Box,
-  Button,
-  Card,
-  CardActionArea,
-  CardContent,
-  Divider,
-  Grid,
-  Stack,
-  Typography,
-} from '@mui/material';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import DescriptionIcon from '@mui/icons-material/Description';
-import DesignServicesIcon from '@mui/icons-material/DesignServices';
+import { alpha, Box, Button, Divider, Grid, Stack, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { templateName, templateDescription, templateHelp } from './templateLabels';
 import { HelpTip } from '@/components/HelpTip';
+import { Icon } from '@/components/design';
+import { templateLook as look } from '@/utils/serviceDefaults';
+import { lift, motion } from '@/theme/tokens';
 import type { PlatformFormTemplateRow } from '@/types/database';
 
 const CUSTOM_CODE = 'OTHER_CUSTOM';
@@ -62,7 +52,7 @@ export function TemplateGrid({ selectedTemplateId, onSelect, disabled }: Props) 
           variant={customTpl.id === selectedTemplateId ? 'contained' : 'outlined'}
           onClick={() => onSelect(customTpl.id)}
           disabled={disabled}
-          startIcon={<DesignServicesIcon />}
+          startIcon={<Icon name="stylus_note" size={18} />}
           sx={{
             alignSelf: 'flex-start',
             textTransform: 'none',
@@ -101,47 +91,64 @@ export function TemplateGrid({ selectedTemplateId, onSelect, disabled }: Props) 
           const help = templateHelp(t, tpl.code);
           return (
             <Grid key={tpl.id} item xs={12} sm={6} md={4} lg={3}>
-              <Card
-                variant="outlined"
+              {/* The mockups' template tile: a tinted icon square over the
+                  template's name, with the picked one outlined in brand. */}
+              <Stack
+                role="button"
+                tabIndex={disabled ? -1 : 0}
+                onClick={() => !disabled && onSelect(tpl.id)}
+                onKeyDown={(e) => {
+                  if (!disabled && e.key === 'Enter') onSelect(tpl.id);
+                }}
+                spacing={1.5}
                 sx={{
-                  height: '100%',
-                  borderColor: isSelected ? 'primary.main' : undefined,
-                  borderWidth: isSelected ? 2 : 1,
                   position: 'relative',
+                  height: '100%',
+                  p: 2,
+                  borderRadius: '16px',
+                  border: isSelected ? 2 : 1,
+                  borderColor: isSelected ? 'primary.main' : 'divider',
+                  bgcolor: 'background.paper',
+                  cursor: disabled ? 'default' : 'pointer',
+                  opacity: disabled ? 0.6 : 1,
+                  transition: `all ${motion.slow}`,
+                  '&:hover': disabled
+                    ? {}
+                    : { borderColor: alpha(look(tpl.code).color, 0.6), boxShadow: lift.cardStrong },
                 }}
               >
-                <CardActionArea
-                  onClick={() => onSelect(tpl.id)}
-                  disabled={disabled}
-                  sx={{ height: '100%', alignItems: 'flex-start' }}
+                {isSelected && (
+                  <Icon
+                    name="check_circle"
+                    size={20}
+                    filled
+                    sx={{ position: 'absolute', top: 10, right: 10, color: 'primary.main' }}
+                  />
+                )}
+                <Box
+                  sx={{
+                    width: 42,
+                    height: 42,
+                    borderRadius: '12px',
+                    display: 'grid',
+                    placeItems: 'center',
+                    bgcolor: alpha(look(tpl.code).color, 0.12),
+                  }}
                 >
-                  <CardContent sx={{ height: '100%' }}>
-                    {isSelected && (
-                      <CheckCircleIcon
-                        color="primary"
-                        sx={{ position: 'absolute', top: 8, right: 8, fontSize: 22 }}
-                      />
-                    )}
-                    <Stack spacing={1.5}>
-                      <DescriptionIcon
-                        color={isSelected ? 'primary' : 'action'}
-                        sx={{ fontSize: 32 }}
-                      />
-                      <Stack direction="row" alignItems="center" spacing={0.5}>
-                        <Typography variant="subtitle1" fontWeight={600}>
-                          {localizedName}
-                        </Typography>
-                        <HelpTip text={help} />
-                      </Stack>
-                      {localizedDescription && (
-                        <Typography variant="body2" color="text.secondary">
-                          {localizedDescription}
-                        </Typography>
-                      )}
-                    </Stack>
-                  </CardContent>
-                </CardActionArea>
-              </Card>
+                  <Icon name={look(tpl.code).icon} size={21} sx={{ color: look(tpl.code).color }} />
+                </Box>
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <Typography sx={{ fontSize: '0.875rem', fontWeight: 700 }}>
+                    {localizedName}
+                  </Typography>
+                  <HelpTip text={help} />
+                </Stack>
+                {localizedDescription && (
+                  <Typography variant="body1" color="text.secondary">
+                    {localizedDescription}
+                  </Typography>
+                )}
+              </Stack>
             </Grid>
           );
         })}

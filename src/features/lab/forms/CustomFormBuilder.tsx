@@ -6,18 +6,14 @@ import {
   IconButton,
   InputLabel,
   MenuItem,
-  Paper,
   Select,
   Stack,
   Switch,
   TextField,
   Typography,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
-import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/design';
 import type { FieldConfig, FormConfiguration } from '@/types/database';
 
 /** Input types a lab can pick for a custom-form question. Each value maps 1:1
@@ -120,7 +116,7 @@ export function CustomFormBuilder({
       ))}
       <Button
         variant="outlined"
-        startIcon={<AddIcon />}
+        startIcon={<Icon name="add" size={17} />}
         onClick={add}
         sx={{ alignSelf: 'flex-start' }}
       >
@@ -156,7 +152,15 @@ function QuestionCard({
     onUpdate({ options: options.filter((_, idx) => idx !== i) });
 
   return (
-    <Paper variant="outlined" sx={{ borderRadius: 2, p: 2 }}>
+    <Box
+      sx={{
+        borderRadius: '14px',
+        border: 1,
+        borderColor: 'divider',
+        bgcolor: 'background.default',
+        p: 2,
+      }}
+    >
       <Stack spacing={2}>
         <Stack direction="row" spacing={1} alignItems="flex-start">
           <TextField
@@ -169,17 +173,17 @@ function QuestionCard({
             inputProps={{ maxLength: 300 }}
           />
           <IconButton size="small" onClick={() => onMove(-1)} disabled={index === 0}>
-            <ArrowUpwardIcon fontSize="small" />
+            <Icon name="arrow_upward" size={18} />
           </IconButton>
           <IconButton
             size="small"
             onClick={() => onMove(1)}
             disabled={index === total - 1}
           >
-            <ArrowDownwardIcon fontSize="small" />
+            <Icon name="arrow_downward" size={18} />
           </IconButton>
           <IconButton size="small" color="error" onClick={onRemove}>
-            <DeleteOutlineIcon fontSize="small" />
+            <Icon name="delete" size={18} />
           </IconButton>
         </Stack>
 
@@ -226,13 +230,13 @@ function QuestionCard({
                     placeholder={t('customForm.optionPlaceholder')}
                   />
                   <IconButton size="small" color="error" onClick={() => removeOption(i)}>
-                    <DeleteOutlineIcon fontSize="small" />
+                    <Icon name="delete" size={18} />
                   </IconButton>
                 </Stack>
               ))}
               <Button
                 size="small"
-                startIcon={<AddIcon />}
+                startIcon={<Icon name="add" size={17} />}
                 onClick={addOption}
                 sx={{ alignSelf: 'flex-start' }}
               >
@@ -250,6 +254,6 @@ function QuestionCard({
           fullWidth
         />
       </Stack>
-    </Paper>
+    </Box>
   );
 }

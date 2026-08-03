@@ -1,6 +1,7 @@
 import { alpha, Box, Divider, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
+import { InitialsAvatar } from '@/components/design/Avatar';
 import { brand, motion } from '@/theme/tokens';
 
 type Props = {
@@ -34,11 +35,14 @@ type Props = {
    * flag an unreviewed doctor edit in the lab list.
    */
   highlight?: boolean;
+  /**
+   * The pipeline bar the mockups draw across the bottom of the row, inside the
+   * card's own padding and above any `footer`.
+   */
+  progress?: ReactNode;
+  /** Small tinted note after the patient name — "Lab asked a question". */
+  flag?: ReactNode;
 };
-
-// Deterministic avatar colour, so a given patient keeps the same tile across
-// renders. Matches the mockups, where each row has its own tile colour.
-const AVATAR_COLORS = ['#8A5CF6', '#6E6EE8', '#EC4899', '#10B981', '#F59E0B', '#0EA5E9'];
 
 /**
  * One order row in the redesigned list: patient and service on the left, due
@@ -61,20 +65,10 @@ export function OrderRowCard({
   onClick,
   footer,
   highlight,
+  progress,
+  flag,
 }: Props) {
   const { t } = useTranslation('common');
-
-  const initials =
-    avatarText
-      .trim()
-      .split(/\s+/)
-      .slice(0, 2)
-      .map((s) => s[0]?.toUpperCase() ?? '')
-      .join('') || '·';
-
-  let hash = 0;
-  for (let i = 0; i < avatarText.length; i += 1) hash += avatarText.charCodeAt(i);
-  const avatarBg = AVATAR_COLORS[hash % AVATAR_COLORS.length];
 
   return (
     <Box
@@ -106,6 +100,7 @@ export function OrderRowCard({
         },
       }}
     >
+      <Box sx={{ px: 2.5, py: 2 }}>
       <Box
         sx={{
           display: 'grid',
@@ -116,31 +111,12 @@ export function OrderRowCard({
           },
           gap: { xs: 1.5, md: 2.25 },
           alignItems: 'center',
-          px: 2.5,
-          py: 2,
         }}
       >
-        <Box
-          sx={{
-            gridArea: 'avatar',
-            width: 40,
-            height: 40,
-            borderRadius: '12px',
-            display: 'grid',
-            placeItems: 'center',
-            flexShrink: 0,
-            bgcolor: avatarBg,
-            color: '#fff',
-            fontWeight: 800,
-            fontSize: '0.75rem',
-          }}
-          aria-hidden
-        >
-          {initials}
-        </Box>
+        <InitialsAvatar name={avatarText} size={40} sx={{ gridArea: 'avatar' }} />
 
         <Box sx={{ gridArea: 'info', minWidth: 0 }}>
-          <Stack direction="row" spacing={1.125} alignItems="center" flexWrap="wrap">
+          <Stack direction="row" alignItems="center" sx={{ flexWrap: 'wrap', gap: 1.125 }}>
             <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, minWidth: 0 }} noWrap>
               {primary}
             </Typography>
@@ -150,6 +126,7 @@ export function OrderRowCard({
             >
               {code}
             </Typography>
+            {flag}
           </Stack>
           {secondary && (
             <Typography
@@ -211,6 +188,9 @@ export function OrderRowCard({
             {paymentStatus}
           </Stack>
         </Stack>
+      </Box>
+
+        {progress && <Box sx={{ mt: 1.625 }}>{progress}</Box>}
       </Box>
 
       {footer && (

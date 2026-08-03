@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Alert, IconButton, Snackbar, Tooltip } from '@mui/material';
-import MailOutlineIcon from '@mui/icons-material/MailOutline';
 import { useTranslation } from 'react-i18next';
+import { Icon } from '@/components/design';
 import { useAuth } from '@/auth/AuthProvider';
 import { FeedbackDialog } from './FeedbackDialog';
 
@@ -20,7 +20,7 @@ export function FeedbackButton() {
     <>
       <Tooltip title={t('feedback.tooltip')}>
         <IconButton onClick={() => setOpen(true)} color="inherit" aria-label={t('feedback.title')}>
-          <MailOutlineIcon />
+          <Icon name="feedback" size={20} />
         </IconButton>
       </Tooltip>
 

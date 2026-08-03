@@ -1,11 +1,8 @@
 import { useState } from 'react';
 import {
   Alert,
-  Avatar,
   Box,
   Button,
-  Card,
-  CardContent,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -19,22 +16,22 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import ArchiveIcon from '@mui/icons-material/Archive';
-import EmailIcon from '@mui/icons-material/EmailOutlined';
-import PhoneIcon from '@mui/icons-material/PhoneOutlined';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
+import {
+  CardStack,
+  EmptyState,
+  Icon,
+  InitialsAvatar,
+  MetaChip,
+  PageHeader,
+  SectionCard,
+} from '@/components/design';
 import { StaffDialog } from '@/features/lab/staff/StaffDialog';
 import type { StaffInput } from '@/features/lab/staff/staffSchema';
 import type { LabStaffRow } from '@/types/database';
-
-function initials(row: LabStaffRow) {
-  return `${row.first_name[0] ?? ''}${row.last_name[0] ?? ''}`.toUpperCase();
-}
 
 export function LabStaffPage() {
   const { t } = useTranslation('lab');
@@ -126,88 +123,74 @@ export function LabStaffPage() {
   };
 
   return (
-    <Stack spacing={3}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={2}>
-        <Stack>
-          <Typography variant="h4">{t('staff.title')}</Typography>
-          <Typography color="text.secondary">{t('staff.subtitle')}</Typography>
-        </Stack>
-        <Box>
-          <Button startIcon={<AddIcon />} variant="contained" onClick={openCreate}>
+    <>
+      <PageHeader
+        title={t('staff.title')}
+        subtitle={t('staff.subtitle')}
+        actions={
+          <Button startIcon={<Icon name="add" size={17} />} variant="contained" onClick={openCreate}>
             {t('staff.addNew')}
           </Button>
-        </Box>
-      </Stack>
+        }
+      />
 
-      {error && <Alert severity="error">{tc('errors.loadFailed')}</Alert>}
+      <CardStack>
+        {error && <Alert severity="error">{tc('errors.loadFailed')}</Alert>}
 
-      {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress />
-        </Box>
-      ) : staff.length === 0 ? (
-        <Card>
-          <CardContent>
-            <Stack spacing={2} alignItems="flex-start">
-              <Typography color="text.secondary">{t('staff.empty')}</Typography>
-              <Button startIcon={<AddIcon />} variant="contained" onClick={openCreate}>
-                {t('staff.addNew')}
-              </Button>
-            </Stack>
-          </CardContent>
-        </Card>
-      ) : (
-        <Stack spacing={2}>
-          {staff.map((member) => (
-            <Card key={member.id}>
-              <CardContent>
-                <Stack
-                  direction={{ xs: 'column', sm: 'row' }}
-                  justifyContent="space-between"
-                  spacing={2}
-                >
-                  <Stack direction="row" spacing={2} alignItems="center" flex={1}>
-                    <Avatar>{initials(member)}</Avatar>
-                    <Stack spacing={0.5}>
-                      <Typography variant="h6">
-                        {member.first_name} {member.last_name}
-                      </Typography>
-                      <Stack direction="row" spacing={2} flexWrap="wrap">
-                        <Stack direction="row" spacing={0.5} alignItems="center">
-                          <PhoneIcon fontSize="small" color="disabled" />
-                          <Typography variant="body2" color="text.secondary">
-                            {member.phone}
-                          </Typography>
-                        </Stack>
-                        {member.email && (
-                          <Stack direction="row" spacing={0.5} alignItems="center">
-                            <EmailIcon fontSize="small" color="disabled" />
-                            <Typography variant="body2" color="text.secondary">
-                              {member.email}
-                            </Typography>
-                          </Stack>
-                        )}
-                      </Stack>
+        {isLoading ? (
+          <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+            <CircularProgress />
+          </Box>
+        ) : staff.length === 0 ? (
+          <EmptyState
+            icon="group_add"
+            title={t('staff.empty')}
+            onClick={openCreate}
+            minHeight={220}
+          />
+        ) : (
+          staff.map((member) => (
+            <SectionCard key={member.id}>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                justifyContent="space-between"
+                spacing={2}
+              >
+                <Stack direction="row" spacing={2} alignItems="center" flex={1} sx={{ minWidth: 0 }}>
+                  <InitialsAvatar
+                    name={`${member.first_name} ${member.last_name}`}
+                    size={40}
+                    shape="circle"
+                  />
+                  <Stack spacing={0.75} sx={{ minWidth: 0 }}>
+                    <Typography variant="h5">
+                      {member.first_name} {member.last_name}
+                    </Typography>
+                    <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.75 }}>
+                      <MetaChip icon={<Icon name="call" size={13} />}>{member.phone}</MetaChip>
+                      {member.email && (
+                        <MetaChip icon={<Icon name="mail" size={13} />}>{member.email}</MetaChip>
+                      )}
                     </Stack>
                   </Stack>
-                  <Stack direction="row" spacing={0.5} alignItems="center">
-                    <Tooltip title={tc('actions.edit')}>
-                      <IconButton onClick={() => openEdit(member)}>
-                        <EditIcon />
-                      </IconButton>
-                    </Tooltip>
-                    <Tooltip title={tc('actions.archive')}>
-                      <IconButton onClick={() => setArchiveTarget(member)}>
-                        <ArchiveIcon />
-                      </IconButton>
-                    </Tooltip>
-                  </Stack>
                 </Stack>
-              </CardContent>
-            </Card>
-          ))}
-        </Stack>
-      )}
+                <Stack direction="row" spacing={0.5} alignItems="center" sx={{ flexShrink: 0 }}>
+                  <Tooltip title={tc('actions.edit')}>
+                    <IconButton onClick={() => openEdit(member)}>
+                      <Icon name="edit" size={19} />
+                    </IconButton>
+                  </Tooltip>
+                  <Tooltip title={tc('actions.archive')}>
+                    <IconButton onClick={() => setArchiveTarget(member)}>
+                      <Icon name="archive" size={19} />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+              </Stack>
+            </SectionCard>
+          ))
+        )}
+      </CardStack>
 
       <StaffDialog
         open={dialogOpen}
@@ -265,6 +248,6 @@ export function LabStaffPage() {
           {tc('errors.generic')}
         </Alert>
       </Snackbar>
-    </Stack>
+    </>
   );
 }

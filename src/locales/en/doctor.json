@@ -11,7 +11,19 @@
   },
   "home": {
     "welcome": "Welcome, {{name}}",
-    "comingSoon": "More features are coming soon."
+    "comingSoon": "More features are coming soon.",
+    "dueSoon": "Due soon",
+    "noDueSoon": "Nothing is due in the near future.",
+    "viewAll": "View all",
+    "stats": {
+      "awaitingLab": "awaiting the lab",
+      "openCases": "open cases",
+      "dueThisWeek": "Due this week",
+      "acrossLabs": "across your labs",
+      "unpaid": "Unpaid",
+      "unpaidCaption": "across open invoices",
+      "needsAction": "{{n}} order(s) need your attention"
+    }
   },
   "marketplace": {
     "title": "Approved laboratories",
@@ -107,8 +119,14 @@
         "dueDate": "Due date"
       },
       "clinicCodeWarning": "This work location does not have a clinic identification code. The invoice cannot be issued to the clinic without one. Either add the code in your work location settings or invoice yourself.",
-      "formAnswers": "Order details"
-    }
+      "formAnswers": "Order details",
+      "missingFields": "Some required fields are blank — fill the sections marked in red."
+    },
+    "draftSaved": "Draft saved",
+    "summary": "Order summary",
+    "required": "Required",
+    "privateToLab": "Sent only to this laboratory",
+    "railHint": "The lab reviews your order and confirms the final price and due date. You'll be notified of every status change."
   },
   "orders": {
     "title": "My orders",
@@ -137,7 +155,9 @@
       "discard": "Discard",
       "viewBroken": "View anyway",
       "brokenTooltip": "This draft may be outdated.",
-      "brokenAlert": "The lab, service, or form has changed since this draft was saved. You can still open it or discard it."
+      "brokenAlert": "The lab, service, or form has changed since this draft was saved. You can still open it or discard it.",
+      "bannerTitle": "You have an unfinished order",
+      "resume": "Resume"
     },
     "filters": {
       "search": "Search by order, patient, lab…",
@@ -157,7 +177,17 @@
       "total": "Total",
       "due": "Due",
       "created": "Created"
-    }
+    },
+    "subtitle": "Every case, from submission to delivery",
+    "quick": {
+      "all": "All",
+      "active": "Active",
+      "needsAction": "Needs my action",
+      "completed": "Completed"
+    },
+    "moreFilters": "More filters",
+    "pipelineNext": "{{current}} → {{next}}",
+    "pipelineDone": "Delivered & completed"
   },
   "orderDetail": {
     "back": "Back to orders",
@@ -178,7 +208,10 @@
       "title": "Order cancelled",
       "noReason": "No reason provided."
     },
-    "openChat": "Open Telegram chat"
+    "openChat": "Open Telegram chat",
+    "caseProgress": "Case progress",
+    "labProfileLink": "Lab profile",
+    "editHint": "You can edit this order until the lab completes it. Every edit is recorded and shown to the lab as a change diff."
   },
   "orderEdit": {
     "title": "Edit order",
@@ -192,7 +225,8 @@
     "lockedDueDate": "The due date can't be changed here.",
     "lockedRush": "The rush option can't be changed here.",
     "notEditable": "This order can no longer be edited.",
-    "success": "Your changes were saved."
+    "success": "Your changes were saved.",
+    "locked": "Locked on edit"
   },
   "profile": {
     "title": "My profile",
@@ -221,7 +255,8 @@
     "noResults": "No patients match your search.",
     "orders_one": "1 order",
     "orders_other": "{{count}} orders",
-    "noOrders": "No orders yet"
+    "noOrders": "No orders yet",
+    "subtitle": "Everyone you have placed an order for"
   },
   "patientOrders": {
     "back": "Back to patients",

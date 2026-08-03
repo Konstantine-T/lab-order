@@ -1,7 +1,7 @@
-import { Box, Button, Card, CardContent, Stack, Typography } from '@mui/material';
-import ConstructionIcon from '@mui/icons-material/Construction';
+import { Button, Stack } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { EmptyState, PageHeader } from '@/components/design';
 
 // Placeholder for routes whose UI hasn't been built yet. Linked from the
 // sidebar so users see the upcoming feature in nav — but instead of a 404
@@ -16,28 +16,25 @@ export function UnderDevelopmentPage({ featureKey }: { featureKey?: string }) {
     : '';
 
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', py: { xs: 4, md: 8 } }}>
-      <Card sx={{ maxWidth: 520, width: '100%' }}>
-        <CardContent>
-          <Stack spacing={2} alignItems="center" sx={{ textAlign: 'center', py: 2 }}>
-            <ConstructionIcon sx={{ fontSize: 56, color: 'primary.main' }} />
-            <Typography variant="h5">
-              {featureLabel || t('underDevelopment.title')}
-            </Typography>
-            <Typography color="text.secondary">
-              {t('underDevelopment.body')}
-            </Typography>
-            <Stack direction="row" spacing={1} sx={{ pt: 1 }}>
-              <Button variant="outlined" onClick={() => navigate(-1)}>
-                {t('underDevelopment.goBack')}
-              </Button>
-              <Button component={RouterLink} to="/" variant="contained">
-                {t('underDevelopment.goHome')}
-              </Button>
-            </Stack>
+    <>
+      <PageHeader title={featureLabel || t('underDevelopment.title')} />
+
+      <EmptyState
+        icon="construction"
+        title={t('underDevelopment.title')}
+        description={t('underDevelopment.body')}
+        minHeight={320}
+        action={
+          <Stack direction="row" spacing={1}>
+            <Button variant="outlined" onClick={() => navigate(-1)}>
+              {t('underDevelopment.goBack')}
+            </Button>
+            <Button component={RouterLink} to="/" variant="contained">
+              {t('underDevelopment.goHome')}
+            </Button>
           </Stack>
-        </CardContent>
-      </Card>
-    </Box>
+        }
+      />
+    </>
   );
 }
