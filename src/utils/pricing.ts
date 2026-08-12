@@ -278,52 +278,104 @@ export function calculatePrice(
   };
 }
 
+/** Templates priced by a list of lab-defined materials (name + unit price). */
+const MATERIAL_TEMPLATES = new Set([
+  'CROWN_AND_BRIDGE',
+  'TEMPORARY_CROWN',
+  'EVIDENT_SMILE',
+  'PRINT',
+  'MILLING',
+]);
+
+/** A concrete reason pricing isn't publishable yet — carries enough context
+ *  (row index, material name) for the UI to point at the exact field. */
+export type PricingIssue =
+  | { kind: 'no-materials' }
+  | { kind: 'material-name'; index: number } // blank name
+  | { kind: 'material-price'; index: number; name: string } // named, but no/zero price
+  | { kind: 'fixed-price' }
+  | { kind: 'unit-price' }
+  | { kind: 'sg-price' }
+  | { kind: 'rush-value' }
+  | { kind: 'rush-turnaround' };
+
 /**
- * Pricing config is "complete enough to publish" when:
- *  - FIXED_PRICE → fixed_price > 0
- *  - UNIT_BASED + CnB → materials.length >= 1, every material has a name and price > 0
- *  - UNIT_BASED non-CnB → unit_price > 0
+ * The concrete reasons a pricing config isn't publishable yet. This is the
+ * single source of truth: `isPricingComplete` is just "no issues", so the
+ * publish gate and the messages we show the lab can never drift apart.
+ *
+ * Rules mirror the previous `isPricingComplete` exactly — this is a naming
+ * layer, not a change to what is or isn't publishable. Empty ⇔ complete.
+ */
+export function pricingIssues(
+  pricing: PricingConfig | undefined,
+  templateCode: string | undefined,
+): PricingIssue[] {
+  // No pricing object yet — surface one representative reason so callers always
+  // have something to show. (Safety net; the editors seed a pricing object.)
+  if (!pricing) return [{ kind: 'no-materials' }];
+
+  const issues: PricingIssue[] = [];
+
+  // Rush, when enabled, needs both a surcharge value and a faster turnaround.
+  const rush = pricing.rush;
+  if (rush && rush.type !== 'NONE') {
+    if (!rush.value || rush.value <= 0) issues.push({ kind: 'rush-value' });
+    if (!rush.turnaround_days || rush.turnaround_days <= 0) {
+      issues.push({ kind: 'rush-turnaround' });
+    }
+  }
+
+  if (pricing.model === 'FIXED_PRICE') {
+    if ((pricing.fixed_price ?? 0) <= 0) issues.push({ kind: 'fixed-price' });
+  } else if (pricing.model === 'UNIT_BASED') {
+    if (templateCode && MATERIAL_TEMPLATES.has(templateCode)) {
+      const ms = pricing.materials ?? [];
+      if (ms.length === 0) {
+        issues.push({ kind: 'no-materials' });
+      } else {
+        // A fully-empty row still counts as incomplete (unchanged behavior) —
+        // we just name the problem: blank name → name issue, else missing price.
+        ms.forEach((m, index) => {
+          if (m.name.trim().length === 0) {
+            issues.push({ kind: 'material-name', index });
+          } else if ((m.unit_price ?? 0) <= 0) {
+            issues.push({ kind: 'material-price', index, name: m.name.trim() });
+          }
+        });
+      }
+    } else if (templateCode === 'SURGICAL_GUIDE') {
+      if (
+        !(
+          (pricing.sg_pilot_unit_price ?? 0) > 0 ||
+          (pricing.sg_full_protocol_unit_price ?? 0) > 0
+        )
+      ) {
+        issues.push({ kind: 'sg-price' });
+      }
+    } else if (templateCode === 'CONSTRUCTIONS_ON_IMPLANTS') {
+      // Always publishable — prices default to zero and that's valid here.
+    } else {
+      if ((pricing.unit_price ?? 0) <= 0) issues.push({ kind: 'unit-price' });
+    }
+  } else {
+    // Unknown model — never publishable (mirrors the old `return false`).
+    issues.push({ kind: 'fixed-price' });
+  }
+
+  return issues;
+}
+
+/**
+ * Pricing config is "complete enough to publish" when there are no issues.
+ * Kept in lockstep with `pricingIssues` on purpose (one source of truth) so the
+ * disabled Publish button and the specific "why" messages can never disagree.
  */
 export function isPricingComplete(
   pricing: PricingConfig | undefined,
   templateCode: string | undefined,
 ): boolean {
-  if (!pricing) return false;
-  // Rush, when enabled, must have both a surcharge value and a faster
-  // turnaround configured before publish.
-  const rush = pricing.rush;
-  if (rush && rush.type !== 'NONE') {
-    if (!rush.value || rush.value <= 0) return false;
-    if (!rush.turnaround_days || rush.turnaround_days <= 0) return false;
-  }
-
-  if (pricing.model === 'FIXED_PRICE') {
-    return (pricing.fixed_price ?? 0) > 0;
-  }
-  if (pricing.model === 'UNIT_BASED') {
-    if (
-      templateCode === 'CROWN_AND_BRIDGE' ||
-      templateCode === 'TEMPORARY_CROWN' ||
-      templateCode === 'EVIDENT_SMILE' ||
-      templateCode === 'PRINT' ||
-      templateCode === 'MILLING'
-    ) {
-      const ms = pricing.materials ?? [];
-      if (ms.length === 0) return false;
-      return ms.every((m) => m.name.trim().length > 0 && (m.unit_price ?? 0) > 0);
-    }
-    if (templateCode === 'SURGICAL_GUIDE') {
-      return (
-        (pricing.sg_pilot_unit_price ?? 0) > 0 ||
-        (pricing.sg_full_protocol_unit_price ?? 0) > 0
-      );
-    }
-    if (templateCode === 'CONSTRUCTIONS_ON_IMPLANTS') {
-      return true; // prices default to zero and that's valid for this template
-    }
-    return (pricing.unit_price ?? 0) > 0;
-  }
-  return false;
+  return pricingIssues(pricing, templateCode).length === 0;
 }
 
 export function formatGEL(amount: number): string {

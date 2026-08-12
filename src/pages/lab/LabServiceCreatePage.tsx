@@ -21,7 +21,8 @@ import { FieldsPanel } from '@/features/lab/forms/FieldsPanel';
 import { PricingPanel } from '@/features/lab/forms/PricingPanel';
 import { buildDefaultConfig } from '@/features/lab/forms/buildDefaultConfig';
 import { isCustomFormComplete } from '@/features/lab/forms/CustomFormBuilder';
-import { isPricingComplete } from '@/utils/pricing';
+import { isPricingComplete, pricingIssues } from '@/utils/pricing';
+import { pricingIssueMessage } from '@/features/lab/forms/pricingIssueMessages';
 import { OrderForm } from '@/features/orderForms/OrderForm';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
 import type {
@@ -243,9 +244,23 @@ export function LabServiceCreatePage() {
         </SectionCard>
       )}
 
-      {canSave && !canPublish && (
-        <Callout tone="brand">{t('services.create.pricingRequiredForPublish')}</Callout>
-      )}
+      {canSave && !canPublish && (() => {
+        // List the concrete pricing gaps under the heading so the lab knows
+        // exactly which material/field to fix (empty when a non-pricing rule,
+        // e.g. an incomplete custom form, is what's blocking publish).
+        const issues = pricingIssues(pricing ?? undefined, templateRow?.code);
+        return (
+          <Callout tone="brand" title={t('services.create.pricingRequiredForPublish')}>
+            {issues.length > 0
+              ? issues.map((issue, i) => (
+                  <Box key={i} component="span" sx={{ display: 'block' }}>
+                    {pricingIssueMessage(issue, t)}
+                  </Box>
+                ))
+              : undefined}
+          </Callout>
+        );
+      })()}
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="flex-end">
         <Button onClick={() => navigate('/lab/services')}>{tc('actions.cancel')}</Button>
         <Button

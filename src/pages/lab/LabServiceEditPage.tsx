@@ -33,7 +33,8 @@ import { PricingPanel } from '@/features/lab/forms/PricingPanel';
 import { OrderForm } from '@/features/orderForms/OrderForm';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { templateName } from '@/features/lab/forms/templateLabels';
-import { isPricingComplete } from '@/utils/pricing';
+import { isPricingComplete, pricingIssues } from '@/utils/pricing';
+import { pricingIssueMessage } from '@/features/lab/forms/pricingIssueMessages';
 import type {
   FormConfiguration,
   LabFormRow,
@@ -335,9 +336,21 @@ export function LabServiceEditPage() {
         )}
       </Stack>
 
-      {form?.status === 'DRAFT' && canShowCustomize && !canPublish && (
-        <Callout tone="brand">{t('services.create.pricingRequiredForPublish')}</Callout>
-      )}
+      {form?.status === 'DRAFT' && canShowCustomize && !canPublish && (() => {
+        // Spell out which material/field is blocking publish, right under the heading.
+        const issues = pricingIssues(pricing ?? undefined, template?.code);
+        return (
+          <Callout tone="brand" title={t('services.create.pricingRequiredForPublish')}>
+            {issues.length > 0
+              ? issues.map((issue, i) => (
+                  <Box key={i} component="span" sx={{ display: 'block' }}>
+                    {pricingIssueMessage(issue, t)}
+                  </Box>
+                ))
+              : undefined}
+          </Callout>
+        );
+      })()}
 
       <Dialog open={deleteOpen} onClose={() => setDeleteOpen(false)}>
         <DialogTitle>{t('services.deleteConfirm.title')}</DialogTitle>

@@ -30,6 +30,7 @@ import { TEMPLATE_CODE_SG, SG_SUPPORT_TYPES } from '@/features/orderForms/sgType
 import { TEMPLATE_CODE_ESP } from '@/features/orderForms/espTypes';
 import { TEMPLATE_CODE_IMPLANT, DEFAULT_IMPLANT_PRICE_CONFIG } from '@/features/orderForms/implantTypes';
 import { isFabTemplate } from '@/features/orderForms/fabTypes';
+import { pricingIssues } from '@/utils/pricing';
 import type { SgSupportFee, ImplantPriceItem } from '@/types/database';
 
 function makeId(): string {
@@ -62,6 +63,10 @@ export function PricingPanel({
   const isEsp = templateCode === TEMPLATE_CODE_ESP;
   const isImplant = templateCode === TEMPLATE_CODE_IMPLANT;
   const isFab = isFabTemplate(templateCode);
+
+  // Same source of truth as the publish gate, so the inline field errors and
+  // the "can't publish" callout can never disagree about which row is wrong.
+  const issues = pricingIssues(pricing, templateCode);
 
   const setMaterials = (next: MaterialOption[]) =>
     onChange({ ...pricing, materials: next });
@@ -114,12 +119,21 @@ export function PricingPanel({
 
               {(pricing.materials ?? []).map((mat, i) => {
                 const color = MATERIAL_COLORS[i % MATERIAL_COLORS.length];
+                const hasPrice = (mat.unit_price ?? 0) > 0;
+                // Defer errors so a pristine, untouched row doesn't flash red:
+                // flag the name only once a price is entered, and the price only
+                // once the row is named (the other half signals intent to fill it).
+                const nameError =
+                  hasPrice && issues.some((x) => x.kind === 'material-name' && x.index === i);
+                const priceError = issues.some(
+                  (x) => x.kind === 'material-price' && x.index === i,
+                );
                 return (
                   <Stack
                     key={mat.id}
                     direction={{ xs: 'column', sm: 'row' }}
                     spacing={1.5}
-                    alignItems={{ sm: 'center' }}
+                    alignItems={{ sm: 'flex-start' }}
                   >
                     <Box
                       sx={{
@@ -130,12 +144,15 @@ export function PricingPanel({
                         flexShrink: 0,
                         border: 1,
                         borderColor: 'divider',
+                        mt: 1,
                       }}
                     />
                     <TextField
                       label={t('forms.editor.pricing.materialName')}
                       value={mat.name}
                       onChange={(e) => updateMaterial(mat.id, { name: e.target.value })}
+                      error={nameError}
+                      helperText={nameError ? t('forms.editor.pricing.nameRequired') : undefined}
                       size="small"
                       sx={{ flex: 1 }}
                     />
@@ -143,6 +160,8 @@ export function PricingPanel({
                       label={t('forms.editor.pricing.materialUnitPrice')}
                       value={mat.unit_price}
                       onChange={(v) => updateMaterial(mat.id, { unit_price: v })}
+                      error={priceError}
+                      helperText={priceError ? t('forms.editor.pricing.priceRequired') : undefined}
                       decimal
                       min={0}
                       InputProps={{
