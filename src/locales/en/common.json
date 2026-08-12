@@ -152,8 +152,8 @@
     },
     "TITANIUM_MILLING": {
       "name": "Titanium Milling",
-      "description": "Titanium milled construction.",
-      "help": "Titanium-milled constructions — the same form as Print Model. In Fields, choose which options the doctor selects and mark the required ones. In Pricing, set a single fixed price."
+      "description": "Titanium milled constructions — identical to the Crown & Bridge form.",
+      "help": "Titanium-milled constructions — identical to the Crown & Bridge form. Configure the same per-tooth sections and per-material pricing."
     }
   },
   "errors": {

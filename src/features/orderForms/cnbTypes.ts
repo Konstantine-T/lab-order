@@ -84,9 +84,21 @@ export const TEMPLATE_CODE_CNB = 'CROWN_AND_BRIDGE';
  */
 export const TEMPLATE_CODE_TEMPORARY_CROWN = 'TEMPORARY_CROWN';
 
-/** True for both Crown & Bridge and Temporary Crown, which share one form. */
+/**
+ * Titanium Milling ("ტიტანის გამოჩარხვა") mirrors Temporary Crown per the lab's
+ * request: it reuses the Crown & Bridge form 1:1 (same 8 sections, per-tooth-
+ * material pricing). It used to reuse the Model form — no longer.
+ */
+export const TEMPLATE_CODE_TITANIUM_MILLING = 'TITANIUM_MILLING';
+
+/** True for the templates that share the Crown & Bridge form: C&B, Temporary
+ *  Crown, and Titanium Milling. */
 export function isCnbTemplate(code: string | undefined | null): boolean {
-  return code === TEMPLATE_CODE_CNB || code === TEMPLATE_CODE_TEMPORARY_CROWN;
+  return (
+    code === TEMPLATE_CODE_CNB ||
+    code === TEMPLATE_CODE_TEMPORARY_CROWN ||
+    code === TEMPLATE_CODE_TITANIUM_MILLING
+  );
 }
 
 // Distinct color palette for material chips/teeth — index 0..4. Kept

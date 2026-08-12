@@ -1,12 +1,12 @@
 import type { FormConfiguration } from '@/types/database';
 
 export const TEMPLATE_CODE_MODEL = 'MODEL';
-/** Titanium milling ("ტიტანის გამოჩარხვა") reuses the Print Model form verbatim. */
-export const TEMPLATE_CODE_TITANIUM = 'TITANIUM_MILLING';
 
-/** True for every template rendered with the Model form (Print Model + Titanium Milling). */
+/** True for templates rendered with the Model form. Only Print Model now —
+ *  Titanium Milling moved to the Crown & Bridge form (see isCnbTemplate), so it
+ *  must NOT be treated as a Model template (no per-jaw pricing, no Model form). */
 export function isModelTemplateCode(code: string | undefined): boolean {
-  return code === TEMPLATE_CODE_MODEL || code === TEMPLATE_CODE_TITANIUM;
+  return code === TEMPLATE_CODE_MODEL;
 }
 
 export const MODEL_FIELD_CODES = [

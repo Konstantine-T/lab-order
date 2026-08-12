@@ -300,6 +300,7 @@ export function calculatePrice(
 const MATERIAL_TEMPLATES = new Set([
   'CROWN_AND_BRIDGE',
   'TEMPORARY_CROWN',
+  'TITANIUM_MILLING', // now mirrors C&B (per-tooth-material), not Model
   'EVIDENT_SMILE',
   'PRINT',
   'MILLING',

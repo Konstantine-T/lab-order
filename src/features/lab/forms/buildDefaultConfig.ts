@@ -39,14 +39,18 @@ export function buildDefaultConfig(
   const isEsp = templateCode === 'EVIDENT_SMILE';
   const isImplant = templateCode === 'CONSTRUCTIONS_ON_IMPLANTS';
   const isFab = isFabTemplate(templateCode);
-  // Model is priced per jaw (arch → qty, BOTH = 2), distinct from the
-  // material-based UNIT_BASED templates — so it seeds a per-jaw price, not
-  // materials. Existing Model services (seeded FIXED_PRICE) are untouched.
+  // Model (Print Model only — Titanium moved to C&B) is priced per jaw
+  // (arch → qty, BOTH = 2), distinct from the material-based UNIT_BASED
+  // templates — so it seeds a per-jaw price, not materials. Existing Model
+  // services (seeded FIXED_PRICE) are untouched.
   const isModel = isModelTemplateCode(templateCode);
+  const isCnb = isCnbTemplate(templateCode);
   const pricing: PricingConfig = {
     model:
-      toothField || isSg || isEsp || isImplant || isFab || isModel ? 'UNIT_BASED' : 'FIXED_PRICE',
-    materials: isCnbTemplate(templateCode) || isEsp || isFab ? [] : undefined,
+      toothField || isCnb || isSg || isEsp || isImplant || isFab || isModel
+        ? 'UNIT_BASED'
+        : 'FIXED_PRICE',
+    materials: isCnb || isEsp || isFab ? [] : undefined,
     model_per_jaw_price: isModel ? 0 : undefined,
     sg_support_fees: isSg ? [] : undefined,
     implant_price_config: isImplant ? DEFAULT_IMPLANT_PRICE_CONFIG : undefined,
