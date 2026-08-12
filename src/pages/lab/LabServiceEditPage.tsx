@@ -340,7 +340,7 @@ export function LabServiceEditPage() {
         // Spell out which material/field is blocking publish, right under the heading.
         const issues = pricingIssues(pricing ?? undefined, template?.code);
         return (
-          <Callout tone="brand" title={t('services.create.pricingRequiredForPublish')}>
+          <Callout tone="warning" title={t('services.create.pricingRequiredForPublish')}>
             {issues.length > 0
               ? issues.map((issue, i) => (
                   <Box key={i} component="span" sx={{ display: 'block' }}>

@@ -250,7 +250,7 @@ export function LabServiceCreatePage() {
         // e.g. an incomplete custom form, is what's blocking publish).
         const issues = pricingIssues(pricing ?? undefined, templateRow?.code);
         return (
-          <Callout tone="brand" title={t('services.create.pricingRequiredForPublish')}>
+          <Callout tone="warning" title={t('services.create.pricingRequiredForPublish')}>
             {issues.length > 0
               ? issues.map((issue, i) => (
                   <Box key={i} component="span" sx={{ display: 'block' }}>
