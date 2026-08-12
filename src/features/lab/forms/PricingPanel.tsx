@@ -30,6 +30,7 @@ import { TEMPLATE_CODE_SG, SG_SUPPORT_TYPES } from '@/features/orderForms/sgType
 import { TEMPLATE_CODE_ESP } from '@/features/orderForms/espTypes';
 import { TEMPLATE_CODE_IMPLANT, DEFAULT_IMPLANT_PRICE_CONFIG } from '@/features/orderForms/implantTypes';
 import { isFabTemplate } from '@/features/orderForms/fabTypes';
+import { isModelTemplateCode } from '@/features/orderForms/modelTypes';
 import { pricingIssues } from '@/utils/pricing';
 import type { SgSupportFee, ImplantPriceItem } from '@/types/database';
 
@@ -63,6 +64,7 @@ export function PricingPanel({
   const isEsp = templateCode === TEMPLATE_CODE_ESP;
   const isImplant = templateCode === TEMPLATE_CODE_IMPLANT;
   const isFab = isFabTemplate(templateCode);
+  const isModel = isModelTemplateCode(templateCode);
 
   // Same source of truth as the publish gate, so the inline field errors and
   // the "can't publish" callout can never disagree about which row is wrong.
@@ -303,8 +305,29 @@ export function PricingPanel({
             />
           )}
 
+          {/* Model printing — single price charged per jaw (BOTH = 2 arches) */}
+          {pricing.model === 'UNIT_BASED' && isModel && (
+            <NumberField
+              label={t('forms.editor.pricing.modelPerJawPrice')}
+              helperText={
+                issues.some((x) => x.kind === 'model-price')
+                  ? t('forms.editor.pricing.priceRequired')
+                  : t('forms.editor.pricing.modelPerJawHelp')
+              }
+              error={issues.some((x) => x.kind === 'model-price')}
+              value={pricing.model_per_jaw_price}
+              onChange={(v) => onChange({ ...pricing, model_per_jaw_price: v })}
+              decimal
+              min={0}
+              InputProps={{
+                endAdornment: <InputAdornment position="end">GEL</InputAdornment>,
+              }}
+              fullWidth
+            />
+          )}
+
           {/* Generic UNIT_BASED — single global unit price */}
-          {pricing.model === 'UNIT_BASED' && !isCnb && !isSg && !isEsp && !isImplant && (
+          {pricing.model === 'UNIT_BASED' && !isCnb && !isSg && !isEsp && !isImplant && !isModel && (
             <NumberField
               label={t('forms.editor.pricing.unitPrice')}
               value={pricing.unit_price}

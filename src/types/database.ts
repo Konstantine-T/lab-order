@@ -310,6 +310,10 @@ export type PricingConfig = {
   sg_support_fees?: SgSupportFee[];
   /** Evident Smile Package — extra fee when doctor opts for gingival reduction guide. */
   esp_gingival_reduction_price?: number;
+  /** Model printing (MODEL / TITANIUM_MILLING): price per jaw-model. Quantity is
+   *  1 for a single arch (upper OR lower) and 2 for both. Its presence is also
+   *  how the (template-code-free) price math detects a per-jaw Model config. */
+  model_per_jaw_price?: number;
   /** Constructions on Implants — lab-configured implant brands. */
   implant_brands?: { id: string; name: string }[];
   /** Constructions on Implants — per-item price config for the connection tree. */

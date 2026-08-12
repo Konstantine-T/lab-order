@@ -67,7 +67,8 @@
       "sgPilot": "Протокол «Пилот»",
       "sgFull": "Полный протокол",
       "sgSupport": "Тип поддержки шаблона",
-      "gingivalReduction": "Гид редукции десны"
+      "gingivalReduction": "Гид редукции десны",
+      "modelPerJaw": "Модель (за челюсть)"
     }
   },
   "toothMap": {

@@ -221,6 +221,7 @@
         "materialNeedsPrice": "\"{{name}}\" needs a price.",
         "fixedPrice": "Set a fixed price greater than 0.",
         "unitPrice": "Set a unit price greater than 0.",
+        "modelNeedsPrice": "Set the per-jaw model price.",
         "sgPrice": "Set at least one surgical-guide price.",
         "rushValue": "Enter the rush surcharge amount.",
         "rushTurnaround": "Enter the rush turnaround in days."
@@ -300,6 +301,8 @@
         "materialUnitPrice": "Unit price",
         "nameRequired": "Enter a name.",
         "priceRequired": "Enter a price.",
+        "modelPerJawPrice": "Price per jaw-model (GEL)",
+        "modelPerJawHelp": "Price is charged per jaw — both jaws counts as two.",
         "rushType": "Rush surcharge",
         "rushNone": "None",
         "rushPercent": "% of subtotal",

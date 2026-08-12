@@ -67,7 +67,8 @@
       "sgPilot": "საპილოტე პროტოკოლი",
       "sgFull": "სრული პროტოკოლი",
       "sgSupport": "გიდის მხარდაჭერა",
-      "gingivalReduction": "ღრძილის კვეთის გიდი"
+      "gingivalReduction": "ღრძილის კვეთის გიდი",
+      "modelPerJaw": "მოდელი (ერთ ყბაზე)"
     }
   },
   "toothMap": {

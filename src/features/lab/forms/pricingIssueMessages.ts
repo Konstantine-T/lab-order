@@ -21,6 +21,8 @@ export function pricingIssueMessage(issue: PricingIssue, t: TranslateFn): string
       return t(`${p}.fixedPrice`);
     case 'unit-price':
       return t(`${p}.unitPrice`);
+    case 'model-price':
+      return t(`${p}.modelNeedsPrice`);
     case 'sg-price':
       return t(`${p}.sgPrice`);
     case 'rush-value':

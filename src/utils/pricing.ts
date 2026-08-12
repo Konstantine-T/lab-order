@@ -1,4 +1,5 @@
 import type { PricingConfig, RushType } from '@/types/database';
+import { isModelTemplateCode } from '@/features/orderForms/modelTypes';
 
 export type PriceLineItem = {
   label: string;
@@ -41,7 +42,24 @@ export function calculatePrice(
   } else if (pricing.model === 'UNIT_BASED') {
     // Crown & Bridge: sum each tooth assignment's material price.
     const toothAssignments = (answers as { toothAssignments?: unknown }).toothAssignments;
-    if (Array.isArray(toothAssignments) && Array.isArray(pricing.materials)) {
+    if (pricing.model_per_jaw_price !== undefined) {
+      // Model printing: price per jaw. Arch drives quantity — UPPER/LOWER = 1
+      // arch, BOTH = 2. Detected by the per-jaw field (calculatePrice stays
+      // template-code-free), like the other duck-typed branches below.
+      const arch = (answers as { arch?: string }).arch;
+      const qty = arch === 'BOTH' ? 2 : arch === 'UPPER' || arch === 'LOWER' ? 1 : 0;
+      const unit = pricing.model_per_jaw_price ?? 0;
+      subtotal = unit * qty;
+      if (unit > 0 && qty > 0) {
+        lineItems.push({
+          i18nKey: 'modelPerJaw',
+          label: 'Model (per jaw)',
+          qty,
+          unitAmount: unit,
+          amount: unit * qty,
+        });
+      }
+    } else if (Array.isArray(toothAssignments) && Array.isArray(pricing.materials)) {
       const priceById = new Map<string, number>(
         pricing.materials.map((m) => [m.id, m.unit_price ?? 0]),
       );
@@ -295,6 +313,7 @@ export type PricingIssue =
   | { kind: 'material-price'; index: number; name: string } // named, but no/zero price
   | { kind: 'fixed-price' }
   | { kind: 'unit-price' }
+  | { kind: 'model-price' }
   | { kind: 'sg-price' }
   | { kind: 'rush-value' }
   | { kind: 'rush-turnaround' };
@@ -329,7 +348,10 @@ export function pricingIssues(
   if (pricing.model === 'FIXED_PRICE') {
     if ((pricing.fixed_price ?? 0) <= 0) issues.push({ kind: 'fixed-price' });
   } else if (pricing.model === 'UNIT_BASED') {
-    if (templateCode && MATERIAL_TEMPLATES.has(templateCode)) {
+    if (isModelTemplateCode(templateCode)) {
+      // Model printing is complete once the per-jaw price is set (> 0).
+      if ((pricing.model_per_jaw_price ?? 0) <= 0) issues.push({ kind: 'model-price' });
+    } else if (templateCode && MATERIAL_TEMPLATES.has(templateCode)) {
       const ms = pricing.materials ?? [];
       if (ms.length === 0) {
         issues.push({ kind: 'no-materials' });

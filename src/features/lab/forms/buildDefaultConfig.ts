@@ -6,6 +6,7 @@ import type {
 import { DEFAULT_IMPLANT_PRICE_CONFIG } from '@/features/orderForms/implantTypes';
 import { isCnbTemplate } from '@/features/orderForms/cnbTypes';
 import { isFabTemplate } from '@/features/orderForms/fabTypes';
+import { isModelTemplateCode } from '@/features/orderForms/modelTypes';
 
 export function buildDefaultConfig(
   templateFields: PlatformTemplateFieldRow[],
@@ -38,9 +39,15 @@ export function buildDefaultConfig(
   const isEsp = templateCode === 'EVIDENT_SMILE';
   const isImplant = templateCode === 'CONSTRUCTIONS_ON_IMPLANTS';
   const isFab = isFabTemplate(templateCode);
+  // Model is priced per jaw (arch → qty, BOTH = 2), distinct from the
+  // material-based UNIT_BASED templates — so it seeds a per-jaw price, not
+  // materials. Existing Model services (seeded FIXED_PRICE) are untouched.
+  const isModel = isModelTemplateCode(templateCode);
   const pricing: PricingConfig = {
-    model: toothField || isSg || isEsp || isImplant || isFab ? 'UNIT_BASED' : 'FIXED_PRICE',
+    model:
+      toothField || isSg || isEsp || isImplant || isFab || isModel ? 'UNIT_BASED' : 'FIXED_PRICE',
     materials: isCnbTemplate(templateCode) || isEsp || isFab ? [] : undefined,
+    model_per_jaw_price: isModel ? 0 : undefined,
     sg_support_fees: isSg ? [] : undefined,
     implant_price_config: isImplant ? DEFAULT_IMPLANT_PRICE_CONFIG : undefined,
     implant_crown_materials: isImplant ? [] : undefined,

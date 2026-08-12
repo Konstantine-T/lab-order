@@ -67,7 +67,8 @@
       "sgPilot": "Pilot protocol",
       "sgFull": "Full protocol",
       "sgSupport": "Guide support",
-      "gingivalReduction": "Gingival reduction guide"
+      "gingivalReduction": "Gingival reduction guide",
+      "modelPerJaw": "Model (per jaw)"
     }
   },
   "toothMap": {
