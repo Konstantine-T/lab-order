@@ -309,6 +309,12 @@ export function PricingPanel({
               label={t('forms.editor.pricing.unitPrice')}
               value={pricing.unit_price}
               onChange={(v) => onChange({ ...pricing, unit_price: v })}
+              error={issues.some((x) => x.kind === 'unit-price')}
+              helperText={
+                issues.some((x) => x.kind === 'unit-price')
+                  ? t('forms.editor.pricing.priceRequired')
+                  : undefined
+              }
               decimal
               min={0}
               InputProps={{
@@ -323,6 +329,12 @@ export function PricingPanel({
               label={t('forms.editor.pricing.fixedPrice')}
               value={pricing.fixed_price}
               onChange={(v) => onChange({ ...pricing, fixed_price: v })}
+              error={issues.some((x) => x.kind === 'fixed-price')}
+              helperText={
+                issues.some((x) => x.kind === 'fixed-price')
+                  ? t('forms.editor.pricing.priceRequired')
+                  : undefined
+              }
               decimal
               min={0}
               InputProps={{
