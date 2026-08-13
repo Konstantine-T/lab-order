@@ -449,7 +449,7 @@ export function ImplantRestorationForm({
                       {/* Abutment status */}
                       <Stack spacing={1}>
                         <Typography variant="body2" fontWeight={600}>
-                          {t('implantForm.configure.abutmentStatus.label')}
+                          {t('implantForm.configure.abutmentStatus.label')} *
                         </Typography>
                         <PillGroup
                           value={representativeCfg.abutmentStatus ?? ''}
@@ -471,7 +471,7 @@ export function ImplantRestorationForm({
                       {representativeCfg.abutmentStatus === 'noAbutment' && (
                         <Stack spacing={1}>
                           <Typography variant="body2" fontWeight={600}>
-                            {t('implantForm.configure.gingivalHeight.label')}
+                            {t('implantForm.configure.gingivalHeight.label')} *
                           </Typography>
                           <Stack spacing={1}>
                             <PillGroup
@@ -501,7 +501,7 @@ export function ImplantRestorationForm({
                       {representativeCfg.abutmentStatus === 'noAbutment' && (
                         <Stack spacing={1}>
                           <Typography variant="body2" fontWeight={600}>
-                            {t('implantForm.configure.abutmentType.label')}
+                            {t('implantForm.configure.abutmentType.label')} *
                           </Typography>
                           <PillGroup
                             value={representativeCfg.abutmentType ?? ''}
@@ -518,7 +518,7 @@ export function ImplantRestorationForm({
                         <>
                           <Stack spacing={1}>
                             <Typography variant="body2" fontWeight={600}>
-                              {t('implantForm.configure.indMaterial.label')}
+                              {t('implantForm.configure.indMaterial.label')} *
                             </Typography>
                             <PillGroup
                               value={representativeCfg.indMaterial ?? ''}
@@ -530,7 +530,7 @@ export function ImplantRestorationForm({
                           </Stack>
                           <Stack spacing={1}>
                             <Typography variant="body2" fontWeight={600}>
-                              {t('implantForm.configure.indShape.label')}
+                              {t('implantForm.configure.indShape.label')} *
                             </Typography>
                             <PillGroup
                               value={representativeCfg.indShape ?? ''}
@@ -542,7 +542,7 @@ export function ImplantRestorationForm({
                           </Stack>
                           <Stack spacing={1}>
                             <Typography variant="body2" fontWeight={600}>
-                              {t('implantForm.configure.retention.label')}
+                              {t('implantForm.configure.retention.label')} *
                             </Typography>
                             <PillGroup
                               value={representativeCfg.indRetention ?? ''}
@@ -560,7 +560,7 @@ export function ImplantRestorationForm({
                         <>
                           <Stack spacing={1}>
                             <Typography variant="body2" fontWeight={600}>
-                              {t('implantForm.configure.muaHex.label')}
+                              {t('implantForm.configure.muaHex.label')} *
                             </Typography>
                             <PillGroup
                               value={representativeCfg.muaHex ?? ''}
@@ -572,7 +572,7 @@ export function ImplantRestorationForm({
                           </Stack>
                           <Stack spacing={1}>
                             <Typography variant="body2" fontWeight={600}>
-                              {t('implantForm.configure.muaUpperConn.label')}
+                              {t('implantForm.configure.muaUpperConn.label')} *
                             </Typography>
                             <PillGroup
                               value={representativeCfg.muaUpperConn ?? ''}
@@ -596,7 +596,7 @@ export function ImplantRestorationForm({
                       {representativeCfg.abutmentType === 'factory' && (
                         <Stack spacing={1}>
                           <Typography variant="body2" fontWeight={600}>
-                            {t('implantForm.configure.retention.label')}
+                            {t('implantForm.configure.retention.label')} *
                           </Typography>
                           <PillGroup
                             value={representativeCfg.factoryRetention ?? ''}
@@ -681,7 +681,7 @@ export function ImplantRestorationForm({
 
                 <Stack spacing={1}>
                   <Typography variant="body2" fontWeight={600}>
-                    {t('implantForm.bar.barMaterial.label')}
+                    {t('implantForm.bar.barMaterial.label')} *
                   </Typography>
                   <PillGroup
                     value={a.bar.barMaterial ?? ''}
@@ -709,7 +709,7 @@ export function ImplantRestorationForm({
 
                 <Stack spacing={1}>
                   <Typography variant="body2" fontWeight={600}>
-                    {t('implantForm.bar.barTeeth.label')}
+                    {t('implantForm.bar.barTeeth.label')} *
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     {t('implantForm.bar.barTeeth.hint')}
