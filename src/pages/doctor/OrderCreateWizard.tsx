@@ -664,6 +664,7 @@ export function PatientStep({
                 update({ patient: { ...state.patient, first_name: e.target.value, existing_id: undefined } })
               }
               fullWidth
+              required
               disabled={readOnly}
               error={patientAttempted && !state.patient.first_name}
             />
@@ -674,6 +675,7 @@ export function PatientStep({
                 update({ patient: { ...state.patient, last_name: e.target.value, existing_id: undefined } })
               }
               fullWidth
+              required
               disabled={readOnly}
               error={patientAttempted && !state.patient.last_name}
             />

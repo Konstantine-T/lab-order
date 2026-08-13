@@ -126,15 +126,18 @@ export function ClinicRegisterPage() {
                   <RHFTextField
                     name="clinic_public_name"
                     label={t('register.clinic.clinicPublicName')}
+                    required
                   />
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                     <RHFTextField
                       name="admin_first_name"
                       label={t('register.clinic.adminFirstName')}
+                      required
                     />
                     <RHFTextField
                       name="admin_last_name"
                       label={t('register.clinic.adminLastName')}
+                      required
                     />
                   </Stack>
                   <RHFTextField name="phone" label={t('register.clinic.phone')} />
@@ -143,12 +146,14 @@ export function ClinicRegisterPage() {
                     type="email"
                     label={t('register.clinic.email')}
                     autoComplete="email"
+                    required
                   />
                   <RHFTextField
                     name="password"
                     type="password"
                     label={t('register.clinic.password')}
                     autoComplete="new-password"
+                    required
                   />
                   <RHFTextField
                     name="confirm_password"
@@ -156,6 +161,7 @@ export function ClinicRegisterPage() {
                     label={t('register.clinic.confirmPassword')}
                     autoComplete="new-password"
                     helperText={fmt(methods.formState.errors.confirm_password?.message)}
+                    required
                   />
                   <Button
                     type="submit"

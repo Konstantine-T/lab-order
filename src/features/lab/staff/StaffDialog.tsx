@@ -79,13 +79,14 @@ export function StaffDialog({ open, initial, onClose, onSubmit }: Props) {
                 <Alert severity="error">{methods.formState.errors.root.message}</Alert>
               )}
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <RHFTextField name="first_name" label={t('staff.fields.firstName')} />
-                <RHFTextField name="last_name" label={t('staff.fields.lastName')} />
+                <RHFTextField name="first_name" label={t('staff.fields.firstName')} required />
+                <RHFTextField name="last_name" label={t('staff.fields.lastName')} required />
               </Stack>
               <RHFTextField
                 name="phone"
                 label={t('staff.fields.phone')}
                 helperText={t('staff.fieldHelp.phone')}
+                required
               />
               <RHFTextField
                 name="email"

@@ -98,12 +98,14 @@ export function ResetPasswordPage() {
                       type="password"
                       label={t('resetPassword.newPassword')}
                       autoComplete="new-password"
+                      required
                     />
                     <RHFTextField
                       name="confirm_password"
                       type="password"
                       label={t('resetPassword.confirmPassword')}
                       autoComplete="new-password"
+                      required
                     />
                     <Button
                       type="submit"

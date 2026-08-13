@@ -54,12 +54,14 @@ export function LoginPage() {
                 type="email"
                 label={t('login.email')}
                 autoComplete="email"
+                required
               />
               <RHFTextField
                 name="password"
                 type="password"
                 label={t('login.password')}
                 autoComplete="current-password"
+                required
               />
               <Button
                 type="submit"

@@ -75,11 +75,11 @@ export function WorkLocationDialog({ open, initial, onClose, onSubmit }: Props) 
         <form onSubmit={methods.handleSubmit(handleSubmit)} noValidate>
           <DialogContent dividers>
             <Stack spacing={2}>
-              <RHFTextField name="clinic_name" label={t('workLocations.fields.clinicName')} />
+              <RHFTextField name="clinic_name" label={t('workLocations.fields.clinicName')} required />
               <RHFTextField name="branch_name" label={t('workLocations.fields.branchName')} />
-              <RHFTextField name="address" label={t('workLocations.fields.address')} />
+              <RHFTextField name="address" label={t('workLocations.fields.address')} required />
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                <RHFTextField name="city" label={t('workLocations.fields.city')} />
+                <RHFTextField name="city" label={t('workLocations.fields.city')} required />
                 <RHFTextField name="phone" label={t('workLocations.fields.phone')} />
               </Stack>
               <RHFTextField

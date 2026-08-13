@@ -123,15 +123,17 @@ export function LabRegisterPage() {
             <FormProvider {...methods}>
               <form onSubmit={methods.handleSubmit(onSubmit)} noValidate>
                 <Stack spacing={2}>
-                  <RHFTextField name="lab_public_name" label={t('register.lab.labPublicName')} />
+                  <RHFTextField name="lab_public_name" label={t('register.lab.labPublicName')} required />
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                     <RHFTextField
                       name="owner_first_name"
                       label={t('register.lab.ownerFirstName')}
+                      required
                     />
                     <RHFTextField
                       name="owner_last_name"
                       label={t('register.lab.ownerLastName')}
+                      required
                     />
                   </Stack>
                   <RHFTextField name="phone" label={t('register.lab.phone')} />
@@ -140,12 +142,14 @@ export function LabRegisterPage() {
                     type="email"
                     label={t('register.lab.email')}
                     autoComplete="email"
+                    required
                   />
                   <RHFTextField
                     name="password"
                     type="password"
                     label={t('register.lab.password')}
                     autoComplete="new-password"
+                    required
                   />
                   <RHFTextField
                     name="confirm_password"
@@ -153,6 +157,7 @@ export function LabRegisterPage() {
                     label={t('register.lab.confirmPassword')}
                     autoComplete="new-password"
                     helperText={fmt(methods.formState.errors.confirm_password?.message)}
+                    required
                   />
                   <Button
                     type="submit"

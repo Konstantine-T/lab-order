@@ -125,14 +125,15 @@ export function DoctorRegisterPage() {
               <form onSubmit={methods.handleSubmit(onSubmit)} noValidate>
                 <Stack spacing={2}>
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                    <RHFTextField name="first_name" label={t('register.doctor.firstName')} />
-                    <RHFTextField name="last_name" label={t('register.doctor.lastName')} />
+                    <RHFTextField name="first_name" label={t('register.doctor.firstName')} required />
+                    <RHFTextField name="last_name" label={t('register.doctor.lastName')} required />
                   </Stack>
                   <RHFTextField
                     name="personal_id_number"
                     label={t('register.doctor.personalIdNumber')}
                     helperText={fmt(methods.formState.errors.personal_id_number?.message) ?? t('register.doctor.personalIdHelp')}
                     inputProps={{ inputMode: 'numeric', maxLength: 11 }}
+                    required
                   />
                   <RHFTextField name="phone" label={t('register.doctor.phone')} />
                   <RHFTextField
@@ -140,12 +141,14 @@ export function DoctorRegisterPage() {
                     type="email"
                     label={t('register.doctor.email')}
                     autoComplete="email"
+                    required
                   />
                   <RHFTextField
                     name="password"
                     type="password"
                     label={t('register.doctor.password')}
                     autoComplete="new-password"
+                    required
                   />
                   <RHFTextField
                     name="confirm_password"
@@ -153,6 +156,7 @@ export function DoctorRegisterPage() {
                     label={t('register.doctor.confirmPassword')}
                     autoComplete="new-password"
                     helperText={fmt(methods.formState.errors.confirm_password?.message)}
+                    required
                   />
                   <Button
                     type="submit"

@@ -111,14 +111,15 @@ export function DoctorProfilePage() {
               <form onSubmit={methods.handleSubmit(onSubmit)} noValidate>
                 <Stack spacing={2}>
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-                    <RHFTextField name="first_name" label={t('profile.firstName')} />
-                    <RHFTextField name="last_name" label={t('profile.lastName')} />
+                    <RHFTextField name="first_name" label={t('profile.firstName')} required />
+                    <RHFTextField name="last_name" label={t('profile.lastName')} required />
                   </Stack>
                   <RHFTextField name="phone" label={t('profile.phone')} />
                   <RHFTextField
                     name="personal_id_number"
                     label={t('profile.personalIdNumber')}
                     inputProps={{ inputMode: 'numeric', maxLength: 11 }}
+                    required
                   />
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                     <RHFTextField name="specialty" label={t('profile.specialty')} />

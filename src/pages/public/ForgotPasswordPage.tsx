@@ -50,6 +50,7 @@ export function ForgotPasswordPage() {
                       type="email"
                       label={t('forgotPassword.email')}
                       autoComplete="email"
+                      required
                     />
                     <Button
                       type="submit"
