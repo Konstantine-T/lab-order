@@ -665,13 +665,16 @@ export function ImplantRestorationForm({
                 onChange={(v) => set({
                   bar: {
                     ...a.bar,
-                    needsBar: v === 'yes',
+                    // Optional field: '' = re-clicked the selected pill → back to
+                    // unanswered (undefined). Clears the dependent bar inputs.
+                    needsBar: v === 'yes' ? true : v === 'no' ? false : undefined,
                     barMaterial: undefined,
                     tryIn: undefined,
                     barTeeth: [],
                   },
                 })}
                 readOnly={readOnly}
+                allowDeselect
               />
             </Stack>
 
