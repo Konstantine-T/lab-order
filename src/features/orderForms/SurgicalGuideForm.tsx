@@ -84,7 +84,7 @@ export function SurgicalGuideForm({
   return (
     <Stack spacing={4}>
       {/* ── 1. Guide Protocol ─────────────────────────────────────────────── */}
-      <NumberedSection number={next()} label={sg('guideProtocol.label')}>
+      <NumberedSection number={next()} label={`${sg('guideProtocol.label')} *`}>
         <PillGroup<SgGuideProtocol>
           value={a.guideProtocol}
           options={['PILOT', 'FULL_PROTOCOL']}
@@ -96,7 +96,7 @@ export function SurgicalGuideForm({
       </NumberedSection>
 
       {/* ── 2. Jaw Selection ──────────────────────────────────────────────── */}
-      <NumberedSection number={next()} label={sg('jaw.label')}>
+      <NumberedSection number={next()} label={`${sg('jaw.label')} *`}>
         <PillGroup<SgJaw>
           value={a.jaw}
           options={['UPPER', 'LOWER', 'BOTH']}
@@ -112,7 +112,7 @@ export function SurgicalGuideForm({
       {hasUpper && (
         <NumberedSection
           number={next()}
-          label={jawPrefix('upper', sg('jawCondition.label'))}
+          label={`${jawPrefix('upper', sg('jawCondition.label'))} *`}
         >
           <PillGroup<SgJawCondition>
             value={a.upper.condition}
@@ -128,7 +128,7 @@ export function SurgicalGuideForm({
       {hasUpper && (
         <NumberedSection
           number={next()}
-          label={jawPrefix('upper', sg('implantPositions.label'))}
+          label={`${jawPrefix('upper', sg('implantPositions.label'))} *`}
         >
           <ImplantPositionsSection
             jawData={a.upper}
@@ -143,7 +143,7 @@ export function SurgicalGuideForm({
       {hasUpper && (
         <NumberedSection
           number={next()}
-          label={jawPrefix('upper', sg('guideSupport.label'))}
+          label={`${jawPrefix('upper', sg('guideSupport.label'))} *`}
         >
           <PillGroup<SgGuideSupport>
             value={a.upper.guideSupport}
@@ -187,7 +187,7 @@ export function SurgicalGuideForm({
       {hasLower && (
         <NumberedSection
           number={next()}
-          label={jawPrefix('lower', sg('jawCondition.label'))}
+          label={`${jawPrefix('lower', sg('jawCondition.label'))} *`}
         >
           <PillGroup<SgJawCondition>
             value={a.lower.condition}
@@ -203,7 +203,7 @@ export function SurgicalGuideForm({
       {hasLower && (
         <NumberedSection
           number={next()}
-          label={jawPrefix('lower', sg('implantPositions.label'))}
+          label={`${jawPrefix('lower', sg('implantPositions.label'))} *`}
         >
           <ImplantPositionsSection
             jawData={a.lower}
@@ -218,7 +218,7 @@ export function SurgicalGuideForm({
       {hasLower && (
         <NumberedSection
           number={next()}
-          label={jawPrefix('lower', sg('guideSupport.label'))}
+          label={`${jawPrefix('lower', sg('guideSupport.label'))} *`}
         >
           <PillGroup<SgGuideSupport>
             value={a.lower.guideSupport}
@@ -259,7 +259,7 @@ export function SurgicalGuideForm({
 
       {/* ── Abutment Type ─────────────────────────────────────────────────── */}
       {a.jaw && (
-        <NumberedSection number={next()} label={sg('abutment.label')}>
+        <NumberedSection number={next()} label={`${sg('abutment.label')} *`}>
           <PillGroup<SgAbutmentType>
             value={a.abutmentType}
             options={['CEMENTED', 'MULTI_UNIT', 'LAB_DECIDES', 'OTHER_CUSTOM']}
