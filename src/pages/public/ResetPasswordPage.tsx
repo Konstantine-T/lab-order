@@ -5,7 +5,7 @@ import {
   Link,
   Stack,
 } from '@mui/material';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,6 +31,7 @@ type FormValues = z.infer<typeof schema>;
 export function ResetPasswordPage() {
   const { t } = useTranslation('auth');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [serverError, setServerError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   // null = still detecting, true = valid session, false = no session (link invalid)
@@ -51,11 +52,10 @@ export function ResetPasswordPage() {
     //   • PKCE      → "?code=…"                          (exchangeCodeForSession)
     //   • token_hash→ "?token_hash=…&type=recovery"      (verifyOtp — NOT auto-handled)
     async function establish() {
-      const params = new URLSearchParams(window.location.search);
-      const tokenHash = params.get('token_hash');
-      const type = params.get('type');
-      const code = params.get('code');
-      const hadError = params.get('error') || params.get('error_description');
+      const tokenHash = searchParams.get('token_hash');
+      const type = searchParams.get('type');
+      const code = searchParams.get('code');
+      const hadError = searchParams.get('error') || searchParams.get('error_description');
 
       try {
         if (hadError) {
@@ -77,11 +77,9 @@ export function ResetPasswordPage() {
       } catch {
         if (active) setSessionReady(false);
       } finally {
-        // Strip the token from the address bar so a refresh can't re-run it
-        // (single-use) and it never leaks into history.
-        if (window.location.search || window.location.hash) {
-          window.history.replaceState({}, '', window.location.pathname);
-        }
+        // Strip the token from the URL (query + hash) so a refresh can't re-run
+        // it (single-use) and it never leaks into history.
+        if (active) navigate('/reset-password', { replace: true });
       }
     }
 
@@ -96,6 +94,8 @@ export function ResetPasswordPage() {
       active = false;
       subscription.unsubscribe();
     };
+    // Run once on mount — the recovery token is only present on the initial URL.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const onSubmit = async (values: FormValues) => {
