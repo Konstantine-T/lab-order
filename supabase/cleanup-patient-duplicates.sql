@@ -1,9 +1,22 @@
 -- =============================================================================
 -- ONE-SHOT cleanup of historical duplicate patients.
 --
--- For each (doctor_id, lower(first_name), lower(last_name)) group with more
--- than one row, picks a "canonical" row to keep and re-points all references
+-- OPTIONAL and OWNER-RUN. Nothing in the app calls this; migration 0020 stops
+-- NEW duplicates on its own, and normalizes both sides of every comparison so
+-- already-stored padded names match again immediately. This script is only for
+-- tidying rows that were already duplicated before that fix.
+--
+-- REQUIRES migration 20260101_0020_patient_dedup_normalize.sql to have been
+-- applied first — it defines public.patient_name_key/_tidy, used below.
+--
+-- For each (doctor_id, normalized first, normalized last) group with more than
+-- one row, picks a "canonical" row to keep and re-points all references
 -- (orders, patient_cases) at it. Then deletes the now-orphaned rows.
+--
+-- Grouping uses patient_name_key (lower + trimmed + inner whitespace collapsed)
+-- — the SAME rule the RPCs match on. It previously grouped on plain lower(),
+-- which missed exactly the trailing/double-space duplicates that motivated the
+-- fix, so re-running this after 0020 will find more groups than it used to.
 --
 -- Canonical row selection rule:
 --   1. Most attached orders wins.
@@ -33,8 +46,8 @@ with grouped as (
   select
     p.id,
     p.doctor_id,
-    lower(p.first_name) as fn,
-    lower(p.last_name)  as ln,
+    public.patient_name_key(p.first_name) as fn,
+    public.patient_name_key(p.last_name)  as ln,
     p.created_at,
     (select count(*) from public.orders o where o.patient_id = p.id) as order_count
   from public.patients p
@@ -92,6 +105,17 @@ update public.patient_cases c
 delete from public.patients p
  using dedup_canonical d
  where p.id = d.duplicate_id;
+
+-- Step 5: tidy the stored names of every surviving row.
+-- Strips the stray leading/trailing/double spaces that caused the duplicates in
+-- the first place. Case is preserved — these are displayed as human names.
+-- Cosmetic only: matching already normalizes both sides, so this changes no
+-- behaviour, it just stops the padded originals from lingering in the UI.
+update public.patients
+   set first_name = public.patient_name_tidy(first_name),
+       last_name  = public.patient_name_tidy(last_name)
+ where first_name <> public.patient_name_tidy(first_name)
+    or last_name  <> public.patient_name_tidy(last_name);
 
 -- DRY RUN — change to `commit;` after reviewing the preview output above.
 rollback;

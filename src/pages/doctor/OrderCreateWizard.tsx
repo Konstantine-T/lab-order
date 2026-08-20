@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   Box,
@@ -44,6 +44,10 @@ import type {
   RushType,
 } from '@/types/database';
 import { initialState, type WizardState } from '@/features/doctor/orderCreate/types';
+import {
+  normalizeName,
+  normalizePatientPayload,
+} from '@/features/doctor/orderCreate/patientName';
 import { scrollToFirstError } from '@/features/orderForms/scrollToFirstError';
 import {
   loadDraft,
@@ -379,7 +383,10 @@ export function OrderCreateWizard() {
         p_lab_id: state.lab_id,
         p_lab_service_id: state.lab_service_id,
         p_doctor_work_location_id: state.doctor_work_location_id,
-        p_patient: state.patient,
+        // Normalized so the server's dedup guard sees the same string the
+        // wizard's match lookup did — otherwise "გივი " and "გივი" become two
+        // patients.
+        p_patient: normalizePatientPayload(state.patient),
         p_lab_form_version_id: version.id,
         p_invoice_recipient_type: state.invoice_recipient_type,
         p_requested_due_date: state.requested_due_date || null,
@@ -617,33 +624,43 @@ export function PatientStep({
   const [match, setMatch] = useState<PatientRow | null>(null);
   const [matchOpen, setMatchOpen] = useState(false);
 
+  // The one place the lookup happens, so the debounce and the blur handler
+  // can't drift. Names go out normalized — the RPC compares on the same rule,
+  // and sending the raw value would miss a match over a stray space.
+  const lookupMatch = useCallback(() => {
+    if (readOnly) return; // locked patient never needs the match lookup
+    const { first_name, last_name, existing_id, date_of_birth, gender } = state.patient;
+    if (!first_name.trim() || !last_name.trim() || !doctorId || existing_id) return;
+
+    void supabase
+      .rpc('find_matching_patient', {
+        p_first: normalizeName(first_name),
+        p_last: normalizeName(last_name),
+        p_dob: date_of_birth || null,
+        p_gender: gender || null,
+      })
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setMatch(data[0] as PatientRow);
+          setMatchOpen(true);
+        }
+      });
+  }, [state.patient, doctorId, readOnly]);
+
   // Trigger match check as soon as first + last name are filled; gender/DOB
   // are no longer required because the RPC now matches on name only.
   useEffect(() => {
-    if (readOnly) return; // locked patient never needs the match lookup
-    const { first_name, last_name } = state.patient;
-    if (!first_name.trim() || !last_name.trim() || !doctorId) return;
-    if (state.patient.existing_id) return;
+    if (readOnly || state.patient.existing_id) return;
+    if (!state.patient.first_name.trim() || !state.patient.last_name.trim()) return;
 
     // 400ms debounce so we don't hit the RPC on every keystroke while the
     // doctor is still typing the name.
-    const timer = setTimeout(() => {
-      void supabase
-        .rpc('find_matching_patient', {
-          p_first: first_name,
-          p_last: last_name,
-          p_dob: state.patient.date_of_birth || null,
-          p_gender: state.patient.gender || null,
-        })
-        .then(({ data }) => {
-          if (data && data.length > 0) {
-            setMatch(data[0] as PatientRow);
-            setMatchOpen(true);
-          }
-        });
-    }, 400);
-
+    const timer = setTimeout(lookupMatch, 400);
     return () => clearTimeout(timer);
+    // Deliberately keyed on the names only: re-running on every `lookupMatch`
+    // identity (it closes over the whole patient object) would restart the
+    // debounce when the doctor edits DOB or gender.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     state.patient.first_name,
     state.patient.last_name,
@@ -672,6 +689,10 @@ export function PatientStep({
               onChange={(e) =>
                 update({ patient: { ...state.patient, first_name: e.target.value, existing_id: undefined } })
               }
+              // Also check on blur: the debounce is keyed on the names, so a
+              // doctor who types the name then tabs straight to DOB would
+              // otherwise never see the match dialog.
+              onBlur={lookupMatch}
               fullWidth
               required
               disabled={readOnly}
@@ -683,6 +704,7 @@ export function PatientStep({
               onChange={(e) =>
                 update({ patient: { ...state.patient, last_name: e.target.value, existing_id: undefined } })
               }
+              onBlur={lookupMatch}
               fullWidth
               required
               disabled={readOnly}

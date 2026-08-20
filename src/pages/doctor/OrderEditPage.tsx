@@ -22,6 +22,7 @@ import { calculatePrice, formatGEL } from '@/utils/pricing';
 import { scrollToFirstError } from '@/features/orderForms/scrollToFirstError';
 import { PatientStep, FormStep } from '@/pages/doctor/OrderCreateWizard';
 import { initialState, type WizardState } from '@/features/doctor/orderCreate/types';
+import { normalizePatientPayload } from '@/features/doctor/orderCreate/patientName';
 import type {
   DoctorWorkLocationRow,
   EditReasonCode,
@@ -178,7 +179,9 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
       if (!orderId) throw new Error('No order');
       const { error } = await supabase.rpc('edit_order', {
         p_order_id: orderId,
-        p_patient: state.patient,
+        // Same normalization as the wizard — edit_order carries its own copy
+        // of the dedup guard, so a renamed patient must not mint a duplicate.
+        p_patient: normalizePatientPayload(state.patient),
         p_doctor_work_location_id: state.doctor_work_location_id,
         p_invoice_recipient_type: state.invoice_recipient_type,
         p_answers: state.answers,
