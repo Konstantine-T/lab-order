@@ -66,7 +66,18 @@ function LineItemRow({ item }: { item: PriceLineItem }) {
   return (
     <MoneyRow
       label={
-        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'baseline', gap: 0.75 }}>
+        <Box
+          component="span"
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'baseline',
+            gap: 0.75,
+            // Wrap the caption onto its own line before the row gets so wide
+            // it pushes the amount out of a narrow rail.
+            flexWrap: 'wrap',
+            minWidth: 0,
+          }}
+        >
           {displayLabel}
           {detail && (
             // nowrap so the arithmetic never breaks across lines in the 316px

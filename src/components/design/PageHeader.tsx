@@ -61,6 +61,11 @@ export function PageHeader({
         direction={{ xs: 'column', sm: 'row' }}
         alignItems={{ xs: 'stretch', sm: 'center' }}
         spacing={{ xs: 1.5, sm: 1.75 }}
+        // Spacing as `gap`, not margins. MUI's default margin-based spacing
+        // sets marginLeft on the actions group with a selector that outranks
+        // the sx prop, which silently killed the `ml: auto` below — actions
+        // ended up stranded next to the title instead of at the right edge.
+        useFlexGap
       >
         <Stack direction="row" alignItems="center" spacing={1.75} sx={{ minWidth: 0 }}>
           {(backTo || onBack) && (
