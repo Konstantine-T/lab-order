@@ -33,6 +33,7 @@ groups
 home
 hourglass_empty
 how_to_reg
+image
 inbox
 info
 language
