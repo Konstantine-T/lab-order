@@ -1,8 +1,10 @@
-import { Box, Stack, Typography } from '@mui/material';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
+import { Box, ButtonBase, Collapse, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { FieldLabel, MoneyRow } from '@/components/design';
-import { calculatePrice, formatGEL } from '@/utils/pricing';
-import type { PriceLineItem } from '@/utils/pricing';
+import { FieldLabel, Icon, MoneyRow } from '@/components/design';
+import { calculatePrice, formatGEL, pricingShape } from '@/utils/pricing';
+import type { PriceLineItem, PricingShape } from '@/utils/pricing';
 import { radii } from '@/theme/tokens';
 import type { PricingConfig, RushType } from '@/types/database';
 
@@ -16,13 +18,18 @@ type Props = {
    * `SectionCard` — which is how the mockups draw every price panel.
    */
   variant?: 'boxed' | 'plain';
+  /**
+   * The "how this is calculated" panel. Opt-in: it's for the doctor deciding
+   * whether to place an order, so the order wizard and the edit page turn it
+   * on. The lab's own pages don't need their own pricing rules explained back
+   * to them.
+   */
+  explain?: boolean;
 };
 
 function LineItemRow({ item }: { item: PriceLineItem }) {
   const { t } = useTranslation('common');
   const { t: tLab } = useTranslation('lab');
-
-  const isBar = item.baseAmount != null;
 
   let displayLabel: string;
   if (item.i18nKey === 'sgSupport') {
@@ -35,22 +42,43 @@ function LineItemRow({ item }: { item: PriceLineItem }) {
     displayLabel = item.label;
   }
 
-  const qty = isBar ? (
-    <>
-      ({formatGEL(item.baseAmount!)} + {item.qty}×{formatGEL(item.unitAmount ?? 0)})
-    </>
-  ) : item.qty != null ? (
-    <>×{item.qty}</>
-  ) : null;
+  // Show the arithmetic, not just the multiplier — a doctor seeing "× 3" has to
+  // do the division to learn what one costs. Driven purely by which fields the
+  // line item carries, so every template gets this for free.
+  let detail: ReactNode = null;
+  if (item.baseAmount != null) {
+    // Implant bar: a base fee plus a per-implant charge.
+    detail = (
+      <>
+        ({formatGEL(item.baseAmount)} + {item.qty}×{formatGEL(item.unitAmount ?? 0)})
+      </>
+    );
+  } else if (item.unitAmount != null && item.qty != null) {
+    detail = (
+      <>
+        ({formatGEL(item.unitAmount)} × {item.qty})
+      </>
+    );
+  } else if (item.qty != null) {
+    detail = <>×{item.qty}</>;
+  }
 
   return (
     <MoneyRow
       label={
         <Box component="span" sx={{ display: 'inline-flex', alignItems: 'baseline', gap: 0.75 }}>
           {displayLabel}
-          {qty && (
-            <Typography component="span" variant="caption" color="text.disabled">
-              {qty}
+          {detail && (
+            // nowrap so the arithmetic never breaks across lines in the 316px
+            // rail — "(GEL 145.00 ×" on one line and "3)" on the next is worse
+            // than letting the material name wrap instead.
+            <Typography
+              component="span"
+              variant="caption"
+              color="text.disabled"
+              sx={{ whiteSpace: 'nowrap' }}
+            >
+              {detail}
             </Typography>
           )}
         </Box>
@@ -59,6 +87,18 @@ function LineItemRow({ item }: { item: PriceLineItem }) {
     />
   );
 }
+
+/** The plain-language rule for each pricing shape, so the doctor can see *why*
+ *  a charge applies and not just what it is. */
+const EXPLAIN_KEY: Record<PricingShape, string> = {
+  perToothMaterial: 'priceBreakdown.explain.perToothMaterial',
+  surgicalGuide: 'priceBreakdown.explain.surgicalGuide',
+  implant: 'priceBreakdown.explain.implant',
+  printMilling: 'priceBreakdown.explain.printMilling',
+  modelPerJaw: 'priceBreakdown.explain.modelPerJaw',
+  fixedPrice: 'priceBreakdown.explain.fixedPrice',
+  generic: 'priceBreakdown.explain.generic',
+};
 
 /**
  * The price panel from the mockups: line items, subtotal, an optional rush
@@ -71,11 +111,31 @@ export function PriceBreakdown({
   rush,
   finalTotal,
   variant = 'boxed',
+  explain = false,
 }: Props) {
   const { t } = useTranslation('common');
+  // Collapsed by default — the itemised rows answer "what", and most doctors
+  // only need "why" the first few times they order from a lab.
+  const [showExplain, setShowExplain] = useState(false);
+
   const result = calculatePrice(pricing, answers, rush);
   const hasDetails = result.lineItems.length > 0;
   const discounted = finalTotal != null && finalTotal < result.total;
+  // Nothing priceable answered yet — lead with a hint rather than a bare 0.
+  const isEmpty = !hasDetails && result.subtotal === 0;
+
+  const shape = pricingShape(pricing, answers);
+  // The rush actually applied: an explicit override (the wizard's toggle) wins
+  // over the lab's configured default, exactly as calculatePrice resolves it.
+  const effectiveRush = rush ?? pricing?.rush;
+  const explainRule = shape ? t(EXPLAIN_KEY[shape] as Parameters<typeof t>[0]) : null;
+  const explainRush =
+    result.rushAmount > 0 && effectiveRush
+      ? effectiveRush.type === 'PERCENTAGE'
+        ? t('priceBreakdown.explain.rushPercentage', { value: effectiveRush.value ?? 0 })
+        : t('priceBreakdown.explain.rushFixed', { value: formatGEL(effectiveRush.value ?? 0) })
+      : null;
+  const canExplain = explain && !isEmpty && (explainRule != null || explainRush != null);
 
   const body = (
     <Stack spacing={0.75}>
@@ -88,10 +148,18 @@ export function PriceBreakdown({
         </>
       )}
 
-      <MoneyRow label={t('priceBreakdown.subtotal')} amount={formatGEL(result.subtotal)} />
+      {isEmpty ? (
+        <Typography variant="body2" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+          {t('priceBreakdown.emptyHint')}
+        </Typography>
+      ) : (
+        <MoneyRow label={t('priceBreakdown.subtotal')} amount={formatGEL(result.subtotal)} />
+      )}
+
       {result.rushAmount > 0 && (
         <MoneyRow label={t('priceBreakdown.rushSurcharge')} amount={formatGEL(result.rushAmount)} />
       )}
+
       <MoneyRow
         total
         label={t('priceBreakdown.estimatedTotal')}
@@ -107,6 +175,7 @@ export function PriceBreakdown({
           </Box>
         }
       />
+
       {finalTotal != null && finalTotal !== result.total && (
         <MoneyRow
           strong
@@ -114,6 +183,41 @@ export function PriceBreakdown({
           amount={formatGEL(finalTotal)}
           color="success.main"
         />
+      )}
+
+      {canExplain && (
+        <Box sx={{ pt: 0.5 }}>
+          <ButtonBase
+            onClick={() => setShowExplain((v) => !v)}
+            aria-expanded={showExplain}
+            sx={{
+              gap: 0.5,
+              borderRadius: 1,
+              px: 0.25,
+              color: 'text.secondary',
+              fontSize: '0.71875rem',
+              fontWeight: 600,
+              '&:hover': { color: 'text.primary' },
+            }}
+          >
+            {t('priceBreakdown.explainToggle')}
+            <Icon name={showExplain ? 'expand_less' : 'expand_more'} size={16} />
+          </ButtonBase>
+          <Collapse in={showExplain} unmountOnExit>
+            <Stack spacing={0.5} sx={{ pt: 0.75 }}>
+              {explainRule && (
+                <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.55 }}>
+                  {explainRule}
+                </Typography>
+              )}
+              {explainRush && (
+                <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.55 }}>
+                  {explainRush}
+                </Typography>
+              )}
+            </Stack>
+          </Collapse>
+        </Box>
       )}
     </Stack>
   );

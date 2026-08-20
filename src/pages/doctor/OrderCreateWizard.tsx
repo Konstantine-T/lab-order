@@ -22,6 +22,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { OrderForm, isOrderFormValid } from '@/features/orderForms/OrderForm';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
+import { MobilePriceBar } from '@/components/MobilePriceBar';
 import {
   Callout,
   FieldLabel,
@@ -558,6 +559,14 @@ export function OrderCreateWizard() {
 
         <FilesCard />
       </SplitLayout>
+
+      {/* Page level, not inside the rail: on mobile the rail sits at the top,
+          so the running total would scroll away as the doctor fills the form. */}
+      <MobilePriceBar
+        pricing={version?.pricing_configuration_json}
+        answers={state.answers}
+        rush={rush}
+      />
     </>
   );
 }
@@ -884,6 +893,7 @@ function SummaryRail({
       {version && (
         <Box sx={{ px: 2.5, py: 1.75, borderBottom: 1, borderColor: 'divider' }}>
           <PriceBreakdown
+            explain
             variant="plain"
             pricing={version.pricing_configuration_json}
             answers={state.answers}

@@ -7,6 +7,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { isOrderFormValid } from '@/features/orderForms/OrderForm';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
+import { MobilePriceBar } from '@/components/MobilePriceBar';
 import {
   Callout,
   DetailList,
@@ -327,6 +328,7 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
             {version && (
               <SectionCard title={tc('priceBreakdown.priceDetails')}>
                 <PriceBreakdown
+                  explain
                   variant="plain"
                   pricing={version.pricing_configuration_json}
                   answers={state.answers}
@@ -401,6 +403,13 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
           <FormStep state={state} update={update} version={version} showErrors={attempted} />
         )}
       </SplitLayout>
+
+      {/* Same reason as the wizard: below `lg` the price rail is off-screen. */}
+      <MobilePriceBar
+        pricing={version?.pricing_configuration_json}
+        answers={state.answers}
+        rush={rush}
+      />
     </>
   );
 }

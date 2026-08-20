@@ -77,6 +77,20 @@
       "sgSupport": "Guide support",
       "gingivalReduction": "Gingival reduction guide",
       "modelPerJaw": "Model (per jaw)"
+    },
+    "explainToggle": "How this is calculated",
+    "emptyHint": "Prices will appear here as you fill in the form.",
+    "rushIncluded": "Rush included",
+    "explain": {
+      "perToothMaterial": "Each tooth is charged by its selected material's price.",
+      "surgicalGuide": "Charged per implant position by the chosen protocol, plus any guide-support fees.",
+      "implant": "Each implant position is charged by its configured components.",
+      "printMilling": "Charged per unit of the selected material.",
+      "modelPerJaw": "Charged per jaw — both jaws counts as two.",
+      "fixedPrice": "A flat price for this service.",
+      "generic": "Charged per selected tooth.",
+      "rushPercentage": "Rush adds {{value}}% for faster turnaround.",
+      "rushFixed": "Rush adds a flat {{value}} for faster turnaround."
     }
   },
   "toothMap": {
