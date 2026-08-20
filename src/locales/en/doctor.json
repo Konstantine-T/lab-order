@@ -47,7 +47,8 @@
     "orderCta": "Order",
     "orderDisabled": "No published form",
     "turnaround": "{{days}} day(s)",
-    "continuingFor": "Continuing a project — pick a service."
+    "continuingFor": "Continuing a project — pick a service.",
+    "newOrderFor": "New order for this patient — pick a service."
   },
   "orderCreate": {
     "digitalImpressionsNote": "At this stage we work with digital impressions only.",
@@ -187,7 +188,8 @@
     },
     "moreFilters": "More filters",
     "pipelineNext": "{{current}} → {{next}}",
-    "pipelineDone": "Delivered & completed"
+    "pipelineDone": "Delivered & completed",
+    "addNewOrder": "Add new order"
   },
   "orderDetail": {
     "back": "Back to orders",

@@ -51,7 +51,8 @@
     "orderCta": "Заказать",
     "orderDisabled": "Форма не опубликована",
     "turnaround": "{{days}} дн.",
-    "continuingFor": "Продолжение проекта — выберите услугу."
+    "continuingFor": "Продолжение проекта — выберите услугу.",
+    "newOrderFor": "Новый заказ для этого пациента — выберите услугу."
   },
   "orderCreate": {
     "digitalImpressionsNote": "На данном этапе мы работаем только с цифровыми слепками.",
@@ -194,7 +195,8 @@
     },
     "moreFilters": "Ещё фильтры",
     "pipelineNext": "{{current}} → {{next}}",
-    "pipelineDone": "Доставлено и завершено"
+    "pipelineDone": "Доставлено и завершено",
+    "addNewOrder": "Добавить новый заказ"
   },
   "orderDetail": {
     "back": "Назад к заказам",

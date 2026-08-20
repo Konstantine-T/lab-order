@@ -111,8 +111,11 @@ export function LabPublicProfilePage() {
 
       <CardStack>
         {(continuePatient || continuesOrder) && (
+          // Two ways to land here carrying a patient. Only one is a
+          // continuation: without `continues` this is a plain new order for the
+          // patient, so saying "continuing a project" would be a lie.
           <Callout tone="brand" icon="link">
-            {t('labProfile.continuingFor')}
+            {continuesOrder ? t('labProfile.continuingFor') : t('labProfile.newOrderFor')}
           </Callout>
         )}
 

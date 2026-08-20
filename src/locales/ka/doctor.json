@@ -47,7 +47,8 @@
     "orderCta": "შეკვეთა",
     "orderDisabled": "ფორმა გამოუქვეყნებელია",
     "turnaround": "{{days}} დღე",
-    "continuingFor": "პროექტის გაგრძელება — აირჩიეთ სერვისი."
+    "continuingFor": "პროექტის გაგრძელება — აირჩიეთ სერვისი.",
+    "newOrderFor": "ახალი შეკვეთა ამ პაციენტისთვის — აირჩიეთ სერვისი."
   },
   "orderCreate": {
     "digitalImpressionsNote": "ამ ეტაპზე ვმუშაობთ მხოლოდ ციფრულ ანაბეჭდზე.",
@@ -186,7 +187,8 @@
     },
     "moreFilters": "დამატებითი ფილტრები",
     "pipelineNext": "{{current}} → {{next}}",
-    "pipelineDone": "მიწოდებული და დასრულებული"
+    "pipelineDone": "მიწოდებული და დასრულებული",
+    "addNewOrder": "ახალი შეკვეთის დამატება"
   },
   "orderDetail": {
     "back": "უკან შეკვეთებზე",
