@@ -23,6 +23,7 @@ import { scrollToFirstError } from '@/features/orderForms/scrollToFirstError';
 import { PatientStep, FormStep } from '@/pages/doctor/OrderCreateWizard';
 import { initialState, type WizardState } from '@/features/doctor/orderCreate/types';
 import { normalizePatientPayload } from '@/features/doctor/orderCreate/patientName';
+import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
 import type {
   DoctorWorkLocationRow,
   EditReasonCode,
@@ -405,6 +406,17 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
         {version && (
           <FormStep state={state} update={update} version={version} showErrors={attempted} />
         )}
+
+        {/* The order exists here, so attachments upload immediately — and this
+            is where removing them lives. */}
+        <SectionCard icon="upload_file" title={tc('orderFiles.title')}>
+          <OrderFilesField
+            orderId={order.id}
+            labId={order.lab_id}
+            canUpload
+            canRemove={() => true}
+          />
+        </SectionCard>
       </SplitLayout>
 
       {/* Same reason as the wizard: below `lg` the price rail is off-screen. */}

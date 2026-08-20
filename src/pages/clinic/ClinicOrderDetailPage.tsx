@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { Link as RouterLink, useParams } from 'react-router-dom';
 import { CardStack, FactCell, Icon, PageHeader, SectionCard } from '@/components/design';
+import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
@@ -202,6 +203,12 @@ export function ClinicOrderDetailPage() {
             hint={dayjs(order.created_at).format('HH:mm')}
           />
         </Box>
+      </SectionCard>
+
+      {/* Not gated on `version` — attachments exist whether or not the form
+          version loaded. */}
+      <SectionCard icon="upload_file" title={tc('orderFiles.title')}>
+        <OrderFilesField orderId={order.id} labId={order.lab_id} />
       </SectionCard>
 
       {version && (

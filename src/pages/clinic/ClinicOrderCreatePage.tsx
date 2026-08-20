@@ -28,6 +28,9 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { isOrderFormValid } from '@/features/orderForms/OrderForm';
 import { PatientStep, FormStep } from '@/pages/doctor/OrderCreateWizard';
+import { useAuth } from '@/auth/AuthProvider';
+import { PendingOrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
+import { uploadOrderFile } from '@/features/orders/orderFiles/orderFilesApi';
 import { initialState, type WizardState } from '@/features/doctor/orderCreate/types';
 import { calculatePrice } from '@/utils/pricing';
 import { scrollToFirstError } from '@/features/orderForms/scrollToFirstError';
@@ -53,6 +56,7 @@ export function ClinicOrderCreatePage() {
   const { t } = useTranslation('clinic');
   const { t: td } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
+  const { user } = useAuth();
   const navigate = useNavigate();
   const qc = useQueryClient();
 
@@ -163,6 +167,11 @@ export function ClinicOrderCreatePage() {
     return r.kind === 'CALCULATED' ? r.total : null;
   }, [version, state.answers]);
 
+  // Same model as the doctor wizard: picked now, uploaded once the order id
+  // exists. Clinic RLS (migration 0021) authorizes the clinic admin.
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [failedUploads, setFailedUploads] = useState<string[]>([]);
+
   const submit = useMutation({
     mutationFn: async () => {
       if (!version) throw new Error('No form version');
@@ -181,7 +190,22 @@ export function ClinicOrderCreatePage() {
         p_generated_total: generatedTotal,
       });
       if (error) throw error;
-      return data as string;
+      const orderId = data as string;
+
+      // Non-fatal: the order is placed, so a failed attachment is reported
+      // rather than thrown.
+      if (pendingFiles.length > 0 && user) {
+        const failed: string[] = [];
+        for (const f of pendingFiles) {
+          try {
+            await uploadOrderFile({ id: orderId, lab_id: labId }, f, user.id, user.role);
+          } catch {
+            failed.push(f.name);
+          }
+        }
+        if (failed.length) setFailedUploads(failed);
+      }
+      return orderId;
     },
     onSuccess: (id) => {
       qc.invalidateQueries({ queryKey: ['clinic-orders'] });
@@ -229,6 +253,11 @@ export function ClinicOrderCreatePage() {
         <Typography variant="h3" component="h1" sx={{ textAlign: 'center' }}>
           {t('orderCreate.success')}
         </Typography>
+        {failedUploads.length > 0 && (
+          <Callout tone="warning">
+            {tc('orderFiles.errors.partialSubmit', { names: failedUploads.join(', ') })}
+          </Callout>
+        )}
         <Stack direction="row" spacing={1.5} sx={{ pt: 1 }}>
           <Button variant="contained" onClick={() => navigate(`/clinic/orders/${okId}`)}>
             {tc('actions.viewDetails')}
@@ -349,6 +378,14 @@ export function ClinicOrderCreatePage() {
           </SectionCard>
 
           <FormStep state={state} update={update} version={version} showErrors={attempted} />
+
+          <SectionCard icon="upload_file" title={tc('orderFiles.title')}>
+            <PendingOrderFilesField
+              files={pendingFiles}
+              onChange={setPendingFiles}
+              disabled={submit.isPending}
+            />
+          </SectionCard>
 
           <Stack direction="row" justifyContent="flex-end">
             <Button

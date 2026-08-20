@@ -214,5 +214,22 @@
   "orderCard": {
     "due": "Due",
     "total": "Total"
+  },
+  "orderFiles": {
+    "title": "Attachments",
+    "dropHint": "Drag files here or click to browse",
+    "sizeHint": "Any file type, up to {{size}} each.",
+    "uploading": "Uploading…",
+    "remove": "Remove",
+    "download": "Download",
+    "empty": "No files attached.",
+    "errors": {
+      "tooLarge": "This file is larger than the 100 MB limit: {{name}}",
+      "network": "Upload failed — check your connection and try again.",
+      "permission": "You don't have permission to upload to this order.",
+      "duplicate": "That file is already attached.",
+      "generic": "Couldn't upload {{name}}. Please try again.",
+      "partialSubmit": "Your order was created, but some files didn't upload: {{names}}. You can add them from the order page."
+    }
   }
 }

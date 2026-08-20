@@ -48,6 +48,8 @@ import {
   normalizeName,
   normalizePatientPayload,
 } from '@/features/doctor/orderCreate/patientName';
+import { PendingOrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
+import { uploadOrderFile } from '@/features/orders/orderFiles/orderFilesApi';
 import { scrollToFirstError } from '@/features/orderForms/scrollToFirstError';
 import {
   loadDraft,
@@ -109,6 +111,11 @@ export function OrderCreateWizard() {
   const [patientAttempted, setPatientAttempted] = useState(false);
   const [filesAttempted, setFilesAttempted] = useState(false);
   const [submittedOrderId, setSubmittedOrderId] = useState<string | null>(null);
+  // Attachments picked while filling the form. Deliberately NOT in `state`:
+  // the draft autosaves as JSON and a File can't be serialized, so a resumed
+  // draft simply starts with an empty list.
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+  const [failedUploads, setFailedUploads] = useState<string[]>([]);
   const [dismissedBroken, setDismissedBroken] = useState(false);
   const draftHydratedRef = useRef(false);
   const continuePatientRef = useRef(false);
@@ -397,7 +404,24 @@ export function OrderCreateWizard() {
         p_continues_order_id: continuesParam || null,
       });
       if (error) throw error;
-      return data as string;
+      const orderId = data as string;
+
+      // Files can only be uploaded once the order exists: the storage path and
+      // every RLS policy on the bucket key off the order id. A failure here is
+      // NOT fatal — the order is already placed, so we collect the names and
+      // let the doctor re-attach from the order page.
+      if (pendingFiles.length > 0 && user) {
+        const failed: string[] = [];
+        for (const f of pendingFiles) {
+          try {
+            await uploadOrderFile({ id: orderId, lab_id: state.lab_id }, f, user.id, user.role);
+          } catch {
+            failed.push(f.name);
+          }
+        }
+        if (failed.length) setFailedUploads(failed);
+      }
+      return orderId;
     },
     onSuccess: async (orderId) => {
       // Delete the draft row, then nuke the cached value so other mounted
@@ -440,6 +464,13 @@ export function OrderCreateWizard() {
         <Typography variant="h3" component="h1" sx={{ textAlign: 'center' }}>
           {t('orderCreate.review.submitSuccess')}
         </Typography>
+        {/* The order is placed either way — a failed attachment must not read
+            as a failed order, so this is a warning, not an error. */}
+        {failedUploads.length > 0 && (
+          <Callout tone="warning">
+            {tc('orderFiles.errors.partialSubmit', { names: failedUploads.join(', ') })}
+          </Callout>
+        )}
         <Stack direction="row" spacing={1.5} sx={{ pt: 1 }}>
           <Button variant="contained" onClick={() => navigate(`/doctor/orders/${submittedOrderId}`)}>
             {tc('actions.viewDetails')}
@@ -564,7 +595,11 @@ export function OrderCreateWizard() {
           <FormStep state={state} update={update} version={version} showErrors={submitAttempted} />
         )}
 
-        <FilesCard />
+        <FilesCard
+          files={pendingFiles}
+          onChange={setPendingFiles}
+          disabled={submit.isPending}
+        />
       </SplitLayout>
 
       {/* Page level, not inside the rail: on mobile the rail sits at the top,
@@ -586,7 +621,15 @@ export function OrderCreateWizard() {
  * mockup's dropzone chrome with the "coming soon" note rather than a control
  * that would do nothing.
  */
-function FilesCard() {
+function FilesCard({
+  files,
+  onChange,
+  disabled,
+}: {
+  files: File[];
+  onChange: (files: File[]) => void;
+  disabled?: boolean;
+}) {
   const { t } = useTranslation('doctor');
   return (
     <SectionCard
@@ -594,9 +637,8 @@ function FilesCard() {
       title={t('orderCreate.filesAndDue.files')}
       meta={t('orderCreate.filesAndDue.uploadHint')}
     >
-      <Callout tone="neutral" icon="cloud_upload">
-        {t('orderCreate.filesAndDue.filesComingSoon')}
-      </Callout>
+      {/* Picked now, uploaded after submit — see the submit mutation. */}
+      <PendingOrderFilesField files={files} onChange={onChange} disabled={disabled} />
     </SectionCard>
   );
 }

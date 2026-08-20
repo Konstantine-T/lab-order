@@ -87,7 +87,6 @@
     "filesAndDue": {
       "files": "Файлы",
       "uploadHint": "Разрешено: STL, ZIP, JPG, PNG, PDF, MP4 (до 100 МБ)",
-      "filesComingSoon": "Загрузка файлов будет доступна на следующем этапе.",
       "addFile": "Добавить файл",
       "noFiles": "Файлов нет.",
       "dueDate": "Желаемый срок",
