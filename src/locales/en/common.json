@@ -29,7 +29,15 @@
     "tooltip": "Found a problem or have a suggestion? Write to us directly here.",
     "title": "Feedback",
     "placeholder": "Describe the problem or your suggestion…",
-    "success": "Thanks! Your message has been sent."
+    "success": "Thanks! Your message has been sent.",
+    "attach": "Attach image",
+    "attachHint": "Up to {{max}} images, {{size}} each — or just paste a screenshot.",
+    "removeImage": "Remove image",
+    "reject": {
+      "type": "Only images can be attached (PNG, JPG, WEBP, GIF).",
+      "size": "Each image must be under {{size}}.",
+      "count": "You can attach at most {{max}} images."
+    }
   },
   "labApprovalStatus": {
     "PENDING_APPROVAL": "Pending approval",

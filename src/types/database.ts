@@ -487,6 +487,9 @@ export interface FeedbackRow {
   message: string;
   page_path: string | null;
   lang: string | null;
+  /** Keys in the private `feedback-images` bucket, not URLs — the admin signs
+   *  each one at read time. Empty when the sender attached nothing. */
+  image_paths: string[];
   created_at: string;
 }
 
@@ -506,4 +509,5 @@ export interface AdminFeedbackListRow {
   phone: string | null;
   role: UserRole;
   org_name: string | null;
+  image_paths: string[];
 }

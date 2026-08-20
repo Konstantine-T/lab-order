@@ -30,12 +30,19 @@ import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { supabase } from '@/lib/supabase';
 import type { AdminFeedbackListRow } from '@/types/database';
+import { FEEDBACK_BUCKET } from '@/utils/feedbackImages';
+
+/** Signed URLs are short-lived; refresh a little before they lapse so a long
+ *  sitting on this page doesn't end with broken thumbnails. */
+const SIGNED_URL_TTL_SECONDS = 60 * 60;
+const SIGNED_URL_REFETCH_MS = 55 * 60 * 1000;
 
 export function FeedbacksPage() {
   const { t } = useTranslation('admin');
   const { t: tc } = useTranslation('common');
   const qc = useQueryClient();
   const [deleteTarget, setDeleteTarget] = useState<AdminFeedbackListRow | null>(null);
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const [actionError, setActionError] = useState(false);
 
   const {
@@ -51,9 +58,38 @@ export function FeedbacksPage() {
     },
   });
 
+  // The bucket is private, so every attachment needs a signed URL. One batch
+  // call for the whole page beats one request per thumbnail.
+  const allPaths = items.flatMap((i) => i.image_paths ?? []);
+  const { data: signedUrls = {} } = useQuery({
+    queryKey: ['admin-feedback-images', allPaths],
+    enabled: allPaths.length > 0,
+    staleTime: SIGNED_URL_REFETCH_MS,
+    refetchInterval: SIGNED_URL_REFETCH_MS,
+    queryFn: async () => {
+      const { data, error } = await supabase.storage
+        .from(FEEDBACK_BUCKET)
+        .createSignedUrls(allPaths, SIGNED_URL_TTL_SECONDS);
+      if (error) throw error;
+      const map: Record<string, string> = {};
+      for (const entry of data ?? []) {
+        if (entry.path && entry.signedUrl) map[entry.path] = entry.signedUrl;
+      }
+      return map;
+    },
+  });
+
   const remove = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('feedback').delete().eq('id', id);
+    mutationFn: async (item: AdminFeedbackListRow) => {
+      // Storage first: if it fails we still have the row, and retrying the
+      // delete retries both. Dropping the row first would orphan the images.
+      if (item.image_paths?.length) {
+        const { error: storageError } = await supabase.storage
+          .from(FEEDBACK_BUCKET)
+          .remove(item.image_paths);
+        if (storageError) throw storageError;
+      }
+      const { error } = await supabase.from('feedback').delete().eq('id', item.id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin-feedback'] }),
@@ -132,6 +168,46 @@ export function FeedbacksPage() {
             {item.message}
           </Typography>
 
+          {item.image_paths?.length > 0 && (
+            <Stack direction="row" sx={{ mt: 1.75, flexWrap: 'wrap', gap: 1 }}>
+              {item.image_paths.map((path) => {
+                const url = signedUrls[path];
+                return (
+                  <Box
+                    key={path}
+                    onClick={() => url && setLightbox(url)}
+                    sx={{
+                      width: 104,
+                      height: 104,
+                      borderRadius: '10px',
+                      overflow: 'hidden',
+                      border: 1,
+                      borderColor: 'divider',
+                      bgcolor: 'background.default',
+                      cursor: url ? 'zoom-in' : 'default',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {url && (
+                      <Box
+                        component="img"
+                        src={url}
+                        alt={t('feedbacks.attachment')}
+                        loading="lazy"
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                        }}
+                      />
+                    )}
+                  </Box>
+                );
+              })}
+            </Stack>
+          )}
+
           <Stack direction="row" sx={{ mt: 1.75, flexWrap: 'wrap', gap: 0.75 }}>
             {item.page_path && (
               <MetaChip icon={<Icon name="link" size={13} />}>
@@ -164,7 +240,7 @@ export function FeedbacksPage() {
             disabled={remove.isPending}
             onClick={async () => {
               if (deleteTarget) {
-                await remove.mutateAsync(deleteTarget.id).catch(() => {});
+                await remove.mutateAsync(deleteTarget).catch(() => {});
               }
               setDeleteTarget(null);
             }}
@@ -172,6 +248,21 @@ export function FeedbacksPage() {
             {t('feedbacks.deleteAction')}
           </Button>
         </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!lightbox} onClose={() => setLightbox(null)} maxWidth="lg">
+        <Box
+          component="img"
+          src={lightbox ?? undefined}
+          alt={t('feedbacks.attachment')}
+          onClick={() => setLightbox(null)}
+          sx={{
+            display: 'block',
+            maxWidth: '90vw',
+            maxHeight: '85vh',
+            cursor: 'zoom-out',
+          }}
+        />
       </Dialog>
 
       <Snackbar
