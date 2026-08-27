@@ -26,6 +26,7 @@ edit_note
 error
 event_busy
 event_upcoming
+expand_less
 expand_more
 fact_check
 forum
@@ -33,6 +34,7 @@ groups
 home
 hourglass_empty
 how_to_reg
+image
 inbox
 info
 language

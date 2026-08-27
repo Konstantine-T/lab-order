@@ -22,9 +22,58 @@ export type PriceResult = {
   lineItems: PriceLineItem[];
 };
 
+/** Which pricing rule an order falls under. */
+export type PricingShape =
+  | 'fixedPrice'
+  | 'modelPerJaw'
+  | 'perToothMaterial'
+  | 'printMilling'
+  | 'surgicalGuide'
+  | 'implant'
+  | 'generic';
+
 /**
- * Compute the doctor-facing estimate. Mirrored on the server when the order
- * is submitted (the lab confirms a final_total later).
+ * Duck-type the pricing rule from the config and the answers. `calculatePrice`
+ * branches on this rather than repeating the chain inline, so the plain-language
+ * "how this is calculated" panel can never describe a different rule than the
+ * one that actually produced the numbers.
+ *
+ * Order matters and mirrors the original if/else chain exactly.
+ */
+export function pricingShape(
+  pricing: PricingConfig | undefined,
+  answers: Record<string, unknown>,
+): PricingShape | null {
+  if (!pricing) return null;
+  if (pricing.model === 'FIXED_PRICE') return 'fixedPrice';
+  if (pricing.model !== 'UNIT_BASED') return null; // unknown model — priced at 0
+
+  const toothAssignments = (answers as { toothAssignments?: unknown }).toothAssignments;
+  if (pricing.model_per_jaw_price !== undefined) return 'modelPerJaw';
+  if (Array.isArray(toothAssignments) && Array.isArray(pricing.materials)) {
+    return 'perToothMaterial';
+  }
+  if (
+    typeof (answers as { materialId?: unknown }).materialId === 'string' &&
+    Array.isArray(pricing.materials)
+  ) {
+    return 'printMilling';
+  }
+  if (typeof (answers as Record<string, unknown>).guideProtocol === 'string') {
+    return 'surgicalGuide';
+  }
+  if (pricing.implant_price_config !== undefined || pricing.implant_crown_materials !== undefined) {
+    return 'implant';
+  }
+  return 'generic';
+}
+
+/**
+ * Compute the doctor-facing estimate.
+ *
+ * This is the ONLY place the price is computed. The server does not recompute
+ * it: `submit_order` / `edit_order` store whatever `generated_total` the client
+ * sends, verbatim, and the lab sets the authoritative `final_total` later.
  */
 export function calculatePrice(
   pricing: PricingConfig | undefined,
@@ -35,14 +84,15 @@ export function calculatePrice(
 
   let subtotal = 0;
   const lineItems: PriceLineItem[] = [];
+  const shape = pricingShape(pricing, answers);
 
-  if (pricing.model === 'FIXED_PRICE') {
+  if (shape === 'fixedPrice') {
     subtotal = pricing.fixed_price ?? 0;
     // No line items for fixed price — nothing to break down.
-  } else if (pricing.model === 'UNIT_BASED') {
+  } else if (shape !== null) {
     // Crown & Bridge: sum each tooth assignment's material price.
     const toothAssignments = (answers as { toothAssignments?: unknown }).toothAssignments;
-    if (pricing.model_per_jaw_price !== undefined) {
+    if (shape === 'modelPerJaw') {
       // Model printing: price per jaw. Arch drives quantity — UPPER/LOWER = 1
       // arch, BOTH = 2. Detected by the per-jaw field (calculatePrice stays
       // template-code-free), like the other duck-typed branches below.
@@ -59,16 +109,20 @@ export function calculatePrice(
           amount: unit * qty,
         });
       }
-    } else if (Array.isArray(toothAssignments) && Array.isArray(pricing.materials)) {
+    } else if (shape === 'perToothMaterial') {
+      // `pricingShape` already proved both of these are arrays; re-narrow for
+      // the type checker, which can't see through the helper.
+      const materials = pricing.materials ?? [];
+      const assignments = (toothAssignments ?? []) as unknown[];
       const priceById = new Map<string, number>(
-        pricing.materials.map((m) => [m.id, m.unit_price ?? 0]),
+        materials.map((m) => [m.id, m.unit_price ?? 0]),
       );
       const nameById = new Map<string, string>(
-        pricing.materials.map((m) => [m.id, m.name]),
+        materials.map((m) => [m.id, m.name]),
       );
       // Aggregate by material id
       const matCount = new Map<string, number>();
-      subtotal = toothAssignments.reduce((sum, a) => {
+      subtotal = assignments.reduce<number>((sum, a) => {
         const ao = a as { materialId?: unknown };
         const mid = typeof ao.materialId === 'string' ? ao.materialId : '';
         matCount.set(mid, (matCount.get(mid) ?? 0) + 1);
@@ -90,14 +144,11 @@ export function calculatePrice(
         subtotal += fee;
         lineItems.push({ i18nKey: 'gingivalReduction', label: 'Gingival reduction guide', amount: fee });
       }
-    } else if (
-      typeof (answers as { materialId?: unknown }).materialId === 'string' &&
-      Array.isArray(pricing.materials)
-    ) {
+    } else if (shape === 'printMilling') {
       // Print / Milling: one material × unit count (typed units for Print,
       // selected-teeth count for Milling).
       const a = answers as { materialId?: string; units?: unknown; teeth?: unknown };
-      const mat = pricing.materials.find((m) => m.id === a.materialId);
+      const mat = (pricing.materials ?? []).find((m) => m.id === a.materialId);
       const unitPrice = mat?.unit_price ?? 0;
       const qty = Array.isArray(a.teeth)
         ? a.teeth.length
@@ -108,7 +159,7 @@ export function calculatePrice(
       if (subtotal > 0 && mat) {
         lineItems.push({ label: mat.name, qty, unitAmount: unitPrice, amount: subtotal });
       }
-    } else if (typeof (answers as Record<string, unknown>).guideProtocol === 'string') {
+    } else if (shape === 'surgicalGuide') {
       // Surgical Guide: protocol unit price × implant count + support type fees.
       const sg = answers as {
         guideProtocol?: string;
@@ -150,7 +201,7 @@ export function calculatePrice(
           lineItems.push({ i18nKey: 'sgSupport', label: sg.lower.guideSupport, amount: fee });
         }
       }
-    } else if (pricing.implant_price_config !== undefined || pricing.implant_crown_materials !== undefined) {
+    } else if (shape === 'implant') {
       // Constructions on Implants
       const cfg = pricing.implant_price_config ?? {};
       const crownMats = pricing.implant_crown_materials ?? [];

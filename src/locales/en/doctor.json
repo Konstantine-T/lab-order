@@ -47,7 +47,8 @@
     "orderCta": "Order",
     "orderDisabled": "No published form",
     "turnaround": "{{days}} day(s)",
-    "continuingFor": "Continuing a project — pick a service."
+    "continuingFor": "Continuing a project — pick a service.",
+    "newOrderFor": "New order for this patient — pick a service."
   },
   "orderCreate": {
     "digitalImpressionsNote": "At this stage we work with digital impressions only.",
@@ -82,7 +83,6 @@
     "filesAndDue": {
       "files": "Files",
       "uploadHint": "Allowed: STL, ZIP, JPG, PNG, PDF, MP4 (up to 100 MB)",
-      "filesComingSoon": "File uploads will be available in the next phase.",
       "addFile": "Add file",
       "noFiles": "No files added.",
       "dueDate": "Requested due date",
@@ -187,7 +187,8 @@
     },
     "moreFilters": "More filters",
     "pipelineNext": "{{current}} → {{next}}",
-    "pipelineDone": "Delivered & completed"
+    "pipelineDone": "Delivered & completed",
+    "addNewOrder": "Add new order"
   },
   "orderDetail": {
     "back": "Back to orders",

@@ -26,7 +26,9 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { supabase } from '@/lib/supabase';
 import { formatGEL } from '@/utils/pricing';
 import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
+import { useAuth } from '@/auth/AuthProvider';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
+import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
 import {
   ChoicePill,
   FactCell,
@@ -65,6 +67,7 @@ export function LabOrderSheetPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const { t } = useTranslation('lab');
   const { t: tc } = useTranslation('common');
+  const { user } = useAuth();
   const qc = useQueryClient();
 
   const [finalPrice, setFinalPrice] = useState<string>('');
@@ -288,6 +291,18 @@ export function LabOrderSheetPage() {
       <SplitLayout
         rail={
           <>
+            {/* Attachments: the lab can add its own and pull the doctor's, but
+                only removes what it uploaded — the doctor's files aren't the
+                lab's to delete, even though RLS would permit it. */}
+            <SectionCard icon="upload_file" title={tc('orderFiles.title')}>
+              <OrderFilesField
+                orderId={order.id}
+                labId={order.lab_id}
+                canUpload
+                canRemove={(f) => f.uploaded_by_user_id === user?.id}
+              />
+            </SectionCard>
+
             {/* Status switcher */}
             <SectionCard title={t('orderSheet.statusTitle')} meta={t('orderSheet.statusHelp')}>
               <PillRow>

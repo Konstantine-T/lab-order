@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { ReactNode } from 'react';
 import { Stack, TextField } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { ShadePicker } from '@/components/ShadePicker';
@@ -273,7 +274,7 @@ function ConditionalRow({
 }: {
   mainError?: string;
   mmError?: string;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
     <Stack spacing={1}>

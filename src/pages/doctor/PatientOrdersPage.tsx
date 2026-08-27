@@ -65,12 +65,28 @@ export function PatientOrdersPage() {
     ? `${patient.first_name} ${patient.last_name}`
     : '…';
 
+  // Which lab a patient-level new order goes to: the one they most recently
+  // ordered from (the query is created_at desc). With no orders there's no lab
+  // to infer, so the button hides and the first order goes via the marketplace.
+  const latestLabId = orders[0]?.lab_id;
+
   return (
     <>
       <PageHeader
         backTo="/doctor/patients"
         title={patientName}
         subtitle={t('patientOrders.title')}
+        actions={
+          latestLabId && patientId ? (
+            <Button
+              variant="contained"
+              startIcon={<Icon name="add" size={18} />}
+              onClick={() => continueProject.startForPatient(latestLabId, patientId)}
+            >
+              {t('orders.addNewOrder')}
+            </Button>
+          ) : undefined
+        }
       />
 
       {isLoading ? (

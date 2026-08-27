@@ -47,7 +47,8 @@
     "orderCta": "შეკვეთა",
     "orderDisabled": "ფორმა გამოუქვეყნებელია",
     "turnaround": "{{days}} დღე",
-    "continuingFor": "პროექტის გაგრძელება — აირჩიეთ სერვისი."
+    "continuingFor": "პროექტის გაგრძელება — აირჩიეთ სერვისი.",
+    "newOrderFor": "ახალი შეკვეთა ამ პაციენტისთვის — აირჩიეთ სერვისი."
   },
   "orderCreate": {
     "digitalImpressionsNote": "ამ ეტაპზე ვმუშაობთ მხოლოდ ციფრულ ანაბეჭდზე.",
@@ -82,7 +83,6 @@
     "filesAndDue": {
       "files": "ფაილები",
       "uploadHint": "დაშვებულია: STL, ZIP, JPG, PNG, PDF, MP4 (მაქს. 100 MB)",
-      "filesComingSoon": "ფაილების ატვირთვა ხელმისაწვდომი იქნება შემდეგ ეტაპზე.",
       "addFile": "ფაილის დამატება",
       "noFiles": "ფაილი არ არის დამატებული.",
       "dueDate": "სასურველი ვადა",
@@ -186,7 +186,8 @@
     },
     "moreFilters": "დამატებითი ფილტრები",
     "pipelineNext": "{{current}} → {{next}}",
-    "pipelineDone": "მიწოდებული და დასრულებული"
+    "pipelineDone": "მიწოდებული და დასრულებული",
+    "addNewOrder": "ახალი შეკვეთის დამატება"
   },
   "orderDetail": {
     "back": "უკან შეკვეთებზე",

@@ -7,6 +7,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { isOrderFormValid } from '@/features/orderForms/OrderForm';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
+import { MobilePriceBar } from '@/components/MobilePriceBar';
 import {
   Callout,
   DetailList,
@@ -21,6 +22,8 @@ import { calculatePrice, formatGEL } from '@/utils/pricing';
 import { scrollToFirstError } from '@/features/orderForms/scrollToFirstError';
 import { PatientStep, FormStep } from '@/pages/doctor/OrderCreateWizard';
 import { initialState, type WizardState } from '@/features/doctor/orderCreate/types';
+import { normalizePatientPayload } from '@/features/doctor/orderCreate/patientName';
+import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
 import type {
   DoctorWorkLocationRow,
   EditReasonCode,
@@ -177,7 +180,9 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
       if (!orderId) throw new Error('No order');
       const { error } = await supabase.rpc('edit_order', {
         p_order_id: orderId,
-        p_patient: state.patient,
+        // Same normalization as the wizard — edit_order carries its own copy
+        // of the dedup guard, so a renamed patient must not mint a duplicate.
+        p_patient: normalizePatientPayload(state.patient),
         p_doctor_work_location_id: state.doctor_work_location_id,
         p_invoice_recipient_type: state.invoice_recipient_type,
         p_answers: state.answers,
@@ -327,6 +332,7 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
             {version && (
               <SectionCard title={tc('priceBreakdown.priceDetails')}>
                 <PriceBreakdown
+                  explain
                   variant="plain"
                   pricing={version.pricing_configuration_json}
                   answers={state.answers}
@@ -400,7 +406,25 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
         {version && (
           <FormStep state={state} update={update} version={version} showErrors={attempted} />
         )}
+
+        {/* The order exists here, so attachments upload immediately — and this
+            is where removing them lives. */}
+        <SectionCard icon="upload_file" title={tc('orderFiles.title')}>
+          <OrderFilesField
+            orderId={order.id}
+            labId={order.lab_id}
+            canUpload
+            canRemove={() => true}
+          />
+        </SectionCard>
       </SplitLayout>
+
+      {/* Same reason as the wizard: below `lg` the price rail is off-screen. */}
+      <MobilePriceBar
+        pricing={version?.pricing_configuration_json}
+        answers={state.answers}
+        rush={rush}
+      />
     </>
   );
 }

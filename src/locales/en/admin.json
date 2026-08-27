@@ -95,6 +95,7 @@
     "deleteConfirmTitle": "Delete this feedback?",
     "deleteConfirmBody": "This permanently removes the message from {{name}}.",
     "deleteAction": "Delete",
-    "subtitle": "Messages sent from the in-app feedback button"
+    "subtitle": "Messages sent from the in-app feedback button",
+    "attachment": "Attachment"
   }
 }

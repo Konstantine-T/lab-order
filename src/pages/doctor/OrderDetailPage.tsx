@@ -6,6 +6,7 @@ import dayjs from 'dayjs';
 import { supabase } from '@/lib/supabase';
 import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
+import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
 import {
   Callout,
   DetailList,
@@ -266,6 +267,11 @@ export function OrderDetailPage() {
                 />
               </SectionCard>
             )}
+
+            {/* View + download only; adding/removing lives on the edit page. */}
+            <SectionCard icon="upload_file" title={tc('orderFiles.title')}>
+              <OrderFilesField orderId={order.id} labId={order.lab_id} />
+            </SectionCard>
 
             {editable && <Callout tone="brand">{t('orderDetail.editHint')}</Callout>}
           </>

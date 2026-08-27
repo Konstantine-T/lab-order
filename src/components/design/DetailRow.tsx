@@ -131,6 +131,10 @@ export function MoneyRow({
     >
       <Typography
         sx={{
+          // Let a long label shrink and wrap rather than shove the amount out
+          // of the card — price rails are narrow and line items carry their
+          // unit-price arithmetic now.
+          minWidth: 0,
           fontSize: total ? '0.84375rem' : '0.78125rem',
           fontWeight: total || strong ? 700 : 400,
           color: total || strong ? 'text.primary' : 'text.secondary',
@@ -141,6 +145,8 @@ export function MoneyRow({
       <Typography
         sx={{
           ml: 'auto',
+          // The money is the one thing that must never be truncated.
+          flexShrink: 0,
           fontSize: total ? '1.0625rem' : '0.78125rem',
           fontWeight: 700,
           letterSpacing: total ? '-0.01em' : undefined,

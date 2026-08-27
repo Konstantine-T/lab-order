@@ -29,7 +29,15 @@
     "tooltip": "Found a problem or have a suggestion? Write to us directly here.",
     "title": "Feedback",
     "placeholder": "Describe the problem or your suggestion…",
-    "success": "Thanks! Your message has been sent."
+    "success": "Thanks! Your message has been sent.",
+    "attach": "Attach image",
+    "attachHint": "Up to {{max}} images, {{size}} each — or just paste a screenshot.",
+    "removeImage": "Remove image",
+    "reject": {
+      "type": "Only images can be attached (PNG, JPG, WEBP, GIF).",
+      "size": "Each image must be under {{size}}.",
+      "count": "You can attach at most {{max}} images."
+    }
   },
   "labApprovalStatus": {
     "PENDING_APPROVAL": "Pending approval",
@@ -69,6 +77,20 @@
       "sgSupport": "Guide support",
       "gingivalReduction": "Gingival reduction guide",
       "modelPerJaw": "Model (per jaw)"
+    },
+    "explainToggle": "How this is calculated",
+    "emptyHint": "Prices will appear here as you fill in the form.",
+    "rushIncluded": "Rush included",
+    "explain": {
+      "perToothMaterial": "Each tooth is charged by its selected material's price.",
+      "surgicalGuide": "Charged per implant position by the chosen protocol, plus any guide-support fees.",
+      "implant": "Each implant position is charged by its configured components.",
+      "printMilling": "Charged per unit of the selected material.",
+      "modelPerJaw": "Charged per jaw — both jaws counts as two.",
+      "fixedPrice": "A flat price for this service.",
+      "generic": "Charged per selected tooth.",
+      "rushPercentage": "Rush adds {{value}}% for faster turnaround.",
+      "rushFixed": "Rush adds a flat {{value}} for faster turnaround."
     }
   },
   "toothMap": {
@@ -192,5 +214,22 @@
   "orderCard": {
     "due": "Due",
     "total": "Total"
+  },
+  "orderFiles": {
+    "title": "Attachments",
+    "dropHint": "Drag files here or click to browse",
+    "sizeHint": "Any file type, up to {{size}} each.",
+    "uploading": "Uploading…",
+    "remove": "Remove",
+    "download": "Download",
+    "empty": "No files attached.",
+    "errors": {
+      "tooLarge": "This file is larger than the 100 MB limit: {{name}}",
+      "network": "Upload failed — check your connection and try again.",
+      "permission": "You don't have permission to upload to this order.",
+      "duplicate": "That file is already attached.",
+      "generic": "Couldn't upload {{name}}. Please try again.",
+      "partialSubmit": "Your order was created, but some files didn't upload: {{names}}. You can add them from the order page."
+    }
   }
 }
