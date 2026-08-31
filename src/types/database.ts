@@ -27,14 +27,29 @@ export type OrderStatus =
   | 'CANCELLED';
 export type PaymentStatus = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID';
 
+/**
+ * What the lab may set from its own order sheet.
+ *
+ * COMPLETED is deliberately absent: closing a case is the doctor's call (0022),
+ * since only the doctor knows whether the work actually seated. The lab drives
+ * the case as far as SENT_TO_CLINIC and stops there.
+ */
 export const LAB_SELECTABLE_STATUSES = [
   'RECEIVED',
   'NEEDS_CLARIFICATION',
   'IN_PROGRESS',
   'READY_FOR_DELIVERY',
   'SENT_TO_CLINIC',
-  'COMPLETED',
 ] as const satisfies readonly OrderStatus[];
+
+/** The doctor can accept a case only once the lab has handed it over. */
+export const COMPLETABLE_STATUSES = [
+  'SENT_TO_CLINIC',
+  'RECEIVED_BY_CLINIC',
+] as const satisfies readonly OrderStatus[];
+
+export const canComplete = (status: OrderStatus): boolean =>
+  (COMPLETABLE_STATUSES as readonly OrderStatus[]).includes(status);
 export type InvoiceRecipientType = 'DOCTOR' | 'CLINIC';
 export type RushType = 'NONE' | 'PERCENTAGE' | 'FIXED_AMOUNT';
 export type PricingModel = 'UNIT_BASED' | 'FIXED_PRICE';
@@ -383,6 +398,9 @@ export interface OrderRow {
   cancelled_at: string | null;
   cancelled_by_user_id: string | null;
   cancellation_reason: string | null;
+  /** Set by complete_order (0022) — who accepted the case, and when. */
+  completed_at: string | null;
+  completed_by_user_id: string | null;
   has_unreviewed_edits: boolean;
   edit_count: number;
   last_edited_at: string | null;

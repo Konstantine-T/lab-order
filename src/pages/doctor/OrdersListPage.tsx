@@ -42,6 +42,8 @@ import { OrderRowCard } from '@/features/orders/OrderRowCard';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { OrdersPaginator } from '@/features/orders/OrdersPaginator';
 import { ORDER_PIPELINE, pipelineIndex } from '@/features/orders/pipeline';
+import { OrderCompletionActions } from '@/features/orders/completion/OrderCompletionActions';
+import { canComplete } from '@/types/database';
 import type { OrderRow, OrderStatus } from '@/types/database';
 import {
   loadDraft,
@@ -68,7 +70,15 @@ const QUICK = ['all', 'active', 'needsAction', 'completed'] as const;
 type Quick = (typeof QUICK)[number];
 
 /** Statuses where the ball is in the doctor's court. */
-const NEEDS_ACTION: readonly OrderStatus[] = ['NEEDS_CLARIFICATION', 'TRY_IN_PHASE'];
+// Statuses where the case is waiting on the doctor, not on the lab.
+// RECEIVED_BY_CLINIC is here because closing a case is the doctor's call
+// (0022): the work is sitting at the clinic and nothing moves until the
+// doctor confirms it seated.
+const NEEDS_ACTION: readonly OrderStatus[] = [
+  'NEEDS_CLARIFICATION',
+  'TRY_IN_PHASE',
+  'RECEIVED_BY_CLINIC',
+];
 
 type Row = OrderRow & {
   patients: { first_name: string; last_name: string } | null;
@@ -539,6 +549,9 @@ export function OrdersListPage() {
                             >
                               {t('orders.editButton')}
                             </Button>
+                          )}
+                          {canComplete(row.status) && (
+                            <OrderCompletionActions orderId={row.id} status={row.status} />
                           )}
                           {row.status === 'COMPLETED' && (
                             <Button

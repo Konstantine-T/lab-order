@@ -30,6 +30,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
 import {
+  Callout,
   ChoicePill,
   FactCell,
   FieldLabel,
@@ -317,6 +318,11 @@ export function LabOrderSheetPage() {
                   </ChoicePill>
                 ))}
               </PillRow>
+              {/* COMPLETED is no longer a pill (0022) — say so, rather than
+                  leaving the lab hunting for a status that used to be here. */}
+              <Callout tone="info" sx={{ mt: 1.75 }}>
+                {t('orderSheet.statusCompletionNote')}
+              </Callout>
               <Stack direction="row" spacing={1} sx={{ mt: 1.75 }}>
                 {!isTerminal && (
                   <Button

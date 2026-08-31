@@ -212,7 +212,15 @@
     "openChat": "Open Telegram chat",
     "caseProgress": "Case progress",
     "labProfileLink": "Lab profile",
-    "editHint": "You can edit this order until the lab completes it. Every edit is recorded and shown to the lab as a change diff."
+    "editHint": "You can edit this order until the case is closed. Every edit is recorded and shown to the lab as a change diff.",
+    "completion": {
+      "markCompleted": "Mark completed",
+      "reopen": "Reopen",
+      "confirmTitle": "Mark this case completed?",
+      "confirmBody": "Confirm the work arrived and seated. This closes the case — after that neither you nor the lab can edit it. You can reopen it if you change your mind.",
+      "confirm": "Mark completed",
+      "cancel": "Cancel"
+    }
   },
   "orderEdit": {
     "title": "Edit order",

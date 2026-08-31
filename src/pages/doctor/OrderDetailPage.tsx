@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
+import { OrderCompletionActions } from '@/features/orders/completion/OrderCompletionActions';
 import {
   Callout,
   DetailList,
@@ -162,6 +163,7 @@ export function OrderDetailPage() {
                 {t('orders.editButton')}
               </Button>
             )}
+            <OrderCompletionActions orderId={order.id} status={order.status} />
             {order.status === 'COMPLETED' && (
               <Button
                 variant="contained"

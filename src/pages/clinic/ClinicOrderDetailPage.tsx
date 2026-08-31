@@ -15,6 +15,7 @@ import {
 import { Link as RouterLink, useParams } from 'react-router-dom';
 import { CardStack, FactCell, Icon, PageHeader, SectionCard } from '@/components/design';
 import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
+import { OrderCompletionActions } from '@/features/orders/completion/OrderCompletionActions';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
@@ -134,27 +135,32 @@ export function ClinicOrderDetailPage() {
           </>
         }
         actions={
-          !isTerminal && (
-            <>
-              <Button
-                component={RouterLink}
-                to={`/clinic/orders/${order.id}/edit`}
-                variant="outlined"
-                size="small"
-                startIcon={<Icon name="edit" size={16} />}
-              >
-                {tc('actions.edit')}
-              </Button>
-              <Button
-                color="error"
-                variant="outlined"
-                size="small"
-                onClick={() => setCancelOpen(true)}
-              >
-                {t('orderDetail.cancelOrder')}
-              </Button>
-            </>
-          )
+          <>
+            {!isTerminal && (
+              <>
+                <Button
+                  component={RouterLink}
+                  to={`/clinic/orders/${order.id}/edit`}
+                  variant="outlined"
+                  size="small"
+                  startIcon={<Icon name="edit" size={16} />}
+                >
+                  {tc('actions.edit')}
+                </Button>
+                <Button
+                  color="error"
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setCancelOpen(true)}
+                >
+                  {t('orderDetail.cancelOrder')}
+                </Button>
+              </>
+            )}
+            {/* Outside the !isTerminal gate on purpose: a completed case still
+                needs its "reopen" escape hatch. */}
+            <OrderCompletionActions orderId={order.id} status={order.status} />
+          </>
         }
       />
 

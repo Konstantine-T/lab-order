@@ -463,7 +463,8 @@
     "statusSaved": "Saved",
     "workLocation": "Work location",
     "invoice": "Invoice",
-    "answersMeta": "As submitted by the doctor · read-only"
+    "answersMeta": "As submitted by the doctor · read-only",
+    "statusCompletionNote": "Only the doctor can mark a case completed — you can take it as far as Sent to clinic."
   },
   "approvalBanner": {
     "PENDING_APPROVAL": {
