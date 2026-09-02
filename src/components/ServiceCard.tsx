@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { alpha, Box, Stack, Typography } from '@mui/material';
 import type { ReactNode } from 'react';
 import { Icon } from '@/components/design';
@@ -42,7 +43,13 @@ export function ServiceCard({
   const look = templateLook(templateCode);
   // The lab's own upload wins; otherwise the template's stock picture, which
   // has been sitting unused in the service-defaults bucket all along.
-  const image = serviceImageUrl(imageUrl, templateCode);
+  //
+  // Not every template code actually has a file behind it, and a URL that 404s
+  // renders as an empty box — worse than the icon it replaced. Fall back to the
+  // icon the moment the browser tells us the image didn't load.
+  const [imageBroken, setImageBroken] = useState(false);
+  const resolved = serviceImageUrl(imageUrl, templateCode);
+  const image = imageBroken ? null : resolved;
 
   return (
     <Stack
@@ -82,6 +89,7 @@ export function ServiceCard({
             component="img"
             src={image}
             alt=""
+            onError={() => setImageBroken(true)}
             sx={{
               width: 42,
               height: 42,
