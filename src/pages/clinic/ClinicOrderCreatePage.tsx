@@ -1,76 +1,61 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useState } from 'react';
 import {
+  alpha,
   Alert,
   Box,
-  Button,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
+  Card,
+  CircularProgress,
+  InputAdornment,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers';
-import dayjs from 'dayjs';
-import { useNavigate } from 'react-router-dom';
-import {
-  Callout,
-  CardStack,
-  FieldLabel,
-  Icon,
-  PageHeader,
-  SectionCard,
-  Segmented,
-} from '@/components/design';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link as RouterLink, useSearchParams } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
+import { Callout, EmptyState, Icon, InitialsAvatar, PageHeader } from '@/components/design';
 import { supabase } from '@/lib/supabase';
-import { isOrderFormValid } from '@/features/orderForms/OrderForm';
-import { PatientStep, FormStep } from '@/pages/doctor/OrderCreateWizard';
-import { useAuth } from '@/auth/AuthProvider';
-import { PendingOrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
-import { uploadOrderFile } from '@/features/orders/orderFiles/orderFilesApi';
-import { initialState, type WizardState } from '@/features/doctor/orderCreate/types';
-import { calculatePrice } from '@/utils/pricing';
-import { scrollToFirstError } from '@/features/orderForms/scrollToFirstError';
-import type {
-  ClinicDoctorRow,
-  DoctorWorkLocationRow,
-  LabFormVersionRow,
-} from '@/types/database';
-
-type OrderableService = {
-  id: string;
-  name: string;
-  lab_forms: { id: string; status: string; current_version_id: string | null } | null;
-};
+import { OrderCreateWizard } from '@/pages/doctor/OrderCreateWizard';
+import { brand, motion } from '@/theme/tokens';
+import type { ClinicDoctorRow } from '@/types/database';
 
 /**
- * Clinic admin creates an order ON BEHALF OF one of its linked doctors. The
- * doctor picker + lab/service picker feed the same PatientStep / FormStep the
- * doctor uses; submit goes through clinic_submit_order (0014), which re-checks
- * the doctor↔clinic link server-side and attributes the order to that doctor.
+ * Ordering from the clinic.
+ *
+ * There is no separate clinic order form any more. The clinic admin picks
+ * which doctor they are ordering for, and from there walks exactly the path
+ * the doctor walks — marketplace, lab profile, the same wizard with its live
+ * price, drafts and rush options. This page is only the doctor choice; once
+ * `?doctor=` is set it hands straight over to the wizard, which redirects on
+ * to the marketplace if no lab/service has been chosen yet.
  */
 export function ClinicOrderCreatePage() {
+  const [params] = useSearchParams();
+  const doctorId = params.get('doctor');
+
+  if (doctorId) return <OrderCreateWizard basePath="/clinic" />;
+  return <DoctorPicker />;
+}
+
+/** Show the search box only once scanning the list stops being instant. */
+const SEARCH_FROM = 6;
+
+function DoctorPicker() {
   const { t } = useTranslation('clinic');
-  const { t: td } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
-  const { user } = useAuth();
-  const navigate = useNavigate();
-  const qc = useQueryClient();
+  const [params] = useSearchParams();
+  const [search, setSearch] = useState('');
+  // Someone may already have a lab/service picked (they browsed the
+  // marketplace directly). Resume there rather than making them start over.
+  const labParam = params.get('lab');
+  const serviceParam = params.get('service');
 
-  const [doctorId, setDoctorId] = useState('');
-  const [labId, setLabId] = useState('');
-  const [serviceId, setServiceId] = useState('');
-  const [state, setState] = useState<WizardState>(initialState);
-  const [attempted, setAttempted] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [okId, setOkId] = useState<string | null>(null);
-
-  const update = (patch: Partial<WizardState>) => setState((s) => ({ ...s, ...patch }));
-
-  const { data: doctors = [] } = useQuery({
+  const {
+    data: doctors = [],
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: ['clinic-doctors'],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('clinic_doctors');
@@ -79,327 +64,210 @@ export function ClinicOrderCreatePage() {
     },
   });
 
-  const { data: labs = [] } = useQuery({
-    queryKey: ['clinic-orderable-labs'],
+  // When this clinic last ordered for each doctor. RLS (0013/0015) already
+  // limits the read to the clinic's own doctors. It turns a wall of names into
+  // something recognisable — the admin usually wants whoever they ordered for
+  // last. The order of the list itself stays alphabetical, as on the roster
+  // page, so a card doesn't move under the cursor between visits.
+  const { data: lastOrderByDoctor = {} } = useQuery({
+    queryKey: ['clinic-doctor-last-order'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('labs')
-        .select('id, public_name')
-        .eq('approval_status', 'APPROVED_ACTIVE')
-        .eq('is_active', true)
-        .order('public_name');
+        .from('orders')
+        .select('doctor_id, created_at')
+        .order('created_at', { ascending: false })
+        .limit(500);
       if (error) throw error;
-      return (data ?? []) as { id: string; public_name: string }[];
-    },
-  });
-
-  const { data: services = [] } = useQuery({
-    queryKey: ['clinic-orderable-services', labId],
-    enabled: !!labId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('lab_services')
-        .select('id, name, lab_forms!lab_services_linked_form_fk(id, status, current_version_id)')
-        .eq('lab_id', labId)
-        .eq('is_active', true)
-        .order('name');
-      if (error) throw error;
-      return (data ?? []) as unknown as OrderableService[];
-    },
-  });
-
-  const selectedService = services.find((s) => s.id === serviceId);
-  const versionId =
-    selectedService?.lab_forms?.status === 'PUBLISHED'
-      ? selectedService.lab_forms.current_version_id
-      : null;
-
-  const { data: version } = useQuery({
-    queryKey: ['clinic-order-version', versionId],
-    enabled: !!versionId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('lab_form_versions')
-        .select('*')
-        .eq('id', versionId!)
-        .maybeSingle();
-      if (error) throw error;
-      return data as LabFormVersionRow | null;
-    },
-  });
-
-  // The acting doctor's work locations — clinic reads them via work_locations_clinic_select (0014).
-  const { data: locations = [] } = useQuery({
-    queryKey: ['clinic-doctor-locations', doctorId],
-    enabled: !!doctorId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('doctor_work_locations')
-        .select('*')
-        .eq('doctor_id', doctorId)
-        .is('archived_at', null)
-        .order('is_default', { ascending: false });
-      if (error) throw error;
-      return (data ?? []) as DoctorWorkLocationRow[];
-    },
-  });
-
-  // Keep wizard state's lab/service in sync; reset service when the lab changes.
-  useEffect(() => {
-    update({ lab_id: labId, lab_service_id: serviceId });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [labId, serviceId]);
-  useEffect(() => {
-    setServiceId('');
-  }, [labId]);
-  // Reset the picked location + default to the first when the doctor changes.
-  useEffect(() => {
-    update({ doctor_work_location_id: locations[0]?.id ?? '' });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locations]);
-
-  const generatedTotal = useMemo(() => {
-    if (!version) return null;
-    const r = calculatePrice(version.pricing_configuration_json, state.answers, {
-      type: 'NONE',
-      value: 0,
-    });
-    return r.kind === 'CALCULATED' ? r.total : null;
-  }, [version, state.answers]);
-
-  // Same model as the doctor wizard: picked now, uploaded once the order id
-  // exists. Clinic RLS (migration 0021) authorizes the clinic admin.
-  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
-  const [failedUploads, setFailedUploads] = useState<string[]>([]);
-
-  const submit = useMutation({
-    mutationFn: async () => {
-      if (!version) throw new Error('No form version');
-      const { data, error } = await supabase.rpc('clinic_submit_order', {
-        p_doctor_id: doctorId,
-        p_lab_id: labId,
-        p_lab_service_id: serviceId,
-        p_doctor_work_location_id: state.doctor_work_location_id,
-        p_patient: state.patient,
-        p_lab_form_version_id: version.id,
-        p_invoice_recipient_type: state.invoice_recipient_type,
-        p_requested_due_date: state.requested_due_date || null,
-        p_rush_type: 'NONE',
-        p_rush_value: null,
-        p_answers: state.answers,
-        p_generated_total: generatedTotal,
-      });
-      if (error) throw error;
-      const orderId = data as string;
-
-      // Non-fatal: the order is placed, so a failed attachment is reported
-      // rather than thrown.
-      if (pendingFiles.length > 0 && user) {
-        const failed: string[] = [];
-        for (const f of pendingFiles) {
-          try {
-            await uploadOrderFile({ id: orderId, lab_id: labId }, f, user.id, user.role);
-          } catch {
-            failed.push(f.name);
-          }
-        }
-        if (failed.length) setFailedUploads(failed);
+      const latest: Record<string, string> = {};
+      for (const row of (data ?? []) as { doctor_id: string; created_at: string }[]) {
+        if (!latest[row.doctor_id]) latest[row.doctor_id] = row.created_at;
       }
-      return orderId;
+      return latest;
     },
-    onSuccess: (id) => {
-      qc.invalidateQueries({ queryKey: ['clinic-orders'] });
-      setOkId(id);
-    },
-    onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
   });
 
-  const handleSubmit = () => {
-    setError(null);
-    setAttempted(true);
-    if (!doctorId) return setError(t('orderCreate.pickDoctor'));
-    if (!version) return setError(t('orderCreate.pickService'));
-    if (!state.patient.first_name.trim() || !state.patient.last_name.trim()) {
-      setError(tc('errors.required'));
-      return scrollToFirstError();
-    }
-    if (
-      !isOrderFormValid(version.configuration_json, state.answers, version.pricing_configuration_json)
-    ) {
-      setError(tc('errors.required'));
-      return scrollToFirstError();
-    }
-    if (!state.doctor_work_location_id) return setError(tc('errors.required'));
-    if (!state.requested_due_date) return setError(tc('errors.required'));
-    submit.mutate();
-  };
+  const q = search.trim().toLowerCase();
+  const filtered = q
+    ? doctors.filter((d) =>
+        `${d.first_name} ${d.last_name} ${d.specialty ?? ''} ${d.email}`.toLowerCase().includes(q),
+      )
+    : doctors;
 
-  if (okId) {
-    return (
-      <Stack spacing={2} alignItems="center" sx={{ maxWidth: 520, mx: 'auto', py: 8 }}>
-        <Box
-          sx={{
-            width: 64,
-            height: 64,
-            borderRadius: '50%',
-            display: 'grid',
-            placeItems: 'center',
-            bgcolor: 'success.main',
-            color: '#fff',
-          }}
-        >
-          <Icon name="check" size={34} />
-        </Box>
-        <Typography variant="h3" component="h1" sx={{ textAlign: 'center' }}>
-          {t('orderCreate.success')}
-        </Typography>
-        {failedUploads.length > 0 && (
-          <Callout tone="warning">
-            {tc('orderFiles.errors.partialSubmit', { names: failedUploads.join(', ') })}
-          </Callout>
-        )}
-        <Stack direction="row" spacing={1.5} sx={{ pt: 1 }}>
-          <Button variant="contained" onClick={() => navigate(`/clinic/orders/${okId}`)}>
-            {tc('actions.viewDetails')}
-          </Button>
-          <Button variant="outlined" onClick={() => navigate('/clinic/orders')}>
-            {t('orderDetail.back')}
-          </Button>
-        </Stack>
-      </Stack>
-    );
-  }
+  // Picking the doctor resumes the flow rather than starting it: back into the
+  // wizard if a lab and service are already chosen, otherwise into the
+  // marketplace with that doctor in hand.
+  const hrefFor = (id: string) =>
+    labParam && serviceParam
+      ? `/clinic/orders/new?doctor=${id}&lab=${labParam}&service=${serviceParam}`
+      : `/clinic/marketplace?doctor=${id}`;
 
   return (
     <>
-      <PageHeader backTo="/clinic/orders" title={t('orderCreate.title')} />
-
-      <CardStack>
-      {error && <Alert severity="error">{error}</Alert>}
-
-      <SectionCard icon="assignment" title={t('orderCreate.title')}>
-          <Stack spacing={2.5}>
-            <FormControl fullWidth error={attempted && !doctorId}>
-              <InputLabel>{t('orderCreate.doctor')}</InputLabel>
-              <Select
-                label={t('orderCreate.doctor')}
-                value={doctorId}
-                onChange={(e) => setDoctorId(e.target.value)}
-              >
-                {doctors.map((d) => (
-                  <MenuItem key={d.doctor_id} value={d.doctor_id}>
-                    {d.first_name} {d.last_name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth>
-              <InputLabel>{t('orderCreate.lab')}</InputLabel>
-              <Select label={t('orderCreate.lab')} value={labId} onChange={(e) => setLabId(e.target.value)}>
-                {labs.map((l) => (
-                  <MenuItem key={l.id} value={l.id}>
-                    {l.public_name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl fullWidth disabled={!labId}>
-              <InputLabel>{t('orderCreate.service')}</InputLabel>
-              <Select
-                label={t('orderCreate.service')}
-                value={serviceId}
-                onChange={(e) => setServiceId(e.target.value)}
-              >
-                {services
-                  .filter((s) => s.lab_forms?.status === 'PUBLISHED')
-                  .map((s) => (
-                    <MenuItem key={s.id} value={s.id}>
-                      {s.name}
-                    </MenuItem>
-                  ))}
-              </Select>
-            </FormControl>
-          </Stack>
-      </SectionCard>
-
-      {doctorId && version && (
-        <>
-          <PatientStep state={state} update={update} doctorId={doctorId} patientAttempted={attempted} />
-
-          <SectionCard icon="location_on" title={td('orderCreate.filesAndDue.workLocation')}>
-              <Stack spacing={2.5}>
-                <Box>
-                  {locations.length === 0 ? (
-                    <Callout tone="warning">{t('orderCreate.noLocations')}</Callout>
-                  ) : (
-                    <TextField
-                      select
-                      value={state.doctor_work_location_id}
-                      onChange={(e) => update({ doctor_work_location_id: e.target.value })}
-                      fullWidth
-                    >
-                      {locations.map((l) => (
-                        <MenuItem key={l.id} value={l.id}>
-                          {l.clinic_name}
-                          {l.branch_name ? ` · ${l.branch_name}` : ''} — {l.city}
-                        </MenuItem>
-                      ))}
-                    </TextField>
-                  )}
-                </Box>
-
-                <Box>
-                  <FieldLabel sx={{ mb: 0.75 }}>
-                    {td('orderCreate.review.invoiceRecipient')}
-                  </FieldLabel>
-                  <Segmented
-                    value={state.invoice_recipient_type}
-                    onChange={(v) => update({ invoice_recipient_type: v })}
-                    options={[
-                      { value: 'DOCTOR' as const, label: td('orderCreate.review.invoiceDoctor') },
-                      { value: 'CLINIC' as const, label: td('orderCreate.review.invoiceClinic') },
-                    ]}
-                    sx={{ maxWidth: 360 }}
-                  />
-                </Box>
-
-                <Box>
-                  <FieldLabel sx={{ mb: 0.75 }}>
-                    {td('orderCreate.filesAndDue.dueDate')}
-                  </FieldLabel>
-                  <DatePicker
-                    value={state.requested_due_date ? dayjs(state.requested_due_date) : null}
-                    onChange={(d) => update({ requested_due_date: d ? d.format('YYYY-MM-DD') : '' })}
-                    minDate={dayjs().add(1, 'day')}
-                    slotProps={{ textField: { fullWidth: true } }}
-                  />
-                </Box>
-              </Stack>
-          </SectionCard>
-
-          <FormStep state={state} update={update} version={version} showErrors={attempted} />
-
-          <SectionCard icon="upload_file" title={tc('orderFiles.title')}>
-            <PendingOrderFilesField
-              files={pendingFiles}
-              onChange={setPendingFiles}
-              disabled={submit.isPending}
+      <PageHeader
+        backTo="/clinic/orders"
+        title={t('orderCreate.title')}
+        subtitle={t('orderCreate.pickDoctorSubtitle')}
+        actions={
+          doctors.length >= SEARCH_FROM && (
+            <TextField
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={t('orderCreate.searchDoctor')}
+              size="small"
+              sx={{ width: { sm: 270 } }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Icon name="search" size={18} sx={{ color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+              }}
             />
-          </SectionCard>
+          )
+        }
+      />
 
-          <Stack direction="row" justifyContent="flex-end">
-            <Button
-              variant="contained"
-              size="large"
-              onClick={handleSubmit}
-              disabled={submit.isPending}
-            >
-              {t('orderCreate.submit')}
-            </Button>
-          </Stack>
+      {error && <Alert severity="error">{tc('errors.generic')}</Alert>}
+
+      {isLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+          <CircularProgress />
+        </Box>
+      ) : doctors.length === 0 ? (
+        <EmptyState
+          icon="groups"
+          title={t('orderCreate.noDoctors')}
+          description={t('orderCreate.noDoctorsHint')}
+        />
+      ) : filtered.length === 0 ? (
+        <EmptyState icon="search" title={t('orderCreate.noMatches')} minHeight={200} />
+      ) : (
+        <>
+          <Callout tone="brand" sx={{ mb: 2 }}>
+            {t('orderCreate.pickDoctorHint')}
+          </Callout>
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
+              gap: 2,
+            }}
+          >
+            {filtered.map((doc) => (
+              <DoctorCard
+                key={doc.doctor_id}
+                doctor={doc}
+                to={hrefFor(doc.doctor_id)}
+                lastOrderAt={lastOrderByDoctor[doc.doctor_id]}
+              />
+            ))}
+          </Box>
         </>
       )}
-      </CardStack>
     </>
+  );
+}
+
+/**
+ * One doctor, in the same card vocabulary as the lab cards the admin meets on
+ * the very next screen — a real link, so the row is middle-clickable and
+ * keyboard-reachable without hand-rolled key handling.
+ */
+function DoctorCard({
+  doctor,
+  to,
+  lastOrderAt,
+}: {
+  doctor: ClinicDoctorRow;
+  to: string;
+  lastOrderAt?: string;
+}) {
+  const { t } = useTranslation('clinic');
+  const name = `${doctor.first_name} ${doctor.last_name}`;
+
+  return (
+    <Card
+      component={RouterLink}
+      to={to}
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        height: '100%',
+        p: 2.75,
+        borderRadius: '18px',
+        textDecoration: 'none',
+        color: 'text.primary',
+        transition: `border-color ${motion.slow}, box-shadow ${motion.slow}`,
+        '&:hover, &:focus-visible': {
+          borderColor: alpha(brand.main, 0.6),
+          boxShadow: `0 12px 32px ${alpha(brand.main, 0.14)}`,
+        },
+      }}
+    >
+      <Stack direction="row" alignItems="center" spacing={1.625}>
+        <InitialsAvatar name={name} size={46} shape="circle" variant="brand" />
+        <Box sx={{ minWidth: 0, flex: 1 }}>
+          <Typography
+            sx={{ fontSize: '0.96875rem', fontWeight: 800, letterSpacing: '-0.01em' }}
+            noWrap
+          >
+            {name}
+          </Typography>
+          {doctor.specialty && (
+            <Stack direction="row" alignItems="center" spacing={0.625} sx={{ mt: 0.25 }}>
+              <Icon name="badge" size={14} sx={{ color: 'text.secondary' }} />
+              <Typography variant="body2" color="text.secondary" noWrap>
+                {doctor.specialty}
+              </Typography>
+            </Stack>
+          )}
+        </Box>
+      </Stack>
+
+      <Stack direction="row" alignItems="center" spacing={0.625} sx={{ mt: 1.5, minWidth: 0 }}>
+        <Icon name="mail" size={14} sx={{ color: 'text.secondary' }} />
+        <Typography variant="body2" color="text.secondary" noWrap>
+          {doctor.email}
+        </Typography>
+      </Stack>
+
+      <Stack
+        direction="row"
+        alignItems="center"
+        sx={{ mt: 'auto', pt: 1.75, borderTop: 1, borderColor: 'divider' }}
+      >
+        <Stack direction="row" alignItems="center" spacing={0.625} sx={{ minWidth: 0 }}>
+          <Icon name="history" size={15} sx={{ color: 'text.secondary' }} />
+          <Typography variant="caption" color="text.secondary" noWrap>
+            {lastOrderAt
+              ? t('orderCreate.lastOrder', { date: dayjs(lastOrderAt).format('MMM D, YYYY') })
+              : t('orderCreate.noOrdersYet')}
+          </Typography>
+        </Stack>
+
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={0.75}
+          sx={{
+            ml: 'auto',
+            flexShrink: 0,
+            bgcolor: 'primary.main',
+            color: '#fff',
+            fontSize: '0.75rem',
+            fontWeight: 700,
+            px: 1.875,
+            py: 1,
+            borderRadius: '9px',
+            transition: `background-color ${motion.base}`,
+            '.MuiCard-root:hover &': { bgcolor: 'primary.dark' },
+          }}
+        >
+          {t('orderCreate.orderFor')}
+          <Icon name="arrow_forward" size={15} />
+        </Stack>
+      </Stack>
+    </Card>
   );
 }

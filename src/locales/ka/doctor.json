@@ -54,6 +54,8 @@
     "digitalImpressionsNote": "ამ ეტაპზე ვმუშაობთ მხოლოდ ციფრულ ანაბეჭდზე.",
     "title": "ახალი შეკვეთა",
     "changeLabService": "ლაბორატორიის / სერვისის შეცვლა",
+    "orderingFor": "შეკვეთა ექიმისთვის",
+    "changeDoctor": "ექიმის შეცვლა",
     "patient": {
       "header": "პაციენტის ინფორმაცია",
       "firstName": "სახელი",

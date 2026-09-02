@@ -8,15 +8,17 @@ import {
   MenuItem,
   Select,
   Stack,
+  Typography,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { EmptyState, Icon, PageHeader } from '@/components/design';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
 import { OrderRowCard } from '@/features/orders/OrderRowCard';
+import { clearDraft, loadDraftsByAuthor } from '@/features/doctor/orderCreate/draftStorage';
 import { formatGEL } from '@/utils/pricing';
 import type { ClinicDoctorRow, OrderRow } from '@/types/database';
 
@@ -30,7 +32,9 @@ export function ClinicOrdersPage() {
   const { t } = useTranslation('clinic');
   const { user } = useAuth();
   const clinicId = user?.clinic?.id;
+  const authorUserId = user?.id;
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const [doctorFilter, setDoctorFilter] = useState<string>('ALL');
 
@@ -57,6 +61,24 @@ export function ClinicOrdersPage() {
       return (data ?? []) as unknown as ClinicOrderRow[];
     },
   });
+
+  // Unfinished orders. The admin autosaves a draft per doctor they order for,
+  // and without this the only way back into one is to retrace the same lab and
+  // service by hand — the doctor's own orders list has surfaced theirs since
+  // drafts existed.
+  const { data: drafts = [] } = useQuery({
+    queryKey: ['clinic-drafts', authorUserId],
+    enabled: !!authorUserId,
+    queryFn: () => loadDraftsByAuthor(authorUserId!),
+    staleTime: 0,
+    refetchOnMount: 'always',
+  });
+
+  const discardDraft = async (doctorId: string) => {
+    if (!authorUserId) return;
+    await clearDraft(doctorId, authorUserId);
+    await queryClient.invalidateQueries({ queryKey: ['clinic-drafts', authorUserId] });
+  };
 
   const doctorName = useMemo(() => {
     const m = new Map<string, string>();
@@ -100,6 +122,59 @@ export function ClinicOrdersPage() {
           </>
         }
       />
+
+      {drafts.length > 0 && (
+        <Stack spacing={1.25} sx={{ mb: 2 }}>
+          {drafts.map((d) => {
+            const patient = `${d.state.patient.first_name} ${d.state.patient.last_name}`.trim();
+            return (
+              <Stack
+                key={d.doctorId}
+                direction={{ xs: 'column', sm: 'row' }}
+                alignItems={{ sm: 'center' }}
+                spacing={1.5}
+                sx={(theme) => ({
+                  px: 2.25,
+                  py: 1.625,
+                  borderRadius: '14px',
+                  border: 1,
+                  borderColor: 'primary.main',
+                  bgcolor:
+                    theme.palette.mode === 'light'
+                      ? 'rgba(146,146,255,0.09)'
+                      : 'rgba(146,146,255,0.14)',
+                })}
+              >
+                <Icon name="draft" size={21} sx={{ color: 'primary.dark' }} />
+                <Box sx={{ flex: 1, minWidth: 0 }}>
+                  <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }}>
+                    {t('orders.draft.bannerTitle', {
+                      doctor: doctorName.get(d.doctorId) ?? '',
+                    })}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" noWrap>
+                    {[patient, d.labName, d.serviceName].filter(Boolean).join(' · ')}
+                  </Typography>
+                </Box>
+                <Button
+                  size="small"
+                  variant="contained"
+                  onClick={() =>
+                    navigate(
+                      `/clinic/orders/new?doctor=${d.doctorId}&lab=${d.state.lab_id}&service=${d.state.lab_service_id}`,
+                    )
+                  }
+                >
+                  {t('orders.draft.resume')}
+                </Button>
+                <Button size="small" color="inherit" onClick={() => discardDraft(d.doctorId)}>
+                  {t('orders.draft.discard')}
+                </Button>
+              </Stack>
+            );
+          })}
+        </Stack>
+      )}
 
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>

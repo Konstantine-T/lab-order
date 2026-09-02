@@ -2,6 +2,7 @@ import { Alert, Avatar, Box, Button, CircularProgress, Stack, Typography } from 
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { ActingDoctorChip } from '@/features/clinic/ActingDoctorChip';
 import { supabase } from '@/lib/supabase';
 import {
   Callout,
@@ -18,7 +19,12 @@ import type { LabRow, LabServiceRow } from '@/types/database';
 import type { FormStatus } from '@/types/database';
 import { templateName } from '@/features/lab/forms/templateLabels';
 
-export function LabPublicProfilePage() {
+/**
+ * A lab's public profile and its orderable services. Shared by the doctor and
+ * by a clinic admin ordering for one of their doctors; `basePath` decides where
+ * "back" and the order CTA point.
+ */
+export function LabPublicProfilePage({ basePath = '/doctor' }: { basePath?: string }) {
   const { labId } = useParams<{ labId: string }>();
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
@@ -29,6 +35,8 @@ export function LabPublicProfilePage() {
   // the order CTA so the wizard pre-fills + locks the patient and links lineage.
   const continuePatient = searchParams.get('patient');
   const continuesOrder = searchParams.get('continues');
+  // Clinic path: the doctor this order is being placed for.
+  const doctorParam = searchParams.get('doctor');
 
   const { data: lab, isLoading: labLoading } = useQuery({
     queryKey: ['public-lab', labId],
@@ -104,9 +112,14 @@ export function LabPublicProfilePage() {
   return (
     <>
       <PageHeader
-        backTo="/doctor/marketplace"
+        backTo={`${basePath}/marketplace${doctorParam ? `?doctor=${doctorParam}` : ''}`}
         title={lab.public_name}
         subtitle={lab.city ?? undefined}
+        chips={
+          doctorParam ? (
+            <ActingDoctorChip doctorId={doctorParam} changeTo={`${basePath}/orders/new`} />
+          ) : undefined
+        }
       />
 
       <CardStack>
@@ -166,7 +179,8 @@ export function LabPublicProfilePage() {
                 const tplCode = linked?.platform_form_templates?.code;
                 const go = () =>
                   navigate(
-                    `/doctor/orders/new?lab=${lab.id}&service=${s.id}` +
+                    `${basePath}/orders/new?lab=${lab.id}&service=${s.id}` +
+                      (doctorParam ? `&doctor=${doctorParam}` : '') +
                       (continuePatient ? `&patient=${continuePatient}` : '') +
                       (continuesOrder ? `&continues=${continuesOrder}` : ''),
                   );

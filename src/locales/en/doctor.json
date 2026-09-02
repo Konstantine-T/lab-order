@@ -54,6 +54,8 @@
     "digitalImpressionsNote": "At this stage we work with digital impressions only.",
     "title": "New order",
     "changeLabService": "Change lab / service",
+    "orderingFor": "Ordering for",
+    "changeDoctor": "Change doctor",
     "patient": {
       "header": "Patient information",
       "firstName": "First name",

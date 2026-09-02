@@ -33,12 +33,15 @@ export function useContinueProject() {
   const { t } = useTranslation('doctor');
   const { user } = useAuth();
   const doctorId = user?.doctor_profile?.id;
+  // A doctor authors their own drafts, so the two ids are the same person —
+  // but the key is (doctor, author) since 0023, so both are needed.
+  const authorUserId = user?.id;
 
   // Same key the wizard + orders list use, so we see the live draft state.
   const { data: draft = null } = useQuery({
-    queryKey: ['doctor-draft', doctorId],
-    enabled: !!doctorId,
-    queryFn: () => loadDraft(doctorId!),
+    queryKey: ['doctor-draft', doctorId, authorUserId],
+    enabled: !!doctorId && !!authorUserId,
+    queryFn: () => loadDraft(doctorId!, authorUserId!),
     staleTime: 0,
   });
 
@@ -69,8 +72,8 @@ export function useContinueProject() {
     launch({ labId, patientId });
 
   const confirmDiscard = async () => {
-    if (doctorId) await clearDraft(doctorId);
-    qc.setQueryData(['doctor-draft', doctorId], null);
+    if (doctorId && authorUserId) await clearDraft(doctorId, authorUserId);
+    qc.setQueryData(['doctor-draft', doctorId, authorUserId], null);
     if (pending) go(pending);
     setPending(null);
   };

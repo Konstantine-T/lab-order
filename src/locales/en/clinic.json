@@ -44,18 +44,24 @@
     "empty": "No orders yet.",
     "filterByDoctor": "Filter by doctor",
     "allDoctors": "All doctors",
-    "newOrder": "New order"
+    "newOrder": "New order",
+    "draft": {
+      "bannerTitle": "Unfinished order for {{doctor}}",
+      "resume": "Resume",
+      "discard": "Discard"
+    }
   },
   "orderCreate": {
     "title": "New order",
-    "doctor": "For which doctor?",
-    "lab": "Lab",
-    "service": "Service",
-    "submit": "Submit order",
-    "success": "Order created.",
-    "pickDoctor": "Pick a doctor.",
-    "pickService": "Pick a lab and service.",
-    "noLocations": "This doctor has no work locations. Add one on the doctor's account first."
+    "pickDoctorSubtitle": "Step 1 of 2 — choose who this order is for",
+    "pickDoctorHint": "Pick the doctor, then order exactly as they would: browse labs, pick a service, fill the form.",
+    "noDoctors": "No doctors linked yet",
+    "noDoctorsHint": "Invite a doctor to your clinic before placing an order for them.",
+    "searchDoctor": "Search by name, specialty or email",
+    "noMatches": "No doctor matches that search",
+    "lastOrder": "Last order {{date}}",
+    "noOrdersYet": "No orders yet",
+    "orderFor": "Order"
   },
   "orderDetail": {
     "back": "Back to orders",

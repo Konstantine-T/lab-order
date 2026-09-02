@@ -19,6 +19,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
+import { ActingDoctorChip } from '@/features/clinic/ActingDoctorChip';
 import { supabase } from '@/lib/supabase';
 import { OrderForm, isOrderFormValid } from '@/features/orderForms/OrderForm';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
@@ -86,13 +87,29 @@ function minTurnaroundDays(
   return Math.max(1, averageDays ?? 1);
 }
 
-export function OrderCreateWizard() {
+/**
+ * The order form, for whoever is placing the order.
+ *
+ * A doctor orders for themselves; a clinic admin orders for one of their
+ * linked doctors, chosen up front and carried in `?doctor=`. Everything below
+ * that choice — patient, form, pricing, drafts, files — is identical, which is
+ * the point: the clinic used to have a thinner parallel screen, and the two
+ * drifted. `basePath` swaps the routes and the submit RPC; nothing else.
+ */
+export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string }) {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
   const { user } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
-  const doctorId = user?.doctor_profile?.id;
+
+  const isClinic = basePath === '/clinic';
+  // Who the order is FOR. The clinic admin picks this first; a doctor is
+  // always acting for themselves.
+  const doctorId = isClinic ? params.get('doctor') || '' : user?.doctor_profile?.id;
+  // Who is DOING the ordering — the draft's owner, so a clinic admin's autosave
+  // never lands on the draft its doctor is halfway through (0023).
+  const authorUserId = user?.id;
 
   const labParam = params.get('lab') ?? '';
   const serviceParam = params.get('service') ?? '';
@@ -123,18 +140,32 @@ export function OrderCreateWizard() {
 
   const update = (patch: Partial<WizardState>) => setState((s) => ({ ...s, ...patch }));
 
-  // No lab/service in the URL → bounce to marketplace so the doctor picks one.
+  // Where "change lab / service" and the initial bounce go. The acting doctor
+  // rides along so the marketplace can keep ordering on their behalf.
+  const marketplacePath = isClinic
+    ? `${basePath}/marketplace${doctorId ? `?doctor=${doctorId}` : ''}`
+    : `${basePath}/marketplace`;
+
+  // Nothing picked yet → send them to pick it. A clinic admin who arrives
+  // without a doctor goes one step further back, to the doctor picker.
   useEffect(() => {
-    if (!labParam || !serviceParam) {
-      navigate('/doctor/marketplace', { replace: true });
+    if (isClinic && !doctorId) {
+      // Carry any lab/service already chosen, so picking the doctor resumes
+      // here instead of restarting the flow.
+      const carry = labParam && serviceParam ? `?lab=${labParam}&service=${serviceParam}` : '';
+      navigate(`${basePath}/orders/new${carry}`, { replace: true });
+      return;
     }
-  }, [labParam, serviceParam, navigate]);
+    if (!labParam || !serviceParam) {
+      navigate(marketplacePath, { replace: true });
+    }
+  }, [isClinic, doctorId, labParam, serviceParam, navigate, basePath, marketplacePath]);
 
   // Load draft from Supabase once.
   const { data: draftData, isSuccess: draftLoaded } = useQuery({
-    queryKey: ['doctor-draft', doctorId],
-    enabled: !!doctorId,
-    queryFn: () => loadDraft(doctorId!),
+    queryKey: ['doctor-draft', doctorId, authorUserId],
+    enabled: !!doctorId && !!authorUserId,
+    queryFn: () => loadDraft(doctorId!, authorUserId!),
     staleTime: Infinity,
     gcTime: 0,
   });
@@ -295,6 +326,7 @@ export function OrderCreateWizard() {
   // column, so we keep writing 0 to avoid a migration.
   useDebouncedDraftAutosave(
     draftLoaded && !submittedOrderId ? doctorId : undefined,
+    authorUserId,
     state,
     0,
     lab?.public_name ?? '',
@@ -386,7 +418,12 @@ export function OrderCreateWizard() {
     mutationFn: async () => {
       if (!version) throw new Error('No form version');
       const submittedRush = rush ?? { type: 'NONE' as RushType, value: 0 };
-      const { data, error } = await supabase.rpc('submit_order', {
+      // clinic_submit_order (0014) re-checks the doctor-clinic link server-side
+      // and attributes the order to the doctor, not to the admin who typed it.
+      const { data, error } = await supabase.rpc(
+        isClinic ? 'clinic_submit_order' : 'submit_order',
+        {
+        ...(isClinic ? { p_doctor_id: doctorId } : {}),
         p_lab_id: state.lab_id,
         p_lab_service_id: state.lab_service_id,
         p_doctor_work_location_id: state.doctor_work_location_id,
@@ -402,7 +439,8 @@ export function OrderCreateWizard() {
         p_answers: state.answers,
         p_generated_total: generatedTotal,
         p_continues_order_id: continuesParam || null,
-      });
+        },
+      );
       if (error) throw error;
       const orderId = data as string;
 
@@ -428,16 +466,16 @@ export function OrderCreateWizard() {
       // pages (e.g. OrdersListPage in browser back/forward cache) don't see
       // a phantom draft. setQueryData is for already-mounted readers,
       // invalidate is for the next fresh read.
-      if (doctorId) {
+      if (doctorId && authorUserId) {
         try {
-          await clearDraft(doctorId);
+          await clearDraft(doctorId, authorUserId);
         } catch {
           // Swallow — the DB delete might race with submit, but the order
           // already exists, so the doctor isn't blocked. The cache update
           // below still runs.
         }
-        queryClient.setQueryData(['doctor-draft', doctorId], null);
-        queryClient.invalidateQueries({ queryKey: ['doctor-draft', doctorId] });
+        queryClient.setQueryData(['doctor-draft', doctorId, authorUserId], null);
+        queryClient.invalidateQueries({ queryKey: ['doctor-draft', doctorId, authorUserId] });
         queryClient.removeQueries({ queryKey: ['draft-broken-check'] });
       }
       setSubmittedOrderId(orderId);
@@ -472,10 +510,13 @@ export function OrderCreateWizard() {
           </Callout>
         )}
         <Stack direction="row" spacing={1.5} sx={{ pt: 1 }}>
-          <Button variant="contained" onClick={() => navigate(`/doctor/orders/${submittedOrderId}`)}>
+          <Button
+            variant="contained"
+            onClick={() => navigate(`${basePath}/orders/${submittedOrderId}`)}
+          >
             {tc('actions.viewDetails')}
           </Button>
-          <Button variant="outlined" onClick={() => navigate('/doctor/orders')}>
+          <Button variant="outlined" onClick={() => navigate(`${basePath}/orders`)}>
             {t('nav.orders')}
           </Button>
         </Stack>
@@ -491,11 +532,23 @@ export function OrderCreateWizard() {
   return (
     <>
       <PageHeader
-        backTo="/doctor/marketplace"
+        backTo={marketplacePath}
         title={t('orderCreate.title')}
         subtitle={`${t('nav.orders')} / ${t('orderCreate.title')}`}
         chips={
-          lab &&
+          <>
+            {isClinic && doctorId && (
+              <ActingDoctorChip
+                doctorId={doctorId}
+                compact
+                // Carry the lab and service, so switching doctor lands straight
+                // back here rather than restarting at the marketplace.
+                changeTo={`${basePath}/orders/new${
+                  labParam && serviceParam ? `?lab=${labParam}&service=${serviceParam}` : ''
+                }`}
+              />
+            )}
+          {lab &&
           selectedService && (
             // The lab + service capsule the mockup pins next to the title, with
             // its own "Change" escape hatch back to the marketplace.
@@ -520,11 +573,16 @@ export function OrderCreateWizard() {
                   · {selectedService.name}
                 </Box>
               </Typography>
-              <Button size="small" sx={{ p: 0.5, minWidth: 0 }} onClick={() => navigate('/doctor/marketplace')}>
+              <Button
+                size="small"
+                sx={{ p: 0.5, minWidth: 0 }}
+                onClick={() => navigate(marketplacePath)}
+              >
                 {t('orderCreate.changeLabService')}
               </Button>
             </Stack>
-          )
+          )}
+          </>
         }
         actions={
           <Stack direction="row" alignItems="center" spacing={0.75}>
@@ -553,7 +611,9 @@ export function OrderCreateWizard() {
               disabled={isBroken}
               showError={submitAttempted && !!error}
               onSubmit={handleSubmit}
-              onAddLocation={() => navigate('/doctor/work-locations')}
+              onAddLocation={
+                isClinic ? undefined : () => navigate('/doctor/work-locations')
+              }
             />
             <Callout tone="brand">{t('orderCreate.railHint')}</Callout>
           </>
@@ -569,7 +629,7 @@ export function OrderCreateWizard() {
                 size="small"
                 color="error"
                 onClick={async () => {
-                  if (doctorId) await clearDraft(doctorId);
+                  if (doctorId && authorUserId) await clearDraft(doctorId, authorUserId);
                   setDismissedBroken(false);
                   setState({ ...initialState, lab_id: labParam, lab_service_id: serviceParam });
                 }}
@@ -680,6 +740,10 @@ export function PatientStep({
         p_last: normalizeName(last_name),
         p_dob: date_of_birth || null,
         p_gender: gender || null,
+        // Explicit, not implied by the session (0023): a clinic admin has no
+        // current_doctor_id(), so without this the duplicate warning silently
+        // never fires and the clinic path re-creates patients.
+        p_doctor_id: doctorId,
       })
       .then(({ data }) => {
         if (data && data.length > 0) {
@@ -921,7 +985,8 @@ function SummaryRail({
   disabled: boolean;
   showError: boolean;
   onSubmit: () => void;
-  onAddLocation: () => void;
+  /** Omitted when the actor can't manage the doctor's locations (clinic path). */
+  onAddLocation?: () => void;
 }) {
   const { t } = useTranslation('doctor');
   const pricing = version?.pricing_configuration_json;
@@ -1036,9 +1101,11 @@ function SummaryRail({
               tone="warning"
               title={t('orderCreate.filesAndDue.noLocations')}
               action={
-                <Button size="small" onClick={onAddLocation}>
-                  {t('orderCreate.filesAndDue.addLocation')}
-                </Button>
+                onAddLocation && (
+                  <Button size="small" onClick={onAddLocation}>
+                    {t('orderCreate.filesAndDue.addLocation')}
+                  </Button>
+                )
               }
             />
           ) : (

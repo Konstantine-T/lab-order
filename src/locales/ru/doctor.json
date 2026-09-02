@@ -58,6 +58,8 @@
     "digitalImpressionsNote": "На данном этапе мы работаем только с цифровыми слепками.",
     "title": "Новый заказ",
     "changeLabService": "Сменить лабораторию / услугу",
+    "orderingFor": "Заказ для",
+    "changeDoctor": "Сменить врача",
     "patient": {
       "header": "Информация о пациенте",
       "firstName": "Имя",

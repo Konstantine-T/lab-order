@@ -99,6 +99,8 @@ export function OrdersListPage() {
   const { t: tc } = useTranslation('common');
   const { user } = useAuth();
   const doctorId = user?.doctor_profile?.id;
+  // Drafts are keyed by (doctor, author) since 0023.
+  const authorUserId = user?.id;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const continueProject = useContinueProject();
@@ -117,9 +119,9 @@ export function OrdersListPage() {
   const [draftSeen, setDraftSeen] = useState(false);
 
   const draftQuery = useQuery({
-    queryKey: ['doctor-draft', doctorId],
-    enabled: !!doctorId,
-    queryFn: () => loadDraft(doctorId!),
+    queryKey: ['doctor-draft', doctorId, authorUserId],
+    enabled: !!doctorId && !!authorUserId,
+    queryFn: () => loadDraft(doctorId!, authorUserId!),
     staleTime: 0,
     gcTime: 0,
     refetchOnMount: 'always',
@@ -258,8 +260,8 @@ export function OrdersListPage() {
   };
 
   const handleDraftDiscard = async () => {
-    if (doctorId) await clearDraft(doctorId);
-    queryClient.setQueryData(['doctor-draft', doctorId], null);
+    if (doctorId && authorUserId) await clearDraft(doctorId, authorUserId);
+    queryClient.setQueryData(['doctor-draft', doctorId, authorUserId], null);
     setDraftModalOpen(false);
   };
 

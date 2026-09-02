@@ -142,6 +142,10 @@ export function AppRoutes() {
       >
         <Route index element={<ClinicHomePage />} />
         <Route path="doctors" element={<ClinicDoctorsPage />} />
+        {/* The clinic walks the doctor's own ordering path: pick a doctor,
+            then the same marketplace, lab profile and wizard. */}
+        <Route path="marketplace" element={<MarketplacePage basePath="/clinic" />} />
+        <Route path="labs/:labId" element={<LabPublicProfilePage basePath="/clinic" />} />
         <Route path="orders" element={<ClinicOrdersPage />} />
         <Route path="orders/new" element={<ClinicOrderCreatePage />} />
         <Route path="orders/:orderId" element={<ClinicOrderDetailPage />} />

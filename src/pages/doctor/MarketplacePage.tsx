@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
 import { Alert, Box, CircularProgress, InputAdornment, Stack, TextField } from '@mui/material';
+import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { ActingDoctorChip } from '@/features/clinic/ActingDoctorChip';
 import { supabase } from '@/lib/supabase';
 import { LabCard, type MarketplaceLab } from '@/components/LabCard';
 import { PageHeader } from '@/components/design/PageHeader';
@@ -10,11 +12,19 @@ import { motion, radii } from '@/theme/tokens';
 
 const ALL = '__all__';
 
-export function MarketplacePage() {
+/**
+ * The lab marketplace. Identical for a doctor and for a clinic admin ordering
+ * on a doctor's behalf — the only difference is where a lab card links, and
+ * that the clinic carries the acting doctor along in `?doctor=`.
+ */
+export function MarketplacePage({ basePath = '/doctor' }: { basePath?: string }) {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
   const [search, setSearch] = useState('');
   const [city, setCity] = useState<string>(ALL);
+  const [params] = useSearchParams();
+  const doctorParam = params.get('doctor') ?? '';
+  const isClinic = basePath === '/clinic';
 
   const {
     data: labs = [],
@@ -72,8 +82,17 @@ export function MarketplacePage() {
   return (
     <>
       <PageHeader
+        // The doctor reaches the marketplace from the sidebar, so there is
+        // nowhere to go back to; the clinic reaches it mid-flow, one step after
+        // choosing the doctor, and needs the way back to that choice.
+        backTo={isClinic ? `${basePath}/orders/new` : undefined}
         title={t('marketplace.title')}
         subtitle={t('marketplace.subtitle')}
+        chips={
+          isClinic && doctorParam ? (
+            <ActingDoctorChip doctorId={doctorParam} changeTo={`${basePath}/orders/new`} />
+          ) : undefined
+        }
         actions={
           <TextField
             value={search}
@@ -143,7 +162,11 @@ export function MarketplacePage() {
           }}
         >
           {filtered.map((lab) => (
-            <LabCard key={lab.id} lab={lab} />
+            <LabCard
+              key={lab.id}
+              lab={lab}
+              to={`${basePath}/labs/${lab.id}${doctorParam ? `?doctor=${doctorParam}` : ''}`}
+            />
           ))}
         </Box>
       )}
