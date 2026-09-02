@@ -39,6 +39,7 @@ import {
 } from '@/components/design';
 import { formatGEL } from '@/utils/pricing';
 import { OrderRowCard } from '@/features/orders/OrderRowCard';
+import { byDueDate, dueDateOf } from '@/features/orders/orderDates';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { OrdersPaginator } from '@/features/orders/OrdersPaginator';
 import { ORDER_PIPELINE, pipelineIndex } from '@/features/orders/pipeline';
@@ -229,18 +230,21 @@ export function OrdersListPage() {
     if (dateFrom?.isValid()) {
       const from = dateFrom.format('YYYY-MM-DD');
       result = result.filter((row) => {
-        const due = row.confirmed_due_date ?? row.requested_due_date;
+        const due = dueDateOf(row);
         return due != null && due >= from;
       });
     }
     if (dateTo?.isValid()) {
       const to = dateTo.format('YYYY-MM-DD');
       result = result.filter((row) => {
-        const due = row.confirmed_due_date ?? row.requested_due_date;
+        const due = dueDateOf(row);
         return due != null && due <= to;
       });
     }
-    return result;
+    // Soonest deadline first. The query orders by created_at, which is a
+    // deterministic base for the tiebreak but the wrong thing to show: this is
+    // a work queue, so it reads by when things are due. Sort a copy.
+    return [...result].sort(byDueDate);
   }, [orders, quick, search, statuses, dateFrom, dateTo]);
 
   const quickCounts = useMemo(
@@ -506,7 +510,7 @@ export function OrdersListPage() {
                   row.generated_total != null &&
                   row.final_total < row.generated_total;
                 const total = row.final_total ?? row.generated_total;
-                const dueRaw = row.confirmed_due_date ?? row.requested_due_date;
+                const dueRaw = dueDateOf(row);
                 const due = dueRaw ? dayjs(dueRaw).format('MMM D') : undefined;
                 const overdue =
                   !!dueRaw &&

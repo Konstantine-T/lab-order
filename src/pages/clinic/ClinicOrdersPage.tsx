@@ -18,6 +18,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
 import { OrderRowCard } from '@/features/orders/OrderRowCard';
+import { byDueDate, dueDateOf } from '@/features/orders/orderDates';
 import { clearDraft, loadDraftsByAuthor } from '@/features/doctor/orderCreate/draftStorage';
 import { formatGEL } from '@/utils/pricing';
 import type { ClinicDoctorRow, OrderRow } from '@/types/database';
@@ -86,8 +87,14 @@ export function ClinicOrdersPage() {
     return m;
   }, [doctors]);
 
-  const visible =
-    doctorFilter === 'ALL' ? orders : orders.filter((o) => o.doctor_id === doctorFilter);
+  // Soonest deadline first, like the lab's and doctor's lists. The query orders
+  // by created_at — a deterministic base for the tiebreak, but not what a work
+  // queue should read by.
+  const visible = useMemo(() => {
+    const rows =
+      doctorFilter === 'ALL' ? orders : orders.filter((o) => o.doctor_id === doctorFilter);
+    return [...rows].sort(byDueDate);
+  }, [orders, doctorFilter]);
 
   return (
     <>
@@ -200,7 +207,7 @@ export function ClinicOrdersPage() {
                 status={<OrderStatusChip status={o.status} />}
                 paymentStatus={<PaymentStatusChip status={o.payment_status} />}
                 total={total != null ? formatGEL(total) : '—'}
-                dueDate={o.confirmed_due_date ?? o.requested_due_date ?? undefined}
+                dueDate={dueDateOf(o) ?? undefined}
                 avatarText={patient}
                 onClick={() => navigate(`/clinic/orders/${o.id}`)}
               />

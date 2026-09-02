@@ -38,6 +38,7 @@ import {
   StatTile,
 } from '@/components/design';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
+import { byDueDate, dueDateOf } from '@/features/orders/orderDates';
 import { ClarificationAskDialog } from '@/features/orders/clarifications/ClarificationAskDialog';
 import { formatGEL } from '@/utils/pricing';
 import { tone } from '@/theme/tokens';
@@ -193,18 +194,21 @@ export function LabOrdersDashboardPage() {
     if (dateFrom?.isValid()) {
       const from = dateFrom.format('YYYY-MM-DD');
       result = result.filter((row) => {
-        const due = row.confirmed_due_date ?? row.requested_due_date;
+        const due = dueDateOf(row);
         return due != null && due >= from;
       });
     }
     if (dateTo?.isValid()) {
       const to = dateTo.format('YYYY-MM-DD');
       result = result.filter((row) => {
-        const due = row.confirmed_due_date ?? row.requested_due_date;
+        const due = dueDateOf(row);
         return due != null && due <= to;
       });
     }
-    return result;
+    // Soonest deadline first. The query orders by created_at, which is a
+    // deterministic base for the tiebreak but the wrong thing to show: this is
+    // a work queue, so it reads by when things are due. Sort a copy.
+    return [...result].sort(byDueDate);
   }, [orders, quick, search, statuses, dateFrom, dateTo]);
 
   const quickCounts = useMemo(
@@ -221,7 +225,7 @@ export function LabOrdersDashboardPage() {
     const open = orders.filter((o) => !['COMPLETED', 'CANCELLED'].includes(o.status));
     return {
       dueThisWeek: open.filter((o) => {
-        const d = o.confirmed_due_date ?? o.requested_due_date;
+        const d = dueDateOf(o);
         return d != null && d >= today && d <= weekEnd;
       }).length,
       edits: orders.filter((o) => o.has_unreviewed_edits).length,
@@ -414,7 +418,7 @@ export function LabOrdersDashboardPage() {
                 : '—';
               const serviceName = row.lab_services?.name ?? row.service_snapshot?.name ?? '';
               const total = row.final_total ?? row.generated_total;
-              const dueRaw = row.confirmed_due_date ?? row.requested_due_date;
+              const dueRaw = dueDateOf(row);
               const daysOut = dueRaw ? dayjs(dueRaw).diff(dayjs(), 'day') : null;
               const dueTone =
                 daysOut == null || row.status === 'COMPLETED'
