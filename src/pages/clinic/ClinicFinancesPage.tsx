@@ -39,16 +39,21 @@ const DOCTOR_COLUMNS: Column[] = [
   { key: 'outstanding', width: '120px', align: 'right' },
 ];
 
+// Nine columns is a lot for one row, so the fixed ones are trimmed to the
+// width their content actually needs — otherwise the payment chip spills past
+// the card edge at the size most people run this at.
 const ORDER_COLUMNS: Column[] = [
-  { key: 'order', width: '96px' },
+  { key: 'order', width: '90px' },
   { key: 'doctor', width: 'minmax(0, 1fr)' },
   { key: 'lab', width: 'minmax(0, 1fr)' },
   { key: 'patient', width: 'minmax(0, 1fr)' },
-  { key: 'due', width: '116px' },
-  { key: 'billed', width: '96px', align: 'right' },
-  { key: 'paid', width: '96px', align: 'right' },
-  { key: 'outstanding', width: '104px', align: 'right' },
-  { key: 'status', width: '104px' },
+  // Wide enough for a date and the overdue pill side by side; the three
+  // name columns are elastic and give this the room.
+  { key: 'due', width: '146px' },
+  { key: 'billed', width: '92px', align: 'right' },
+  { key: 'paid', width: '88px', align: 'right' },
+  { key: 'outstanding', width: '100px', align: 'right' },
+  { key: 'status', width: '108px' },
 ];
 
 function isOverdue(o: ClinicPayableOrder): boolean {
@@ -259,7 +264,7 @@ export function ClinicFinancesPage() {
 
             <DataTable
               columns={ORDER_COLUMNS.map((c) => ({ ...c, label: t(`finances.table.${c.key}`) }))}
-              minWidth={1060}
+              minWidth={980}
               footer={
                 <Box sx={{ width: '100%' }}>
                   <OrdersPaginator
