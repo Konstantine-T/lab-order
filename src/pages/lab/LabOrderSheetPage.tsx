@@ -337,18 +337,6 @@ export function LabOrderSheetPage() {
       <SplitLayout
         rail={
           <>
-            {/* Attachments: the lab can add its own and pull the doctor's, but
-                only removes what it uploaded — the doctor's files aren't the
-                lab's to delete, even though RLS would permit it. */}
-            <SectionCard icon="upload_file" title={tc('orderFiles.title')}>
-              <OrderFilesField
-                orderId={order.id}
-                labId={order.lab_id}
-                canUpload
-                canRemove={(f) => f.uploaded_by_user_id === user?.id}
-              />
-            </SectionCard>
-
             {/* Status switcher */}
             <SectionCard title={t('orderSheet.statusTitle')} meta={t('orderSheet.statusHelp')}>
               <PillRow>
@@ -746,6 +734,20 @@ export function LabOrderSheetPage() {
             </SectionCard>
           </>
         )}
+        {/* Attachments: the lab can add its own and pull the doctor's, but
+            only removes what it uploaded — the doctor's files aren't the
+            lab's to delete, even though RLS would permit it.
+
+            Outside the `version` guard on purpose: a failed form-version query
+            must not take the doctor's files down with it. */}
+        <SectionCard icon="upload_file" title={tc('orderFiles.title')}>
+          <OrderFilesField
+            orderId={order.id}
+            labId={order.lab_id}
+            canUpload
+            canRemove={(f) => f.uploaded_by_user_id === user?.id}
+          />
+        </SectionCard>
       </SplitLayout>
 
       {/* Backing out of the question backs out of the status too: the pill and
