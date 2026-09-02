@@ -189,6 +189,7 @@ export function LabPublicProfilePage({ basePath = '/doctor' }: { basePath?: stri
                     key={s.id}
                     templateCode={tplCode}
                     templateLabel={templateName(tc, tplCode)}
+                    imageUrl={s.cover_image_url}
                     name={s.name}
                     description={s.short_description ?? undefined}
                     disabled={!orderable}

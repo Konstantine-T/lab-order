@@ -1,6 +1,7 @@
 # Extra names used by the app beyond the mockups.
 account_balance_wallet
 add
+add_photo_alternate
 admin_panel_settings
 apartment
 archive
@@ -112,6 +113,7 @@ tune
 unarchive
 undo
 unfold_more
+upload
 upload_file
 verified
 visibility

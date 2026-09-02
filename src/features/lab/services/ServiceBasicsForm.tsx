@@ -1,13 +1,11 @@
-import { FormControlLabel, Stack, Switch } from '@mui/material';
-import { Controller, useFormContext } from 'react-hook-form';
+import { Stack } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { RHFTextField } from '@/components/RHFTextField';
 import { SectionCard } from '@/components/design';
-import type { ServiceBasicsInput } from './serviceBasicsSchema';
+import { ServiceImageField } from './ServiceImageField';
 
 export function ServiceBasicsForm() {
   const { t } = useTranslation('lab');
-  const { control } = useFormContext<ServiceBasicsInput>();
 
   return (
     <SectionCard
@@ -30,24 +28,11 @@ export function ServiceBasicsForm() {
             required
             inputProps={{ min: 1 }}
           />
-          <RHFTextField name="cover_image_url" label={t('services.fields.coverImageUrl')} />
-
-          <Controller
-            name="is_active"
-            control={control}
-            render={({ field }) => (
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={field.value}
-                    onChange={(e) => field.onChange(e.target.checked)}
-                  />
-                }
-                label={t('services.fields.isActive')}
-                sx={{ alignSelf: 'flex-start' }}
-              />
-            )}
-          />
+          {/* Active lives on the service card in the list now, where you can
+              see every service's state at once and flip one without opening a
+              form. `is_active` stays in the form's values so a save round-trips
+              whatever the card last set. */}
+          <ServiceImageField />
         </Stack>
     </SectionCard>
   );

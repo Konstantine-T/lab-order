@@ -193,9 +193,7 @@
       "shortDescription": "Short description",
       "averageTurnaroundDays": "Average turnaround (days)",
       "averageTurnaroundLabel": "Turnaround label (e.g. \"5–7 days\")",
-      "coverImageUrl": "Cover image URL",
-      "servicePhaseType": "Service phase",
-      "isActive": "Active"
+      "servicePhaseType": "Service phase"
     },
     "phaseOptions": {
       "STANDALONE": "Standalone",
@@ -245,7 +243,19 @@
     "turnaroundDays": "{{n}} days avg",
     "fieldsAndPricing": "Fields & pricing",
     "addFromTemplate": "Add a service from a template",
-    "addFromTemplateHint": "Crown & Bridge, Surgical Guide, Implants, Model, Evident Smile, Gingival Reduction Guide"
+    "addFromTemplateHint": "Crown & Bridge, Surgical Guide, Implants, Model, Evident Smile, Gingival Reduction Guide",
+    "image": {
+      "label": "Service image",
+      "upload": "Upload an image",
+      "replace": "Replace",
+      "remove": "Remove",
+      "hint": "PNG, JPEG or WebP, up to 5 MB. Shown on the service card doctors browse.",
+      "errors": {
+        "too-large": "That image is over 5 MB.",
+        "wrong-type": "Use a PNG, JPEG or WebP image.",
+        "failed": "The upload failed. Try again."
+      }
+    }
   },
   "forms": {
     "title": "Order forms",

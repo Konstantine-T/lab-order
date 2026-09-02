@@ -193,9 +193,7 @@
       "shortDescription": "მოკლე აღწერა",
       "averageTurnaroundDays": "საშუალო ვადა (დღე)",
       "averageTurnaroundLabel": "ვადის წარწერა",
-      "coverImageUrl": "სურათის URL",
-      "servicePhaseType": "ეტაპი",
-      "isActive": "აქტიური"
+      "servicePhaseType": "ეტაპი"
     },
     "phaseOptions": {
       "STANDALONE": "დამოუკიდებელი",
@@ -245,7 +243,19 @@
     "turnaroundDays": "საშ. {{n}} დღე",
     "fieldsAndPricing": "ველები და ფასები",
     "addFromTemplate": "სერვისის დამატება შაბლონიდან",
-    "addFromTemplateHint": "გვირგვინი და ხიდი, ქირურგიული შაბლონი, იმპლანტები, მოდელი, Evident Smile, ღრძილის რედუქციის შაბლონი"
+    "addFromTemplateHint": "გვირგვინი და ხიდი, ქირურგიული შაბლონი, იმპლანტები, მოდელი, Evident Smile, ღრძილის რედუქციის შაბლონი",
+    "image": {
+      "label": "სერვისის სურათი",
+      "upload": "სურათის ატვირთვა",
+      "replace": "შეცვლა",
+      "remove": "წაშლა",
+      "hint": "PNG, JPEG ან WebP, 5 მბ-მდე. ჩანს სერვისის ბარათზე, რომელსაც ექიმი ათვალიერებს.",
+      "errors": {
+        "too-large": "სურათი 5 მბ-ს აღემატება.",
+        "wrong-type": "გამოიყენეთ PNG, JPEG ან WebP.",
+        "failed": "ატვირთვა ვერ მოხერხდა. სცადეთ ხელახლა."
+      }
+    }
   },
   "forms": {
     "title": "შეკვეთის ფორმები",

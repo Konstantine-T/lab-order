@@ -1,7 +1,7 @@
 import { alpha, Box, Stack, Typography } from '@mui/material';
 import type { ReactNode } from 'react';
 import { Icon } from '@/components/design';
-import { templateLook } from '@/utils/serviceDefaults';
+import { serviceImageUrl, templateLook } from '@/utils/serviceDefaults';
 import { lift, motion } from '@/theme/tokens';
 
 /**
@@ -13,6 +13,7 @@ import { lift, motion } from '@/theme/tokens';
 export function ServiceCard({
   templateCode,
   templateLabel,
+  imageUrl,
   name,
   description,
   chips,
@@ -24,6 +25,8 @@ export function ServiceCard({
 }: {
   templateCode?: string | null;
   templateLabel?: ReactNode;
+  /** The lab's uploaded cover, shown in place of the template icon. */
+  imageUrl?: string | null;
   name: ReactNode;
   description?: ReactNode;
   /** Fact capsules — turnaround, pricing model, form status. */
@@ -37,6 +40,9 @@ export function ServiceCard({
   disabled?: boolean;
 }) {
   const look = templateLook(templateCode);
+  // The lab's own upload wins; otherwise the template's stock picture, which
+  // has been sitting unused in the service-defaults bucket all along.
+  const image = serviceImageUrl(imageUrl, templateCode);
 
   return (
     <Stack
@@ -69,19 +75,38 @@ export function ServiceCard({
       }}
     >
       <Stack direction="row" alignItems="flex-start" spacing={1.5}>
-        <Box
-          sx={{
-            width: 42,
-            height: 42,
-            flexShrink: 0,
-            borderRadius: '12px',
-            display: 'grid',
-            placeItems: 'center',
-            bgcolor: alpha(look.color, 0.12),
-          }}
-        >
-          <Icon name={look.icon} size={21} sx={{ color: look.color }} />
-        </Box>
+        {image ? (
+          // The lab's own picture earns the tile; the template icon is only a
+          // stand-in for services that never uploaded one.
+          <Box
+            component="img"
+            src={image}
+            alt=""
+            sx={{
+              width: 42,
+              height: 42,
+              flexShrink: 0,
+              borderRadius: '12px',
+              objectFit: 'cover',
+              border: 1,
+              borderColor: 'divider',
+            }}
+          />
+        ) : (
+          <Box
+            sx={{
+              width: 42,
+              height: 42,
+              flexShrink: 0,
+              borderRadius: '12px',
+              display: 'grid',
+              placeItems: 'center',
+              bgcolor: alpha(look.color, 0.12),
+            }}
+          >
+            <Icon name={look.icon} size={21} sx={{ color: look.color }} />
+          </Box>
+        )}
         <Box sx={{ minWidth: 0, flex: 1 }}>
           {templateLabel && (
             <Typography

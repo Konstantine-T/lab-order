@@ -193,9 +193,7 @@
       "shortDescription": "Краткое описание",
       "averageTurnaroundDays": "Средний срок (дни)",
       "averageTurnaroundLabel": "Метка срока",
-      "coverImageUrl": "URL обложки",
-      "servicePhaseType": "Этап",
-      "isActive": "Активна"
+      "servicePhaseType": "Этап"
     },
     "phaseOptions": {
       "STANDALONE": "Самостоятельная",
@@ -245,7 +243,19 @@
     "turnaroundDays": "в среднем {{n}} дн.",
     "fieldsAndPricing": "Поля и цены",
     "addFromTemplate": "Добавить услугу из шаблона",
-    "addFromTemplateHint": "Коронки и мосты, хирургический шаблон, имплантаты, модель, Evident Smile, шаблон редукции десны"
+    "addFromTemplateHint": "Коронки и мосты, хирургический шаблон, имплантаты, модель, Evident Smile, шаблон редукции десны",
+    "image": {
+      "label": "Изображение услуги",
+      "upload": "Загрузить изображение",
+      "replace": "Заменить",
+      "remove": "Удалить",
+      "hint": "PNG, JPEG или WebP, до 5 МБ. Показывается на карточке услуги, которую видит врач.",
+      "errors": {
+        "too-large": "Изображение больше 5 МБ.",
+        "wrong-type": "Используйте PNG, JPEG или WebP.",
+        "failed": "Не удалось загрузить. Попробуйте ещё раз."
+      }
+    }
   },
   "forms": {
     "title": "Формы заказа",
