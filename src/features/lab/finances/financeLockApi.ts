@@ -32,6 +32,25 @@ export async function verifyFinancePasscode(passcode: string): Promise<boolean> 
 }
 
 /**
+ * Forgot the passcode: prove it with the account password instead.
+ *
+ * The password is checked inside the database function, not here. Doing it
+ * client-side — sign in, then call a reset — would look the same to the user
+ * and protect nothing, since anyone holding the session could skip straight to
+ * the reset call.
+ */
+export async function resetFinancePasscode(
+  accountPassword: string,
+  nextPasscode: string,
+): Promise<void> {
+  const { error } = await supabase.rpc('reset_lab_finance_passcode', {
+    p_account_password: accountPassword,
+    p_new: nextPasscode,
+  });
+  if (error) throw error;
+}
+
+/**
  * Unlocking lasts for the browser tab and no longer.
  *
  * sessionStorage, not localStorage: closing the tab should re-lock. The value

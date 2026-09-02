@@ -124,7 +124,14 @@
       "noRecovery": "Keep it somewhere safe — there is no reset from this screen.",
       "saveFailed": "Could not save the passcode. Try again.",
       "unlock": "Unlock",
-      "create": "Set passcode"
+      "create": "Set passcode",
+      "forgot": "Forgot the passcode?",
+      "resetTitle": "Reset passcode",
+      "resetHint": "Confirm your account password — the one you sign in with — and choose a new passcode.",
+      "accountPassword": "Account password",
+      "resetAction": "Reset passcode",
+      "back": "Back",
+      "wrongPassword": "That account password is not right."
     }
   },
   "formFields": {

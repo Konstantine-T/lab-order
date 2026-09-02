@@ -73,6 +73,7 @@ local_shipping
 location_on
 lock
 lock_open
+lock_reset
 logout
 mail
 manage_accounts
