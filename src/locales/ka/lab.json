@@ -131,7 +131,8 @@
       "accountPassword": "ანგარიშის პაროლი",
       "resetAction": "კოდის აღდგენა",
       "back": "უკან",
-      "wrongPassword": "ანგარიშის პაროლი არასწორია."
+      "wrongPassword": "ანგარიშის პაროლი არასწორია.",
+      "lockNow": "დაბლოკვა"
     }
   },
   "formFields": {

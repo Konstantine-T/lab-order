@@ -131,7 +131,8 @@
       "accountPassword": "Пароль аккаунта",
       "resetAction": "Сбросить код",
       "back": "Назад",
-      "wrongPassword": "Неверный пароль аккаунта."
+      "wrongPassword": "Неверный пароль аккаунта.",
+      "lockNow": "Заблокировать"
     }
   },
   "formFields": {

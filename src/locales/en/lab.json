@@ -131,7 +131,8 @@
       "accountPassword": "Account password",
       "resetAction": "Reset passcode",
       "back": "Back",
-      "wrongPassword": "That account password is not right."
+      "wrongPassword": "That account password is not right.",
+      "lockNow": "Lock"
     }
   },
   "formFields": {

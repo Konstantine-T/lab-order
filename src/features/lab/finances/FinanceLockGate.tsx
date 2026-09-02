@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Alert, Box, Button, CircularProgress, Stack, TextField, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { Icon, PageHeader, SectionCard } from '@/components/design';
 import {
   fetchFinanceLockState,
+  forgetUnlocked,
   isUnlockedThisSession,
   rememberUnlocked,
   resetFinancePasscode,
@@ -25,6 +26,14 @@ import {
  * see it. It is a curtain, not a vault — the signed-in account can still reach
  * the same numbers through the API, and nothing here pretends otherwise.
  */
+/**
+ * Lets the page inside the gate lock itself again — a lab stepping away from
+ * an open screen shouldn't have to close the tab to cover the numbers.
+ */
+const LockContext = createContext<{ lock: () => void }>({ lock: () => {} });
+
+export const useFinanceLock = () => useContext(LockContext);
+
 export function FinanceLockGate({ children }: { children: ReactNode }) {
   const { t } = useTranslation('lab');
   const { user } = useAuth();
@@ -37,13 +46,20 @@ export function FinanceLockGate({ children }: { children: ReactNode }) {
   // previous one's unlocked state.
   useEffect(() => setUnlocked(isUnlockedThisSession(labId)), [labId]);
 
+  const lock = useCallback(() => {
+    forgetUnlocked(labId);
+    setUnlocked(false);
+    setResetting(false);
+  }, [labId]);
+  const lockValue = useMemo(() => ({ lock }), [lock]);
+
   const state = useQuery({
     queryKey: ['lab-finance-lock', labId],
     enabled: !!labId && !unlocked,
     queryFn: fetchFinanceLockState,
   });
 
-  if (unlocked) return <>{children}</>;
+  if (unlocked) return <LockContext.Provider value={lockValue}>{children}</LockContext.Provider>;
 
   if (state.isLoading || !labId) {
     return (

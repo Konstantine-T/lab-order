@@ -22,11 +22,13 @@ import {
   SectionCard,
   StatCard,
   StatGrid,
+  Icon,
   StatusPill,
 } from '@/components/design';
 import { OrdersPaginator } from '@/features/orders/OrdersPaginator';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { RecordPaymentDialog } from '@/features/lab/finances/RecordPaymentDialog';
+import { useFinanceLock } from '@/features/lab/finances/FinanceLockGate';
 import { FinanceFilterBar } from '@/features/lab/finances/FinanceFilterBar';
 import {
   defaultReceivableFilters,
@@ -70,6 +72,7 @@ export function LabFinancesPage() {
   const { user } = useAuth();
   const labId = user?.lab?.id;
   const qc = useQueryClient();
+  const { lock } = useFinanceLock();
 
   const [filters, setFilters] = useState<ReceivableFilters>(defaultReceivableFilters);
   const [sort, setSort] = useState<ReceivableSort>('created_desc');
@@ -131,7 +134,20 @@ export function LabFinancesPage() {
 
   return (
     <>
-      <PageHeader title={t('finances.title')} subtitle={t('finances.subtitle')} />
+      <PageHeader
+        title={t('finances.title')}
+        subtitle={t('finances.subtitle')}
+        actions={
+          <Button
+            size="small"
+            variant="outlined"
+            startIcon={<Icon name="lock" size={16} />}
+            onClick={lock}
+          >
+            {t('finances.lock.lockNow')}
+          </Button>
+        }
+      />
 
       <Stack spacing={2.5}>
       {/* ── Totals ── */}
