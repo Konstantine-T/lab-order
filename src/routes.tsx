@@ -50,6 +50,7 @@ import { ClinicDoctorsPage } from '@/pages/clinic/ClinicDoctorsPage';
 import { ClinicOrdersPage } from '@/pages/clinic/ClinicOrdersPage';
 import { ClinicOrderDetailPage } from '@/pages/clinic/ClinicOrderDetailPage';
 import { ClinicOrderCreatePage } from '@/pages/clinic/ClinicOrderCreatePage';
+import { ClinicFinancesPage } from '@/pages/clinic/ClinicFinancesPage';
 
 export function AppRoutes() {
   return (
@@ -147,6 +148,7 @@ export function AppRoutes() {
         <Route path="marketplace" element={<MarketplacePage basePath="/clinic" />} />
         <Route path="labs/:labId" element={<LabPublicProfilePage basePath="/clinic" />} />
         <Route path="orders" element={<ClinicOrdersPage />} />
+        <Route path="finances" element={<ClinicFinancesPage />} />
         <Route path="orders/new" element={<ClinicOrderCreatePage />} />
         <Route path="orders/:orderId" element={<ClinicOrderDetailPage />} />
         <Route path="orders/:orderId/edit" element={<OrderEditPage basePath="/clinic/orders" />} />

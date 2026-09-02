@@ -455,6 +455,39 @@ export interface LabReceivableOrder {
   total_count: number;
 }
 
+/** One doctor's rolled-up position, from clinic_payables_by_doctor (0024). */
+export interface ClinicPayableDoctor {
+  doctor_id: string;
+  doctor_name: string;
+  order_count: number;
+  total_billed: number;
+  total_paid: number;
+  total_outstanding: number;
+}
+
+/** One payable order, from clinic_payables_list (0024). */
+export interface ClinicPayableOrder {
+  order_id: string;
+  order_code: string;
+  order_status: OrderStatus;
+  doctor_id: string;
+  doctor_name: string;
+  lab_id: string;
+  lab_name: string;
+  patient_name: string;
+  service_name: string;
+  recipient_type: InvoiceRecipientType;
+  billed: number;
+  paid_total: number;
+  outstanding: number;
+  payment_status: PaymentStatus;
+  confirmed_due_date: string | null;
+  requested_due_date: string | null;
+  created_at: string;
+  /** Full filtered size for pagination (identical on every row of a page). */
+  total_count: number;
+}
+
 export type EditReasonCode =
   | 'CORRECTION'
   | 'UNFORESEEN_LAB_INSTRUCTION'

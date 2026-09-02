@@ -25,6 +25,7 @@ export function ClinicLayout() {
         />
       ),
     },
+    { to: '/clinic/finances', label: t('nav.finances'), icon: 'payments' },
   ];
   return <AppShell brand={t('brand')} navEntries={nav} />;
 }

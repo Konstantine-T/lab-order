@@ -3,7 +3,8 @@
   "nav": {
     "home": "Home",
     "doctors": "Doctors",
-    "orders": "Orders"
+    "orders": "Orders",
+    "finances": "Finances"
   },
   "home": {
     "fallbackName": "Clinic",
@@ -80,6 +81,65 @@
       "body": "This cancels the order on behalf of the doctor. The lab will see it as cancelled.",
       "reasonLabel": "Reason (optional)",
       "confirm": "Cancel order"
+    }
+  },
+  "finances": {
+    "title": "Finances",
+    "subtitle": "What your doctors owe out, and to whom.",
+    "readOnlyNote": "Payments are recorded by the laboratory that issued the invoice. This page reflects what each lab has registered as received.",
+    "totals": {
+      "outstanding": "Outstanding",
+      "billed": "Billed",
+      "paid": "Paid",
+      "orders": "Orders"
+    },
+    "doctors": {
+      "title": "By doctor",
+      "doctor": "Doctor",
+      "orders": "Orders",
+      "billed": "Billed",
+      "paid": "Paid",
+      "outstanding": "Outstanding",
+      "viewing": "Showing {{name}} only"
+    },
+    "table": {
+      "order": "Order",
+      "doctor": "Doctor",
+      "lab": "Laboratory",
+      "patient": "Patient",
+      "due": "Due",
+      "billed": "Billed",
+      "paid": "Paid",
+      "outstanding": "Outstanding",
+      "status": "Payment",
+      "overdue": "Overdue",
+      "empty": "Nothing outstanding."
+    },
+    "filters": {
+      "search": "Search order, patient, doctor, lab…",
+      "doctor": "Doctor",
+      "lab": "Laboratory",
+      "billedTo": "Billed to",
+      "theClinic": "The clinic",
+      "theDoctor": "The doctor",
+      "any": "Any",
+      "status": "Payment status",
+      "sort": "Sort",
+      "from": "From",
+      "to": "To",
+      "minAmount": "Min owed",
+      "maxAmount": "Max owed",
+      "overdueOnly": "Overdue only",
+      "clear": "Clear filters",
+      "noResults": "No orders match these filters."
+    },
+    "sort": {
+      "created_desc": "Newest first",
+      "created_asc": "Oldest first",
+      "outstanding_desc": "Most owed",
+      "outstanding_asc": "Least owed",
+      "due_asc": "Due soonest",
+      "due_desc": "Due latest"
     }
   }
 }
