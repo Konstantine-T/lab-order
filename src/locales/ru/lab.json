@@ -522,7 +522,13 @@
       "awaitingAnswer": "Ждём ответа врача.",
       "answeredTitle": "Врач ответил",
       "alreadyOpenHint": "По этому заказу уже есть открытый вопрос. Дождитесь ответа врача, прежде чем задавать новый."
-    }
+    },
+    "saved": "Сохранено.",
+    "saveFailed": "Не удалось сохранить. Попробуйте ещё раз.",
+    "finalPriceInvalid": "Введите корректную сумму.",
+    "paymentMax": "Максимум: {{max}}",
+    "paymentClamped": "Больше итоговой цены. Можно записать не более {{max}}.",
+    "paymentNeedsFinalPrice": "Сначала укажите итоговую цену."
   },
   "approvalBanner": {
     "PENDING_APPROVAL": {

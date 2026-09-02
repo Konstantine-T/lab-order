@@ -83,6 +83,11 @@ export function LabOrderSheetPage() {
   const [pendingStatus, setPendingStatus] = useState<OrderStatus | ''>('');
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Validation belongs next to the field that failed it. The top-of-page Alert
+  // is for mutation failures, which are page-level events; on a long sheet the
+  // lab is looking at the rail and would never see a message up there.
+  const [priceError, setPriceError] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [clarifyOpen, setClarifyOpen] = useState(false);
@@ -153,13 +158,21 @@ export function LabOrderSheetPage() {
     },
   });
 
+  // Seed the editable fields once per order, not on every fetch. The effect
+  // used to depend on the whole `order` object, so any refetch of ['lab-order']
+  // handed it a fresh reference and reset all four fields to the stored values
+  // — wiping whatever the lab was halfway through typing. markReviewed fires
+  // exactly that refetch on mount for any order with unreviewed edits, so on
+  // those orders a price would vanish as it was being entered. Same ref-guard
+  // shape as clearedRef below, for the same reason.
+  const hydratedRef = useRef<string | null>(null);
   useEffect(() => {
-    if (order) {
-      setFinalPrice(order.final_total?.toString() ?? '');
-      setPaidAmount(order.paid_total?.toString() ?? '0');
-      setConfirmedDue(order.confirmed_due_date ?? '');
-      setPendingStatus(order.status);
-    }
+    if (!order || hydratedRef.current === order.id) return;
+    hydratedRef.current = order.id;
+    setFinalPrice(order.final_total?.toString() ?? '');
+    setPaidAmount(order.paid_total?.toString() ?? '0');
+    setConfirmedDue(order.confirmed_due_date ?? '');
+    setPendingStatus(order.status);
   }, [order]);
 
   const update = useMutation({
@@ -169,11 +182,11 @@ export function LabOrderSheetPage() {
       if (error) throw error;
     },
     onSuccess: () => {
-      setSuccess('Saved.');
+      setSuccess(t('orderSheet.saved'));
       qc.invalidateQueries({ queryKey: ['lab-order', orderId] });
       qc.invalidateQueries({ queryKey: ['lab-orders'] });
     },
-    onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
+    onError: () => setError(t('orderSheet.saveFailed')),
   });
 
   const recordPay = useMutation({
@@ -182,13 +195,13 @@ export function LabOrderSheetPage() {
       await recordPayment(orderId, amount);
     },
     onSuccess: () => {
-      setSuccess('Saved.');
+      setSuccess(t('orderSheet.saved'));
       qc.invalidateQueries({ queryKey: ['lab-order', orderId] });
       qc.invalidateQueries({ queryKey: ['lab-orders'] });
       qc.invalidateQueries({ queryKey: ['lab-receivables-by-customer'] });
       qc.invalidateQueries({ queryKey: ['lab-receivables-list'] });
     },
-    onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
+    onError: () => setError(t('orderSheet.saveFailed')),
   });
 
   const cancel = useMutation({
@@ -207,7 +220,7 @@ export function LabOrderSheetPage() {
       qc.invalidateQueries({ queryKey: ['lab-order', orderId] });
       qc.invalidateQueries({ queryKey: ['lab-orders'] });
     },
-    onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
+    onError: () => setError(t('orderSheet.saveFailed')),
   });
 
   // Opening the sheet counts as the lab reviewing the edit, so clear the
@@ -234,6 +247,19 @@ export function LabOrderSheetPage() {
 
   // Fire the clear once per loaded order. Guard with a ref because the success
   // handler refetches ['lab-order'], which would otherwise re-trigger this.
+  /**
+   * Read a money field the way a person types one.
+   *
+   * Georgian and Russian keyboards produce a decimal comma, and Number('656,50')
+   * is NaN — which used to travel all the way to Postgres as final_total: NaN.
+   * Returns null for anything that isn't a finite number, so the caller can
+   * refuse it instead of posting it.
+   */
+  const parseAmount = (raw: string): number | null => {
+    const n = Number(raw.replace(',', '.').trim());
+    return Number.isFinite(n) ? n : null;
+  };
+
   const clearedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!orderId || !order?.has_unreviewed_edits) return;
@@ -389,13 +415,24 @@ export function LabOrderSheetPage() {
                   <Typography sx={{ fontSize: '0.84375rem', fontWeight: 700, mb: 1 }}>
                     {t('orderSheet.finalPriceLabel')}
                   </Typography>
-                  <Stack direction="row" spacing={1}>
+                  {/* Stacked, not side by side: this rail is 316px wide and a
+                      row leaves the input whatever the button's label doesn't
+                      take. A Georgian label ate it down to a sliver. The status
+                      card above already stacks a full-width button under its
+                      control, so this matches rather than invents. */}
+                  <Stack spacing={1}>
                     <TextField
                       type="number"
                       size="small"
                       value={finalPrice}
-                      onChange={(e) => setFinalPrice(e.target.value)}
+                      onChange={(e) => {
+                        setFinalPrice(e.target.value);
+                        setPriceError(null);
+                      }}
                       fullWidth
+                      error={!!priceError}
+                      helperText={priceError ?? undefined}
+                      inputProps={{ min: 0, step: '0.01' }}
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -406,28 +443,37 @@ export function LabOrderSheetPage() {
                     />
                     <Button
                       variant="outlined"
+                      fullWidth
+                      size="small"
                       onClick={() => {
-                        if (finalPrice !== '' && order.generated_total != null) {
-                          const amount = Number(finalPrice);
+                        setPriceError(null);
+                        // Clearing the price is a legitimate action.
+                        if (finalPrice.trim() === '') {
+                          update.mutate({ final_total: null });
+                          return;
+                        }
+                        const amount = parseAmount(finalPrice);
+                        if (amount === null || amount < 0) {
+                          setPriceError(t('orderSheet.finalPriceInvalid'));
+                          return;
+                        }
+                        if (order.generated_total != null) {
                           const floor = order.generated_total * 0.5;
                           if (amount < floor) {
-                            setError(
+                            setPriceError(
                               t('orderSheet.finalPriceTooLow', { min: formatGEL(floor) }),
                             );
                             return;
                           }
                         }
-                        update.mutate({
-                          final_total: finalPrice === '' ? null : Number(finalPrice),
-                        });
+                        update.mutate({ final_total: amount });
                       }}
                       disabled={update.isPending}
-                      sx={{ flexShrink: 0 }}
                     >
                       {t('orderSheet.setFinalPrice')}
                     </Button>
                   </Stack>
-                  {order.generated_total != null && (
+                  {order.generated_total != null && !priceError && (
                     <Typography variant="caption" color="text.secondary" sx={{ mt: 0.625, display: 'block' }}>
                       {t('orderSheet.finalPriceMin', {
                         min: formatGEL(order.generated_total * 0.5),
@@ -443,7 +489,7 @@ export function LabOrderSheetPage() {
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
                     {t('orderSheet.dueDate')}: {order.requested_due_date ?? '—'}
                   </Typography>
-                  <Stack direction="row" spacing={1}>
+                  <Stack spacing={1}>
                     <DatePicker
                       value={confirmedDue ? dayjs(confirmedDue) : null}
                       onChange={(d: Dayjs | null) =>
@@ -454,9 +500,10 @@ export function LabOrderSheetPage() {
                     />
                     <Button
                       variant="outlined"
+                      fullWidth
+                      size="small"
                       onClick={() => update.mutate({ confirmed_due_date: confirmedDue || null })}
                       disabled={update.isPending}
-                      sx={{ flexShrink: 0 }}
                     >
                       {t('orderSheet.confirmDue')}
                     </Button>
@@ -472,20 +519,60 @@ export function LabOrderSheetPage() {
                       <PaymentStatusChip status={order.payment_status} />
                     </Box>
                   </Stack>
-                  <Stack direction="row" spacing={1}>
+                  <Stack spacing={1}>
                     <TextField
                       type="number"
                       size="small"
                       value={paidAmount}
-                      onChange={(e) => setPaidAmount(e.target.value)}
+                      onChange={(e) => {
+                        setPaidAmount(e.target.value);
+                        setPaymentError(null);
+                      }}
                       disabled={order.final_total == null}
                       fullWidth
+                      error={!!paymentError}
+                      inputProps={{ min: 0, step: '0.01' }}
+                      InputProps={{
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Typography sx={{ color: 'text.secondary' }}>₾</Typography>
+                          </InputAdornment>
+                        ),
+                      }}
+                      // Says why the field is dead rather than leaving the lab
+                      // to guess, and carries the ceiling the RPC would clamp to.
+                      helperText={
+                        paymentError ??
+                        (order.final_total == null
+                          ? t('orderSheet.paymentNeedsFinalPrice')
+                          : t('orderSheet.paymentMax', { max: formatGEL(order.final_total) }))
+                      }
                     />
                     <Button
                       variant="outlined"
+                      fullWidth
+                      size="small"
                       disabled={order.final_total == null || recordPay.isPending}
-                      onClick={() => recordPay.mutate(paidAmount === '' ? 0 : Number(paidAmount))}
-                      sx={{ flexShrink: 0 }}
+                      onClick={() => {
+                        setPaymentError(null);
+                        const amount = paidAmount.trim() === '' ? 0 : parseAmount(paidAmount);
+                        if (amount === null || amount < 0) {
+                          setPaymentError(t('orderSheet.finalPriceInvalid'));
+                          return;
+                        }
+                        // record_payment clamps to final_total server-side. Say
+                        // so instead of letting the number quietly change under
+                        // the lab after they press the button.
+                        if (order.final_total != null && amount > order.final_total) {
+                          setPaymentError(
+                            t('orderSheet.paymentClamped', {
+                              max: formatGEL(order.final_total),
+                            }),
+                          );
+                          return;
+                        }
+                        recordPay.mutate(amount);
+                      }}
                     >
                       {t('finances.table.record')}
                     </Button>

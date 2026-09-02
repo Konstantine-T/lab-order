@@ -519,7 +519,13 @@
       "awaitingAnswer": "Waiting for the doctor's answer.",
       "answeredTitle": "The doctor answered",
       "alreadyOpenHint": "A question is already open on this order. Wait for the doctor's answer before asking another."
-    }
+    },
+    "saved": "Saved.",
+    "saveFailed": "Could not save. Try again.",
+    "finalPriceInvalid": "Enter a valid amount.",
+    "paymentMax": "Maximum: {{max}}",
+    "paymentClamped": "More than the final price. The most that can be recorded is {{max}}.",
+    "paymentNeedsFinalPrice": "Set the final price first."
   },
   "approvalBanner": {
     "PENDING_APPROVAL": {
