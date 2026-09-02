@@ -209,7 +209,7 @@
     "create": {
       "title": "Create service",
       "pickTemplate": "Choose an order form template",
-      "pickTemplateHelp": "Pick a starting point. You can enable/disable individual fields and set pricing in the next section.",
+      "pickTemplateHelp": "Pick a ready-made order form template and adjust it however you like, or build your own form.",
       "customize": "Customize the {{template}} form",
       "customizeHelp": "Toggle which fields doctors must fill in, and set the unit or fixed price.",
       "saveAsDraft": "Save as draft",
