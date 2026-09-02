@@ -105,6 +105,9 @@ export function PricingPanel({
             <MenuItem value="FIXED_PRICE">
               {t('forms.editor.pricing.models.FIXED_PRICE')}
             </MenuItem>
+            <MenuItem value="LAB_DESCRIBED">
+              {t('forms.editor.pricing.models.LAB_DESCRIBED')}
+            </MenuItem>
           </TextField>
 
           {/* CnB / ESP UNIT_BASED — materials editor */}
@@ -343,6 +346,26 @@ export function PricingPanel({
               InputProps={{
                 endAdornment: <InputAdornment position="end">GEL</InputAdornment>,
               }}
+              fullWidth
+            />
+          )}
+
+          {/* Priced in the lab's own words — for services whose real pricing has
+              more variables than any structured config can hold without turning
+              into a form nobody fills in correctly. */}
+          {pricing.model === 'LAB_DESCRIBED' && (
+            <TextField
+              label={t('forms.editor.pricing.priceDescription')}
+              value={pricing.price_description ?? ''}
+              onChange={(e) => onChange({ ...pricing, price_description: e.target.value })}
+              error={issues.some((x) => x.kind === 'price-description')}
+              helperText={
+                issues.some((x) => x.kind === 'price-description')
+                  ? t('forms.editor.pricing.priceDescriptionRequired')
+                  : t('forms.editor.pricing.priceDescriptionHelp')
+              }
+              multiline
+              minRows={5}
               fullWidth
             />
           )}

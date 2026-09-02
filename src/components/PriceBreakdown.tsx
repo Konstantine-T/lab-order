@@ -130,6 +130,7 @@ export function PriceBreakdown({
   const [showExplain, setShowExplain] = useState(false);
 
   const result = calculatePrice(pricing, answers, rush);
+  const described = result.kind === 'DESCRIBED' ? result : null;
   const hasDetails = result.lineItems.length > 0;
   const discounted = finalTotal != null && finalTotal < result.total;
   // Nothing priceable answered yet — lead with a hint rather than a bare 0.
@@ -147,6 +148,28 @@ export function PriceBreakdown({
         : t('priceBreakdown.explain.rushFixed', { value: formatGEL(effectiveRush.value ?? 0) })
       : null;
   const canExplain = explain && !isEmpty && (explainRule != null || explainRush != null);
+
+  const describedBody = described && (
+    <Stack spacing={1}>
+      <FieldLabel>{t('priceBreakdown.describedTitle')}</FieldLabel>
+      {/* The lab's text verbatim, newlines and all — it is usually a short
+          price list, and reflowing it would scramble the lab's own layout. */}
+      <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+        {described.description}
+      </Typography>
+      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+        {t('priceBreakdown.describedHint')}
+      </Typography>
+      {finalTotal != null && (
+        <MoneyRow
+          strong
+          label={t('priceBreakdown.labFinalTotal')}
+          amount={formatGEL(finalTotal)}
+          color="success.main"
+        />
+      )}
+    </Stack>
+  );
 
   const body = (
     <Stack spacing={0.75}>
@@ -233,7 +256,9 @@ export function PriceBreakdown({
     </Stack>
   );
 
-  if (variant === 'plain') return body;
+  const content = describedBody ?? body;
+
+  if (variant === 'plain') return content;
 
   return (
     <Box
@@ -245,7 +270,7 @@ export function PriceBreakdown({
         bgcolor: 'background.paper',
       }}
     >
-      {body}
+      {content}
     </Box>
   );
 }

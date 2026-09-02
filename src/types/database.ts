@@ -52,7 +52,16 @@ export const canComplete = (status: OrderStatus): boolean =>
   (COMPLETABLE_STATUSES as readonly OrderStatus[]).includes(status);
 export type InvoiceRecipientType = 'DOCTOR' | 'CLINIC';
 export type RushType = 'NONE' | 'PERCENTAGE' | 'FIXED_AMOUNT';
-export type PricingModel = 'UNIT_BASED' | 'FIXED_PRICE';
+/**
+ * How a service is priced.
+ *
+ * `LAB_DESCRIBED` is the escape hatch: some services price on so many variables
+ * that no structured config captures them without becoming unusable. The lab
+ * writes the prices out in its own words instead, the doctor reads them when
+ * ordering, and the lab sets the authoritative `final_total` afterwards — the
+ * same confirmation step every order already goes through.
+ */
+export type PricingModel = 'UNIT_BASED' | 'FIXED_PRICE' | 'LAB_DESCRIBED';
 
 export type MaterialOption = {
   id: string;
@@ -314,6 +323,8 @@ export type PricingConfig = {
   model: PricingModel;
   /** Used by non-CnB UNIT_BASED forms (single global unit price × tooth count). */
   unit_price?: number;
+  /** LAB_DESCRIBED: the lab's own prose price list, shown to the doctor as-is. */
+  price_description?: string;
   fixed_price?: number;
   /** CnB UNIT_BASED: lab-defined materials. */
   materials?: MaterialOption[];

@@ -91,7 +91,10 @@
       "generic": "Charged per selected tooth.",
       "rushPercentage": "Rush adds {{value}}% for faster turnaround.",
       "rushFixed": "Rush adds a flat {{value}} for faster turnaround."
-    }
+    },
+    "describedTitle": "Prices for this service",
+    "describedHint": "The lab confirms the final price after reviewing your order.",
+    "describedBar": "See the lab's prices"
   },
   "toothMap": {
     "upper": "Upper",

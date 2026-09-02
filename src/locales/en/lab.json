@@ -224,7 +224,8 @@
         "modelNeedsPrice": "Set the per-jaw model price.",
         "sgPrice": "Set at least one surgical-guide price.",
         "rushValue": "Enter the rush surcharge amount.",
-        "rushTurnaround": "Enter the rush turnaround in days."
+        "rushTurnaround": "Enter the rush turnaround in days.",
+        "priceDescription": "The price description is empty."
       }
     },
     "edit": {
@@ -290,7 +291,8 @@
         "model": "Pricing model",
         "models": {
           "UNIT_BASED": "Unit price × tooth count",
-          "FIXED_PRICE": "Fixed price"
+          "FIXED_PRICE": "Fixed price",
+          "LAB_DESCRIBED": "Prices described by the lab"
         },
         "unitPrice": "Unit price (GEL)",
         "fixedPrice": "Fixed price (GEL)",
@@ -311,7 +313,10 @@
         "rushTurnaroundDays": "Rush turnaround (days)",
         "rushTurnaroundDaysHelp": "Faster turnaround when the doctor pays the rush surcharge.",
         "rushTurnaroundDaysMax_one": "Up to 1 day (your service's average turnaround).",
-        "rushTurnaroundDaysMax_other": "Up to {{count}} days (your service's average turnaround)."
+        "rushTurnaroundDaysMax_other": "Up to {{count}} days (your service's average turnaround).",
+        "priceDescription": "Price description",
+        "priceDescriptionHelp": "Write out what you charge for this service. The doctor reads this exactly as you type it, and you confirm the final price after reviewing the order.",
+        "priceDescriptionRequired": "Write the prices before publishing."
       },
       "publish": "Publish",
       "unpublish": "Unpublish",

@@ -14,13 +14,28 @@ export type PriceLineItem = {
   amount: number;
 };
 
-export type PriceResult = {
-  kind: 'CALCULATED';
-  subtotal: number;
-  rushAmount: number;
-  total: number;
-  lineItems: PriceLineItem[];
-};
+export type PriceResult =
+  | {
+      kind: 'CALCULATED';
+      subtotal: number;
+      rushAmount: number;
+      total: number;
+      lineItems: PriceLineItem[];
+    }
+  /**
+   * A LAB_DESCRIBED service: there is no number to compute, only the lab's own
+   * description of what it charges. The zeroed totals are deliberate — callers
+   * that only add up money keep working, and anything that *displays* a price
+   * checks `kind` first so a described service never shows a confident 0.00.
+   */
+  | {
+      kind: 'DESCRIBED';
+      description: string;
+      subtotal: 0;
+      rushAmount: 0;
+      total: 0;
+      lineItems: [];
+    };
 
 /** Which pricing rule an order falls under. */
 export type PricingShape =
@@ -81,6 +96,18 @@ export function calculatePrice(
   rushOverride?: { type: RushType; value: number },
 ): PriceResult {
   if (!pricing) return { kind: 'CALCULATED', subtotal: 0, rushAmount: 0, total: 0, lineItems: [] };
+
+  // Nothing to compute: the lab priced this one in prose.
+  if (pricing.model === 'LAB_DESCRIBED') {
+    return {
+      kind: 'DESCRIBED',
+      description: pricing.price_description?.trim() ?? '',
+      subtotal: 0,
+      rushAmount: 0,
+      total: 0,
+      lineItems: [],
+    };
+  }
 
   let subtotal = 0;
   const lineItems: PriceLineItem[] = [];
@@ -364,6 +391,7 @@ export type PricingIssue =
   | { kind: 'material-name'; index: number } // blank name
   | { kind: 'material-price'; index: number; name: string } // named, but no/zero price
   | { kind: 'fixed-price' }
+  | { kind: 'price-description' } // LAB_DESCRIBED with nothing written
   | { kind: 'unit-price' }
   | { kind: 'model-price' }
   | { kind: 'sg-price' }
@@ -399,6 +427,10 @@ export function pricingIssues(
 
   if (pricing.model === 'FIXED_PRICE') {
     if ((pricing.fixed_price ?? 0) <= 0) issues.push({ kind: 'fixed-price' });
+  } else if (pricing.model === 'LAB_DESCRIBED') {
+    // The description *is* the pricing here, so an empty one is the same
+    // omission as a missing price.
+    if (!pricing.price_description?.trim()) issues.push({ kind: 'price-description' });
   } else if (pricing.model === 'UNIT_BASED') {
     if (isModelTemplateCode(templateCode)) {
       // Model printing is complete once the per-jaw price is set (> 0).

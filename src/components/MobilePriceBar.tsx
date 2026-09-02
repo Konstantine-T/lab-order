@@ -33,6 +33,9 @@ export function MobilePriceBar({ pricing, answers, rush }: Props) {
   // Only the collapsed total is computed here; the expanded drawer renders
   // PriceBreakdown, so the itemisation has exactly one implementation.
   const result = calculatePrice(pricing, answers, rush);
+  // A described service has no running total to run — say so instead of
+  // parading a 0.00 at the bottom of the screen the whole way down the form.
+  const described = result.kind === 'DESCRIBED';
 
   return (
     <>
@@ -70,11 +73,14 @@ export function MobilePriceBar({ pricing, answers, rush }: Props) {
       >
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-            {t('priceBreakdown.estimatedTotal')}
+            {described ? t('priceBreakdown.describedTitle') : t('priceBreakdown.estimatedTotal')}
             {result.rushAmount > 0 && ` · ${t('priceBreakdown.rushIncluded')}`}
           </Typography>
-          <Typography sx={{ fontSize: '1.0625rem', fontWeight: 700, letterSpacing: '-0.01em' }}>
-            {formatGEL(result.total)}
+          <Typography
+            sx={{ fontSize: described ? '0.8125rem' : '1.0625rem', fontWeight: 700, letterSpacing: '-0.01em' }}
+            noWrap
+          >
+            {described ? t('priceBreakdown.describedBar') : formatGEL(result.total)}
           </Typography>
         </Box>
         <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'primary.main' }}>

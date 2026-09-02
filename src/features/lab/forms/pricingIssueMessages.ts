@@ -19,6 +19,8 @@ export function pricingIssueMessage(issue: PricingIssue, t: TranslateFn): string
       return t(`${p}.materialNeedsPrice`, { name: issue.name });
     case 'fixed-price':
       return t(`${p}.fixedPrice`);
+    case 'price-description':
+      return t(`${p}.priceDescription`);
     case 'unit-price':
       return t(`${p}.unitPrice`);
     case 'model-price':
