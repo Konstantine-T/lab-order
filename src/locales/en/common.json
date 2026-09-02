@@ -223,7 +223,9 @@
   "no": "No",
   "orderCard": {
     "due": "Due",
-    "total": "Total"
+    "total": "Total",
+    "continuesFrom": "Continues from",
+    "continuation": "Continuation"
   },
   "orderFiles": {
     "title": "Attachments",

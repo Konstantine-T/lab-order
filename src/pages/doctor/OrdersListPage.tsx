@@ -39,6 +39,8 @@ import {
 } from '@/components/design';
 import { formatGEL } from '@/utils/pricing';
 import { OrderRowCard } from '@/features/orders/OrderRowCard';
+import { LineageBadge } from '@/features/orders/LineageBadge';
+import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
 import { byDueDate, dueDateOf } from '@/features/orders/orderDates';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { OrdersPaginator } from '@/features/orders/OrdersPaginator';
@@ -184,7 +186,7 @@ export function OrdersListPage() {
       const { data, error } = await supabase
         .from('orders')
         .select(
-          'id, order_code, status, payment_status, generated_total, final_total, requested_due_date, confirmed_due_date, created_at, service_snapshot, lab_id, patient_id, ' +
+          'id, order_code, status, payment_status, generated_total, final_total, requested_due_date, confirmed_due_date, created_at, service_snapshot, lab_id, patient_id, continues_order_id, ' +
             'patients(first_name, last_name), labs(public_name), lab_services(name), order_clarifications(answered_at)',
         )
         .eq('doctor_id', doctorId!)
@@ -288,6 +290,11 @@ export function OrdersListPage() {
   const draftPatientName = draft
     ? `${draft.state.patient.first_name} ${draft.state.patient.last_name}`.trim() || '—'
     : '';
+
+  // Parent order codes for the continuation badges. Resolved from the rows
+  // already loaded, with one batched query for any parent this page didn't
+  // fetch — never a query per row.
+  const parentCodes = useParentOrderCodes(orders);
 
   return (
     <>
@@ -524,6 +531,12 @@ export function OrdersListPage() {
                 return (
                   <OrderRowCard
                     key={row.id}
+                    lineage={
+                      <LineageBadge
+                        continuesOrderId={row.continues_order_id}
+                        parentCode={parentCodes.get(row.continues_order_id ?? '')}
+                      />
+                    }
                     code={row.order_code}
                     primary={patientName}
                     secondary={[serviceName, labName].filter(Boolean).join(' · ')}

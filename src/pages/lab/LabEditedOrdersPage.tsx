@@ -9,6 +9,8 @@ import { supabase } from '@/lib/supabase';
 import { OrderStatusChip } from '@/components/OrderStatusChip';
 import { formatGEL } from '@/utils/pricing';
 import { OrderRowCard } from '@/features/orders/OrderRowCard';
+import { LineageBadge } from '@/features/orders/LineageBadge';
+import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import type { OrderRow } from '@/types/database';
 
@@ -31,7 +33,7 @@ export function LabEditedOrdersPage() {
         .from('orders')
         .select(
           'id, order_code, status, generated_total, final_total, requested_due_date, ' +
-            'confirmed_due_date, created_at, service_snapshot, doctor_snapshot, ' +
+            'confirmed_due_date, created_at, service_snapshot, doctor_snapshot, continues_order_id, ' +
             'has_unreviewed_edits, last_edited_at, edit_count, lab_services(name)',
         )
         .eq('lab_id', labId!)
@@ -44,6 +46,11 @@ export function LabEditedOrdersPage() {
       return (data ?? []) as unknown as Row[];
     },
   });
+
+  // Parent order codes for the continuation badges. Resolved from the rows
+  // already loaded, with one batched query for any parent this page didn't
+  // fetch — never a query per row.
+  const parentCodes = useParentOrderCodes(orders);
 
   return (
     <>
@@ -67,6 +74,12 @@ export function LabEditedOrdersPage() {
             return (
               <OrderRowCard
                 key={row.id}
+                lineage={
+                  <LineageBadge
+                    continuesOrderId={row.continues_order_id}
+                    parentCode={parentCodes.get(row.continues_order_id ?? '')}
+                  />
+                }
                 code={row.order_code}
                 primary={doctorName}
                 secondary={serviceName}

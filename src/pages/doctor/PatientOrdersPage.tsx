@@ -8,6 +8,8 @@ import dayjs from 'dayjs';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { OrderRowCard } from '@/features/orders/OrderRowCard';
+import { LineageBadge } from '@/features/orders/LineageBadge';
+import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
 import { formatGEL } from '@/utils/pricing';
@@ -50,7 +52,7 @@ export function PatientOrdersPage() {
         .from('orders')
         .select(
           'id, order_code, status, payment_status, generated_total, final_total, ' +
-            'requested_due_date, confirmed_due_date, created_at, service_snapshot, lab_id, ' +
+            'requested_due_date, confirmed_due_date, created_at, service_snapshot, lab_id, continues_order_id, ' +
             'labs(public_name), lab_services(name)',
         )
         .eq('doctor_id', doctorId!)
@@ -69,6 +71,11 @@ export function PatientOrdersPage() {
   // ordered from (the query is created_at desc). With no orders there's no lab
   // to infer, so the button hides and the first order goes via the marketplace.
   const latestLabId = orders[0]?.lab_id;
+
+  // Parent order codes for the continuation badges. Resolved from the rows
+  // already loaded, with one batched query for any parent this page didn't
+  // fetch — never a query per row.
+  const parentCodes = useParentOrderCodes(orders);
 
   return (
     <>
@@ -111,6 +118,12 @@ export function PatientOrdersPage() {
             return (
               <OrderRowCard
                 key={row.id}
+                lineage={
+                  <LineageBadge
+                    continuesOrderId={row.continues_order_id}
+                    parentCode={parentCodes.get(row.continues_order_id ?? '')}
+                  />
+                }
                 code={row.order_code}
                 primary={serviceName || '—'}
                 secondary={labName}

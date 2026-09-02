@@ -223,7 +223,9 @@
   "no": "Нет",
   "orderCard": {
     "due": "Срок",
-    "total": "Итого"
+    "total": "Итого",
+    "continuesFrom": "Продолжение проекта",
+    "continuation": "Продолжение"
   },
   "orderFiles": {
     "title": "Вложения",

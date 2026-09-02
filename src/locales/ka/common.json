@@ -223,7 +223,9 @@
   "no": "არა",
   "orderCard": {
     "due": "ვადა",
-    "total": "ჯამი"
+    "total": "ჯამი",
+    "continuesFrom": "გაგრძელება პროექტიდან",
+    "continuation": "გაგრძელება"
   },
   "orderFiles": {
     "title": "მიმაგრებული ფაილები",

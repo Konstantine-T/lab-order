@@ -42,6 +42,15 @@ type Props = {
   progress?: ReactNode;
   /** Small tinted note after the patient name — "Lab asked a question". */
   flag?: ReactNode;
+  /**
+   * "Continues from ORD-1042" badge for a continuation order. Its own prop
+   * rather than folded into `flag`, which is already spoken for — an order can
+   * both need action and be a continuation, and must show both.
+   *
+   * Sits in the same wrapping row as the code and `flag`, so it costs no extra
+   * line.
+   */
+  lineage?: ReactNode;
 };
 
 /**
@@ -67,6 +76,7 @@ export function OrderRowCard({
   highlight,
   progress,
   flag,
+  lineage,
 }: Props) {
   const { t } = useTranslation('common');
 
@@ -127,6 +137,7 @@ export function OrderRowCard({
               {code}
             </Typography>
             {flag}
+            {lineage}
           </Stack>
           {secondary && (
             <Typography

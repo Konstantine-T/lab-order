@@ -18,6 +18,8 @@ import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
 import { OrderRowCard } from '@/features/orders/OrderRowCard';
+import { LineageBadge } from '@/features/orders/LineageBadge';
+import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
 import { byDueDate, dueDateOf } from '@/features/orders/orderDates';
 import { clearDraft, loadDraftsByAuthor } from '@/features/doctor/orderCreate/draftStorage';
 import { formatGEL } from '@/utils/pricing';
@@ -55,7 +57,7 @@ export function ClinicOrdersPage() {
       const { data, error } = await supabase
         .from('orders')
         .select(
-          'id, order_code, doctor_id, status, payment_status, generated_total, final_total, requested_due_date, confirmed_due_date, created_at, patients(first_name, last_name), labs(public_name), lab_services(name)',
+          'id, order_code, doctor_id, status, payment_status, generated_total, final_total, requested_due_date, confirmed_due_date, created_at, continues_order_id, patients(first_name, last_name), labs(public_name), lab_services(name)',
         )
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -95,6 +97,11 @@ export function ClinicOrdersPage() {
       doctorFilter === 'ALL' ? orders : orders.filter((o) => o.doctor_id === doctorFilter);
     return [...rows].sort(byDueDate);
   }, [orders, doctorFilter]);
+
+  // Parent order codes for the continuation badges. Resolved from the rows
+  // already loaded, with one batched query for any parent this page didn't
+  // fetch — never a query per row.
+  const parentCodes = useParentOrderCodes(orders);
 
   return (
     <>
@@ -199,6 +206,12 @@ export function ClinicOrdersPage() {
             return (
               <OrderRowCard
                 key={o.id}
+                lineage={
+                  <LineageBadge
+                    continuesOrderId={o.continues_order_id}
+                    parentCode={parentCodes.get(o.continues_order_id ?? '')}
+                  />
+                }
                 code={o.order_code}
                 primary={patient}
                 secondary={[o.lab_services?.name, o.labs?.public_name, doctorName.get(o.doctor_id)]
