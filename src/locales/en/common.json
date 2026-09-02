@@ -231,5 +231,8 @@
       "generic": "Couldn't upload {{name}}. Please try again.",
       "partialSubmit": "Your order was created, but some files didn't upload: {{names}}. You can add them from the order page."
     }
+  },
+  "nav": {
+    "needsAttention": "{{count}} needing your attention"
   }
 }
