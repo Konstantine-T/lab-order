@@ -1,10 +1,11 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Alert, Box, Button, CircularProgress, Stack, TextField, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { useAuth } from '@/auth/AuthProvider';
 import { Icon, PageHeader, SectionCard } from '@/components/design';
+import { LockContext } from './financeLockContext';
 import {
   fetchFinanceLockState,
   forgetUnlocked,
@@ -26,14 +27,6 @@ import {
  * see it. It is a curtain, not a vault — the signed-in account can still reach
  * the same numbers through the API, and nothing here pretends otherwise.
  */
-/**
- * Lets the page inside the gate lock itself again — a lab stepping away from
- * an open screen shouldn't have to close the tab to cover the numbers.
- */
-const LockContext = createContext<{ lock: () => void }>({ lock: () => {} });
-
-export const useFinanceLock = () => useContext(LockContext);
-
 export function FinanceLockGate({ children }: { children: ReactNode }) {
   const { t } = useTranslation('lab');
   const { user } = useAuth();

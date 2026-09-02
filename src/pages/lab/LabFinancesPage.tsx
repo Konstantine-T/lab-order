@@ -28,7 +28,7 @@ import {
 import { OrdersPaginator } from '@/features/orders/OrdersPaginator';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { RecordPaymentDialog } from '@/features/lab/finances/RecordPaymentDialog';
-import { useFinanceLock } from '@/features/lab/finances/FinanceLockGate';
+import { useFinanceLock } from '@/features/lab/finances/financeLockContext';
 import { FinanceFilterBar } from '@/features/lab/finances/FinanceFilterBar';
 import {
   defaultReceivableFilters,
