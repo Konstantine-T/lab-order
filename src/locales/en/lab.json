@@ -107,6 +107,24 @@
       "outstandingAfter": "Outstanding after: {{amount}}",
       "save": "Save",
       "cancel": "Cancel"
+    },
+    "lock": {
+      "title": "Finances locked",
+      "createTitle": "Protect Finances",
+      "passcode": "Passcode",
+      "newPasscode": "New passcode",
+      "confirmPasscode": "Confirm passcode",
+      "enterHint": "Enter the passcode for this lab to open the finances section.",
+      "createHint": "Set a passcode for the finances section. Anyone signed in as this lab will need it to open the money view.",
+      "minLength": "At least 4 characters.",
+      "tooShort": "At least 4 characters.",
+      "mismatch": "The two entries do not match.",
+      "wrong": "That passcode is not right.",
+      "tooMany": "Too many wrong attempts. Try again in a few minutes.",
+      "noRecovery": "Keep it somewhere safe — there is no reset from this screen.",
+      "saveFailed": "Could not save the passcode. Try again.",
+      "unlock": "Unlock",
+      "create": "Set passcode"
     }
   },
   "formFields": {

@@ -36,6 +36,7 @@ import { LabOrdersDashboardPage } from '@/pages/lab/LabOrdersDashboardPage';
 import { LabEditedOrdersPage } from '@/pages/lab/LabEditedOrdersPage';
 import { LabOrderSheetPage } from '@/pages/lab/LabOrderSheetPage';
 import { LabFinancesPage } from '@/pages/lab/LabFinancesPage';
+import { FinanceLockGate } from '@/features/lab/finances/FinanceLockGate';
 import { LabStaffPage } from '@/pages/lab/LabStaffPage';
 
 import { AdminLayout } from '@/layouts/AdminLayout';
@@ -107,7 +108,14 @@ export function AppRoutes() {
         <Route path="services/new" element={<LabServiceCreatePage />} />
         <Route path="services/:serviceId" element={<LabServiceEditPage />} />
         <Route path="orders" element={<LabOrdersDashboardPage />} />
-        <Route path="finances" element={<LabFinancesPage />} />
+        <Route
+          path="finances"
+          element={
+            <FinanceLockGate>
+              <LabFinancesPage />
+            </FinanceLockGate>
+          }
+        />
         <Route path="edited-orders" element={<LabEditedOrdersPage />} />
         <Route path="orders/:orderId" element={<LabOrderSheetPage />} />
         <Route path="staff" element={<LabStaffPage />} />

@@ -72,6 +72,7 @@ list_alt
 local_shipping
 location_on
 lock
+lock_open
 logout
 mail
 manage_accounts
