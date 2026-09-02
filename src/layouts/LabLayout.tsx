@@ -19,8 +19,9 @@ export function LabLayout() {
       to: '/lab/orders',
       label: t('nav.orders'),
       icon: 'receipt_long',
-      // Submitted, but the lab has not marked it received yet.
-      badge: badge(alerts.orders),
+      // Submitted but not yet acknowledged, plus the clarifications the doctor
+      // has answered and nobody has acted on (0029).
+      badge: badge(alerts.orders + alerts.answeredClarifications),
     },
     { to: '/lab/finances', label: t('nav.finances'), icon: 'payments' },
     {

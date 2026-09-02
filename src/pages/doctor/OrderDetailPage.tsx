@@ -21,6 +21,7 @@ import {
 } from '@/components/design';
 import { OrderForm } from '@/features/orderForms/OrderForm';
 import { OrderLineage } from '@/features/orders/OrderLineage';
+import { ClarificationPanel } from '@/features/orders/clarifications/ClarificationPanel';
 import { ORDER_PIPELINE, PIPELINE_ICONS, pipelineIndex } from '@/features/orders/pipeline';
 import { useContinueProject } from '@/features/doctor/orderCreate/useContinueProject';
 import type {
@@ -291,6 +292,10 @@ export function OrderDetailPage() {
             {order.cancellation_reason || t('orderDetail.cancellation.noReason')}
           </Alert>
         )}
+
+        {/* Above the case progress: if the lab is waiting on an answer, that is
+            the first thing the doctor should see on this page. */}
+        <ClarificationPanel orderId={order.id} canAnswer={editable} />
 
         {step != null && (
           <SectionCard icon="timeline" title={t('orderDetail.caseProgress')}>

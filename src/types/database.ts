@@ -530,6 +530,24 @@ export interface OrderAnswerRow {
   created_at: string;
 }
 
+/**
+ * One "the lab asked, the doctor answered" exchange (0029).
+ *
+ * `answer` and `answered_at` move together — the table has a check constraint
+ * saying so — and at most one row per order may be unanswered, so "is there an
+ * open question?" is `answered_at === null` on the newest row.
+ */
+export interface OrderClarificationRow {
+  id: string;
+  order_id: string;
+  asked_by_user_id: string;
+  question: string;
+  asked_at: string;
+  answer: string | null;
+  answered_by_user_id: string | null;
+  answered_at: string | null;
+}
+
 export interface OrderFileRow {
   id: string;
   order_id: string;

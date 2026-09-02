@@ -222,6 +222,13 @@
       "confirmBody": "Confirm the work arrived and seated. This closes the case — after that neither you nor the lab can edit it. You can reopen it if you change your mind.",
       "confirm": "Mark completed",
       "cancel": "Cancel"
+    },
+    "clarification": {
+      "title": "Clarification",
+      "body": "The lab is waiting for your answer.",
+      "answerLabel": "Your answer",
+      "send": "Send answer",
+      "sent": "Answer sent to the lab."
     }
   },
   "orderEdit": {

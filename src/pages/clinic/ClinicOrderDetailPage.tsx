@@ -16,6 +16,7 @@ import { Link as RouterLink, useParams } from 'react-router-dom';
 import { CardStack, FactCell, Icon, PageHeader, SectionCard } from '@/components/design';
 import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
 import { OrderCompletionActions } from '@/features/orders/completion/OrderCompletionActions';
+import { ClarificationPanel } from '@/features/orders/clarifications/ClarificationPanel';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
@@ -171,6 +172,10 @@ export function ClinicOrderDetailPage() {
           {order.cancellation_reason || t('orderDetail.noReason')}
         </Alert>
       )}
+
+      {/* A clinic admin answers on behalf of its doctor — can_act_for_doctor
+          authorizes it server-side, exactly as for edits and completion. */}
+      <ClarificationPanel orderId={order.id} canAnswer={!isTerminal} />
 
       <SectionCard>
         <Box

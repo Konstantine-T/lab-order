@@ -187,7 +187,14 @@
     "saveFailed": "Failed to save.",
     "notFound": "Not found.",
     "forbidden": "You do not have access to this page.",
-    "required": "This field is required."
+    "required": "This field is required.",
+    "clarification": {
+      "terminal": "This order is closed — questions and answers are no longer possible.",
+      "alreadyAnswered": "This question has already been answered.",
+      "alreadyOpen": "A question is already waiting for an answer on this order.",
+      "permission": "You don't have permission to do that on this order.",
+      "generic": "Couldn't send that. Please try again."
+    }
   },
   "notFound": {
     "title": "Page not found",
@@ -237,5 +244,12 @@
   },
   "nav": {
     "needsAttention": "{{count}} needing your attention"
+  },
+  "clarification": {
+    "question": "Question",
+    "answer": "Answer",
+    "askedOn": "Asked {{date}}",
+    "answeredOn": "Answered {{date}}",
+    "previousQuestions": "Previous questions ({{n}})"
   }
 }

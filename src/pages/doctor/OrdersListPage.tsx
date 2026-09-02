@@ -85,12 +85,28 @@ type Row = OrderRow & {
   labs: { public_name: string } | null;
   lab_services: { name: string } | null;
   service_snapshot: { name?: string } | null;
+  /** Embedded so a question the doctor has already answered stops counting as
+   *  something waiting on them (0029). */
+  order_clarifications: { answered_at: string | null }[];
 };
+
+/**
+ * Is this order still waiting on the doctor?
+ *
+ * An order with no clarification rows at all predates the feature, so it keeps
+ * the old behaviour and stays in the list.
+ */
+const awaitsDoctorAnswer = (row: Row) =>
+  row.order_clarifications.length === 0 ||
+  row.order_clarifications.some((c) => c.answered_at === null);
 
 const matchesQuick = (row: Row, quick: Quick) => {
   if (quick === 'all') return true;
   if (quick === 'completed') return row.status === 'COMPLETED';
-  if (quick === 'needsAction') return NEEDS_ACTION.includes(row.status as OrderStatus);
+  if (quick === 'needsAction') {
+    if (row.status === 'NEEDS_CLARIFICATION') return awaitsDoctorAnswer(row);
+    return NEEDS_ACTION.includes(row.status as OrderStatus);
+  }
   return row.status !== 'COMPLETED' && row.status !== 'CANCELLED';
 };
 
@@ -168,7 +184,7 @@ export function OrdersListPage() {
         .from('orders')
         .select(
           'id, order_code, status, payment_status, generated_total, final_total, requested_due_date, confirmed_due_date, created_at, service_snapshot, lab_id, patient_id, ' +
-            'patients(first_name, last_name), labs(public_name), lab_services(name)',
+            'patients(first_name, last_name), labs(public_name), lab_services(name), order_clarifications(answered_at)',
         )
         .eq('doctor_id', doctorId!)
         .order('created_at', { ascending: false });

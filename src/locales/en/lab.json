@@ -432,7 +432,8 @@
       "ready": "Ready",
       "edited": "Edited",
       "completed": "Completed"
-    }
+    },
+    "answeredBadge": "Answered"
   },
   "editedOrders": {
     "title": "Edited orders",
@@ -505,7 +506,20 @@
     "workLocation": "Work location",
     "invoice": "Invoice",
     "answersMeta": "As submitted by the doctor · read-only",
-    "statusCompletionNote": "Only the doctor can mark a case completed — you can take it as far as Sent to clinic."
+    "statusCompletionNote": "Only the doctor can mark a case completed — you can take it as far as Sent to clinic.",
+    "clarifyModal": {
+      "title": "What needs clarifying?",
+      "body": "The order moves to “Needs clarification” and the doctor sees your question on their order page. They can answer it once.",
+      "questionLabel": "Your question",
+      "cancel": "Cancel",
+      "confirm": "Send question",
+      "success": "Question sent to the doctor."
+    },
+    "clarification": {
+      "awaitingAnswer": "Waiting for the doctor's answer.",
+      "answeredTitle": "The doctor answered",
+      "alreadyOpenHint": "A question is already open on this order. Wait for the doctor's answer before asking another."
+    }
   },
   "approvalBanner": {
     "PENDING_APPROVAL": {

@@ -35,7 +35,20 @@ type Row = Pick<
   patients: { first_name: string; last_name: string } | null;
   labs: { public_name: string } | null;
   service_snapshot: { name?: string } | null;
+  /** Embedded so "needs action" can tell an unanswered question from one the
+   *  doctor has already replied to (0029). */
+  order_clarifications: { answered_at: string | null }[];
 };
+
+/**
+ * Is this order still waiting on the doctor?
+ *
+ * An order with no clarification rows at all predates the feature (or the lab
+ * set the status by hand elsewhere), so it keeps the old behaviour and counts.
+ */
+const awaitsDoctorAnswer = (row: Row) =>
+  row.order_clarifications.length === 0 ||
+  row.order_clarifications.some((c) => c.answered_at === null);
 
 /** Statuses where the case is live — neither completed nor cancelled. */
 const OPEN: readonly OrderStatus[] = [
@@ -68,7 +81,7 @@ export function DoctorHomePage() {
         .from('orders')
         .select(
           'id, order_code, status, payment_status, final_total, generated_total, requested_due_date, confirmed_due_date, service_snapshot, ' +
-            'patients(first_name, last_name), labs(public_name)',
+            'patients(first_name, last_name), labs(public_name), order_clarifications(answered_at)',
         )
         .eq('doctor_id', doctorId!)
         .order('created_at', { ascending: false });
@@ -84,8 +97,10 @@ export function DoctorHomePage() {
       const due = o.confirmed_due_date ?? o.requested_due_date;
       return due != null && dayjs(due).isBefore(weekEnd);
     });
-    const needsAction = orders.filter((o) =>
-      ['NEEDS_CLARIFICATION', 'TRY_IN_PHASE'].includes(o.status),
+    const needsAction = orders.filter(
+      (o) =>
+        o.status === 'TRY_IN_PHASE' ||
+        (o.status === 'NEEDS_CLARIFICATION' && awaitsDoctorAnswer(o)),
     );
     const unpaid = orders
       .filter((o) => o.payment_status !== 'PAID' && o.status !== 'CANCELLED')

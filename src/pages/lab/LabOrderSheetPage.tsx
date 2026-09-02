@@ -52,6 +52,12 @@ import {
 } from '@/features/lab/orderEdits/diff';
 import { OrderAnswersDiff } from '@/features/lab/orderEdits/OrderAnswersDiff';
 import { OrderLineage } from '@/features/orders/OrderLineage';
+import { ClarificationPanel } from '@/features/orders/clarifications/ClarificationPanel';
+import { ClarificationAskDialog } from '@/features/orders/clarifications/ClarificationAskDialog';
+import {
+  clarificationsKey,
+  fetchClarifications,
+} from '@/features/orders/clarifications/clarificationsApi';
 import { OrderTeamSection } from '@/features/lab/staff/OrderTeamSection';
 import type {
   LabFormVersionRow,
@@ -79,6 +85,7 @@ export function LabOrderSheetPage() {
   const [error, setError] = useState<string | null>(null);
   const [cancelOpen, setCancelOpen] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
+  const [clarifyOpen, setClarifyOpen] = useState(false);
   const [selectedEditIndex, setSelectedEditIndex] = useState(0);
 
   const { data: order, isLoading } = useQuery({
@@ -122,6 +129,15 @@ export function LabOrderSheetPage() {
       return (data ?? []) as OrderAnswerRow[];
     },
   });
+
+  // Shares its cache with the panel below; read here only to know whether a
+  // question is still waiting on the doctor.
+  const { data: clarifications = [] } = useQuery({
+    queryKey: clarificationsKey(orderId ?? ''),
+    enabled: !!orderId,
+    queryFn: () => fetchClarifications(orderId!),
+  });
+  const hasOpenClarification = clarifications.some((c) => c.answered_at === null);
 
   const { data: version } = useQuery({
     queryKey: ['order-version', order?.lab_form_version_id],
@@ -267,6 +283,9 @@ export function LabOrderSheetPage() {
     city?: string;
   };
   const statusDirty = !!pendingStatus && pendingStatus !== order.status;
+  // One open question at a time (the DB enforces it too) — until the doctor
+  // answers, there is nothing new to ask.
+  const askBlocked = pendingStatus === 'NEEDS_CLARIFICATION' && hasOpenClarification;
 
   return (
     <>
@@ -323,6 +342,13 @@ export function LabOrderSheetPage() {
               <Callout tone="info" sx={{ mt: 1.75 }}>
                 {t('orderSheet.statusCompletionNote')}
               </Callout>
+              {/* Asking again while the first question is still unanswered would
+                  hit the one-open-per-order index, so say so here instead. */}
+              {askBlocked && (
+                <Callout tone="warning" sx={{ mt: 1.75 }}>
+                  {t('orderSheet.clarification.alreadyOpenHint')}
+                </Callout>
+              )}
               <Stack direction="row" spacing={1} sx={{ mt: 1.75 }}>
                 {!isTerminal && (
                   <Button
@@ -339,8 +365,17 @@ export function LabOrderSheetPage() {
                   variant="contained"
                   fullWidth
                   size="small"
-                  disabled={update.isPending || !statusDirty || isTerminal}
-                  onClick={() => pendingStatus && update.mutate({ status: pendingStatus })}
+                  disabled={update.isPending || !statusDirty || isTerminal || askBlocked}
+                  onClick={() => {
+                    if (!pendingStatus) return;
+                    // "Needs clarification" is not a status you can just save —
+                    // it only means something with the question attached.
+                    if (pendingStatus === 'NEEDS_CLARIFICATION') {
+                      setClarifyOpen(true);
+                      return;
+                    }
+                    update.mutate({ status: pendingStatus });
+                  }}
                 >
                   {statusDirty ? t('orderSheet.saveStatus') : t('orderSheet.statusSaved')}
                 </Button>
@@ -584,6 +619,10 @@ export function LabOrderSheetPage() {
           </SectionCard>
         )}
 
+        {/* Context for reading the form below it, so it sits above the answers
+            rather than off in the rail. */}
+        <ClarificationPanel orderId={order.id} canAnswer={false} />
+
         {version && (
           <>
             <SectionCard
@@ -621,6 +660,19 @@ export function LabOrderSheetPage() {
           </>
         )}
       </SplitLayout>
+
+      {/* Backing out of the question backs out of the status too: the pill and
+          the modal are one action, so a half-finished one shouldn't leave a
+          selected status the lab never saved. */}
+      <ClarificationAskDialog
+        orderId={order.id}
+        open={clarifyOpen}
+        onClose={() => {
+          setClarifyOpen(false);
+          setPendingStatus('');
+        }}
+        onSent={() => setSuccess(t('orderSheet.clarifyModal.success'))}
+      />
 
       <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>{t('orderSheet.cancelModal.title')}</DialogTitle>

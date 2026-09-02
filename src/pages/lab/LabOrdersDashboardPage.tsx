@@ -38,6 +38,7 @@ import {
   StatTile,
 } from '@/components/design';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
+import { ClarificationAskDialog } from '@/features/orders/clarifications/ClarificationAskDialog';
 import { formatGEL } from '@/utils/pricing';
 import { tone } from '@/theme/tokens';
 import type { OrderRow, OrderStatus } from '@/types/database';
@@ -62,7 +63,17 @@ type Row = OrderRow & {
   lab_services: { name: string } | null;
   service_snapshot: { name?: string } | null;
   patients: { first_name: string; last_name: string } | null;
+  order_clarifications: { answered_at: string | null }[];
 };
+
+/**
+ * The doctor answered and the case is still parked in NEEDS_CLARIFICATION —
+ * i.e. it is waiting on the lab, not on the doctor (0029).
+ */
+const isAnswered = (row: Row) =>
+  row.status === 'NEEDS_CLARIFICATION' &&
+  row.order_clarifications.length > 0 &&
+  row.order_clarifications.every((c) => c.answered_at !== null);
 
 const matchesQuick = (row: Row, quick: Quick) => {
   switch (quick) {
@@ -110,6 +121,10 @@ export function LabOrdersDashboardPage() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-orders', labId] }),
   });
 
+  // Set from the inline status select: picking "Needs clarification" here has
+  // to capture the question too, exactly as it does on the order sheet.
+  const [askOrderId, setAskOrderId] = useState<string | null>(null);
+
   const [page, setPage] = useState(1);
   const [pageSize] = useState(25);
 
@@ -136,7 +151,7 @@ export function LabOrdersDashboardPage() {
         .from('orders')
         .select(
           'id, order_code, status, generated_total, final_total, requested_due_date, confirmed_due_date, created_at, service_snapshot, doctor_snapshot, has_unreviewed_edits, ' +
-            'lab_services(name), patients(first_name, last_name)',
+            'lab_services(name), patients(first_name, last_name), order_clarifications(answered_at)',
         )
         .eq('lab_id', labId!)
         .order('created_at', { ascending: false });
@@ -410,11 +425,13 @@ export function LabOrdersDashboardPage() {
                       ? 'info'
                       : 'neutral';
 
+              const answered = isAnswered(row);
+
               return (
                 <DataRow
                   key={row.id}
                   columns={COLUMNS}
-                  highlight={row.has_unreviewed_edits}
+                  highlight={row.has_unreviewed_edits || answered}
                   onClick={() => navigate(`/lab/orders/${row.id}`)}
                 >
                   <Typography
@@ -452,6 +469,30 @@ export function LabOrdersDashboardPage() {
                           </Typography>
                         </Stack>
                       )}
+                      {/* Same treatment as an unreviewed edit: this row is
+                          waiting on the lab, not on the doctor. */}
+                      {answered && (
+                        <Stack direction="row" alignItems="center" spacing={0.5}>
+                          <Box
+                            sx={{
+                              width: 6,
+                              height: 6,
+                              borderRadius: '50%',
+                              bgcolor: 'warning.main',
+                            }}
+                          />
+                          <Typography
+                            sx={{
+                              fontSize: '0.625rem',
+                              fontWeight: 700,
+                              color: 'warning.dark',
+                            }}
+                            noWrap
+                          >
+                            {t('ordersDashboard.answeredBadge')}
+                          </Typography>
+                        </Stack>
+                      )}
                     </Box>
                   </Stack>
 
@@ -482,12 +523,16 @@ export function LabOrdersDashboardPage() {
                     <Select
                       size="small"
                       value={row.status}
-                      onChange={(e) =>
-                        updateStatus.mutate({
-                          orderId: row.id,
-                          status: e.target.value as OrderStatus,
-                        })
-                      }
+                      onChange={(e) => {
+                        const next = e.target.value as OrderStatus;
+                        // Never savable on its own — the doctor needs the
+                        // question, not just the status.
+                        if (next === 'NEEDS_CLARIFICATION') {
+                          setAskOrderId(row.id);
+                          return;
+                        }
+                        updateStatus.mutate({ orderId: row.id, status: next });
+                      }}
                       disabled={updateStatus.isPending}
                       fullWidth
                       sx={{ fontSize: '0.71875rem', '& .MuiSelect-select': { py: 0.75 } }}
@@ -527,6 +572,12 @@ export function LabOrdersDashboardPage() {
           </DataTable>
         )}
       </Stack>
+
+      <ClarificationAskDialog
+        orderId={askOrderId}
+        open={!!askOrderId}
+        onClose={() => setAskOrderId(null)}
+      />
     </>
   );
 }

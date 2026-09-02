@@ -31,21 +31,59 @@ const AWAITING_DOCTOR: OrderStatus[] = [
 /** A count-only read: `head` keeps the rows themselves off the wire. */
 const orderCount = () => supabase.from('orders').select('id', { count: 'exact', head: true });
 
-/** Lab: orders that arrived and have not been acknowledged, and unreviewed edits. */
+/**
+ * Orders still sitting in NEEDS_CLARIFICATION whose question has been answered
+ * — the doctor has replied and it is the lab's move again (0029).
+ *
+ * Both sides need this number: the lab as "go and read it", the doctor as the
+ * orders to stop nagging about. It clears itself the moment the lab moves the
+ * status on, which is why the status filter is part of the query rather than a
+ * seen-flag.
+ *
+ * Counted as (orders with any clarification) − (orders with an open one)
+ * because PostgREST cannot express "has an answered row AND no open row" in one
+ * filter — and an order that was asked, answered, then asked again has both.
+ */
+async function answeredClarificationCount(
+  scope: { column: 'lab_id' | 'doctor_id'; value: string } | null,
+): Promise<number> {
+  const build = () => {
+    const q = supabase
+      .from('orders')
+      // `!inner` filters the orders down to those that have clarifications; the
+      // count stays a count of orders, not of clarification rows.
+      .select('id, order_clarifications!inner(id)', { count: 'exact', head: true })
+      .eq('status', 'NEEDS_CLARIFICATION');
+    return scope ? q.eq(scope.column, scope.value) : q;
+  };
+
+  const [withAny, stillOpen] = await Promise.all([
+    build(),
+    build().is('order_clarifications.answered_at', null),
+  ]);
+  return Math.max(0, (withAny.count ?? 0) - (stillOpen.count ?? 0));
+}
+
+/** Lab: new arrivals, unreviewed edits, and answers waiting to be read. */
 export function useLabNavAlerts(labId: string | undefined) {
   const { data } = useQuery({
     queryKey: ['nav-alerts', 'lab', labId],
     enabled: !!labId,
     ...shared,
     queryFn: async () => {
-      const [arrived, edited] = await Promise.all([
+      const [arrived, edited, answered] = await Promise.all([
         orderCount().eq('lab_id', labId!).eq('status', 'SUBMITTED'),
         orderCount().eq('lab_id', labId!).eq('has_unreviewed_edits', true),
+        answeredClarificationCount({ column: 'lab_id', value: labId! }),
       ]);
-      return { orders: arrived.count ?? 0, editedOrders: edited.count ?? 0 };
+      return {
+        orders: arrived.count ?? 0,
+        editedOrders: edited.count ?? 0,
+        answeredClarifications: answered,
+      };
     },
   });
-  return data ?? { orders: 0, editedOrders: 0 };
+  return data ?? { orders: 0, editedOrders: 0, answeredClarifications: 0 };
 }
 
 /** Doctor: their own orders that are waiting on them. */
@@ -55,10 +93,14 @@ export function useDoctorNavAlerts(doctorId: string | undefined) {
     enabled: !!doctorId,
     ...shared,
     queryFn: async () => {
-      const { count } = await orderCount()
-        .eq('doctor_id', doctorId!)
-        .in('status', AWAITING_DOCTOR);
-      return { orders: count ?? 0 };
+      const [waiting, answered] = await Promise.all([
+        orderCount().eq('doctor_id', doctorId!).in('status', AWAITING_DOCTOR),
+        answeredClarificationCount({ column: 'doctor_id', value: doctorId! }),
+      ]);
+      // An order the doctor has already answered still sits in
+      // NEEDS_CLARIFICATION until the lab moves it — don't keep nagging about
+      // work that is no longer theirs.
+      return { orders: Math.max(0, (waiting.count ?? 0) - answered) };
     },
   });
   return data ?? { orders: 0 };
@@ -74,8 +116,11 @@ export function useClinicNavAlerts(clinicId: string | undefined) {
     enabled: !!clinicId,
     ...shared,
     queryFn: async () => {
-      const { count } = await orderCount().in('status', AWAITING_DOCTOR);
-      return { orders: count ?? 0 };
+      const [waiting, answered] = await Promise.all([
+        orderCount().in('status', AWAITING_DOCTOR),
+        answeredClarificationCount(null),
+      ]);
+      return { orders: Math.max(0, (waiting.count ?? 0) - answered) };
     },
   });
   return data ?? { orders: 0 };
