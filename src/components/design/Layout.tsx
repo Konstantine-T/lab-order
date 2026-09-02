@@ -8,6 +8,16 @@ import { layout } from '@/theme/tokens';
  *
  * Below `lg` the rail drops under the content, since 316px plus a readable
  * content column no longer fits.
+ *
+ * The rail is capped to the viewport and scrolls itself. Sticky positioning
+ * pins an element in place; if that element is taller than the screen, the part
+ * below the fold simply cannot be reached, because scrolling the page is
+ * exactly what sticky prevents. The lab order sheet stacks enough cards to hit
+ * this, and the order team section at the bottom became unreachable. The cap is
+ * load-bearing, not decoration — don't remove it as unused styling.
+ *
+ * The cap is `lg`-only: below that the rail is a normal block in the page flow,
+ * and an inner scroll container on a phone would be a trap.
  */
 export function SplitLayout({
   children,
@@ -32,12 +42,38 @@ export function SplitLayout({
 
       <Stack
         spacing={1.75}
-        sx={{
+        sx={(theme) => ({
           width: { xs: '100%', lg: layout.railWidth },
           flexShrink: 0,
           position: { lg: 'sticky' },
           top: { lg: layout.railTop },
-        }}
+          // Clears the header, then leaves a little air so the last card doesn't
+          // sit flush against the bottom of the window.
+          maxHeight: { lg: `calc(100vh - ${layout.railTop}px - 24px)` },
+          // `auto`, not `scroll`: a short rail shows no gutter and passes its
+          // scroll straight to the page.
+          overflowY: { xs: 'visible', lg: 'auto' },
+          overscrollBehavior: { lg: 'contain' },
+          // A scroll container clips at its edges, and the rail's cards lift on
+          // hover. Pad the scroll box so the shadow and focus ring have room,
+          // then pull the same amount back off the margin so the column keeps
+          // its width.
+          pr: { lg: 0.5 },
+          mr: { lg: -0.5 },
+          // The platform scrollbar is heavy against a card-lined rail; this one
+          // takes its colours from the palette so it reads in both themes.
+          scrollbarWidth: 'thin',
+          scrollbarColor: `${theme.palette.divider} transparent`,
+          '&::-webkit-scrollbar': { width: 6 },
+          '&::-webkit-scrollbar-track': { background: 'transparent' },
+          '&::-webkit-scrollbar-thumb': {
+            backgroundColor: theme.palette.divider,
+            borderRadius: 3,
+          },
+          '&:hover::-webkit-scrollbar-thumb': {
+            backgroundColor: theme.palette.text.disabled,
+          },
+        })}
       >
         {rail}
       </Stack>
