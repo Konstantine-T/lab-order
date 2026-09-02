@@ -8,6 +8,15 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { PublicAuthLayout } from '@/layouts/PublicAuthLayout';
 import { RHFTextField } from '@/components/RHFTextField';
+import type { UserRole } from '@/types/database';
+
+/** Where each role's own area starts — the only place a login may land. */
+const ROLE_HOME: Record<UserRole, string> = {
+  DOCTOR: '/doctor',
+  LAB_MAIN_ADMIN: '/lab',
+  PLATFORM_ADMIN: '/admin',
+  CLINIC_ADMIN: '/clinic',
+};
 
 const schema = z.object({
   email: z.string().email(),
@@ -17,7 +26,7 @@ type FormValues = z.infer<typeof schema>;
 
 export function LoginPage() {
   const { t } = useTranslation('auth');
-  const { signIn, session, loading } = useAuth();
+  const { signIn, session, user, loading } = useAuth();
   const location = useLocation();
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -26,9 +35,18 @@ export function LoginPage() {
     defaultValues: { email: '', password: '' },
   });
 
-  if (!loading && session) {
-    const from = (location.state as { from?: Location } | null)?.from?.pathname ?? '/';
-    return <Navigate to={from} replace />;
+  // Wait for `user`, not just `session`: the role decides where to land, and
+  // it is only known once the profile has been fetched.
+  if (!loading && session && user) {
+    const home = ROLE_HOME[user.role] ?? '/';
+    const from = (location.state as { from?: Location } | null)?.from?.pathname;
+    // ProtectedRoute remembers the page you were bounced off, which is what you
+    // want when a session expires mid-page. But signing out of /doctor/... and
+    // back in as the clinic admin would restore a URL this role cannot open,
+    // and RoleGuard answers that with /forbidden. Only resume inside your own
+    // area; otherwise start at its front door.
+    const inOwnArea = from === home || from?.startsWith(`${home}/`);
+    return <Navigate to={inOwnArea ? from! : home} replace />;
   }
 
   const onSubmit = async (values: FormValues) => {

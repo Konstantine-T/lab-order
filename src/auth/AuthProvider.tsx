@@ -151,6 +151,17 @@ export function AuthProvider({ children }: PropsWithChildren) {
       }
 
       setSession(newSession);
+
+      // `session` changes here, but `hydrate` — and with it `user` — cannot run
+      // until the next tick (see the deadlock note below). Every render in
+      // between would otherwise report `loading: false` while `user` still
+      // belongs to the previous session, or to nobody at all just after a
+      // sign-in. That window is long enough for RoleGuard to read the stale
+      // role and bounce a fresh login to /forbidden. Mark the hydration as
+      // started now, so the guards hold a spinner instead of deciding on a
+      // user that no longer matches the session.
+      if (newSession && lastUserIdRef.current !== newSession.user.id) setHydrating(true);
+
       // Defer DB calls out of this callback to avoid the supabase-js auth
       // lock deadlock — see github.com/supabase/auth-js/issues/762.
       setTimeout(() => {
