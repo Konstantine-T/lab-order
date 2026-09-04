@@ -134,7 +134,17 @@
     "summary": "Order summary",
     "required": "Required",
     "privateToLab": "Sent only to this laboratory",
-    "railHint": "The lab reviews your order and confirms the final price and due date. You'll be notified of every status change."
+    "railHint": "The lab reviews your order and confirms the final price and due date. You'll be notified of every status change.",
+    "fixTheseFields": "Please fill these in before submitting:",
+    "problems": {
+      "patientName": "The patient’s first and last name are required.",
+      "formAnswers": "Some required questions in the order form are unanswered.",
+      "workLocation": "Choose the work location for this order.",
+      "dueDateMissing": "Desired due date is required.",
+      "dueDateTooSoon": "The desired due date is too soon — this lab needs at least {{count}} days.",
+      "editReason": "Choose a reason for the change.",
+      "editComment": "This reason needs a comment."
+    }
   },
   "orders": {
     "title": "My orders",

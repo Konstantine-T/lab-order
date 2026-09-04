@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { isOrderFormValid } from '@/features/orderForms/OrderForm';
+
 import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { MobilePriceBar } from '@/components/MobilePriceBar';
 import {
@@ -21,6 +21,12 @@ import {
 import { calculatePrice, formatGEL } from '@/utils/pricing';
 import { scrollToFirstError } from '@/features/orderForms/scrollToFirstError';
 import { PatientStep, FormStep } from '@/pages/doctor/OrderCreateWizard';
+import {
+  collectOrderProblems,
+  hasProblem,
+  orderProblemMessage,
+  type OrderProblem,
+} from '@/features/doctor/orderValidation';
 import { initialState, type WizardState } from '@/features/doctor/orderCreate/types';
 import { normalizePatientPayload } from '@/features/doctor/orderCreate/patientName';
 import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
@@ -212,33 +218,34 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
     onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
   });
 
+  const [problems, setProblems] = useState<OrderProblem[]>([]);
+  // No locations at all is a different problem, and the callout says it.
+  const locationError = hasProblem(problems, 'workLocation') && locations.length > 0;
+
   const handleSave = () => {
     setError(null);
     setAttempted(true);
-    if (!state.patient.first_name.trim() || !state.patient.last_name.trim()) {
-      setError(tc('errors.required'));
+
+    const found = collectOrderProblems({
+      patient: state.patient,
+      answers: state.answers,
+      doctor_work_location_id: state.doctor_work_location_id,
+      // Read-only on this page — see checkDueDate.
+      requested_due_date: state.requested_due_date,
+      checkDueDate: false,
+      configuration: version?.configuration_json,
+      pricing: version?.pricing_configuration_json,
+      minDays: 0,
+      noLocations: locations.length === 0,
+      edit: { reasonCode: reason, comment, commentRequired },
+    });
+
+    setProblems(found);
+    if (found.length > 0) {
+      // Every branch scrolls now. Work location, reason and comment used to
+      // return without scrolling, so the banner named a field the doctor then
+      // had to go and find.
       scrollToFirstError();
-      return;
-    }
-    if (version && !isOrderFormValid(
-      version.configuration_json,
-      state.answers,
-      version.pricing_configuration_json,
-    )) {
-      setError(tc('errors.required'));
-      scrollToFirstError();
-      return;
-    }
-    if (!state.doctor_work_location_id) {
-      setError(tc('errors.required'));
-      return;
-    }
-    if (!reason) {
-      setError(t('orderEdit.reasonRequired'));
-      return;
-    }
-    if (commentMissing) {
-      setError(t('orderEdit.commentRequiredForUnforeseen'));
       return;
     }
     save.mutate();
@@ -359,6 +366,23 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
       >
         {error && <Alert severity="error">{error}</Alert>}
 
+        {problems.length > 0 && (
+          <Alert severity="error">
+            {problems.length === 1 ? (
+              orderProblemMessage(problems[0], t)
+            ) : (
+              <>
+                {t('orderCreate.fixTheseFields')}
+                <Box component="ul" sx={{ m: 0, mt: 0.75, pl: 2.5 }}>
+                  {problems.map((p, i) => (
+                    <li key={i}>{orderProblemMessage(p, t)}</li>
+                  ))}
+                </Box>
+              </>
+            )}
+          </Alert>
+        )}
+
         <PatientStep
           state={state}
           update={update}
@@ -367,7 +391,13 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
         />
 
         {/* Work location + invoice recipient */}
-        <SectionCard icon="location_on" title={t('orderCreate.filesAndDue.workLocation')}>
+        <SectionCard
+          icon="location_on"
+          title={t('orderCreate.filesAndDue.workLocation')}
+          // scrollToFirstError queries this; the field's own `error` supplies
+          // the aria-invalid the helper matches as a fallback.
+          data-form-error={locationError ? 'true' : undefined}
+        >
           <Stack spacing={2.5}>
             {locations.length === 0 ? (
               <Callout tone="warning">{t('orderCreate.filesAndDue.noLocations')}</Callout>
@@ -376,6 +406,8 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
                 select
                 value={state.doctor_work_location_id}
                 onChange={(e) => update({ doctor_work_location_id: e.target.value })}
+                error={locationError}
+                helperText={locationError ? t('orderCreate.problems.workLocation') : undefined}
                 fullWidth
               >
                 {locations.map((l) => (

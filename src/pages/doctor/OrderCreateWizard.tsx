@@ -21,7 +21,14 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { ActingDoctorChip } from '@/features/clinic/ActingDoctorChip';
 import { supabase } from '@/lib/supabase';
-import { OrderForm, isOrderFormValid } from '@/features/orderForms/OrderForm';
+import { OrderForm } from '@/features/orderForms/OrderForm';
+import {
+  collectOrderProblems,
+  hasProblem,
+  orderProblemMessage,
+  problemFor,
+  type OrderProblem,
+} from '@/features/doctor/orderValidation';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { MobilePriceBar } from '@/components/MobilePriceBar';
 import {
@@ -126,7 +133,6 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
   const [error, setError] = useState<string | null>(null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const [patientAttempted, setPatientAttempted] = useState(false);
-  const [filesAttempted, setFilesAttempted] = useState(false);
   const [submittedOrderId, setSubmittedOrderId] = useState<string | null>(null);
   // Attachments picked while filling the form. Deliberately NOT in `state`:
   // the draft autosaves as JSON and a File can't be serialized, so a resumed
@@ -338,51 +344,38 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
   // on Submit. We flip all three "attempted" flags up front so every section
   // surfaces its inline errors at once, then return on the first hard failure
   // for the top-level banner + scroll.
+  const [problems, setProblems] = useState<OrderProblem[]>([]);
+
   const validateAll = (): boolean => {
     setError(null);
     setPatientAttempted(true);
     setSubmitAttempted(true);
-    setFilesAttempted(true);
 
-    if (!state.patient.first_name || !state.patient.last_name) {
-      setError(tc('errors.required'));
-      scrollToFirstError();
-      return false;
-    }
+    // A form the lab hasn't published isn't the doctor's to fix, so it stays a
+    // standalone message rather than a line in a list of things to go correct.
     if (!linkedForm || linkedForm.status !== 'PUBLISHED') {
+      setProblems([]);
       setError(t('orderCreate.labService.noPublishedForm'));
       return false;
     }
-    if (
-      version &&
-      !isOrderFormValid(
-        version.configuration_json,
-        state.answers,
-        version.pricing_configuration_json,
-      )
-    ) {
-      setError(tc('errors.required'));
-      scrollToFirstError();
-      return false;
-    }
-    if (!state.doctor_work_location_id) {
-      setError(tc('errors.required'));
-      scrollToFirstError();
-      return false;
-    }
-    if (!state.requested_due_date) {
-      setError(tc('errors.required'));
-      scrollToFirstError();
-      return false;
-    }
-    const minDays = minTurnaroundDays(
-      selectedService?.average_turnaround_days,
-      version?.pricing_configuration_json,
-      state.rush_requested,
-    );
-    const minDate = dayjs().startOf('day').add(minDays, 'day');
-    if (dayjs(state.requested_due_date).isBefore(minDate, 'day')) {
-      setError(t('orderCreate.filesAndDue.dueDate'));
+
+    const found = collectOrderProblems({
+      patient: state.patient,
+      answers: state.answers,
+      doctor_work_location_id: state.doctor_work_location_id,
+      requested_due_date: state.requested_due_date,
+      configuration: version?.configuration_json,
+      pricing: version?.pricing_configuration_json,
+      minDays: minTurnaroundDays(
+        selectedService?.average_turnaround_days,
+        version?.pricing_configuration_json,
+        state.rush_requested,
+      ),
+      noLocations: locations.length === 0,
+    });
+
+    setProblems(found);
+    if (found.length > 0) {
       scrollToFirstError();
       return false;
     }
@@ -605,7 +598,7 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
               rush={rush}
               selectedLoc={selectedLoc}
               averageTurnaroundDays={selectedService?.average_turnaround_days ?? null}
-              filesAttempted={filesAttempted}
+              problems={problems}
               patientName={patientName}
               submitting={submit.isPending}
               disabled={isBroken}
@@ -641,6 +634,26 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
         )}
 
         {error && <Alert severity="error">{error}</Alert>}
+
+        {/* Named, and all of them at once. One line when there is one thing to
+            fix; a list when there are several, in the order they appear down
+            the page so it reads as a route through the form. */}
+        {problems.length > 0 && (
+          <Alert severity="error">
+            {problems.length === 1 ? (
+              orderProblemMessage(problems[0], t)
+            ) : (
+              <>
+                {t('orderCreate.fixTheseFields')}
+                <Box component="ul" sx={{ m: 0, mt: 0.75, pl: 2.5 }}>
+                  {problems.map((p, i) => (
+                    <li key={i}>{orderProblemMessage(p, t)}</li>
+                  ))}
+                </Box>
+              </>
+            )}
+          </Alert>
+        )}
 
         {/* What the doctor picked, in full, before they fill anything in.
             The tile they clicked clamps its description to three lines so the
@@ -1005,8 +1018,8 @@ function SummaryRail({
   version,
   rush,
   selectedLoc,
+  problems = [],
   averageTurnaroundDays,
-  filesAttempted,
   patientName,
   submitting,
   disabled,
@@ -1021,7 +1034,8 @@ function SummaryRail({
   rush: { type: RushType; value: number } | undefined;
   selectedLoc: DoctorWorkLocationRow | undefined;
   averageTurnaroundDays: number | null;
-  filesAttempted?: boolean;
+  /** Named problems from the last submit attempt, so fields can show theirs. */
+  problems?: OrderProblem[];
   patientName: string;
   submitting: boolean;
   disabled: boolean;
@@ -1036,6 +1050,10 @@ function SummaryRail({
   const labRush = pricing?.rush;
   const rushAvailable = !!labRush && labRush.type !== 'NONE';
   const minDays = minTurnaroundDays(averageTurnaroundDays, pricing, state.rush_requested);
+  const dueProblem = problemFor(problems, 'dueDate');
+  // With no locations at all the callout below already says what to do; a red
+  // field on top of it says the same thing twice.
+  const locationError = hasProblem(problems, 'workLocation') && locations.length > 0;
   const minDate = useMemo(() => dayjs().startOf('day').add(minDays, 'day'), [minDays]);
 
   // When the toggle changes, the min due date may move past the current
@@ -1120,7 +1138,10 @@ function SummaryRail({
           </Stack>
         )}
 
-        <Box data-form-error={filesAttempted && !state.requested_due_date ? 'true' : undefined}>
+        {/* data-form-error stays: scrollToFirstError queries it. MUI's `error`
+            also emits aria-invalid, which that helper matches as a fallback, so
+            the two are complementary rather than duplicates. */}
+        <Box data-form-error={dueProblem ? 'true' : undefined}>
           <FieldLabel sx={{ mb: 0.625 }}>{t('orderCreate.filesAndDue.dueDate')} *</FieldLabel>
           <DatePicker
             value={state.requested_due_date ? dayjs(state.requested_due_date) : null}
@@ -1129,14 +1150,23 @@ function SummaryRail({
             }
             format="YYYY-MM-DD"
             minDate={minDate}
-            slotProps={{ textField: { fullWidth: true, size: 'small' } }}
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                size: 'small',
+                error: !!dueProblem,
+                // The hint becomes the error rather than sitting beside it —
+                // two lines of small grey-and-red text under one input is how
+                // the reason gets missed.
+                helperText: dueProblem
+                  ? orderProblemMessage(dueProblem, t)
+                  : t('orderCreate.filesAndDue.dueDateHint', { count: minDays }),
+              },
+            }}
           />
-          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-            {t('orderCreate.filesAndDue.dueDateHint', { count: minDays })}
-          </Typography>
         </Box>
 
-        <Box data-form-error={filesAttempted && !state.doctor_work_location_id ? 'true' : undefined}>
+        <Box data-form-error={locationError ? 'true' : undefined}>
           <FieldLabel sx={{ mb: 0.625 }}>{t('orderCreate.filesAndDue.workLocation')}</FieldLabel>
           {locations.length === 0 ? (
             <Callout
@@ -1156,6 +1186,10 @@ function SummaryRail({
               size="small"
               value={state.doctor_work_location_id}
               onChange={(e) => update({ doctor_work_location_id: e.target.value })}
+              error={locationError}
+              helperText={
+                locationError ? t('orderCreate.problems.workLocation') : undefined
+              }
               fullWidth
             >
               {locations.map((l) => (
