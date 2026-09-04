@@ -2,6 +2,11 @@
 
 import type { FormConfiguration, MaterialOption } from '@/types/database';
 
+/**
+ * Which numbering the tooth chart is *labelled* in. FDI is the default because
+ * it is what dentists here write; teeth are still stored in Universal (1-32)
+ * everywhere, and this only changes what the doctor reads off the map.
+ */
 export type CnbNotation = 'Universal' | 'FDI';
 
 /** One tooth in the order assigned to one of the lab's materials. */
@@ -32,7 +37,7 @@ export type CnbAnswers = {
 
 export const emptyCnbAnswers: CnbAnswers = {
   toothAssignments: [],
-  notation: 'Universal',
+  notation: 'FDI',
   notes: '',
   shade: '',
   shadeScale: 'CLASSICAL',
@@ -178,7 +183,7 @@ export function coerceCnbAnswers(
 
   // Read toothAssignments; fall back to flattening legacy treatments[].
   let toothAssignments: CnbToothAssignment[] = [];
-  let notation: CnbNotation = 'Universal';
+  let notation: CnbNotation = 'FDI';
   let notes = '';
 
   const knownIds = new Set((materials ?? []).map((m) => m.id));

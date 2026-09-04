@@ -97,7 +97,7 @@ export function ToothMap({
   onToothClick,
   toothColors,
   readOnly,
-  notation = 'Universal',
+  notation = 'FDI',
   restrictToTeeth,
   markedTeeth,
 }: Props) {

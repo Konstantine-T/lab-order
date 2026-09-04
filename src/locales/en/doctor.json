@@ -51,7 +51,7 @@
     "noServices": "This lab has not published any services yet.",
     "orderCta": "Order",
     "orderDisabled": "No published form",
-    "turnaround": "{{days}} day(s)",
+    "turnaround": "{{days}} working day(s)",
     "continuingFor": "Continuing a project — pick a service.",
     "newOrderFor": "New order for this patient — pick a service."
   },

@@ -81,7 +81,7 @@ export type EspErrors = Partial<{
 
 export const emptyEspAnswers: EspAnswers = {
   toothAssignments: [],
-  notation: 'Universal',
+  notation: 'FDI',
   treatmentNotes: '',
   misalignment: '',
   misalignmentOther: '',
@@ -126,7 +126,7 @@ export function coerceEspAnswers(raw: unknown): EspAnswers {
 
   return {
     toothAssignments: coerceAssignments(r.toothAssignments),
-    notation: r.notation === 'FDI' ? 'FDI' : 'Universal',
+    notation: r.notation === 'Universal' ? 'Universal' : 'FDI',
     treatmentNotes: typeof r.treatmentNotes === 'string' ? r.treatmentNotes : '',
     misalignment: (typeof r.misalignment === 'string' ? r.misalignment : '') as EspMisalignment | '',
     misalignmentOther: typeof r.misalignmentOther === 'string' ? r.misalignmentOther : '',

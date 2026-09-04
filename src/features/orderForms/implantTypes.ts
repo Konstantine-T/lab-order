@@ -117,7 +117,7 @@ export type ImplantRestorationAnswers = {
 
 export const emptyImplantAnswers: ImplantRestorationAnswers = {
   implantPositions: [],
-  notation: 'Universal',
+  notation: 'FDI',
   configsByPosition: {},
   bar: { barTeeth: [] },
 };
@@ -146,7 +146,7 @@ export function coerceImplantAnswers(raw: unknown): ImplantRestorationAnswers {
     brand: typeof r.brand === 'string' ? r.brand : undefined,
     brandCustom: typeof r.brandCustom === 'string' ? r.brandCustom : undefined,
     implantPositions: toNumArray(r.implantPositions),
-    notation: r.notation === 'FDI' ? 'FDI' : 'Universal',
+    notation: r.notation === 'Universal' ? 'Universal' : 'FDI',
     configsByPosition: coercedConfigs,
     submittedPositions: toNumArray(r.submittedPositions),
     bar: {

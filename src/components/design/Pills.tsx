@@ -180,6 +180,8 @@ export function MetaChip({
   color,
   bgcolor,
   sx,
+  component = 'span',
+  ...rest
 }: {
   icon?: ReactNode;
   swatch?: string;
@@ -187,13 +189,19 @@ export function MetaChip({
   color?: string;
   bgcolor?: string;
   sx?: SxProps<Theme>;
+  /** 'a' turns the chip into a link — the lab's phone number, say. */
+  component?: 'span' | 'a';
+  href?: string;
+  target?: string;
+  rel?: string;
 }) {
   return (
     <Stack
       direction="row"
       alignItems="center"
       spacing={0.625}
-      component="span"
+      component={component}
+      {...rest}
       sx={[
         {
           display: 'inline-flex',

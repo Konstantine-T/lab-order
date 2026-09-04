@@ -15,6 +15,7 @@ import {
   SectionCard,
 } from '@/components/design';
 import { ServiceCard } from '@/components/ServiceCard';
+import { whatsappUrl } from '@/features/labs/whatsapp';
 import type { LabRow, LabServiceRow } from '@/types/database';
 import type { FormStatus } from '@/types/database';
 
@@ -152,9 +153,24 @@ export function LabPublicProfilePage({ basePath = '/doctor' }: { basePath?: stri
                     {lab.working_address}
                   </MetaChip>
                 )}
-                {lab.contact_phone && (
-                  <MetaChip icon={<Icon name="call" size={13} />}>{lab.contact_phone}</MetaChip>
-                )}
+                {lab.contact_phone &&
+                  (whatsappUrl(lab.contact_phone) ? (
+                    // Tapping the number opens the chat rather than only
+                    // offering to dial it — which is how these labs are
+                    // actually reached.
+                    <MetaChip
+                      component="a"
+                      href={whatsappUrl(lab.contact_phone)!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      icon={<Icon name="call" size={13} />}
+                      sx={{ textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                    >
+                      {lab.contact_phone}
+                    </MetaChip>
+                  ) : (
+                    <MetaChip icon={<Icon name="call" size={13} />}>{lab.contact_phone}</MetaChip>
+                  ))}
                 {lab.contact_email && (
                   <MetaChip icon={<Icon name="mail" size={13} />}>{lab.contact_email}</MetaChip>
                 )}
