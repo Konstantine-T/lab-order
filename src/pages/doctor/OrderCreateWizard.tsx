@@ -642,6 +642,22 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
 
         {error && <Alert severity="error">{error}</Alert>}
 
+        {/* What the doctor picked, in full, before they fill anything in.
+            The tile they clicked clamps its description to three lines so the
+            grid stays even; this is where the rest of it lives, and the only
+            place before the patient form where they can still read it. */}
+        {selectedService?.short_description && (
+          <SectionCard icon="category" title={selectedService.name}>
+            <Typography
+              variant="body1"
+              color="text.secondary"
+              sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}
+            >
+              {selectedService.short_description}
+            </Typography>
+          </SectionCard>
+        )}
+
         {/* Single scrolling page: all sections stacked top-to-bottom. */}
         <PatientStep
           state={state}

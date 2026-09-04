@@ -143,6 +143,11 @@ export function CardGrid({
             xs: '1fr',
             md: `repeat(${columns}, minmax(0, 1fr))`,
           },
+          // Every row as tall as the tallest card, not just every card in a
+          // row as tall as its own neighbours. Without it a two-line
+          // description on one service made that whole row taller than the
+          // next, and the grid read as ragged rather than as a set.
+          gridAutoRows: '1fr',
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}

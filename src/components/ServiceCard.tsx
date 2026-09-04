@@ -3,13 +3,17 @@ import { alpha, Box, Stack, Typography } from '@mui/material';
 import type { ReactNode } from 'react';
 import { Icon } from '@/components/design';
 import { serviceImageUrl, templateLook } from '@/utils/serviceDefaults';
-import { lift, motion } from '@/theme/tokens';
+import { lift, motion, radii } from '@/theme/tokens';
 
 /**
- * The service tile from the Lab Services mockup, shared by the lab's own
- * service list and the public lab profile a doctor orders from: a tinted icon
- * square (or the service's cover picture), the service name, a description,
- * a row of fact chips and a footer with one action.
+ * The service tile, shared by the lab's own service list and the public lab
+ * profile a doctor orders from: a cover photo, the service name, a
+ * description, a row of fact chips and a footer with one action.
+ *
+ * The picture leads. It used to be a 42px square beside the name, which made
+ * the per-service upload nearly pointless — a crown and a denture are told
+ * apart by how they look, and at 42px they don't. A service with no upload
+ * keeps the tinted template icon, at the same size, so the grid stays even.
  *
  * `templateCode` looks like a leftover now that the template name is gone, but
  * it still picks the icon and its colour, and supplies the stock cover image
@@ -65,9 +69,8 @@ export function ServiceCard({
       }
       sx={{
         height: '100%',
-        px: 2.75,
-        py: 2.5,
         borderRadius: '18px',
+        overflow: 'hidden',
         border: 1,
         borderColor: 'divider',
         bgcolor: 'background.paper',
@@ -83,7 +86,20 @@ export function ServiceCard({
           }),
       }}
     >
-      <Stack direction="row" alignItems="flex-start" spacing={1.5}>
+      {/* A fixed height, not a ratio: a ratio ties the picture to the column
+          width, and at two columns that made a 340px image with a name
+          underneath it. This is a banner at any column count, and a portrait
+          upload and a landscape one still produce the same tile. */}
+      <Box
+        sx={{
+          position: 'relative',
+          height: 168,
+          flexShrink: 0,
+          bgcolor: alpha(look.color, 0.12),
+          borderBottom: 1,
+          borderColor: 'divider',
+        }}
+      >
         {image ? (
           // The lab's own picture earns the tile; the template icon is only a
           // stand-in for services that never uploaded one.
@@ -92,44 +108,56 @@ export function ServiceCard({
             src={image}
             alt=""
             onError={() => setImageBroken(true)}
-            sx={{
-              width: 42,
-              height: 42,
-              flexShrink: 0,
-              borderRadius: '12px',
-              objectFit: 'cover',
-              border: 1,
-              borderColor: 'divider',
-            }}
+            sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
           />
         ) : (
-          <Box
-            sx={{
-              width: 42,
-              height: 42,
-              flexShrink: 0,
-              borderRadius: '12px',
-              display: 'grid',
-              placeItems: 'center',
-              bgcolor: alpha(look.color, 0.12),
-            }}
-          >
-            <Icon name={look.icon} size={21} sx={{ color: look.color }} />
+          <Box sx={{ height: '100%', display: 'grid', placeItems: 'center' }}>
+            <Icon name={look.icon} size={40} sx={{ color: look.color }} />
           </Box>
         )}
-        <Box sx={{ minWidth: 0, flex: 1 }}>
-          <Typography sx={{ fontSize: '0.9375rem', fontWeight: 800, letterSpacing: '-0.01em' }}>
-            {name}
-          </Typography>
-        </Box>
-        {headerAction && <Box onClick={(e) => e.stopPropagation()}>{headerAction}</Box>}
-      </Stack>
+        {headerAction && (
+          // Over the photo, where the reference puts its badge. The plate is
+          // what keeps a switch readable on a dark crown and a white denture
+          // alike.
+          <Box
+            onClick={(e) => e.stopPropagation()}
+            sx={{
+              position: 'absolute',
+              top: 8,
+              right: 8,
+              borderRadius: `${radii.pill}px`,
+              bgcolor: 'background.paper',
+              boxShadow: lift.card,
+              px: 1,
+              py: 0.25,
+            }}
+          >
+            {headerAction}
+          </Box>
+        )}
+      </Box>
+
+      <Box sx={{ px: 2.75, pt: 2, pb: 2.5, display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <Typography sx={{ fontSize: '0.9375rem', fontWeight: 800, letterSpacing: '-0.01em' }}>
+          {name}
+        </Typography>
 
       {description && (
         <Typography
           variant="body1"
           color="text.secondary"
-          sx={{ mt: 1.25, lineHeight: 1.55 }}
+          // Clamped, not truncated to a character count: three lines is what
+          // the tile has room for at every width, and the full text is one
+          // click away on the order screen. A long description setting the
+          // height for every other card is the thing being fixed.
+          sx={{
+            mt: 1.25,
+            lineHeight: 1.55,
+            display: '-webkit-box',
+            WebkitBoxOrient: 'vertical',
+            WebkitLineClamp: 3,
+            overflow: 'hidden',
+          }}
         >
           {description}
         </Typography>
@@ -162,6 +190,7 @@ export function ServiceCard({
           )}
         </Stack>
       )}
+      </Box>
     </Stack>
   );
 }
