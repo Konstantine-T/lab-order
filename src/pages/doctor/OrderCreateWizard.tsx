@@ -747,8 +747,11 @@ export function PatientStep({
   // and sending the raw value would miss a match over a stray space.
   const lookupMatch = useCallback(() => {
     if (readOnly) return; // locked patient never needs the match lookup
-    const { first_name, last_name, existing_id, date_of_birth, gender } = state.patient;
+    const { first_name, last_name, existing_id, force_new, date_of_birth, gender } = state.patient;
     if (!first_name.trim() || !last_name.trim() || !doctorId || existing_id) return;
+    // Already answered "create a new one" for this name — asking again on the
+    // next blur would be nagging, and the answer is already recorded.
+    if (force_new) return;
 
     void supabase
       .rpc('find_matching_patient', {
@@ -772,7 +775,7 @@ export function PatientStep({
   // Trigger match check as soon as first + last name are filled; gender/DOB
   // are no longer required because the RPC now matches on name only.
   useEffect(() => {
-    if (readOnly || state.patient.existing_id) return;
+    if (readOnly || state.patient.existing_id || state.patient.force_new) return;
     if (!state.patient.first_name.trim() || !state.patient.last_name.trim()) return;
 
     // 400ms debounce so we don't hit the RPC on every keystroke while the
@@ -809,7 +812,14 @@ export function PatientStep({
               label={t('orderCreate.patient.firstName')}
               value={state.patient.first_name}
               onChange={(e) =>
-                update({ patient: { ...state.patient, first_name: e.target.value, existing_id: undefined } })
+                update({
+                  patient: {
+                    ...state.patient,
+                    first_name: e.target.value,
+                    existing_id: undefined,
+                    force_new: undefined,
+                  },
+                })
               }
               // Also check on blur: the debounce is keyed on the names, so a
               // doctor who types the name then tabs straight to DOB would
@@ -824,7 +834,14 @@ export function PatientStep({
               label={t('orderCreate.patient.lastName')}
               value={state.patient.last_name}
               onChange={(e) =>
-                update({ patient: { ...state.patient, last_name: e.target.value, existing_id: undefined } })
+                update({
+                  patient: {
+                    ...state.patient,
+                    last_name: e.target.value,
+                    existing_id: undefined,
+                    force_new: undefined,
+                  },
+                })
               }
               onBlur={lookupMatch}
               fullWidth
@@ -894,8 +911,13 @@ export function PatientStep({
               {t('orderCreate.patient.continuingExisting')}
             </Callout>
           )}
+          {state.patient.force_new && !readOnly && (
+            <Callout tone="brand" icon="person_add">
+              {t('orderCreate.patient.creatingNew')}
+            </Callout>
+          )}
         </Stack>
-      <Dialog open={matchOpen && !state.patient.existing_id && !readOnly} onClose={() => setMatchOpen(false)}>
+      <Dialog open={matchOpen && !state.patient.existing_id && !state.patient.force_new && !readOnly} onClose={() => setMatchOpen(false)}>
         <DialogTitle>{t('orderCreate.patient.match.title')}</DialogTitle>
         <DialogContent>
           <Typography>
@@ -912,6 +934,10 @@ export function PatientStep({
         <DialogActions>
           <Button
             onClick={() => {
+              // Recording this is the whole fix. Closing the dialog used to be
+              // the entire handler, so the answer never left the component and
+              // the server matched on the name regardless.
+              update({ patient: { ...state.patient, existing_id: undefined, force_new: true } });
               setMatchOpen(false);
             }}
           >

@@ -84,6 +84,7 @@ open_in_new
 package_2
 payments
 person
+person_add
 photo_camera
 precision_manufacturing
 priority_high

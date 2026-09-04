@@ -80,7 +80,8 @@
         "body": "A patient with this name and date of birth already exists in your records.",
         "continue": "Continue with existing patient",
         "createNew": "Create as new patient"
-      }
+      },
+      "creatingNew": "A new patient will be created, separate from the existing one with this name."
     },
     "labService": {
       "selectLab": "Select a laboratory",

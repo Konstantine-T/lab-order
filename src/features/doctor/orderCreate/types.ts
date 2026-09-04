@@ -8,6 +8,13 @@ export type WizardState = {
     date_of_birth: string;
     gender: string;
     existing_id?: string;
+    /**
+     * The doctor was shown a patient of the same name and chose to create a
+     * new one anyway. Without it that answer is unrepresentable and the server
+     * re-runs its own name match, which is how orders kept landing on the
+     * first patient of that name.
+     */
+    force_new?: boolean;
   };
   // Step 2
   lab_id: string;
