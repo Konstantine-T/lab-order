@@ -37,7 +37,12 @@ type Row = Pick<
   service_snapshot: { name?: string } | null;
   /** Embedded so "needs action" can tell an unanswered question from one the
    *  doctor has already replied to (0029). */
-  order_clarifications: { answered_at: string | null }[];
+  order_clarifications: {
+    question: string;
+    answered_at: string | null;
+    resolved_by_edit_at: string | null;
+    needs_edit: boolean;
+  }[];
 };
 
 /**
@@ -48,13 +53,20 @@ type Row = Pick<
  */
 const awaitsDoctorAnswer = (row: Row) =>
   row.order_clarifications.length === 0 ||
-  row.order_clarifications.some((c) => c.answered_at === null);
+  row.order_clarifications.some((c) => c.answered_at === null && c.resolved_by_edit_at === null);
+
+/** The lab's note on the still-open change request, if it left one. */
+const openEditNote = (row: Row): string | undefined =>
+  row.order_clarifications.find(
+    (c) => c.needs_edit && c.answered_at === null && c.resolved_by_edit_at === null,
+  )?.question;
 
 /** Statuses where the case is live — neither completed nor cancelled. */
 const OPEN: readonly OrderStatus[] = [
   'SUBMITTED',
   'RECEIVED',
   'NEEDS_CLARIFICATION',
+  'NEEDS_DOCTOR_INPUT',
   'IN_PROGRESS',
   'TRY_IN_PHASE',
   'READY_FOR_DELIVERY',
@@ -81,7 +93,8 @@ export function DoctorHomePage() {
         .from('orders')
         .select(
           'id, order_code, status, payment_status, final_total, generated_total, requested_due_date, confirmed_due_date, service_snapshot, ' +
-            'patients(first_name, last_name), labs(public_name), order_clarifications(answered_at)',
+            'patients(first_name, last_name), labs(public_name), ' +
+            'order_clarifications(question, answered_at, resolved_by_edit_at, needs_edit)',
         )
         .eq('doctor_id', doctorId!)
         .order('created_at', { ascending: false });
@@ -102,10 +115,14 @@ export function DoctorHomePage() {
         o.status === 'TRY_IN_PHASE' ||
         (o.status === 'NEEDS_CLARIFICATION' && awaitsDoctorAnswer(o)),
     );
+    // Its own list, not a line in `needsAction`: this one names a change the
+    // lab is blocked on, so the doctor has to see the request itself, not a
+    // count that sends them hunting through the order list.
+    const needsChange = orders.filter((o) => o.status === 'NEEDS_DOCTOR_INPUT');
     const unpaid = orders
       .filter((o) => o.payment_status !== 'PAID' && o.status !== 'CANCELLED')
       .reduce((sum, o) => sum + (o.final_total ?? o.generated_total ?? 0), 0);
-    return { open, dueThisWeek, needsAction, unpaid };
+    return { open, dueThisWeek, needsAction, needsChange, unpaid };
   }, [orders]);
 
   const dueSoon = useMemo(
@@ -183,6 +200,70 @@ export function DoctorHomePage() {
             title={t('home.stats.needsAction', { n: stats.needsAction.length })}
             onClick={() => navigate('/doctor/orders')}
           />
+        )}
+
+
+        {stats.needsChange.length > 0 && (
+          <SectionCard
+            icon="edit_note"
+            accent="warning"
+            title={t('home.needsChange.title', { n: stats.needsChange.length })}
+            meta={t('home.needsChange.meta')}
+            dense
+          >
+            {stats.needsChange.map((o) => {
+              const patient = o.patients
+                ? `${o.patients.first_name} ${o.patients.last_name}`
+                : '—';
+              const note = openEditNote(o);
+              return (
+                <Stack
+                  key={o.id}
+                  direction="row"
+                  alignItems="center"
+                  spacing={1.5}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => navigate(`/doctor/orders/${o.id}`)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') navigate(`/doctor/orders/${o.id}`);
+                  }}
+                  sx={{
+                    px: 3,
+                    py: 1.625,
+                    cursor: 'pointer',
+                    borderTop: 1,
+                    borderColor: 'divider',
+                    '&:hover': { bgcolor: 'action.hover' },
+                  }}
+                >
+                  <InitialsAvatar name={patient} size={28} shape="circle" />
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }} noWrap>
+                      {o.order_code} · {patient}
+                    </Typography>
+                    {/* The lab's own words. A generic "needs your input" would
+                        send the doctor to the order to find out what. */}
+                    <Typography variant="body2" color="text.secondary" noWrap>
+                      {note ?? [o.service_snapshot?.name, o.labs?.public_name]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </Typography>
+                  </Box>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/doctor/orders/${o.id}/edit`);
+                    }}
+                  >
+                    {t('home.needsChange.cta')}
+                  </Button>
+                </Stack>
+              );
+            })}
+          </SectionCard>
         )}
 
         <SectionCard

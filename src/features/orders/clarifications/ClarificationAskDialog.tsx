@@ -16,6 +16,7 @@ import {
   classifyClarificationError,
   clarificationsKey,
   requestClarification,
+  requestDoctorInput,
 } from './clarificationsApi';
 
 /**
@@ -25,18 +26,26 @@ import {
  * NEEDS_CLARIFICATION too, from its inline status select. Both entry points
  * have to capture a question or the doctor gets the badge without the reason,
  * which is the whole bug.
+ *
+ * `kind` picks which half of the conversation this is. Both write the same
+ * row and both move the order in one call; they differ in the status they set
+ * and in how the doctor is expected to close it — by replying, or by changing
+ * the order and saving.
  */
 export function ClarificationAskDialog({
   orderId,
   open,
   onClose,
   onSent,
+  kind = 'ANSWER',
 }: {
   /** Null while no order is selected — the dialog stays closed. */
   orderId: string | null;
   open: boolean;
   onClose: () => void;
   onSent?: () => void;
+  /** ANSWER → NEEDS_CLARIFICATION. EDIT → NEEDS_DOCTOR_INPUT. */
+  kind?: 'ANSWER' | 'EDIT';
 }) {
   const { t } = useTranslation('lab');
   const { t: tc } = useTranslation('common');
@@ -44,8 +53,15 @@ export function ClarificationAskDialog({
   const [question, setQuestion] = useState('');
   const [error, setError] = useState<string | null>(null);
 
+  // Same modal, same row, different promise to the doctor — so the copy has
+  // to change with it, not just the RPC.
+  const copy = kind === 'EDIT' ? 'orderSheet.editRequestModal' : 'orderSheet.clarifyModal';
+
   const ask = useMutation({
-    mutationFn: () => requestClarification(orderId!, question.trim()),
+    mutationFn: () =>
+      kind === 'EDIT'
+        ? requestDoctorInput(orderId!, question.trim())
+        : requestClarification(orderId!, question.trim()),
     onSuccess: () => {
       setQuestion('');
       setError(null);
@@ -73,12 +89,12 @@ export function ClarificationAskDialog({
 
   return (
     <Dialog open={open && !!orderId} onClose={close} maxWidth="xs" fullWidth>
-      <DialogTitle>{t('orderSheet.clarifyModal.title')}</DialogTitle>
+      <DialogTitle>{t(`${copy}.title`)}</DialogTitle>
       <DialogContent>
         <Stack spacing={2} sx={{ mt: 0.5 }}>
-          <DialogContentText>{t('orderSheet.clarifyModal.body')}</DialogContentText>
+          <DialogContentText>{t(`${copy}.body`)}</DialogContentText>
           <TextField
-            label={t('orderSheet.clarifyModal.questionLabel')}
+            label={t(`${copy}.questionLabel`)}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             multiline
@@ -96,14 +112,14 @@ export function ClarificationAskDialog({
       </DialogContent>
       <DialogActions>
         <Button onClick={close} color="inherit">
-          {t('orderSheet.clarifyModal.cancel')}
+          {t(`${copy}.cancel`)}
         </Button>
         <Button
           variant="contained"
           disabled={!question.trim() || ask.isPending}
           onClick={() => ask.mutate()}
         >
-          {t('orderSheet.clarifyModal.confirm')}
+          {t(`${copy}.confirm`)}
         </Button>
       </DialogActions>
     </Dialog>

@@ -295,7 +295,7 @@ export function OrderDetailPage() {
 
         {/* Above the case progress: if the lab is waiting on an answer, that is
             the first thing the doctor should see on this page. */}
-        <ClarificationPanel orderId={order.id} canAnswer={editable} />
+        <ClarificationPanel orderId={order.id} canAnswer={editable} editTo={`/doctor/orders/${order.id}/edit`} />
 
         {step != null && (
           <SectionCard icon="timeline" title={t('orderDetail.caseProgress')}>

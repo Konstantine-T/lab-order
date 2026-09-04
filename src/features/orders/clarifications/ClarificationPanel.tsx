@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Box, Button, ButtonBase, Collapse, Stack, TextField, Typography } from '@mui/material';
+import { Link as RouterLink } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
@@ -21,14 +22,25 @@ const fmt = (iso: string) => dayjs(iso).format('YYYY-MM-DD HH:mm');
  * sniffing the signed-in role: the doctor and the clinic admin acting for them
  * can answer, the lab reads. There is no empty state — with nothing to show the
  * panel renders nothing at all.
+ *
+ * A `needs_edit` request (0030) is the same row with a different ending: the
+ * lab wants the order changed, so there is no answer box — saving the edit is
+ * the reply.
  */
 export function ClarificationPanel({
   orderId,
   canAnswer,
+  editTo,
 }: {
   orderId: string;
   /** Doctor and clinic pass true; the lab passes false. */
   canAnswer: boolean;
+  /**
+   * Where "change the order" goes. Passed in because the same panel renders
+   * under three different route trees; without it the button is not shown and
+   * the doctor navigates by hand.
+   */
+  editTo?: string;
 }) {
   const { t } = useTranslation(['common', 'doctor', 'lab']);
   const qc = useQueryClient();
@@ -65,7 +77,10 @@ export function ClarificationPanel({
   if (rows.length === 0) return null;
 
   const [newest, ...older] = rows;
-  const isOpen = newest.answered_at === null;
+  // An edit request is closed by `resolved_by_edit_at`, never by an answer, so
+  // "still open" has to check both or it stays open forever.
+  const isOpen = newest.answered_at === null && newest.resolved_by_edit_at === null;
+  const needsEdit = newest.needs_edit;
 
   return (
     <Stack spacing={1.5}>
@@ -81,13 +96,35 @@ export function ClarificationPanel({
             }
           >
             {canAnswer
-              ? t('doctor:orderDetail.clarification.body')
-              : t('lab:orderSheet.clarification.awaitingAnswer')}
+              ? t(
+                  needsEdit
+                    ? 'doctor:orderDetail.clarification.editBody'
+                    : 'doctor:orderDetail.clarification.body',
+                )
+              : t(
+                  needsEdit
+                    ? 'lab:orderSheet.clarification.awaitingEdit'
+                    : 'lab:orderSheet.clarification.awaitingAnswer',
+                )}
             {' · '}
             {t('common:clarification.askedOn', { date: fmt(newest.asked_at) })}
           </Callout>
 
-          {canAnswer && (
+          {canAnswer && needsEdit && editTo && (
+            <Box>
+              <Button
+                component={RouterLink}
+                to={editTo}
+                variant="contained"
+                size="small"
+                startIcon={<Icon name="edit" size={16} />}
+              >
+                {t('doctor:orderDetail.clarification.editCta')}
+              </Button>
+            </Box>
+          )}
+
+          {canAnswer && !needsEdit && (
             <Stack spacing={1}>
               <TextField
                 label={t('doctor:orderDetail.clarification.answerLabel')}

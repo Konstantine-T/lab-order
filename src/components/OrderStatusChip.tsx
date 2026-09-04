@@ -10,6 +10,7 @@ const ORDER_TONE: Record<OrderStatus, Tone> = {
   SUBMITTED: 'brand',
   RECEIVED: 'warning',
   NEEDS_CLARIFICATION: 'danger',
+  NEEDS_DOCTOR_INPUT: 'danger',
   IN_PROGRESS: 'brand',
   READY_FOR_DELIVERY: 'success',
   SENT_TO_CLINIC: 'info',

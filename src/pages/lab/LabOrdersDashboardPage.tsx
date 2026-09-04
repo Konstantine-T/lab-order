@@ -125,6 +125,7 @@ export function LabOrdersDashboardPage() {
   // Set from the inline status select: picking "Needs clarification" here has
   // to capture the question too, exactly as it does on the order sheet.
   const [askOrderId, setAskOrderId] = useState<string | null>(null);
+  const [askKind, setAskKind] = useState<'ANSWER' | 'EDIT'>('ANSWER');
 
   const [page, setPage] = useState(1);
   const [pageSize] = useState(25);
@@ -531,8 +532,9 @@ export function LabOrdersDashboardPage() {
                         const next = e.target.value as OrderStatus;
                         // Never savable on its own — the doctor needs the
                         // question, not just the status.
-                        if (next === 'NEEDS_CLARIFICATION') {
+                        if (next === 'NEEDS_CLARIFICATION' || next === 'NEEDS_DOCTOR_INPUT') {
                           setAskOrderId(row.id);
+                          setAskKind(next === 'NEEDS_DOCTOR_INPUT' ? 'EDIT' : 'ANSWER');
                           return;
                         }
                         updateStatus.mutate({ orderId: row.id, status: next });
@@ -579,6 +581,7 @@ export function LabOrdersDashboardPage() {
 
       <ClarificationAskDialog
         orderId={askOrderId}
+        kind={askKind}
         open={!!askOrderId}
         onClose={() => setAskOrderId(null)}
       />

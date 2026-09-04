@@ -520,14 +520,22 @@
     "clarification": {
       "awaitingAnswer": "Waiting for the doctor's answer.",
       "answeredTitle": "The doctor answered",
-      "alreadyOpenHint": "A question is already open on this order. Wait for the doctor's answer before asking another."
+      "alreadyOpenHint": "A question is already open on this order. Wait for the doctor's answer before asking another.",
+      "awaitingEdit": "Waiting for the doctor to change the order."
     },
     "saved": "Saved.",
     "saveFailed": "Could not save. Try again.",
     "finalPriceInvalid": "Enter a valid amount.",
     "paymentMax": "Maximum: {{max}}",
     "paymentClamped": "More than the final price. The most that can be recorded is {{max}}.",
-    "paymentNeedsFinalPrice": "Set the final price first."
+    "paymentNeedsFinalPrice": "Set the final price first.",
+    "editRequestModal": {
+      "title": "What does the doctor need to change?",
+      "body": "The order moves to \"Needs doctor’s input\" and the doctor sees this on their dashboard. It clears itself when they save the change.",
+      "questionLabel": "What needs changing",
+      "cancel": "Cancel",
+      "confirm": "Send question"
+    }
   },
   "approvalBanner": {
     "PENDING_APPROVAL": {

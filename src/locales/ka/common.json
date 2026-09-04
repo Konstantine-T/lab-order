@@ -56,7 +56,8 @@
     "RECEIVED_BY_CLINIC": "მიიღო კლინიკამ",
     "TRY_IN_PHASE": "მოსინჯვის ეტაპი",
     "COMPLETED": "დასრულებული",
-    "CANCELLED": "გაუქმებული"
+    "CANCELLED": "გაუქმებული",
+    "NEEDS_DOCTOR_INPUT": "საჭიროებს დაზუსტებას ექიმის მხრიდან"
   },
   "paymentStatus": {
     "UNPAID": "გადაუხდელი",

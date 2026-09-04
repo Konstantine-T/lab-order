@@ -311,7 +311,11 @@ export function LabOrderSheetPage() {
   const statusDirty = !!pendingStatus && pendingStatus !== order.status;
   // One open question at a time (the DB enforces it too) — until the doctor
   // answers, there is nothing new to ask.
-  const askBlocked = pendingStatus === 'NEEDS_CLARIFICATION' && hasOpenClarification;
+  // Both asks write the same row and the DB allows one open per order, so
+  // either kind is blocked while one is still open.
+  const asksDoctor =
+    pendingStatus === 'NEEDS_CLARIFICATION' || pendingStatus === 'NEEDS_DOCTOR_INPUT';
+  const askBlocked = asksDoctor && hasOpenClarification;
 
   return (
     <>
@@ -382,9 +386,10 @@ export function LabOrderSheetPage() {
                   disabled={update.isPending || !statusDirty || isTerminal || askBlocked}
                   onClick={() => {
                     if (!pendingStatus) return;
-                    // "Needs clarification" is not a status you can just save —
-                    // it only means something with the question attached.
-                    if (pendingStatus === 'NEEDS_CLARIFICATION') {
+                    // Neither "needs clarification" nor "needs doctor's input"
+                    // is a status you can just save — each only means something
+                    // with the question attached.
+                    if (asksDoctor) {
                       setClarifyOpen(true);
                       return;
                     }
@@ -755,6 +760,7 @@ export function LabOrderSheetPage() {
           selected status the lab never saved. */}
       <ClarificationAskDialog
         orderId={order.id}
+        kind={pendingStatus === 'NEEDS_DOCTOR_INPUT' ? 'EDIT' : 'ANSWER'}
         open={clarifyOpen}
         onClose={() => {
           setClarifyOpen(false);

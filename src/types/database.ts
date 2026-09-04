@@ -18,6 +18,7 @@ export type OrderStatus =
   | 'SUBMITTED'
   | 'RECEIVED'
   | 'NEEDS_CLARIFICATION'
+  | 'NEEDS_DOCTOR_INPUT'
   | 'IN_PROGRESS'
   | 'READY_FOR_DELIVERY'
   | 'SENT_TO_CLINIC'
@@ -37,6 +38,7 @@ export type PaymentStatus = 'UNPAID' | 'PARTIALLY_PAID' | 'PAID';
 export const LAB_SELECTABLE_STATUSES = [
   'RECEIVED',
   'NEEDS_CLARIFICATION',
+  'NEEDS_DOCTOR_INPUT',
   'IN_PROGRESS',
   'READY_FOR_DELIVERY',
   'SENT_TO_CLINIC',
@@ -546,6 +548,10 @@ export interface OrderClarificationRow {
   answer: string | null;
   answered_by_user_id: string | null;
   answered_at: string | null;
+  /** True when the lab wants the order *changed*, not answered in prose. */
+  needs_edit: boolean;
+  /** Set when the doctor's saved edit closed this request (0030). */
+  resolved_by_edit_at: string | null;
 }
 
 export interface OrderFileRow {

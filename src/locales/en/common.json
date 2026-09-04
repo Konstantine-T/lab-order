@@ -56,7 +56,8 @@
     "RECEIVED_BY_CLINIC": "Received by clinic",
     "TRY_IN_PHASE": "Try-in phase",
     "COMPLETED": "Completed",
-    "CANCELLED": "Cancelled"
+    "CANCELLED": "Cancelled",
+    "NEEDS_DOCTOR_INPUT": "Needs doctor's input"
   },
   "paymentStatus": {
     "UNPAID": "Unpaid",

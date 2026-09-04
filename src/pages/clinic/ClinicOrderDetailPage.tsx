@@ -175,7 +175,11 @@ export function ClinicOrderDetailPage() {
 
       {/* A clinic admin answers on behalf of its doctor — can_act_for_doctor
           authorizes it server-side, exactly as for edits and completion. */}
-      <ClarificationPanel orderId={order.id} canAnswer={!isTerminal} />
+      <ClarificationPanel
+        orderId={order.id}
+        canAnswer={!isTerminal}
+        editTo={`/clinic/orders/${order.id}/edit`}
+      />
 
       <SectionCard>
         <Box

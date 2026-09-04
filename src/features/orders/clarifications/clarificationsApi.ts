@@ -24,6 +24,21 @@ export async function requestClarification(orderId: string, question: string): P
   return data as string;
 }
 
+/**
+ * Same shape as `requestClarification`, for the other half of the
+ * conversation: the lab needs the order *changed*, not answered in prose.
+ * Saving the edit is what closes it (a trigger on `order_edits`, 0030), so
+ * there is no matching "answer" call.
+ */
+export async function requestDoctorInput(orderId: string, note: string): Promise<string> {
+  const { data, error } = await supabase.rpc('request_doctor_input', {
+    p_order_id: orderId,
+    p_note: note,
+  });
+  if (error) throw error;
+  return data as string;
+}
+
 /** Does not touch the order's status — the lab moves it on by hand. */
 export async function answerClarification(
   clarificationId: string,

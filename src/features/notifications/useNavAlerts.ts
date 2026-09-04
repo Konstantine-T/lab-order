@@ -23,6 +23,10 @@ const shared = { staleTime: 30_000, refetchInterval: REFRESH_MS, refetchOnWindow
 const AWAITING_DOCTOR: OrderStatus[] = [
   // The lab asked a question and cannot proceed until it is answered.
   'NEEDS_CLARIFICATION',
+  // The lab needs the order changed. Unlike the one above there is no
+  // "already answered" subtraction below: the status itself is cleared the
+  // moment the doctor saves (0030), so being in it always means outstanding.
+  'NEEDS_DOCTOR_INPUT',
   // The lab has handed the case over; only the doctor can close it (0022).
   'SENT_TO_CLINIC',
   'RECEIVED_BY_CLINIC',

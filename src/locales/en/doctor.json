@@ -23,6 +23,11 @@
       "unpaid": "Unpaid",
       "unpaidCaption": "across open invoices",
       "needsAction": "{{n}} order(s) need your attention"
+    },
+    "needsChange": {
+      "title": "Waiting on you ({{n}})",
+      "meta": "The lab cannot continue until you change these.",
+      "cta": "Change"
     }
   },
   "marketplace": {
@@ -228,7 +233,9 @@
       "body": "The lab is waiting for your answer.",
       "answerLabel": "Your answer",
       "send": "Send answer",
-      "sent": "Answer sent to the lab."
+      "sent": "Answer sent to the lab.",
+      "editBody": "Open the order, make the change and save — that clears this by itself.",
+      "editCta": "Change the order"
     }
   },
   "orderEdit": {

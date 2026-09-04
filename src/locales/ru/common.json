@@ -56,7 +56,8 @@
     "RECEIVED_BY_CLINIC": "Получен клиникой",
     "TRY_IN_PHASE": "Этап примерки",
     "COMPLETED": "Завершён",
-    "CANCELLED": "Отменён"
+    "CANCELLED": "Отменён",
+    "NEEDS_DOCTOR_INPUT": "Требует правок от врача"
   },
   "paymentStatus": {
     "UNPAID": "Не оплачено",

@@ -33,6 +33,8 @@ export const PIPELINE_ICONS: Record<PipelineStage, string> = {
 const OFF_PIPELINE: Partial<Record<OrderStatus, number>> = {
   // The lab has the case and is asking a question — still stage "Received".
   NEEDS_CLARIFICATION: 1,
+  // Same stage: the lab is waiting on the doctor, not working.
+  NEEDS_DOCTOR_INPUT: 1,
   // A try-in happens mid-fabrication.
   TRY_IN_PHASE: 2,
   // The clinic has it; delivery is done but the case is not closed.
