@@ -12,7 +12,7 @@ import {
   Typography,
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { Icon, SectionCard } from '@/components/design';
+import { Callout, Icon, SectionCard } from '@/components/design';
 import { NumberField } from '@/components/NumberField';
 import type {
   FieldConfig,
@@ -108,7 +108,20 @@ export function PricingPanel({
             <MenuItem value="LAB_DESCRIBED">
               {t('forms.editor.pricing.models.LAB_DESCRIBED')}
             </MenuItem>
+            <MenuItem value="NO_PRICING">
+              {t('forms.editor.pricing.models.NO_PRICING')}
+            </MenuItem>
           </TextField>
+
+          {/* The one option with no fields under it, so without this the panel
+              would just go blank and look broken. It is also the one option
+              that silently costs the lab its own numbers — receivables and the
+              doctor's estimate both go empty — so it says so plainly. */}
+          {pricing.model === 'NO_PRICING' && (
+            <Callout tone="warning" icon="warning">
+              {t('forms.editor.pricing.noPricingWarning')}
+            </Callout>
+          )}
 
           {/* CnB / ESP UNIT_BASED — materials editor */}
           {pricing.model === 'UNIT_BASED' && (isCnb || isEsp || isFab) && (

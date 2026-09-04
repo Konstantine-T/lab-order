@@ -131,6 +131,9 @@ export function PriceBreakdown({
 
   const result = calculatePrice(pricing, answers, rush);
   const described = result.kind === 'DESCRIBED' ? result : null;
+  // The lab publishes no price for this service at all. Falling through to the
+  // normal body would parade an "estimated total 0.00" the lab never promised.
+  const noPricing = result.kind === 'NONE';
   const hasDetails = result.lineItems.length > 0;
   const discounted = finalTotal != null && finalTotal < result.total;
   // Nothing priceable answered yet — lead with a hint rather than a bare 0.
@@ -159,6 +162,23 @@ export function PriceBreakdown({
       </Typography>
       <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.5 }}>
         {t('priceBreakdown.describedHint')}
+      </Typography>
+      {finalTotal != null && (
+        <MoneyRow
+          strong
+          label={t('priceBreakdown.labFinalTotal')}
+          amount={formatGEL(finalTotal)}
+          color="success.main"
+        />
+      )}
+    </Stack>
+  );
+
+  const noPricingBody = noPricing && (
+    <Stack spacing={1}>
+      <FieldLabel>{t('priceBreakdown.noPricingTitle')}</FieldLabel>
+      <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+        {t('priceBreakdown.noPricingHint')}
       </Typography>
       {finalTotal != null && (
         <MoneyRow
@@ -256,7 +276,7 @@ export function PriceBreakdown({
     </Stack>
   );
 
-  const content = describedBody ?? body;
+  const content = describedBody || noPricingBody || body;
 
   if (variant === 'plain') return content;
 

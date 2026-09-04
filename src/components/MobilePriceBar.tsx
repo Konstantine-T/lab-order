@@ -33,9 +33,10 @@ export function MobilePriceBar({ pricing, answers, rush }: Props) {
   // Only the collapsed total is computed here; the expanded drawer renders
   // PriceBreakdown, so the itemisation has exactly one implementation.
   const result = calculatePrice(pricing, answers, rush);
-  // A described service has no running total to run — say so instead of
-  // parading a 0.00 at the bottom of the screen the whole way down the form.
-  const described = result.kind === 'DESCRIBED';
+  // Neither a described service nor one with pricing turned off has a running
+  // total to run — say so instead of parading a 0.00 at the bottom of the
+  // screen the whole way down the form.
+  const described = result.kind !== 'CALCULATED';
 
   return (
     <>

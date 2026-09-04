@@ -95,7 +95,9 @@
     },
     "describedTitle": "Prices for this service",
     "describedHint": "The lab confirms the final price after reviewing your order.",
-    "describedBar": "See the lab's prices"
+    "describedBar": "See the lab's prices",
+    "noPricingTitle": "No price published",
+    "noPricingHint": "This lab does not publish a price for this service. It will set the total after reviewing your order."
   },
   "toothMap": {
     "upper": "Upper",

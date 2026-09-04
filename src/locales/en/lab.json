@@ -328,7 +328,8 @@
         "models": {
           "UNIT_BASED": "Unit price × tooth count",
           "FIXED_PRICE": "Fixed price",
-          "LAB_DESCRIBED": "Prices described by the lab"
+          "LAB_DESCRIBED": "Prices described by the lab",
+          "NO_PRICING": "No pricing (lab sets the total per order)"
         },
         "unitPrice": "Unit price (GEL)",
         "fixedPrice": "Fixed price (GEL)",
@@ -352,7 +353,8 @@
         "rushTurnaroundDaysMax_other": "Up to {{count}} days (your service's average turnaround).",
         "priceDescription": "Price description",
         "priceDescriptionHelp": "Write out what you charge for this service. The doctor reads this exactly as you type it, and you confirm the final price after reviewing the order.",
-        "priceDescriptionRequired": "Write the prices before publishing."
+        "priceDescriptionRequired": "Write the prices before publishing.",
+        "noPricingWarning": "Nothing will be calculated for this service. The doctor sees no estimate when ordering, and the order counts as 0 in receivables and in the clinic’s balance until you set the final total on the order yourself. A rush request still shortens the due date, but its surcharge is not added — include it in the final total yourself."
       },
       "publish": "Publish",
       "unpublish": "Unpublish",

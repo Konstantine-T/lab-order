@@ -35,6 +35,18 @@ export type PriceResult =
       rushAmount: 0;
       total: 0;
       lineItems: [];
+    }
+  /**
+   * A NO_PRICING service: the lab publishes no price at all. Zeroed for the
+   * same reason as DESCRIBED — sums keep working, and anything that displays
+   * money checks `kind` first.
+   */
+  | {
+      kind: 'NONE';
+      subtotal: 0;
+      rushAmount: 0;
+      total: 0;
+      lineItems: [];
     };
 
 /** Which pricing rule an order falls under. */
@@ -96,6 +108,11 @@ export function calculatePrice(
   rushOverride?: { type: RushType; value: number },
 ): PriceResult {
   if (!pricing) return { kind: 'CALCULATED', subtotal: 0, rushAmount: 0, total: 0, lineItems: [] };
+
+  // Nothing to compute and nothing to show: the lab turned pricing off.
+  if (pricing.model === 'NO_PRICING') {
+    return { kind: 'NONE', subtotal: 0, rushAmount: 0, total: 0, lineItems: [] };
+  }
 
   // Nothing to compute: the lab priced this one in prose.
   if (pricing.model === 'LAB_DESCRIBED') {
@@ -415,6 +432,12 @@ export function pricingIssues(
   if (!pricing) return [{ kind: 'no-materials' }];
 
   const issues: PricingIssue[] = [];
+
+  // Nothing to fill in, so nothing can be missing — publishable the moment the
+  // lab picks it, which is the whole point. Above the rush check on purpose:
+  // the surcharge is never applied to a service with no total, so demanding a
+  // value for it would block publishing over a number nobody will ever use.
+  if (pricing.model === 'NO_PRICING') return issues;
 
   // Rush, when enabled, needs both a surcharge value and a faster turnaround.
   const rush = pricing.rush;

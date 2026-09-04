@@ -62,8 +62,15 @@ export type RushType = 'NONE' | 'PERCENTAGE' | 'FIXED_AMOUNT';
  * writes the prices out in its own words instead, the doctor reads them when
  * ordering, and the lab sets the authoritative `final_total` afterwards — the
  * same confirmation step every order already goes through.
+ *
+ * `NO_PRICING` goes one step further and publishes no price at all — not even
+ * a description. Nothing is estimated, so `generated_total` stays null and
+ * every total the platform shows for the order (the doctor's estimate, the
+ * lab's receivables, the clinic's payables) is blank until the lab sets
+ * `final_total` by hand. That is a real cost, which is why the editor warns
+ * about it rather than treating it as just another option.
  */
-export type PricingModel = 'UNIT_BASED' | 'FIXED_PRICE' | 'LAB_DESCRIBED';
+export type PricingModel = 'UNIT_BASED' | 'FIXED_PRICE' | 'LAB_DESCRIBED' | 'NO_PRICING';
 
 export type MaterialOption = {
   id: string;
