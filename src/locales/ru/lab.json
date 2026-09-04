@@ -487,7 +487,9 @@
       "invoice": {
         "DOCTOR": "Врач",
         "CLINIC": "Клиника"
-      }
+      },
+      "whatChanged": "Что изменил врач",
+      "otherAnswers": "Другие ответы"
     },
     "history": {
       "label": "История изменений",

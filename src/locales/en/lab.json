@@ -484,7 +484,9 @@
       "invoice": {
         "DOCTOR": "Doctor",
         "CLINIC": "Clinic"
-      }
+      },
+      "whatChanged": "What the doctor changed",
+      "otherAnswers": "Other answers"
     },
     "history": {
       "label": "Edit history",

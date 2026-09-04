@@ -4,6 +4,7 @@ import { Icon } from '@/components/design';
 import { FieldRenderer } from '@/components/DynamicForm';
 import { OrderForm } from '@/features/orderForms/OrderForm';
 import { valuesEqual } from '@/features/lab/orderEdits/diff';
+import { changedItems, type ChangedItem } from '@/features/lab/orderEdits/answerSections';
 import type { FormConfiguration, PricingConfig } from '@/types/database';
 
 const noop = () => {};
@@ -14,6 +15,48 @@ type Props = {
   before: Record<string, unknown>;
   after: Record<string, unknown>;
 };
+
+/**
+ * The questions this edit touched, named.
+ *
+ * Without it the lab got a "changed × 2" badge and two full copies of the form
+ * and had to find the difference by eye — on a Crown & Bridge sheet that is
+ * eight sections and a 32-tooth chart, twice.
+ */
+function ChangedSummary({ items }: { items: ChangedItem[] }) {
+  const { t } = useTranslation('lab');
+  if (items.length === 0) return null;
+
+  const labelOf = (item: ChangedItem) => {
+    if (item.kind === 'question') return item.label;
+    if (item.kind === 'other') return t('orderSheet.diff.otherAnswers');
+    const label = t(item.labelKey);
+    // The surgical guide asks the same five questions of each jaw, so the
+    // section name alone would be ambiguous on a both-jaws case.
+    return item.jaw ? `${t(`sgForm.jaw.${item.jaw}Label`)} — ${label}` : label;
+  };
+
+  return (
+    <Box sx={{ border: 1, borderColor: 'warning.main', borderRadius: 1, p: 2 }}>
+      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+        <Icon name="edit_note" size={18} />
+        <Typography variant="subtitle2">{t('orderSheet.diff.whatChanged')}</Typography>
+      </Stack>
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        {items.map((item, i) => (
+          <Chip
+            key={i}
+            label={labelOf(item)}
+            size="small"
+            color="warning"
+            variant="outlined"
+            sx={{ maxWidth: '100%', height: 'auto', py: 0.5, '& .MuiChip-label': { whiteSpace: 'normal' } }}
+          />
+        ))}
+      </Stack>
+    </Box>
+  );
+}
 
 // Renders the order answers once (the "after"/current state), highlighting only
 // the questions that changed and showing each one's previous value inline. The
@@ -47,6 +90,8 @@ export function OrderAnswersDiff({ configuration, pricing, before, after }: Prop
 
   return (
     <Stack spacing={3}>
+      <ChangedSummary items={changedItems(configuration, before, after)} />
+
       {hasStructured &&
         (structuredChanged ? (
           <Box sx={{ border: 1, borderColor: 'warning.main', borderRadius: 1, p: 2 }}>
