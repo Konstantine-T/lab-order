@@ -30,6 +30,7 @@ import {
 import { initialState, type WizardState } from '@/features/doctor/orderCreate/types';
 import { normalizePatientPayload } from '@/features/doctor/orderCreate/patientName';
 import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
+import { LabContactLine } from '@/features/orders/orderFiles/LabContactLine';
 import type {
   DoctorWorkLocationRow,
   EditReasonCode,
@@ -45,6 +46,8 @@ type OrderDetail = OrderRow & {
     date_of_birth: string | null;
     gender: string | null;
   } | null;
+  /** Live, not the snapshot: you email a lab at the address it has now. */
+  labs: { contact_email: string | null } | null;
 };
 
 const EDIT_REASONS: EditReasonCode[] = [
@@ -80,7 +83,7 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('*, patients(first_name, last_name, date_of_birth, gender)')
+        .select('*, patients(first_name, last_name, date_of_birth, gender), labs(contact_email)')
         .eq('id', orderId!)
         .maybeSingle();
       if (error) throw error;
@@ -448,6 +451,7 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
             canUpload
             canRemove={() => true}
           />
+          <LabContactLine email={order.labs?.contact_email} orderCode={order.order_code} />
         </SectionCard>
       </SplitLayout>
 

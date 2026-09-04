@@ -57,6 +57,7 @@ import {
   normalizePatientPayload,
 } from '@/features/doctor/orderCreate/patientName';
 import { PendingOrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
+import { LabContactLine } from '@/features/orders/orderFiles/LabContactLine';
 import { uploadOrderFile } from '@/features/orders/orderFiles/orderFilesApi';
 import { scrollToFirstError } from '@/features/orderForms/scrollToFirstError';
 import {
@@ -281,13 +282,13 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
     queryFn: async () => {
       const { data, error } = await supabase
         .from('labs')
-        .select('id, public_name, city, logo_url')
+        .select('id, public_name, city, logo_url, contact_email')
         .eq('id', state.lab_id)
         .eq('approval_status', 'APPROVED_ACTIVE')
         .eq('is_active', true)
         .maybeSingle();
       if (error) throw error;
-      return data as Pick<LabRow, 'id' | 'public_name' | 'city' | 'logo_url'> | null;
+      return data as Pick<LabRow, 'id' | 'public_name' | 'city' | 'logo_url' | 'contact_email'> | null;
     },
   });
 
@@ -565,6 +566,17 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
                 <Box component="span" sx={{ color: 'text.secondary', fontWeight: 500 }}>
                   · {selectedService.name}
                 </Box>
+                {/* The address the doctor needs while filling the order, in the
+                    one bar that stays on screen the whole way down the form. */}
+                {lab.contact_email && (
+                  <Box
+                    component="a"
+                    href={`mailto:${lab.contact_email}`}
+                    sx={{ ml: 1, color: 'text.secondary', fontWeight: 500 }}
+                  >
+                    {lab.contact_email}
+                  </Box>
+                )}
               </Typography>
               <Button
                 size="small"
@@ -685,6 +697,7 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
         )}
 
         <FilesCard
+          labEmail={lab?.contact_email}
           files={pendingFiles}
           onChange={setPendingFiles}
           disabled={submit.isPending}
@@ -714,10 +727,12 @@ function FilesCard({
   files,
   onChange,
   disabled,
+  labEmail,
 }: {
   files: File[];
   onChange: (files: File[]) => void;
   disabled?: boolean;
+  labEmail?: string | null;
 }) {
   const { t } = useTranslation('doctor');
   return (
@@ -728,6 +743,9 @@ function FilesCard({
     >
       {/* Picked now, uploaded after submit — see the submit mutation. */}
       <PendingOrderFilesField files={files} onChange={onChange} disabled={disabled} />
+      {/* No order code yet — the order doesn't exist until submit, so the copy
+          asks for the patient's name instead of a number that can't be quoted. */}
+      <LabContactLine email={labEmail} />
     </SectionCard>
   );
 }

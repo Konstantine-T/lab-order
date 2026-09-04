@@ -15,6 +15,7 @@ import {
 import { Link as RouterLink, useParams } from 'react-router-dom';
 import { CardStack, FactCell, Icon, PageHeader, SectionCard } from '@/components/design';
 import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
+import { LabContactLine } from '@/features/orders/orderFiles/LabContactLine';
 import { OrderCompletionActions } from '@/features/orders/completion/OrderCompletionActions';
 import { ClarificationPanel } from '@/features/orders/clarifications/ClarificationPanel';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -28,6 +29,8 @@ import type { LabFormVersionRow, OrderAnswerRow, OrderRow } from '@/types/databa
 
 type DetailRow = OrderRow & {
   patients: { first_name: string; last_name: string; date_of_birth: string | null } | null;
+  /** Live, not the snapshot: you email a lab at the address it has now. */
+  labs: { contact_email: string | null } | null;
 };
 
 /**
@@ -47,7 +50,7 @@ export function ClinicOrderDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('*, patients(first_name, last_name, date_of_birth)')
+        .select('*, patients(first_name, last_name, date_of_birth), labs(contact_email)')
         .eq('id', orderId!)
         .maybeSingle();
       if (error) throw error;
@@ -224,6 +227,7 @@ export function ClinicOrderDetailPage() {
           version loaded. */}
       <SectionCard icon="upload_file" title={tc('orderFiles.title')}>
         <OrderFilesField orderId={order.id} labId={order.lab_id} />
+        <LabContactLine email={order.labs?.contact_email} orderCode={order.order_code} />
       </SectionCard>
 
       {version && (

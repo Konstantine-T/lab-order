@@ -90,7 +90,7 @@
     },
     "filesAndDue": {
       "files": "ფაილები",
-      "uploadHint": "დაშვებულია: STL, ZIP, JPG, PNG, PDF, MP4 (მაქს. 100 MB)",
+      "uploadHint": "თითო ფაილი მაქს. 100 MB.",
       "addFile": "ფაილის დამატება",
       "noFiles": "ფაილი არ არის დამატებული.",
       "dueDate": "სასურველი ვადა",

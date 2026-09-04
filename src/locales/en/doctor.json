@@ -90,7 +90,7 @@
     },
     "filesAndDue": {
       "files": "Files",
-      "uploadHint": "Allowed: STL, ZIP, JPG, PNG, PDF, MP4 (up to 100 MB)",
+      "uploadHint": "Up to 100 MB per file.",
       "addFile": "Add file",
       "noFiles": "No files added.",
       "dueDate": "Requested due date",
