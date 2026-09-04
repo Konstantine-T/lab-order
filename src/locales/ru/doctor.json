@@ -202,7 +202,8 @@
     "moreFilters": "Ещё фильтры",
     "pipelineNext": "{{current}} → {{next}}",
     "pipelineDone": "Доставлено и завершено",
-    "addNewOrder": "Добавить новый заказ"
+    "addNewOrder": "Добавить новый заказ",
+    "addAnotherService": "Добавить другую услугу"
   },
   "orderDetail": {
     "back": "Назад к заказам",

@@ -194,7 +194,8 @@
     "moreFilters": "დამატებითი ფილტრები",
     "pipelineNext": "{{current}} → {{next}}",
     "pipelineDone": "მიწოდებული და დასრულებული",
-    "addNewOrder": "ახალი შეკვეთის დამატება"
+    "addNewOrder": "ახალი შეკვეთის დამატება",
+    "addAnotherService": "სხვა სერვისის დამატება"
   },
   "orderDetail": {
     "back": "უკან შეკვეთებზე",

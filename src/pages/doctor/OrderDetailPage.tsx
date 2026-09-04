@@ -165,6 +165,20 @@ export function OrderDetailPage() {
               </Button>
             )}
             <OrderCompletionActions orderId={order.id} status={order.status} />
+            {/* Deliberately ungated by status, unlike "continue project"
+                below: this is not the next phase of this case, it is a
+                separate piece of work for the same patient, and the doctor
+                has no reason to wait for this one to close before ordering
+                it. `startForPatient` is the same launcher minus the lineage
+                link, which is the only difference the two buttons have. */}
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<Icon name="add" size={16} />}
+              onClick={() => continueProject.startForPatient(order.lab_id, order.patient_id)}
+            >
+              {t('orders.addAnotherService')}
+            </Button>
             {order.status === 'COMPLETED' && (
               <Button
                 variant="contained"

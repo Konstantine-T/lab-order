@@ -195,7 +195,8 @@
     "moreFilters": "More filters",
     "pipelineNext": "{{current}} → {{next}}",
     "pipelineDone": "Delivered & completed",
-    "addNewOrder": "Add new order"
+    "addNewOrder": "Add new order",
+    "addAnotherService": "Add another service"
   },
   "orderDetail": {
     "back": "Back to orders",

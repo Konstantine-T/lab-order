@@ -146,6 +146,15 @@ export function PatientOrdersPage() {
                           {t('orders.editButton')}
                         </Button>
                       )}
+                      {patientId && (
+                        <Button
+                          size="small"
+                          startIcon={<Icon name="add" size={16} />}
+                          onClick={() => continueProject.startForPatient(row.lab_id, patientId)}
+                        >
+                          {t('orders.addAnotherService')}
+                        </Button>
+                      )}
                       {row.status === 'COMPLETED' && patientId && (
                         <Button
                           size="small"
