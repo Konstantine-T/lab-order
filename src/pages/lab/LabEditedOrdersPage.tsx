@@ -4,6 +4,7 @@ import { PageHeader, StatusPill } from '@/components/design';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
+import { appendDueWindow, dueTimeOf } from '@/features/orders/orderDates';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { OrderStatusChip } from '@/components/OrderStatusChip';
@@ -21,6 +22,7 @@ type Row = OrderRow & {
 
 export function LabEditedOrdersPage() {
   const { t } = useTranslation('lab');
+  const { t: tc } = useTranslation('common');
   const { user } = useAuth();
   const labId = user?.lab?.id;
   const navigate = useNavigate();
@@ -33,7 +35,8 @@ export function LabEditedOrdersPage() {
         .from('orders')
         .select(
           'id, order_code, status, generated_total, final_total, requested_due_date, ' +
-            'confirmed_due_date, created_at, service_snapshot, doctor_snapshot, continues_order_id, ' +
+            'confirmed_due_date, requested_due_time, confirmed_due_time, ' +
+            'created_at, service_snapshot, doctor_snapshot, continues_order_id, ' +
             'has_unreviewed_edits, last_edited_at, edit_count, lab_services(name)',
         )
         .eq('lab_id', labId!)
@@ -70,7 +73,9 @@ export function LabEditedOrdersPage() {
             const serviceName = row.lab_services?.name ?? row.service_snapshot?.name ?? '';
             const total = row.final_total ?? row.generated_total;
             const dueRaw = row.confirmed_due_date ?? row.requested_due_date;
-            const due = dueRaw ? dayjs(dueRaw).format('MMM D') : undefined;
+            const due = dueRaw
+              ? appendDueWindow(dayjs(dueRaw).format('MMM D'), dueTimeOf(row), tc)
+              : undefined;
             return (
               <OrderRowCard
                 key={row.id}

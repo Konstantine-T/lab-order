@@ -228,7 +228,9 @@
     "due": "Due",
     "total": "Total",
     "continuesFrom": "Continues from",
-    "continuation": "Continuation"
+    "continuation": "Continuation",
+    "dueWindow": "{{start}}–{{end}}",
+    "dueWindowNextDay": "(+1 day)"
   },
   "orderFiles": {
     "title": "Attachments",

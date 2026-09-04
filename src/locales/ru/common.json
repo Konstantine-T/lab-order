@@ -228,7 +228,9 @@
     "due": "Срок",
     "total": "Итого",
     "continuesFrom": "Продолжение проекта",
-    "continuation": "Продолжение"
+    "continuation": "Продолжение",
+    "dueWindow": "{{start}}–{{end}}",
+    "dueWindowNextDay": "(+1 день)"
   },
   "orderFiles": {
     "title": "Вложения",

@@ -21,7 +21,8 @@ import {
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { DatePicker } from '@mui/x-date-pickers';
+import { DatePicker, TimePicker } from '@mui/x-date-pickers';
+import { formatDueWindow } from '@/features/orders/orderDates';
 import dayjs, { type Dayjs } from 'dayjs';
 import { supabase } from '@/lib/supabase';
 import { formatGEL } from '@/utils/pricing';
@@ -80,6 +81,7 @@ export function LabOrderSheetPage() {
   const [finalPrice, setFinalPrice] = useState<string>('');
   const [paidAmount, setPaidAmount] = useState<string>('');
   const [confirmedDue, setConfirmedDue] = useState<string>('');
+  const [confirmedTime, setConfirmedTime] = useState<string>('');
   const [pendingStatus, setPendingStatus] = useState<OrderStatus | ''>('');
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -172,6 +174,7 @@ export function LabOrderSheetPage() {
     setFinalPrice(order.final_total?.toString() ?? '');
     setPaidAmount(order.paid_total?.toString() ?? '0');
     setConfirmedDue(order.confirmed_due_date ?? '');
+    setConfirmedTime(order.confirmed_due_time?.slice(0, 5) ?? '');
     setPendingStatus(order.status);
   }, [order]);
 
@@ -480,7 +483,8 @@ export function LabOrderSheetPage() {
                     {t('orderSheet.confirmedDueDate')}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                    {t('orderSheet.dueDate')}: {order.requested_due_date ?? '—'}
+                    {t('orderSheet.dueDate')}:{' '}
+                    {formatDueWindow(order.requested_due_date, order.requested_due_time, tc)}
                   </Typography>
                   <Stack spacing={1}>
                     <DatePicker
@@ -491,11 +495,32 @@ export function LabOrderSheetPage() {
                       format="YYYY-MM-DD"
                       slotProps={{ textField: { size: 'small', fullWidth: true } }}
                     />
+                    {/* Optional, same rule as the doctor's: a confirmed date
+                        with no time means "that day, any time". */}
+                    <TimePicker
+                      ampm={false}
+                      label={t('orderSheet.confirmedDueTime')}
+                      value={confirmedTime ? dayjs(`2000-01-01T${confirmedTime}`) : null}
+                      onChange={(d: Dayjs | null) =>
+                        setConfirmedTime(d && d.isValid() ? d.format('HH:mm') : '')
+                      }
+                      slotProps={{
+                        textField: { size: 'small', fullWidth: true },
+                        field: { clearable: true },
+                      }}
+                    />
                     <Button
                       variant="outlined"
                       fullWidth
                       size="small"
-                      onClick={() => update.mutate({ confirmed_due_date: confirmedDue || null })}
+                      onClick={() =>
+                        update.mutate({
+                          confirmed_due_date: confirmedDue || null,
+                          // Both in one patch: the lab writes `orders` directly
+                          // under orders_lab_update, and RLS here is row-level.
+                          confirmed_due_time: confirmedTime || null,
+                        })
+                      }
                       disabled={update.isPending}
                     >
                       {t('orderSheet.confirmDue')}
@@ -611,7 +636,11 @@ export function LabOrderSheetPage() {
               value={order.requested_due_date ?? '—'}
               hint={
                 order.confirmed_due_date
-                  ? `${t('orderSheet.confirmedDueDate')}: ${order.confirmed_due_date}`
+                  ? `${t('orderSheet.confirmedDueDate')}: ${formatDueWindow(
+                      order.confirmed_due_date,
+                      order.confirmed_due_time,
+                      tc,
+                    )}`
                   : undefined
               }
             />

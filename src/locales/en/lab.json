@@ -537,7 +537,8 @@
       "questionLabel": "What needs changing",
       "cancel": "Cancel",
       "confirm": "Send question"
-    }
+    },
+    "confirmedDueTime": "Confirmed time (optional)"
   },
   "approvalBanner": {
     "PENDING_APPROVAL": {

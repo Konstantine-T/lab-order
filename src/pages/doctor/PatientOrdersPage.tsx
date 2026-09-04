@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useContinueProject } from '@/features/doctor/orderCreate/useContinueProject';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
+import { appendDueWindow, dueTimeOf } from '@/features/orders/orderDates';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { OrderRowCard } from '@/features/orders/OrderRowCard';
@@ -23,6 +24,7 @@ type OrderRow_ = OrderRow & {
 
 export function PatientOrdersPage() {
   const { t } = useTranslation('doctor');
+  const { t: tc } = useTranslation('common');
   const { user } = useAuth();
   const doctorId = user?.doctor_profile?.id;
   const { patientId } = useParams<{ patientId: string }>();
@@ -52,7 +54,7 @@ export function PatientOrdersPage() {
         .from('orders')
         .select(
           'id, order_code, status, payment_status, generated_total, final_total, ' +
-            'requested_due_date, confirmed_due_date, created_at, service_snapshot, lab_id, continues_order_id, ' +
+            'requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, service_snapshot, lab_id, continues_order_id, ' +
             'labs(public_name), lab_services(name)',
         )
         .eq('doctor_id', doctorId!)
@@ -114,7 +116,9 @@ export function PatientOrdersPage() {
               row.final_total < row.generated_total;
             const total = row.final_total ?? row.generated_total;
             const dueRaw = row.confirmed_due_date ?? row.requested_due_date;
-            const due = dueRaw ? dayjs(dueRaw).format('MMM D') : undefined;
+            const due = dueRaw
+              ? appendDueWindow(dayjs(dueRaw).format('MMM D'), dueTimeOf(row), tc)
+              : undefined;
             return (
               <OrderRowCard
                 key={row.id}

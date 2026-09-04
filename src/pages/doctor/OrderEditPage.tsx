@@ -21,6 +21,7 @@ import {
 import { calculatePrice, formatGEL } from '@/utils/pricing';
 import { scrollToFirstError } from '@/features/orderForms/scrollToFirstError';
 import { PatientStep, FormStep } from '@/pages/doctor/OrderCreateWizard';
+import { formatDueWindow } from '@/features/orders/orderDates';
 import {
   collectOrderProblems,
   hasProblem,
@@ -355,7 +356,7 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
             <SectionCard title={t('orderEdit.locked')}>
               <DetailList>
                 <DetailRow label={t('orderCreate.filesAndDue.dueDate')} labelWidth={120}>
-                  {order.requested_due_date ?? '—'}
+                  {formatDueWindow(order.requested_due_date, order.requested_due_time, tc)}
                 </DetailRow>
                 <DetailRow label={t('orderCreate.filesAndDue.rush')} labelWidth={120}>
                   {rushText}

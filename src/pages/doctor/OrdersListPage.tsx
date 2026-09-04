@@ -41,7 +41,7 @@ import { formatGEL } from '@/utils/pricing';
 import { OrderRowCard } from '@/features/orders/OrderRowCard';
 import { LineageBadge } from '@/features/orders/LineageBadge';
 import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
-import { byDueDate, dueDateOf } from '@/features/orders/orderDates';
+import { appendDueWindow, byDueDate, dueDateOf, dueTimeOf } from '@/features/orders/orderDates';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { OrdersPaginator } from '@/features/orders/OrdersPaginator';
 import { ORDER_PIPELINE, pipelineIndex } from '@/features/orders/pipeline';
@@ -186,7 +186,7 @@ export function OrdersListPage() {
       const { data, error } = await supabase
         .from('orders')
         .select(
-          'id, order_code, status, payment_status, generated_total, final_total, requested_due_date, confirmed_due_date, created_at, service_snapshot, lab_id, patient_id, continues_order_id, ' +
+          'id, order_code, status, payment_status, generated_total, final_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, service_snapshot, lab_id, patient_id, continues_order_id, ' +
             'patients(first_name, last_name), labs(public_name), lab_services(name), order_clarifications(answered_at)',
         )
         .eq('doctor_id', doctorId!)
@@ -518,7 +518,9 @@ export function OrdersListPage() {
                   row.final_total < row.generated_total;
                 const total = row.final_total ?? row.generated_total;
                 const dueRaw = dueDateOf(row);
-                const due = dueRaw ? dayjs(dueRaw).format('MMM D') : undefined;
+                const due = dueRaw
+                  ? appendDueWindow(dayjs(dueRaw).format('MMM D'), dueTimeOf(row), tc)
+                  : undefined;
                 const overdue =
                   !!dueRaw &&
                   row.status !== 'COMPLETED' &&

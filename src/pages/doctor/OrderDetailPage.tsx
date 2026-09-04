@@ -3,6 +3,7 @@ import { Link as RouterLink, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
+import { formatDueWindow } from '@/features/orders/orderDates';
 import { supabase } from '@/lib/supabase';
 import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
@@ -247,7 +248,7 @@ export function OrderDetailPage() {
             <SectionCard>
               <DetailList>
                 <DetailRow label={t('orderDetail.dueDate')} labelWidth={130}>
-                  {order.requested_due_date ?? '—'}
+                  {formatDueWindow(order.requested_due_date, order.requested_due_time, tc)}
                 </DetailRow>
                 <DetailRow label={t('orderDetail.confirmedDueDate')} labelWidth={130}>
                   {order.confirmed_due_date ? (

@@ -13,7 +13,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers';
+import { DatePicker, TimePicker } from '@mui/x-date-pickers';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -29,6 +29,7 @@ import {
   problemFor,
   type OrderProblem,
 } from '@/features/doctor/orderValidation';
+import { dueWindowEnd } from '@/features/orders/orderDates';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { MobilePriceBar } from '@/components/MobilePriceBar';
 import {
@@ -428,6 +429,9 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
         p_lab_form_version_id: version.id,
         p_invoice_recipient_type: state.invoice_recipient_type,
         p_requested_due_date: state.requested_due_date || null,
+        // Optional. Null means "that day, any time" — the window only exists
+        // when the doctor asked for one.
+        p_requested_due_time: state.requested_due_time || null,
         p_rush_type: submittedRush.type,
         p_rush_value: submittedRush.type === 'NONE' ? null : submittedRush.value,
         p_answers: state.answers,
@@ -1067,8 +1071,16 @@ function SummaryRail({
 
   const labRush = pricing?.rush;
   const rushAvailable = !!labRush && labRush.type !== 'NONE';
+  const { t: tc } = useTranslation('common');
   const minDays = minTurnaroundDays(averageTurnaroundDays, pricing, state.rush_requested);
   const dueProblem = problemFor(problems, 'dueDate');
+  // Live preview of the window the picked start implies, so the doctor sees
+  // the hour they are actually asking for rather than having to know the rule.
+  const win = state.requested_due_time ? dueWindowEnd(state.requested_due_time) : null;
+  const timeHelper = win
+    ? `${state.requested_due_time}\u2013${win.end}` +
+      (win.nextDay ? ` ${tc('orderCard.dueWindowNextDay')}` : '')
+    : t('orderCreate.filesAndDue.dueTimeOptional');
   // With no locations at all the callout below already says what to do; a red
   // field on top of it says the same thing twice.
   const locationError = hasProblem(problems, 'workLocation') && locations.length > 0;
@@ -1180,6 +1192,31 @@ function SummaryRail({
                   ? orderProblemMessage(dueProblem, t)
                   : t('orderCreate.filesAndDue.dueDateHint', { count: minDays }),
               },
+            }}
+          />
+        </Box>
+
+        {/* Optional: the doctor names a start, and the window end is derived.
+            There is no end input, because the hour is the rule. */}
+        <Box>
+          <FieldLabel sx={{ mb: 0.625 }}>{t('orderCreate.filesAndDue.dueTime')}</FieldLabel>
+          <TimePicker
+            ampm={false}
+            value={
+              state.requested_due_time
+                ? dayjs(`2000-01-01T${state.requested_due_time}`)
+                : null
+            }
+            onChange={(d: Dayjs | null) =>
+              update({ requested_due_time: d && d.isValid() ? d.format('HH:mm') : '' })
+            }
+            slotProps={{
+              textField: {
+                fullWidth: true,
+                size: 'small',
+                helperText: timeHelper,
+              },
+              field: { clearable: true },
             }}
           />
         </Box>

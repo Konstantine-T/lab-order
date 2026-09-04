@@ -57,7 +57,7 @@ export function ClinicOrdersPage() {
       const { data, error } = await supabase
         .from('orders')
         .select(
-          'id, order_code, doctor_id, status, payment_status, generated_total, final_total, requested_due_date, confirmed_due_date, created_at, continues_order_id, patients(first_name, last_name), labs(public_name), lab_services(name)',
+          'id, order_code, doctor_id, status, payment_status, generated_total, final_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, continues_order_id, patients(first_name, last_name), labs(public_name), lab_services(name)',
         )
         .order('created_at', { ascending: false });
       if (error) throw error;

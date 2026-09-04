@@ -21,6 +21,7 @@ import { ClarificationPanel } from '@/features/orders/clarifications/Clarificati
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
+import { formatDueWindow, dueTimeOf } from '@/features/orders/orderDates';
 import { supabase } from '@/lib/supabase';
 import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
 import { OrderForm } from '@/features/orderForms/OrderForm';
@@ -209,7 +210,11 @@ export function ClinicOrderDetailPage() {
                 ? t('orderDetail.confirmedDueDate')
                 : t('orderDetail.dueDate')
             }
-            value={order.confirmed_due_date ?? order.requested_due_date ?? '—'}
+            value={formatDueWindow(
+              order.confirmed_due_date ?? order.requested_due_date,
+              dueTimeOf(order),
+              tc,
+            )}
           />
           <FactCell
             label={t('orderDetail.total')}

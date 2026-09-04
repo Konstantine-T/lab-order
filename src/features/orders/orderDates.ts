@@ -54,3 +54,81 @@ function tieBreak(a: DatedOrder, b: DatedOrder): number {
   if (ca === cb) return 0;
   return ca > cb ? -1 : 1;
 }
+
+// ===== The one-hour window ==================================================
+
+/** A time is stored as `HH:MM:SS`; only the first five characters are shown. */
+const hhmm = (time: string) => time.slice(0, 5);
+
+/**
+ * The end of the window a start time implies.
+ *
+ * One hour, always, derived here and nowhere else. Storing an end column would
+ * let it drift from the start and would invite someone to make it editable,
+ * which is not what was asked for.
+ *
+ * `nextDay` is true when the hour crosses midnight — 23:30 ends at 00:30
+ * tomorrow, and showing "23:30–00:30" unmarked reads as an end before its own
+ * start.
+ */
+export function dueWindowEnd(time: string): { end: string; nextDay: boolean } {
+  const [h, m] = hhmm(time).split(':').map(Number);
+  const total = h * 60 + m + 60;
+  const endH = Math.floor(total / 60) % 24;
+  return {
+    end: `${String(endH).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`,
+    nextDay: total >= 24 * 60,
+  };
+}
+
+/** Minimal shape of the i18next `t` we need. */
+type TranslateFn = (key: string, opts?: Record<string, unknown>) => string;
+
+/**
+ * "2026-08-31", or "2026-08-31, 13:30–14:30" when a time was given.
+ *
+ * Every surface that shows a due date routes through this, so the window can
+ * only be got wrong in one place. A date with no time renders exactly as it
+ * always did — no stray dash, no invented 00:00.
+ */
+export function formatDueWindow(
+  date: string | null | undefined,
+  time: string | null | undefined,
+  t: TranslateFn,
+  fallback = '—',
+): string {
+  if (!date) return fallback;
+  if (!time) return date;
+  const { end, nextDay } = dueWindowEnd(time);
+  const window = t('orderCard.dueWindow', { start: hhmm(time), end });
+  return `${date}, ${window}${nextDay ? ` ${t('orderCard.dueWindowNextDay')}` : ''}`;
+}
+
+/** The time that goes with `dueDateOf` — the lab's once it exists. */
+export function dueTimeOf(row: {
+  confirmed_due_date?: string | null;
+  confirmed_due_time?: string | null;
+  requested_due_time?: string | null;
+}): string | null {
+  // Tied to which *date* is authoritative, not to which time happens to be
+  // set: a lab that confirms a date but no time means "that day, any time".
+  return (row.confirmed_due_date ? row.confirmed_due_time : row.requested_due_time) ?? null;
+}
+
+/**
+ * The compact form for a list row: whatever short date the caller already
+ * renders, plus the window when a time was asked for.
+ *
+ * Shares `dueWindowEnd` with `formatDueWindow`, so a row and the detail screen
+ * it opens can never disagree about when the hour ends.
+ */
+export function appendDueWindow(
+  formattedDate: string,
+  time: string | null | undefined,
+  t: TranslateFn,
+): string {
+  if (!time) return formattedDate;
+  const { end, nextDay } = dueWindowEnd(time);
+  const window = t('orderCard.dueWindow', { start: hhmm(time), end });
+  return `${formattedDate} ${window}${nextDay ? ` ${t('orderCard.dueWindowNextDay')}` : ''}`;
+}

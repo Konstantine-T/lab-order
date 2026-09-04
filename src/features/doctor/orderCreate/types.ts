@@ -24,6 +24,8 @@ export type WizardState = {
   // Step 4
   doctor_work_location_id: string;
   requested_due_date: string;
+  /** `HH:MM`, or '' for no time — the lab may deliver at any hour that day. */
+  requested_due_time: string;
   /** True when the doctor opts into the lab's pre-configured rush surcharge.
    * The actual rush_type/rush_value sent to the server is derived from the
    * lab's PricingConfig.rush at submit time. */
@@ -39,6 +41,7 @@ export const initialState: WizardState = {
   answers: {},
   doctor_work_location_id: '',
   requested_due_date: '',
+  requested_due_time: '',
   rush_requested: false,
   invoice_recipient_type: 'DOCTOR',
 };

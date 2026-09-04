@@ -540,7 +540,8 @@
       "questionLabel": "Что нужно изменить",
       "cancel": "Отмена",
       "confirm": "Отправить вопрос"
-    }
+    },
+    "confirmedDueTime": "Подтверждённое время (необязательно)"
   },
   "approvalBanner": {
     "PENDING_APPROVAL": {

@@ -536,7 +536,8 @@
       "questionLabel": "რა უნდა შეიცვალოს",
       "cancel": "გაუქმება",
       "confirm": "შეკითხვის გაგზავნა"
-    }
+    },
+    "confirmedDueTime": "დადასტურებული დრო (არასავალდებულო)"
   },
   "approvalBanner": {
     "PENDING_APPROVAL": {

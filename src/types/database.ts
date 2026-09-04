@@ -396,6 +396,9 @@ export interface OrderRow {
   status: OrderStatus;
   requested_due_date: string | null;
   confirmed_due_date: string | null;
+  /** Start of the one-hour window; null means "that day, any time" (0032). */
+  requested_due_time: string | null;
+  confirmed_due_time: string | null;
   invoice_recipient_type: InvoiceRecipientType;
   generated_total: number | null;
   final_total: number | null;

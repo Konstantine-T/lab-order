@@ -105,7 +105,9 @@
       "rushTurnaroundOther": "Turnaround drops to {{count}} days.",
       "workLocation": "Work location",
       "noLocations": "You have no work locations yet. Add one to continue.",
-      "addLocation": "Add work location"
+      "addLocation": "Add work location",
+      "dueTime": "Preferred time (optional)",
+      "dueTimeOptional": "Leave empty if any time that day is fine."
     },
     "brokenDraft": {
       "alert": "This draft is outdated — the lab, service, or form has changed since it was saved. Keep your answers and continue, or start fresh.",

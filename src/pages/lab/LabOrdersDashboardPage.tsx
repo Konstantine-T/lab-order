@@ -152,7 +152,7 @@ export function LabOrdersDashboardPage() {
       const { data, error } = await supabase
         .from('orders')
         .select(
-          'id, order_code, status, generated_total, final_total, requested_due_date, confirmed_due_date, created_at, service_snapshot, doctor_snapshot, has_unreviewed_edits, ' +
+          'id, order_code, status, generated_total, final_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, service_snapshot, doctor_snapshot, has_unreviewed_edits, ' +
             'lab_services(name), patients(first_name, last_name), order_clarifications(answered_at)',
         )
         .eq('lab_id', labId!)

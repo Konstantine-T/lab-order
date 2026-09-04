@@ -228,7 +228,9 @@
     "due": "ვადა",
     "total": "ჯამი",
     "continuesFrom": "გაგრძელება პროექტიდან",
-    "continuation": "გაგრძელება"
+    "continuation": "გაგრძელება",
+    "dueWindow": "{{start}}–{{end}}",
+    "dueWindowNextDay": "(+1 დღე)"
   },
   "orderFiles": {
     "title": "მიმაგრებული ფაილები",
