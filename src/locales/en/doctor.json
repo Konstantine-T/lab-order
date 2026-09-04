@@ -143,9 +143,10 @@
       "formAnswers": "Some required questions in the order form are unanswered.",
       "workLocation": "Choose the work location for this order.",
       "dueDateMissing": "Desired due date is required.",
-      "dueDateTooSoon": "The desired due date is too soon — this lab needs at least {{count}} days.",
       "editReason": "Choose a reason for the change.",
-      "editComment": "This reason needs a comment."
+      "editComment": "This reason needs a comment.",
+      "dueDateTooSoon_one": "The desired due date is too soon — this lab needs at least {{count}} day.",
+      "dueDateTooSoon_other": "The desired due date is too soon — this lab needs at least {{count}} days."
     }
   },
   "orders": {

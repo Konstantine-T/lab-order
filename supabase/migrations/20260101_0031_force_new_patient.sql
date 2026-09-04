@@ -355,6 +355,19 @@ begin
 end $function$;
 
 
+-- _submit_order_impl does no authorization at all — it trusts p_doctor_id and
+-- the wrappers above are what check it — so it must never be callable by a
+-- client. CREATE OR REPLACE preserves privileges, so this was a no-op when
+-- 0031 first ran. It stopped being one the moment 0032 dropped that signature:
+-- replaying this file alone now CREATES the function, and `alter default
+-- privileges ... grant execute on functions to authenticated, anon`
+-- (all-in-one.sql) would hand it straight to the browser, where p_doctor_id
+-- would let anyone forge an order against any doctor. These files get
+-- replayed; the revoke has to travel with the definition.
+revoke all on function public._submit_order_impl(
+  uuid, uuid, uuid, uuid, jsonb, uuid, text, date, text, numeric, jsonb, numeric, uuid, uuid, uuid
+) from public, anon, authenticated;
+
 grant execute on function public.edit_order(uuid, jsonb, uuid, text, jsonb, numeric, text, text) to authenticated;
 
 -- ---------------------------------------------------------------------------

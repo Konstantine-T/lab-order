@@ -147,7 +147,11 @@ export function CardGrid({
           // row as tall as its own neighbours. Without it a two-line
           // description on one service made that whole row taller than the
           // next, and the grid read as ragged rather than as a set.
-          gridAutoRows: '1fr',
+          //
+          // Only where there is more than one column: at `xs` every row holds
+          // a single card, so equalising rows would stretch a short card to
+          // the height of the tallest one in the whole list.
+          gridAutoRows: { xs: 'auto', md: '1fr' },
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}

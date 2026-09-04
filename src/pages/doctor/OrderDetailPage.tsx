@@ -259,7 +259,7 @@ export function OrderDetailPage() {
                       sx={{ color: 'success.main' }}
                     >
                       <Icon name="check_circle" size={15} filled />
-                      {order.confirmed_due_date}
+                      {formatDueWindow(order.confirmed_due_date, order.confirmed_due_time, tc)}
                     </Stack>
                   ) : (
                     '—'

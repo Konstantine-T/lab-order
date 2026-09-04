@@ -433,12 +433,6 @@ export function pricingIssues(
 
   const issues: PricingIssue[] = [];
 
-  // Nothing to fill in, so nothing can be missing — publishable the moment the
-  // lab picks it, which is the whole point. Above the rush check on purpose:
-  // the surcharge is never applied to a service with no total, so demanding a
-  // value for it would block publishing over a number nobody will ever use.
-  if (pricing.model === 'NO_PRICING') return issues;
-
   // Rush, when enabled, needs both a surcharge value and a faster turnaround.
   const rush = pricing.rush;
   if (rush && rush.type !== 'NONE') {
@@ -447,6 +441,12 @@ export function pricingIssues(
       issues.push({ kind: 'rush-turnaround' });
     }
   }
+
+  // Nothing else to fill in — publishable as soon as the lab picks it, which
+  // is the point. Below the rush check on purpose: rush also sets a faster
+  // turnaround date, and an enabled-but-blank rush renders "+% surcharge" on
+  // the doctor's rail and promises a date it does not deliver.
+  if (pricing.model === 'NO_PRICING') return issues;
 
   if (pricing.model === 'FIXED_PRICE') {
     if ((pricing.fixed_price ?? 0) <= 0) issues.push({ kind: 'fixed-price' });

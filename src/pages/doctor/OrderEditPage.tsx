@@ -217,14 +217,33 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
       qc.invalidateQueries({ queryKey: ['lab-edited-orders'] });
       qc.invalidateQueries({ queryKey: ['lab-unreviewed-edits-count'] });
       qc.invalidateQueries({ queryKey: ['order-edits', orderId] });
+      // Saving an edit can close an open "change the order" request and clear
+      // the status behind it (0030/0033), so the panel, the badge and the
+      // doctor's home list are all stale the moment this returns.
+      qc.invalidateQueries({ queryKey: ['order-clarifications', orderId] });
+      qc.invalidateQueries({ queryKey: ['nav-alerts'] });
+      qc.invalidateQueries({ queryKey: ['doctor-home-orders'] });
       navigate(`${basePath}/${orderId}`);
     },
     onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
   });
 
   const [problems, setProblems] = useState<OrderProblem[]>([]);
+  // Same as the wizard: a corrected field must clear without a second save.
+  const liveProblems = problems.length === 0 ? problems : collectOrderProblems({
+    patient: state.patient,
+    answers: state.answers,
+    doctor_work_location_id: state.doctor_work_location_id,
+    requested_due_date: state.requested_due_date,
+    checkDueDate: false,
+    configuration: version?.configuration_json,
+    pricing: version?.pricing_configuration_json,
+    minDays: 0,
+    noLocations: locations.length === 0,
+    edit: { reasonCode: reason, comment, commentRequired },
+  });
   // No locations at all is a different problem, and the callout says it.
-  const locationError = hasProblem(problems, 'workLocation') && locations.length > 0;
+  const locationError = hasProblem(liveProblems, 'workLocation') && locations.length > 0;
 
   const handleSave = () => {
     setError(null);
@@ -370,15 +389,15 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
       >
         {error && <Alert severity="error">{error}</Alert>}
 
-        {problems.length > 0 && (
+        {liveProblems.length > 0 && (
           <Alert severity="error">
-            {problems.length === 1 ? (
-              orderProblemMessage(problems[0], t)
+            {liveProblems.length === 1 ? (
+              orderProblemMessage(liveProblems[0], t)
             ) : (
               <>
                 {t('orderCreate.fixTheseFields')}
                 <Box component="ul" sx={{ m: 0, mt: 0.75, pl: 2.5 }}>
-                  {problems.map((p, i) => (
+                  {liveProblems.map((p, i) => (
                     <li key={i}>{orderProblemMessage(p, t)}</li>
                   ))}
                 </Box>

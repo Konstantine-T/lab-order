@@ -68,19 +68,19 @@ export function collectOrderProblems(input: OrderProblemInput): OrderProblem[] {
     problems.push({ field: 'formAnswers' });
   }
 
-  // A doctor with no locations at all is not "missing a selection" — the page
-  // already tells them to add one, and marking the absent field red on top of
-  // that says the same thing twice.
-  if (!input.doctor_work_location_id && !input.noLocations) {
-    problems.push({ field: 'workLocation' });
-  }
-
   if (input.checkDueDate !== false) {
     if (!input.requested_due_date) {
       problems.push({ field: 'dueDate', kind: 'missing' });
     } else if (isTooSoon(input.requested_due_date, input.minDays)) {
       problems.push({ field: 'dueDate', kind: 'tooSoon', minDays: input.minDays });
     }
+  }
+
+  // A doctor with no locations at all is not "missing a selection" — the page
+  // already tells them to add one, and marking the absent field red on top of
+  // that says the same thing twice.
+  if (!input.doctor_work_location_id && !input.noLocations) {
+    problems.push({ field: 'workLocation' });
   }
 
   if (input.edit) {

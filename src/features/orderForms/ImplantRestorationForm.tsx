@@ -267,9 +267,13 @@ export function ImplantRestorationForm({
   const ns = () => ++sn;
   const brandSn = labBrands.length > 0 ? ns() : 0;
   const positionSn = ns();
-  const configureSn = ns();
-  const barSn = ns();
-  const finalSn = ns();
+  // All three only render once a position is picked (see the guards below), so
+  // they must not consume a number before then — otherwise the lab's appended
+  // questions start from an inflated total and the doctor sees 1, 2, 6.
+  const hasPositions = a.implantPositions.length > 0;
+  const configureSn = hasPositions ? ns() : 0;
+  const barSn = hasPositions ? ns() : 0;
+  const finalSn = hasPositions ? ns() : 0;
 
   // ── Has lab-determines (provisional price warning) ─────────────────────────
   const hasLabDetermines = a.implantPositions.some((pos) => {

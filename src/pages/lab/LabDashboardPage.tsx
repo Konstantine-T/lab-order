@@ -116,7 +116,12 @@ export function LabDashboardPage() {
       overdue: dated.filter((o) => due(o)! < today).length,
       dueSoon: dated.filter((o) => due(o)! >= today && due(o)! <= dayPlus2).length,
       dueThisWeek: dated.filter((o) => due(o)! >= today && due(o)! <= weekEnd).length,
-      needsClarification: openOrders.filter((o) => o.status === 'NEEDS_CLARIFICATION').length,
+      // Both asks: an order parked waiting on the doctor is the same
+      // "we cannot proceed" for the lab either way, and counting only one of
+      // them let the dashboard claim all-clear with work blocked.
+      needsClarification: openOrders.filter(
+        (o) => o.status === 'NEEDS_CLARIFICATION' || o.status === 'NEEDS_DOCTOR_INPUT',
+      ).length,
       noFinalPrice: openOrders.filter((o) => o.final_total == null).length,
       upcoming: [...dated]
         .sort((a, b) => due(a)!.localeCompare(due(b)!))

@@ -38,7 +38,7 @@ import {
   StatTile,
 } from '@/components/design';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
-import { byDueDate, dueDateOf } from '@/features/orders/orderDates';
+import { appendDueWindow, byDueDate, dueDateOf, dueTimeOf } from '@/features/orders/orderDates';
 import { ClarificationAskDialog } from '@/features/orders/clarifications/ClarificationAskDialog';
 import { formatGEL } from '@/utils/pricing';
 import { tone } from '@/theme/tokens';
@@ -49,6 +49,7 @@ const FILTERABLE_STATUSES: readonly OrderStatus[] = [
   'SUBMITTED',
   'RECEIVED',
   'NEEDS_CLARIFICATION',
+  'NEEDS_DOCTOR_INPUT',
   'IN_PROGRESS',
   'READY_FOR_DELIVERY',
   'SENT_TO_CLINIC',
@@ -64,7 +65,7 @@ type Row = OrderRow & {
   lab_services: { name: string } | null;
   service_snapshot: { name?: string } | null;
   patients: { first_name: string; last_name: string } | null;
-  order_clarifications: { answered_at: string | null }[];
+  order_clarifications: { answered_at: string | null; resolved_by_edit_at: string | null }[];
 };
 
 /**
@@ -74,7 +75,11 @@ type Row = OrderRow & {
 const isAnswered = (row: Row) =>
   row.status === 'NEEDS_CLARIFICATION' &&
   row.order_clarifications.length > 0 &&
-  row.order_clarifications.every((c) => c.answered_at !== null);
+  row.order_clarifications.every(
+    // Resolved-by-edit counts as closed too, or this highlight never lights
+    // up again on an order that once carried an edit request.
+    (c) => c.answered_at !== null || c.resolved_by_edit_at !== null,
+  );
 
 const matchesQuick = (row: Row, quick: Quick) => {
   switch (quick) {
@@ -85,7 +90,7 @@ const matchesQuick = (row: Row, quick: Quick) => {
     case 'inProgress':
       return ['IN_PROGRESS', 'RECEIVED', 'TRY_IN_PHASE'].includes(row.status);
     case 'clarification':
-      return row.status === 'NEEDS_CLARIFICATION';
+      return row.status === 'NEEDS_CLARIFICATION' || row.status === 'NEEDS_DOCTOR_INPUT';
     case 'ready':
       return ['READY_FOR_DELIVERY', 'SENT_TO_CLINIC', 'RECEIVED_BY_CLINIC'].includes(row.status);
     case 'edited':
@@ -100,7 +105,7 @@ const COLUMNS: Column[] = [
   { key: 'patient', width: 'minmax(0, 1.25fr)' },
   { key: 'doctor', width: 'minmax(0, 1fr)' },
   { key: 'service', width: 'minmax(0, 1.35fr)' },
-  { key: 'due', width: '96px' },
+  { key: 'due', width: '132px' },
   { key: 'status', width: '184px' },
   { key: 'total', width: '76px', align: 'right' },
   { key: 'go', width: '24px' },
@@ -153,7 +158,7 @@ export function LabOrdersDashboardPage() {
         .from('orders')
         .select(
           'id, order_code, status, generated_total, final_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, service_snapshot, doctor_snapshot, has_unreviewed_edits, ' +
-            'lab_services(name), patients(first_name, last_name), order_clarifications(answered_at)',
+            'lab_services(name), patients(first_name, last_name), order_clarifications(answered_at, resolved_by_edit_at)',
         )
         .eq('lab_id', labId!)
         .order('created_at', { ascending: false });
@@ -519,7 +524,7 @@ export function LabOrdersDashboardPage() {
                       bgcolor: tone(dueTone, theme.palette.mode).bg,
                     })}
                   >
-                    {dueRaw ? dayjs(dueRaw).format('MMM D') : '—'}
+                    {dueRaw ? appendDueWindow(dayjs(dueRaw).format('MMM D'), dueTimeOf(row), tc) : '—'}
                   </Box>
 
                   {/* The status selector the mockup embeds in the row — a lab

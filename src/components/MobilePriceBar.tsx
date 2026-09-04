@@ -35,8 +35,10 @@ export function MobilePriceBar({ pricing, answers, rush }: Props) {
   const result = calculatePrice(pricing, answers, rush);
   // Neither a described service nor one with pricing turned off has a running
   // total to run — say so instead of parading a 0.00 at the bottom of the
-  // screen the whole way down the form.
+  // screen the whole way down the form. They say different things, though:
+  // one points at a price list, the other says there isn't one.
   const described = result.kind !== 'CALCULATED';
+  const noPricing = result.kind === 'NONE';
 
   return (
     <>
@@ -74,14 +76,14 @@ export function MobilePriceBar({ pricing, answers, rush }: Props) {
       >
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-            {described ? t('priceBreakdown.describedTitle') : t('priceBreakdown.estimatedTotal')}
+            {described ? t(noPricing ? 'priceBreakdown.noPricingTitle' : 'priceBreakdown.describedTitle') : t('priceBreakdown.estimatedTotal')}
             {result.rushAmount > 0 && ` · ${t('priceBreakdown.rushIncluded')}`}
           </Typography>
           <Typography
             sx={{ fontSize: described ? '0.8125rem' : '1.0625rem', fontWeight: 700, letterSpacing: '-0.01em' }}
             noWrap
           >
-            {described ? t('priceBreakdown.describedBar') : formatGEL(result.total)}
+            {described ? t(noPricing ? 'priceBreakdown.noPricingBar' : 'priceBreakdown.describedBar') : formatGEL(result.total)}
           </Typography>
         </Box>
         <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'primary.main' }}>

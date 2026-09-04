@@ -64,6 +64,12 @@ export function ClarificationPanel({
       qc.invalidateQueries({ queryKey: ['order', orderId] });
       qc.invalidateQueries({ queryKey: ['lab-order', orderId] });
       qc.invalidateQueries({ queryKey: ['nav-alerts'] });
+      // The "needs action" highlight on both sides keys off the clarification
+      // rows, so answering has to refresh the lists as well as this panel.
+      qc.invalidateQueries({ queryKey: ['doctor-orders'] });
+      qc.invalidateQueries({ queryKey: ['doctor-home-orders'] });
+      qc.invalidateQueries({ queryKey: ['clinic-orders'] });
+      qc.invalidateQueries({ queryKey: ['lab-orders'] });
     },
     onError: (e) =>
       setError(
@@ -158,9 +164,13 @@ export function ClarificationPanel({
         <SectionCard
           icon="help"
           title={
-            canAnswer
-              ? t('doctor:orderDetail.clarification.title')
-              : t('lab:orderSheet.clarification.answeredTitle')
+            // A request closed by an edit has no answer to show, so calling it
+            // "answered" puts a heading over an empty space.
+            newest.resolved_by_edit_at
+              ? t('common:clarification.resolvedByEdit')
+              : canAnswer
+                ? t('doctor:orderDetail.clarification.title')
+                : t('lab:orderSheet.clarification.answeredTitle')
           }
         >
           {answer.isSuccess && (

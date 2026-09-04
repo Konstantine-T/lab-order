@@ -97,7 +97,8 @@
     "describedHint": "The lab confirms the final price after reviewing your order.",
     "describedBar": "See the lab's prices",
     "noPricingTitle": "No price published",
-    "noPricingHint": "This lab does not publish a price for this service. It will set the total after reviewing your order."
+    "noPricingHint": "This lab does not publish a price for this service. It will set the total after reviewing your order.",
+    "noPricingBar": "No price published"
   },
   "toothMap": {
     "upper": "Upper",
@@ -260,6 +261,7 @@
     "answer": "Answer",
     "askedOn": "Asked {{date}}",
     "answeredOn": "Answered {{date}}",
-    "previousQuestions": "Previous questions ({{n}})"
+    "previousQuestions": "Previous questions ({{n}})",
+    "resolvedByEdit": "Changed by the doctor"
   }
 }

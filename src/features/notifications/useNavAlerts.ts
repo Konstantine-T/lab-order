@@ -63,7 +63,11 @@ async function answeredClarificationCount(
 
   const [withAny, stillOpen] = await Promise.all([
     build(),
-    build().is('order_clarifications.answered_at', null),
+    // Both columns: an edit request closed by a save has `answered_at` null
+    // by design, and counting it as open pins the badge on forever.
+    build()
+      .is('order_clarifications.answered_at', null)
+      .is('order_clarifications.resolved_by_edit_at', null),
   ]);
   return Math.max(0, (withAny.count ?? 0) - (stillOpen.count ?? 0));
 }

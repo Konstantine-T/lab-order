@@ -21,8 +21,10 @@ export function whatsappUrl(phone: string | null | undefined): string | null {
     : digits.length === 9 && digits.startsWith('5') ? `995${digits}`
     : digits;
 
-  // Shorter than a country code plus a subscriber number can't be dialled
-  // internationally, and wa.me would just show "phone number shared via url
-  // is invalid".
-  return full.length >= 10 ? `https://wa.me/${full}` : null;
+  // E.164 is 15 digits at most, and a country code plus a subscriber number is
+  // at least 10. Outside that it isn't a single dialable number — a lab that
+  // typed two numbers in the field, or a landline with a country code — and
+  // wa.me would answer with "phone number shared via url is invalid". Better a
+  // plain chip than a link that goes nowhere.
+  return full.length >= 10 && full.length <= 15 ? `https://wa.me/${full}` : null;
 }

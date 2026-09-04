@@ -347,6 +347,23 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
   // surfaces its inline errors at once, then return on the first hard failure
   // for the top-level banner + scroll.
   const [problems, setProblems] = useState<OrderProblem[]>([]);
+  // Once a submit has failed, keep the named problems in sync with what the
+  // doctor is typing — a field they have just fixed must stop being red
+  // without waiting for a second submit.
+  const liveProblems = problems.length === 0 ? problems : collectOrderProblems({
+    patient: state.patient,
+    answers: state.answers,
+    doctor_work_location_id: state.doctor_work_location_id,
+    requested_due_date: state.requested_due_date,
+    configuration: version?.configuration_json,
+    pricing: version?.pricing_configuration_json,
+    minDays: minTurnaroundDays(
+      selectedService?.average_turnaround_days,
+      version?.pricing_configuration_json,
+      state.rush_requested,
+    ),
+    noLocations: locations.length === 0,
+  });
 
   const validateAll = (): boolean => {
     setError(null);
@@ -614,7 +631,7 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
               rush={rush}
               selectedLoc={selectedLoc}
               averageTurnaroundDays={selectedService?.average_turnaround_days ?? null}
-              problems={problems}
+              problems={liveProblems}
               patientName={patientName}
               submitting={submit.isPending}
               disabled={isBroken}
@@ -654,15 +671,15 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
         {/* Named, and all of them at once. One line when there is one thing to
             fix; a list when there are several, in the order they appear down
             the page so it reads as a route through the form. */}
-        {problems.length > 0 && (
+        {liveProblems.length > 0 && (
           <Alert severity="error">
-            {problems.length === 1 ? (
-              orderProblemMessage(problems[0], t)
+            {liveProblems.length === 1 ? (
+              orderProblemMessage(liveProblems[0], t)
             ) : (
               <>
                 {t('orderCreate.fixTheseFields')}
                 <Box component="ul" sx={{ m: 0, mt: 0.75, pl: 2.5 }}>
-                  {problems.map((p, i) => (
+                  {liveProblems.map((p, i) => (
                     <li key={i}>{orderProblemMessage(p, t)}</li>
                   ))}
                 </Box>
@@ -952,7 +969,15 @@ export function PatientStep({
             </Callout>
           )}
         </Stack>
-      <Dialog open={matchOpen && !state.patient.existing_id && !state.patient.force_new && !readOnly} onClose={() => setMatchOpen(false)}>
+      <Dialog open={matchOpen && !state.patient.existing_id && !state.patient.force_new && !readOnly} // Dismissing is not an answer, so it must not silently mean "use the
+        // existing one" — which is what the server does when nothing is
+        // recorded. Backdrop and Escape are disabled; the two buttons are
+        // the only ways out.
+        disableEscapeKeyDown
+        onClose={(_e, reason) => {
+          if (reason === "backdropClick") return;
+          setMatchOpen(false);
+        }}>
         <DialogTitle>{t('orderCreate.patient.match.title')}</DialogTitle>
         <DialogContent>
           <Typography>

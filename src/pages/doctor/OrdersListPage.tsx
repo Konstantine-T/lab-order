@@ -59,6 +59,7 @@ const ALL_STATUSES: readonly OrderStatus[] = [
   'SUBMITTED',
   'RECEIVED',
   'NEEDS_CLARIFICATION',
+  'NEEDS_DOCTOR_INPUT',
   'IN_PROGRESS',
   'READY_FOR_DELIVERY',
   'SENT_TO_CLINIC',
@@ -79,6 +80,10 @@ type Quick = (typeof QUICK)[number];
 // doctor confirms it seated.
 const NEEDS_ACTION: readonly OrderStatus[] = [
   'NEEDS_CLARIFICATION',
+  // The lab is blocked until the doctor changes something — the most
+  // action-needing state there is. The home page's callout links here, so
+  // leaving it out sent the doctor to a list that hid what they were told about.
+  'NEEDS_DOCTOR_INPUT',
   'TRY_IN_PHASE',
   'RECEIVED_BY_CLINIC',
 ];
@@ -90,7 +95,7 @@ type Row = OrderRow & {
   service_snapshot: { name?: string } | null;
   /** Embedded so a question the doctor has already answered stops counting as
    *  something waiting on them (0029). */
-  order_clarifications: { answered_at: string | null }[];
+  order_clarifications: { answered_at: string | null; resolved_by_edit_at: string | null }[];
 };
 
 /**
@@ -101,7 +106,11 @@ type Row = OrderRow & {
  */
 const awaitsDoctorAnswer = (row: Row) =>
   row.order_clarifications.length === 0 ||
-  row.order_clarifications.some((c) => c.answered_at === null);
+  row.order_clarifications.some(
+    // An edit request closed by a save leaves `answered_at` null forever, so
+    // checking it alone keeps the order flagged as needing attention.
+    (c) => c.answered_at === null && c.resolved_by_edit_at === null,
+  );
 
 const matchesQuick = (row: Row, quick: Quick) => {
   if (quick === 'all') return true;
@@ -187,7 +196,7 @@ export function OrdersListPage() {
         .from('orders')
         .select(
           'id, order_code, status, payment_status, generated_total, final_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, service_snapshot, lab_id, patient_id, continues_order_id, ' +
-            'patients(first_name, last_name), labs(public_name), lab_services(name), order_clarifications(answered_at)',
+            'patients(first_name, last_name), labs(public_name), lab_services(name), order_clarifications(answered_at, resolved_by_edit_at)',
         )
         .eq('doctor_id', doctorId!)
         .order('created_at', { ascending: false });

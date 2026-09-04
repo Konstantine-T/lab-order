@@ -144,7 +144,13 @@ export function LabOrderSheetPage() {
     enabled: !!orderId,
     queryFn: () => fetchClarifications(orderId!),
   });
-  const hasOpenClarification = clarifications.some((c) => c.answered_at === null);
+  // Matches the partial unique index and both ask RPCs. Checking `answered_at`
+  // alone left this true forever after one edit request — 0030 closes those
+  // with `resolved_by_edit_at` and never touches the answer columns — so the
+  // lab could never ask anything about that order again.
+  const hasOpenClarification = clarifications.some(
+    (c) => c.answered_at === null && c.resolved_by_edit_at === null,
+  );
 
   const { data: version } = useQuery({
     queryKey: ['order-version', order?.lab_form_version_id],
