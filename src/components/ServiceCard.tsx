@@ -8,12 +8,15 @@ import { lift, motion } from '@/theme/tokens';
 /**
  * The service tile from the Lab Services mockup, shared by the lab's own
  * service list and the public lab profile a doctor orders from: a tinted icon
- * square, the template's name in caps over the service name, a description,
+ * square (or the service's cover picture), the service name, a description,
  * a row of fact chips and a footer with one action.
+ *
+ * `templateCode` looks like a leftover now that the template name is gone, but
+ * it still picks the icon and its colour, and supplies the stock cover image
+ * for a service the lab never uploaded one for.
  */
 export function ServiceCard({
   templateCode,
-  templateLabel,
   imageUrl,
   name,
   description,
@@ -25,7 +28,6 @@ export function ServiceCard({
   disabled,
 }: {
   templateCode?: string | null;
-  templateLabel?: ReactNode;
   /** The lab's uploaded cover, shown in place of the template icon. */
   imageUrl?: string | null;
   name: ReactNode;
@@ -116,23 +118,7 @@ export function ServiceCard({
           </Box>
         )}
         <Box sx={{ minWidth: 0, flex: 1 }}>
-          {templateLabel && (
-            <Typography
-              sx={{
-                fontSize: '0.625rem',
-                fontWeight: 700,
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-                color: 'text.secondary',
-              }}
-              noWrap
-            >
-              {templateLabel}
-            </Typography>
-          )}
-          <Typography
-            sx={{ fontSize: '0.9375rem', fontWeight: 800, letterSpacing: '-0.01em', mt: 0.25 }}
-          >
+          <Typography sx={{ fontSize: '0.9375rem', fontWeight: 800, letterSpacing: '-0.01em' }}>
             {name}
           </Typography>
         </Box>

@@ -15,7 +15,6 @@ import {
   PageHeader,
   StatusPill,
 } from '@/components/design';
-import { templateName } from '@/features/lab/forms/templateLabels';
 import type { LabFormRow, LabServiceRow } from '@/types/database';
 
 type ServiceWithForm = LabServiceRow & {
@@ -116,7 +115,6 @@ export function LabServicesPage() {
                 <ServiceCard
                   key={s.id}
                   templateCode={tplCode}
-                  templateLabel={templateName(tc, tplCode)}
                   name={s.name}
                   description={s.short_description ?? undefined}
                   onClick={() => navigate(`/lab/services/${s.id}`)}

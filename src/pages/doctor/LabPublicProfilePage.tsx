@@ -17,7 +17,6 @@ import {
 import { ServiceCard } from '@/components/ServiceCard';
 import type { LabRow, LabServiceRow } from '@/types/database';
 import type { FormStatus } from '@/types/database';
-import { templateName } from '@/features/lab/forms/templateLabels';
 
 /**
  * A lab's public profile and its orderable services. Shared by the doctor and
@@ -188,7 +187,6 @@ export function LabPublicProfilePage({ basePath = '/doctor' }: { basePath?: stri
                   <ServiceCard
                     key={s.id}
                     templateCode={tplCode}
-                    templateLabel={templateName(tc, tplCode)}
                     imageUrl={s.cover_image_url}
                     name={s.name}
                     description={s.short_description ?? undefined}
