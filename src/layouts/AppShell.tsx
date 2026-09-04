@@ -25,6 +25,7 @@ import { ColorModeToggle } from '@/components/ColorModeToggle';
 import { FeedbackButton } from '@/components/FeedbackButton';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Icon } from '@/components/design/Icon';
+import { BrandMark } from '@/components/BrandMark';
 import { useAuth } from '@/auth/AuthProvider';
 import { brand as brandTokens, layout, radii } from '@/theme/tokens';
 
@@ -89,19 +90,7 @@ export function AppShell({ navEntries, brand }: { navEntries: NavEntry[]; brand:
         to="/"
         sx={{ px: 2.25, pt: 2.25, pb: 1.75, color: 'text.primary', textDecoration: 'none' }}
       >
-        <Box
-          sx={{
-            width: 30,
-            height: 30,
-            borderRadius: '9px',
-            bgcolor: 'primary.main',
-            display: 'grid',
-            placeItems: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <Icon name="dentistry" size={19} filled color="#fff" />
-        </Box>
+        <BrandMark />
         <Typography sx={{ fontSize: '1rem', fontWeight: 800, letterSpacing: '-0.02em' }} noWrap>
           {brand}
         </Typography>

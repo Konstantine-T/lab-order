@@ -3,7 +3,7 @@ import type { PropsWithChildren, ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { ColorModeToggle } from '@/components/ColorModeToggle';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { Icon } from '@/components/design';
+import { BrandMark } from '@/components/BrandMark';
 import { radii } from '@/theme/tokens';
 
 /**
@@ -72,18 +72,7 @@ export function PublicAuthLayout({
             to="/"
             sx={{ color: 'text.primary', textDecoration: 'none' }}
           >
-            <Box
-              sx={{
-                width: 30,
-                height: 30,
-                borderRadius: '9px',
-                bgcolor: 'primary.main',
-                display: 'grid',
-                placeItems: 'center',
-              }}
-            >
-              <Icon name="dentistry" size={19} filled color="#fff" />
-            </Box>
+            <BrandMark />
             <Typography sx={{ fontSize: '1.0625rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
               Lab Order
             </Typography>
