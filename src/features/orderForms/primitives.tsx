@@ -2,6 +2,8 @@ import { createContext, useContext, type ReactNode } from 'react';
 import { alpha, Box, InputAdornment, Stack, TextField, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { SectionCard } from '@/components/design';
+import { FieldRenderer } from '@/components/DynamicForm';
+import type { FieldConfig } from '@/types/database';
 import { brand, motion, radii } from '@/theme/tokens';
 
 /**
@@ -255,5 +257,71 @@ export function ErrorHelper({ children }: { children?: string }) {
     <Typography variant="caption" color="error" sx={{ display: 'block' }} data-form-error="true">
       {children}
     </Typography>
+  );
+}
+
+// ===== CustomQuestionSections ==============================================
+/**
+ * The lab's own appended questions, rendered as first-class numbered sections
+ * at the end of a template form.
+ *
+ * It lives here, and is rendered *inside* each template form, because the
+ * section number has to come from the same counter the template's own sections
+ * use. Rendering it as a sibling in `OrderForm` — which is where it used to
+ * live, as a bare `DynamicForm` — meant the questions had no number at all and
+ * read as a footnote under the numbered list.
+ *
+ * Sharing the counter through context instead would drift: a template form
+ * holds its own local state (the selected material, say), so it re-renders
+ * alone, without resetting a counter owned by the parent. Every material click
+ * would push the numbers up.
+ */
+export function CustomQuestionSections({
+  configuration,
+  values,
+  onChange,
+  readOnly,
+  errors,
+  startNumber,
+}: {
+  configuration: { fields: FieldConfig[] };
+  values: Record<string, unknown>;
+  onChange: (next: Record<string, unknown>) => void;
+  readOnly?: boolean;
+  errors?: Record<string, string>;
+  /**
+   * The last section number the template itself used. Deliberately a number
+   * and not the template's `next()`: calling that from inside this render
+   * would bump the counter once per render of *this* component, which React
+   * StrictMode does twice — the question came out numbered 8 under a template
+   * whose own sections ended at 6.
+   */
+  startNumber: number;
+}) {
+  const custom = configuration.fields.filter(
+    (f) => f.type === 'custom_question' && f.enabled && f.visible_to_doctor !== false,
+  );
+  if (custom.length === 0) return null;
+
+  return (
+    <>
+      {custom.map((f, i) => (
+        <NumberedSection
+          key={f.code}
+          number={startNumber + i + 1}
+          label={`${f.label}${f.required ? ' *' : ''}`}
+        >
+          <FieldRenderer
+            field={f}
+            value={values[f.code]}
+            onChange={(v) => onChange({ ...values, [f.code]: v })}
+            error={errors?.[f.code]}
+            readOnly={readOnly}
+            // The question is the heading now.
+            hideLabel
+          />
+        </NumberedSection>
+      ))}
+    </>
   );
 }

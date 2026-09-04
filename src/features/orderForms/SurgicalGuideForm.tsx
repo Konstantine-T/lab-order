@@ -13,7 +13,7 @@ import {
 import { Icon } from '@/components/design';
 import { useTranslation } from 'react-i18next';
 import { ToothMap } from '@/components/ToothMap';
-import { NumberedSection, PillGroup, ErrorHelper } from './primitives';
+import { NumberedSection, PillGroup, ErrorHelper, CustomQuestionSections } from './primitives';
 import {
   emptySgAnswers,
   coerceSgAnswers,
@@ -50,15 +50,27 @@ type Props = {
   onChange: (next: SgAnswers) => void;
   readOnly?: boolean;
   showErrors?: boolean;
+  /**
+   * The flat answer record, for the lab's own appended questions. Separate
+   * from `value`, which is this template's typed answer shape — the custom
+   * questions live outside it.
+   */
+  rawValues?: Record<string, unknown>;
+  onRawChange?: (next: Record<string, unknown>) => void;
+  /** Validation errors for those custom questions, keyed by field code. */
+  customErrors?: Record<string, string>;
 };
 
 export function SurgicalGuideForm({
-  configuration: _configuration,
+  configuration,
   pricing: _pricing,
   value,
   onChange,
   readOnly,
   showErrors,
+  rawValues,
+  onRawChange,
+  customErrors,
 }: Props) {
   const { t } = useTranslation('lab');
   const a = value;
@@ -365,6 +377,20 @@ export function SurgicalGuideForm({
           )}
         </NumberedSection>
       )}
+
+      {/* The lab's own questions, numbered by the same counter as the sections
+          above so they read as equals rather than a footnote. */}
+      {rawValues && onRawChange && (
+        <CustomQuestionSections
+          configuration={configuration}
+          values={rawValues}
+          onChange={onRawChange}
+          readOnly={readOnly}
+          errors={customErrors}
+          startNumber={counter}
+        />
+      )}
+
     </Stack>
   );
 }

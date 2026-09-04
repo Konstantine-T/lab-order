@@ -16,7 +16,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
 import { ToothMap } from '@/components/ToothMap';
-import { NumberedSection, PillGroup, ErrorHelper } from './primitives';
+import { NumberedSection, PillGroup, ErrorHelper, CustomQuestionSections } from './primitives';
 import { CrownAndBridgeForm, coerceCnbAnswers } from './CrownAndBridgeForm';
 import type { FormConfiguration, PricingConfig } from '@/types/database';
 import {
@@ -78,6 +78,14 @@ type Props = {
   onChange: (next: ImplantRestorationAnswers) => void;
   readOnly?: boolean;
   showErrors?: boolean;
+  /**
+   * The flat answer record, for the lab's own appended questions. Separate
+   * from `value`, which is this template's typed answer shape.
+   */
+  rawValues?: Record<string, unknown>;
+  onRawChange?: (next: Record<string, unknown>) => void;
+  /** Validation errors for those custom questions, keyed by field code. */
+  customErrors?: Record<string, string>;
 };
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -89,6 +97,9 @@ export function ImplantRestorationForm({
   onChange,
   readOnly,
   showErrors,
+  rawValues,
+  onRawChange,
+  customErrors,
 }: Props) {
   const { t } = useTranslation('lab');
   const a = value;
@@ -766,6 +777,20 @@ export function ImplantRestorationForm({
           {t('implantForm.provisionalNote')}
         </Alert>
       )}
+
+      {/* The lab's own questions, numbered by the same counter as the sections
+          above so they read as equals rather than a footnote. */}
+      {rawValues && onRawChange && (
+        <CustomQuestionSections
+          configuration={configuration}
+          values={rawValues}
+          onChange={onRawChange}
+          readOnly={readOnly}
+          errors={customErrors}
+          startNumber={sn}
+        />
+      )}
+
     </Stack>
   );
 }

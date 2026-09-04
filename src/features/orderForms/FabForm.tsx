@@ -1,10 +1,10 @@
 import { Alert, MenuItem, Stack, TextField } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { NumberedSection, ErrorHelper } from './primitives';
+import { NumberedSection, ErrorHelper, CustomQuestionSections } from './primitives';
 import { NumberField } from '@/components/NumberField';
 import { ToothMap } from '@/components/ToothMap';
 import { formatGEL } from '@/utils/pricing';
-import type { MaterialOption, PricingConfig } from '@/types/database';
+import type { FormConfiguration, MaterialOption, PricingConfig } from '@/types/database';
 import {
   validatePrint,
   type PrintAnswers,
@@ -52,22 +52,35 @@ function MaterialSelect({
 }
 
 export function PrintForm({
+  configuration,
   pricing,
   value,
   onChange,
   readOnly,
   showErrors,
+  rawValues,
+  onRawChange,
+  customErrors,
 }: {
+  /** Only needed for the lab's appended questions; this form has no config-driven sections. */
+  configuration: FormConfiguration;
   pricing?: PricingConfig;
   value: PrintAnswers;
   onChange: (next: PrintAnswers) => void;
   readOnly?: boolean;
   showErrors?: boolean;
+  rawValues?: Record<string, unknown>;
+  onRawChange?: (next: Record<string, unknown>) => void;
+  customErrors?: Record<string, string>;
 }) {
   const { t } = useTranslation('lab');
   const errors = showErrors ? validatePrint(value) : {};
   const materials = pricing?.materials ?? [];
   const set = (patch: Partial<PrintAnswers>) => onChange({ ...value, ...patch });
+  // Sections 1-3 below are fixed, so the lab's questions carry on from 4.
+  // The other templates gate their sections on the lab's config and count them
+  // as they render; this form has nothing to count.
+  const counter = 3;
 
   if (materials.length === 0) {
     return <Alert severity="warning">{t('fabForm.noMaterials')}</Alert>;
@@ -108,27 +121,52 @@ export function PrintForm({
           InputProps={{ readOnly: !!readOnly }}
         />
       </NumberedSection>
+
+      {rawValues && onRawChange && (
+        <CustomQuestionSections
+          configuration={configuration}
+          values={rawValues}
+          onChange={onRawChange}
+          readOnly={readOnly}
+          errors={customErrors}
+          startNumber={counter}
+        />
+      )}
+
     </Stack>
   );
 }
 
 export function MillingForm({
+  configuration,
   pricing,
   value,
   onChange,
   readOnly,
   showErrors,
+  rawValues,
+  onRawChange,
+  customErrors,
 }: {
+  /** Only needed for the lab's appended questions; this form has no config-driven sections. */
+  configuration: FormConfiguration;
   pricing?: PricingConfig;
   value: MillingAnswers;
   onChange: (next: MillingAnswers) => void;
   readOnly?: boolean;
   showErrors?: boolean;
+  rawValues?: Record<string, unknown>;
+  onRawChange?: (next: Record<string, unknown>) => void;
+  customErrors?: Record<string, string>;
 }) {
   const { t } = useTranslation('lab');
   const errors = showErrors ? validateMilling(value) : {};
   const materials = pricing?.materials ?? [];
   const set = (patch: Partial<MillingAnswers>) => onChange({ ...value, ...patch });
+  // Sections 1-3 below are fixed, so the lab's questions carry on from 4.
+  // The other templates gate their sections on the lab's config and count them
+  // as they render; this form has nothing to count.
+  const counter = 3;
 
   if (materials.length === 0) {
     return <Alert severity="warning">{t('fabForm.noMaterials')}</Alert>;
@@ -169,6 +207,18 @@ export function MillingForm({
           InputProps={{ readOnly: !!readOnly }}
         />
       </NumberedSection>
+
+      {rawValues && onRawChange && (
+        <CustomQuestionSections
+          configuration={configuration}
+          values={rawValues}
+          onChange={onRawChange}
+          readOnly={readOnly}
+          errors={customErrors}
+          startNumber={counter}
+        />
+      )}
+
     </Stack>
   );
 }

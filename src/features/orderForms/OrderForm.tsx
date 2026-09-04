@@ -1,4 +1,4 @@
-import { Stack } from '@mui/material';
+import { useTranslation } from 'react-i18next';
 import { SectionChrome } from './primitives';
 import { DynamicForm, validateFormAnswers } from '@/components/DynamicForm';
 import type { FormConfiguration, PricingConfig } from '@/types/database';
@@ -60,6 +60,21 @@ import {
 
 export type OrderFormValue = Record<string, unknown>;
 
+/**
+ * The lab's appended questions on their own.
+ *
+ * Validation has to run against just these. A template's own answers are not
+ * `fields` — they are typed keys checked by `validateCnb` and friends — so
+ * handing the whole configuration to `validateFormAnswers` would check the
+ * lab's questions and nothing else anyway; narrowing it says so out loud.
+ */
+function customQuestionsOnly(configuration: FormConfiguration): FormConfiguration {
+  return {
+    ...configuration,
+    fields: configuration.fields.filter((f) => f.type === 'custom_question'),
+  };
+}
+
 type Props = {
   configuration: FormConfiguration;
   /** Required for CnB to render materials. Optional for non-CnB forms. */
@@ -94,221 +109,136 @@ function OrderFormBody({
   readOnly,
   showErrors,
 }: Props) {
-  // Cards carry their own padding, so they need less air between them than
-  // the plain read-only sections do.
-  const gap = readOnly ? 4 : 2;
+  const { t } = useTranslation('common');
+
+  // The lab's appended questions are rendered by the template form itself, so
+  // they can take the next section number. Identical for every template, so
+  // it's built once here and spread in.
+  const customProps = {
+    rawValues: values,
+    onRawChange: onChange,
+    customErrors: showErrors
+      ? validateFormAnswers(customQuestionsOnly(configuration), values, t('errors.required'))
+      : undefined,
+  };
 
   if (isCnbTemplate(configuration._templateCode)) {
     const cnb = coerceCnbAnswers(values, pricing?.materials);
-    const customFields = configuration.fields.filter(
-      (f) => f.type === 'custom_question' && f.enabled,
-    );
     return (
-      <Stack spacing={gap}>
-        <CrownAndBridgeForm
-          configuration={configuration}
-          pricing={pricing}
-          value={cnb}
-          onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
-          readOnly={readOnly}
-          showErrors={showErrors}
-        />
-        {customFields.length > 0 && (
-          <DynamicForm
-            configuration={{ ...configuration, fields: customFields }}
-            values={values}
-            onChange={onChange}
-            readOnly={readOnly}
-          />
-        )}
-      </Stack>
+      <CrownAndBridgeForm
+        configuration={configuration}
+        pricing={pricing}
+        value={cnb}
+        onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
+        readOnly={readOnly}
+        showErrors={showErrors}
+        {...customProps}
+      />
     );
   }
 
   if (configuration._templateCode === TEMPLATE_CODE_SG) {
     const sg = coerceSgAnswers(values);
-    const customFields = configuration.fields.filter(
-      (f) => f.type === 'custom_question' && f.enabled,
-    );
     return (
-      <Stack spacing={gap}>
-        <SurgicalGuideForm
-          configuration={configuration}
-          pricing={pricing}
-          value={sg}
-          onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
-          readOnly={readOnly}
-          showErrors={showErrors}
-        />
-        {customFields.length > 0 && (
-          <DynamicForm
-            configuration={{ ...configuration, fields: customFields }}
-            values={values}
-            onChange={onChange}
-            readOnly={readOnly}
-          />
-        )}
-      </Stack>
+      <SurgicalGuideForm
+        configuration={configuration}
+        pricing={pricing}
+        value={sg}
+        onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
+        readOnly={readOnly}
+        showErrors={showErrors}
+        {...customProps}
+      />
     );
   }
 
   if (configuration._templateCode === TEMPLATE_CODE_IMPLANT) {
     const implant = coerceImplantAnswers(values);
-    const customFields = configuration.fields.filter(
-      (f) => f.type === 'custom_question' && f.enabled,
-    );
     return (
-      <Stack spacing={gap}>
-        <ImplantRestorationForm
-          configuration={configuration}
-          pricing={pricing}
-          value={implant}
-          onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
-          readOnly={readOnly}
-          showErrors={showErrors}
-        />
-        {customFields.length > 0 && (
-          <DynamicForm
-            configuration={{ ...configuration, fields: customFields }}
-            values={values}
-            onChange={onChange}
-            readOnly={readOnly}
-          />
-        )}
-      </Stack>
+      <ImplantRestorationForm
+        configuration={configuration}
+        pricing={pricing}
+        value={implant}
+        onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
+        readOnly={readOnly}
+        showErrors={showErrors}
+        {...customProps}
+      />
     );
   }
 
   if (configuration._templateCode === TEMPLATE_CODE_GRG) {
     const grg = coerceGrgAnswers(values);
-    const customFields = configuration.fields.filter(
-      (f) => f.type === 'custom_question' && f.enabled,
-    );
     return (
-      <Stack spacing={gap}>
-        <GingivalReductionGuideForm
-          configuration={configuration}
-          pricing={pricing}
-          value={grg}
-          onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
-          readOnly={readOnly}
-          showErrors={showErrors}
-        />
-        {customFields.length > 0 && (
-          <DynamicForm
-            configuration={{ ...configuration, fields: customFields }}
-            values={values}
-            onChange={onChange}
-            readOnly={readOnly}
-          />
-        )}
-      </Stack>
+      <GingivalReductionGuideForm
+        configuration={configuration}
+        pricing={pricing}
+        value={grg}
+        onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
+        readOnly={readOnly}
+        showErrors={showErrors}
+        {...customProps}
+      />
     );
   }
 
   if (configuration._templateCode === TEMPLATE_CODE_ESP) {
     const esp = coerceEspAnswers(values);
-    const customFields = configuration.fields.filter(
-      (f) => f.type === 'custom_question' && f.enabled,
-    );
     return (
-      <Stack spacing={gap}>
-        <EspForm
-          configuration={configuration}
-          pricing={pricing}
-          value={esp}
-          onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
-          readOnly={readOnly}
-          showErrors={showErrors}
-        />
-        {customFields.length > 0 && (
-          <DynamicForm
-            configuration={{ ...configuration, fields: customFields }}
-            values={values}
-            onChange={onChange}
-            readOnly={readOnly}
-          />
-        )}
-      </Stack>
+      <EspForm
+        configuration={configuration}
+        pricing={pricing}
+        value={esp}
+        onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
+        readOnly={readOnly}
+        showErrors={showErrors}
+        {...customProps}
+      />
     );
   }
 
   if (isModelTemplateCode(configuration._templateCode)) {
     const model = coerceModelAnswers(values);
-    const customFields = configuration.fields.filter(
-      (f) => f.type === 'custom_question' && f.enabled,
-    );
     return (
-      <Stack spacing={gap}>
-        <ModelForm
-          configuration={configuration}
-          pricing={pricing}
-          value={model}
-          onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
-          readOnly={readOnly}
-          showErrors={showErrors}
-        />
-        {customFields.length > 0 && (
-          <DynamicForm
-            configuration={{ ...configuration, fields: customFields }}
-            values={values}
-            onChange={onChange}
-            readOnly={readOnly}
-          />
-        )}
-      </Stack>
+      <ModelForm
+        configuration={configuration}
+        pricing={pricing}
+        value={model}
+        onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
+        readOnly={readOnly}
+        showErrors={showErrors}
+        {...customProps}
+      />
     );
   }
 
   if (configuration._templateCode === TEMPLATE_CODE_PRINT) {
     const print = coercePrintAnswers(values);
-    const customFields = configuration.fields.filter(
-      (f) => f.type === 'custom_question' && f.enabled,
-    );
     return (
-      <Stack spacing={gap}>
-        <PrintForm
-          pricing={pricing}
-          value={print}
-          onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
-          readOnly={readOnly}
-          showErrors={showErrors}
-        />
-        {customFields.length > 0 && (
-          <DynamicForm
-            configuration={{ ...configuration, fields: customFields }}
-            values={values}
-            onChange={onChange}
-            readOnly={readOnly}
-          />
-        )}
-      </Stack>
+      <PrintForm
+        configuration={configuration}
+        pricing={pricing}
+        value={print}
+        onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
+        readOnly={readOnly}
+        showErrors={showErrors}
+        {...customProps}
+      />
     );
   }
 
   if (configuration._templateCode === TEMPLATE_CODE_MILLING) {
     const milling = coerceMillingAnswers(values);
-    const customFields = configuration.fields.filter(
-      (f) => f.type === 'custom_question' && f.enabled,
-    );
     return (
-      <Stack spacing={gap}>
-        <MillingForm
-          pricing={pricing}
-          value={milling}
-          onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
-          readOnly={readOnly}
-          showErrors={showErrors}
-        />
-        {customFields.length > 0 && (
-          <DynamicForm
-            configuration={{ ...configuration, fields: customFields }}
-            values={values}
-            onChange={onChange}
-            readOnly={readOnly}
-          />
-        )}
-      </Stack>
+      <MillingForm
+        configuration={configuration}
+        pricing={pricing}
+        value={milling}
+        onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
+        readOnly={readOnly}
+        showErrors={showErrors}
+        {...customProps}
+      />
     );
   }
 
@@ -318,7 +248,7 @@ function OrderFormBody({
       values={values}
       onChange={onChange}
       readOnly={readOnly}
-      errors={showErrors ? validateFormAnswers(configuration, values) : undefined}
+      errors={showErrors ? validateFormAnswers(configuration, values, t('errors.required')) : undefined}
     />
   );
 }
@@ -329,6 +259,14 @@ export function isOrderFormValid(
   values: OrderFormValue,
   pricing?: PricingConfig,
 ): boolean {
+  // A required question the lab appended blocks submit exactly like one of the
+  // template's own required fields. Until now it was rendered, starred, and
+  // then ignored: every branch below validates only its own typed answers, so
+  // the doctor could leave a required question blank and still submit.
+  if (Object.keys(validateFormAnswers(customQuestionsOnly(configuration), values)).length > 0) {
+    return false;
+  }
+
   if (isCnbTemplate(configuration._templateCode)) {
     const cnb = coerceCnbAnswers(values, pricing?.materials);
     return Object.keys(validateCnb(cnb, configuration)).length === 0;

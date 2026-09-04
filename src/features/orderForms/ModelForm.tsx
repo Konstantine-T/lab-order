@@ -1,6 +1,6 @@
 import { Stack, TextField } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { NumberedSection, PillGroup, ErrorHelper } from './primitives';
+import { NumberedSection, PillGroup, ErrorHelper, CustomQuestionSections } from './primitives';
 import {
   emptyModelAnswers,
   coerceModelAnswers,
@@ -25,6 +25,15 @@ type Props = {
   onChange: (next: ModelAnswers) => void;
   readOnly?: boolean;
   showErrors?: boolean;
+  /**
+   * The flat answer record, for the lab's own appended questions. Separate
+   * from `value`, which is this template's typed answer shape — the custom
+   * questions live outside it.
+   */
+  rawValues?: Record<string, unknown>;
+  onRawChange?: (next: Record<string, unknown>) => void;
+  /** Validation errors for those custom questions, keyed by field code. */
+  customErrors?: Record<string, string>;
 };
 
 export function ModelForm({
@@ -34,6 +43,9 @@ export function ModelForm({
   onChange,
   readOnly,
   showErrors,
+  rawValues,
+  onRawChange,
+  customErrors,
 }: Props) {
   const { t } = useTranslation('lab');
   const a = value;
@@ -172,6 +184,20 @@ export function ModelForm({
           />
         </NumberedSection>
       )}
+
+      {/* The lab's own questions, numbered by the same counter as the sections
+          above so they read as equals rather than a footnote. */}
+      {rawValues && onRawChange && (
+        <CustomQuestionSections
+          configuration={configuration}
+          values={rawValues}
+          onChange={onRawChange}
+          readOnly={readOnly}
+          errors={customErrors}
+          startNumber={counter}
+        />
+      )}
+
     </Stack>
   );
 }

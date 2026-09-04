@@ -58,21 +58,30 @@ export function FieldRenderer({
   onChange,
   error,
   readOnly,
+  hideLabel,
 }: {
   field: FieldConfig;
   value: unknown;
   onChange: (v: unknown) => void;
   error?: string;
   readOnly?: boolean;
+  /**
+   * Drop the input's own label. Used where the question is already the
+   * section heading above it — a floating label repeating it is noise.
+   * helper_text stays: that really is secondary.
+   */
+  hideLabel?: boolean;
 }) {
   const helper = error ?? field.helper_text;
+  // One place to decide, so a new branch can't quietly keep its label.
+  const labelOf = (text: string) => (hideLabel ? undefined : text);
 
   switch (field.type) {
     case 'custom_question':
     case 'text':
       return (
         <TextField
-          label={`${field.label}${field.required ? ' *' : ''}`}
+          label={labelOf(`${field.label}${field.required ? ' *' : ''}`)}
           value={(value as string) ?? ''}
           onChange={(e) => onChange(e.target.value)}
           helperText={helper}
@@ -85,7 +94,7 @@ export function FieldRenderer({
     case 'textarea':
       return (
         <TextField
-          label={`${field.label}${field.required ? ' *' : ''}`}
+          label={labelOf(`${field.label}${field.required ? ' *' : ''}`)}
           value={(value as string) ?? ''}
           onChange={(e) => onChange(e.target.value)}
           helperText={helper}
@@ -99,7 +108,7 @@ export function FieldRenderer({
     case 'number':
       return (
         <TextField
-          label={`${field.label}${field.required ? ' *' : ''}`}
+          label={labelOf(`${field.label}${field.required ? ' *' : ''}`)}
           type="number"
           value={(value as number) ?? ''}
           onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
@@ -111,14 +120,12 @@ export function FieldRenderer({
       );
     case 'select': {
       const options = field.options ?? [];
+      const label = `${field.label}${field.required ? ' *' : ''}`;
       return (
         <FormControl fullWidth error={!!error}>
-          <InputLabel>
-            {field.label}
-            {field.required ? ' *' : ''}
-          </InputLabel>
+          {!hideLabel && <InputLabel>{label}</InputLabel>}
           <Select
-            label={`${field.label}${field.required ? ' *' : ''}`}
+            label={labelOf(label)}
             value={(value as string) ?? ''}
             onChange={(e) => onChange(e.target.value)}
             readOnly={!!readOnly}
@@ -141,10 +148,12 @@ export function FieldRenderer({
       return (
         <Stack spacing={1.25}>
           <Stack direction="row" alignItems="baseline" spacing={1}>
-            <Typography variant="subtitle2">
-              {field.label}
-              {field.required ? ' *' : ''}
-            </Typography>
+            {!hideLabel && (
+              <Typography variant="subtitle2">
+                {field.label}
+                {field.required ? ' *' : ''}
+              </Typography>
+            )}
             <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
               VITA classical
             </Typography>
@@ -161,15 +170,13 @@ export function FieldRenderer({
           )}
         </Stack>
       );
-    case 'material_select':
+    case 'material_select': {
+      const label = `${field.label}${field.required ? ' *' : ''}`;
       return (
         <FormControl fullWidth error={!!error}>
-          <InputLabel>
-            {field.label}
-            {field.required ? ' *' : ''}
-          </InputLabel>
+          {!hideLabel && <InputLabel>{label}</InputLabel>}
           <Select
-            label={`${field.label}${field.required ? ' *' : ''}`}
+            label={labelOf(label)}
             value={(value as string) ?? ''}
             onChange={(e) => onChange(e.target.value)}
             readOnly={!!readOnly}
@@ -186,13 +193,16 @@ export function FieldRenderer({
           {helper && <FormHelperText>{helper}</FormHelperText>}
         </FormControl>
       );
+    }
     case 'tooth_selection':
       return (
         <Stack spacing={1}>
-          <Typography variant="subtitle2">
-            {field.label}
-            {field.required ? ' *' : ''}
-          </Typography>
+          {!hideLabel && (
+            <Typography variant="subtitle2">
+              {field.label}
+              {field.required ? ' *' : ''}
+            </Typography>
+          )}
           <ToothMap
             value={(value as number[]) ?? []}
             onChange={readOnly ? undefined : onChange}
@@ -216,10 +226,12 @@ export function FieldRenderer({
       };
       return (
         <Stack spacing={1}>
-          <Typography variant="subtitle2">
-            {field.label}
-            {field.required ? ' *' : ''}
-          </Typography>
+          {!hideLabel && (
+            <Typography variant="subtitle2">
+              {field.label}
+              {field.required ? ' *' : ''}
+            </Typography>
+          )}
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
             {options.map((opt) => {
               const isSel = selected.includes(opt);
@@ -254,13 +266,13 @@ export function FieldRenderer({
               disabled={readOnly}
             />
           }
-          label={field.label}
+          label={labelOf(field.label)}
         />
       );
     case 'date':
       return (
         <DatePicker
-          label={`${field.label}${field.required ? ' *' : ''}`}
+          label={labelOf(`${field.label}${field.required ? ' *' : ''}`)}
           value={value ? dayjs(value as string) : null}
           onChange={(d) => onChange(d ? d.format('YYYY-MM-DD') : null)}
           readOnly={!!readOnly}
@@ -272,7 +284,7 @@ export function FieldRenderer({
     default:
       return (
         <TextField
-          label={`${field.label}${field.required ? ' *' : ''}`}
+          label={labelOf(`${field.label}${field.required ? ' *' : ''}`)}
           value={(value as string) ?? ''}
           onChange={(e) => onChange(e.target.value)}
           helperText={helper}
@@ -287,17 +299,28 @@ export function FieldRenderer({
 export function validateFormAnswers(
   configuration: FormConfiguration,
   values: Record<string, unknown>,
+  /**
+   * Message for a missing answer. Passed in rather than hardcoded: this used
+   * to write the literal string 'Required', which rendered in English to
+   * Georgian and Russian doctors — and i18n:check could never see it, because
+   * it only diffs locale files.
+   */
+  requiredMessage = 'Required',
 ): Record<string, string> {
   const errors: Record<string, string> = {};
   for (const f of configuration.fields) {
     if (!f.enabled || !f.required) continue;
+    // DynamicForm renders only fields visible to the doctor, so a
+    // required-but-hidden field would block submit with an error nobody can
+    // see. Nothing toggles this today; it is one condition to keep it true.
+    if (f.visible_to_doctor === false) continue;
     const v = values[f.code];
     const empty =
       v === undefined ||
       v === null ||
       v === '' ||
       (Array.isArray(v) && v.length === 0);
-    if (empty) errors[f.code] = 'Required';
+    if (empty) errors[f.code] = requiredMessage;
   }
   return errors;
 }

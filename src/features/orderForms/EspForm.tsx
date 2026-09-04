@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Chip, Stack, TextField, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
-import { NumberedSection, PillGroup, MmInput, ErrorHelper } from './primitives';
+import { NumberedSection, PillGroup, MmInput, ErrorHelper, CustomQuestionSections } from './primitives';
 import { TreatmentBuilder } from './TreatmentBuilder';
 import { SHADE_SCALES, shadeGroupsForScale, type CnbNotation, type CnbToothAssignment } from './cnbTypes';
 import {
@@ -30,6 +30,15 @@ type Props = {
   onChange: (next: EspAnswers) => void;
   readOnly?: boolean;
   showErrors?: boolean;
+  /**
+   * The flat answer record, for the lab's own appended questions. Separate
+   * from `value`, which is this template's typed answer shape — the custom
+   * questions live outside it.
+   */
+  rawValues?: Record<string, unknown>;
+  onRawChange?: (next: Record<string, unknown>) => void;
+  /** Validation errors for those custom questions, keyed by field code. */
+  customErrors?: Record<string, string>;
 };
 
 export function EspForm({
@@ -39,6 +48,9 @@ export function EspForm({
   onChange,
   readOnly,
   showErrors,
+  rawValues,
+  onRawChange,
+  customErrors,
 }: Props) {
   const { t } = useTranslation('lab');
   const a = value;
@@ -304,6 +316,20 @@ export function EspForm({
           />
         </NumberedSection>
       )}
+
+      {/* The lab's own questions, numbered by the same counter as the sections
+          above so they read as equals rather than a footnote. */}
+      {rawValues && onRawChange && (
+        <CustomQuestionSections
+          configuration={configuration}
+          values={rawValues}
+          onChange={onRawChange}
+          readOnly={readOnly}
+          errors={customErrors}
+          startNumber={counter}
+        />
+      )}
+
     </Stack>
   );
 }
