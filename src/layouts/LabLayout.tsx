@@ -35,5 +35,5 @@ export function LabLayout() {
     { to: '/lab/staff', label: t('nav.staff'), icon: 'groups' },
     { to: '/lab/profile', label: t('nav.profile'), icon: 'store' },
   ];
-  return <AppShell brand="LabOrder" navEntries={nav} />;
+  return <AppShell brand="Dental Labs" navEntries={nav} />;
 }

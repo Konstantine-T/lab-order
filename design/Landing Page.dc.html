@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<style>/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("74e756c1-f1c9-40f5-913d-ea37e4ecd3e6") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("345f385a-8aa3-4f79-bb29-a53efdb3b833") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("e4dd5de3-f93d-474d-b52b-5724f62dc3e9") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("fbc7cfd7-5192-4268-bf07-bb30a5461e9b") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("33257ba8-4213-4d78-8206-15b398eedd62") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("d07dbef4-a405-4ea6-a186-15b9ea850488") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("8c834fcb-7a3b-4517-ab28-5c0eead99540") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("74e756c1-f1c9-40f5-913d-ea37e4ecd3e6") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("345f385a-8aa3-4f79-bb29-a53efdb3b833") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("e4dd5de3-f93d-474d-b52b-5724f62dc3e9") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("fbc7cfd7-5192-4268-bf07-bb30a5461e9b") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("33257ba8-4213-4d78-8206-15b398eedd62") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("d07dbef4-a405-4ea6-a186-15b9ea850488") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("8c834fcb-7a3b-4517-ab28-5c0eead99540") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("74e756c1-f1c9-40f5-913d-ea37e4ecd3e6") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("345f385a-8aa3-4f79-bb29-a53efdb3b833") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("e4dd5de3-f93d-474d-b52b-5724f62dc3e9") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("fbc7cfd7-5192-4268-bf07-bb30a5461e9b") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("33257ba8-4213-4d78-8206-15b398eedd62") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("d07dbef4-a405-4ea6-a186-15b9ea850488") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("8c834fcb-7a3b-4517-ab28-5c0eead99540") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("74e756c1-f1c9-40f5-913d-ea37e4ecd3e6") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("345f385a-8aa3-4f79-bb29-a53efdb3b833") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("e4dd5de3-f93d-474d-b52b-5724f62dc3e9") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("fbc7cfd7-5192-4268-bf07-bb30a5461e9b") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("33257ba8-4213-4d78-8206-15b398eedd62") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("d07dbef4-a405-4ea6-a186-15b9ea850488") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url("8c834fcb-7a3b-4517-ab28-5c0eead99540") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+/* cyrillic-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("74e756c1-f1c9-40f5-913d-ea37e4ecd3e6") format('woff2');
+  unicode-range: U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F;
+}
+/* cyrillic */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("345f385a-8aa3-4f79-bb29-a53efdb3b833") format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+/* greek-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("e4dd5de3-f93d-474d-b52b-5724f62dc3e9") format('woff2');
+  unicode-range: U+1F00-1FFF;
+}
+/* greek */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("fbc7cfd7-5192-4268-bf07-bb30a5461e9b") format('woff2');
+  unicode-range: U+0370-0377, U+037A-037F, U+0384-038A, U+038C, U+038E-03A1, U+03A3-03FF;
+}
+/* vietnamese */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("33257ba8-4213-4d78-8206-15b398eedd62") format('woff2');
+  unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB;
+}
+/* latin-ext */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("d07dbef4-a405-4ea6-a186-15b9ea850488") format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+/* latin */
+@font-face {
+  font-family: 'Inter';
+  font-style: normal;
+  font-weight: 800;
+  font-display: swap;
+  src: url("8c834fcb-7a3b-4517-ab28-5c0eead99540") format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+</style>
+<style>/* fallback */
+@font-face {
+  font-family: 'Material Symbols Rounded';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("7296fddf-b3a5-4d51-a14a-784b3672ce33") format('woff2');
+}
+
+.material-symbols-rounded {
+  font-family: 'Material Symbols Rounded';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+</style>
+<style>
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: #EEF0F5; font-family: Inter, -apple-system, "Segoe UI", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #6E6EE8; text-decoration: none; }
+  a:hover { color: #5252CC; }
+  .ms { font-family: "Material Symbols Rounded"; font-weight: normal; font-style: normal; line-height: 1; letter-spacing: normal; text-transform: none; display: inline-block; white-space: nowrap; direction: ltr; -webkit-font-feature-settings: 'liga'; -webkit-font-smoothing: antialiased; user-select: none; flex-shrink: 0; }
+</style>
+</helmet>
+
+<section style="background:#EEF0F5; color:#0F172A">
+
+        <div style="position:relative; background:radial-gradient(900px 420px at 50% -80px, rgba(146,146,255,0.18), transparent 70%)">
+          <div style="position:sticky; top:0; z-index:2; background:rgba(255,255,255,0.9); backdrop-filter:blur(12px); border-bottom:1px solid rgba(15,23,42,0.08)">
+            <div style="max-width:1140px; margin:0 auto; height:64px; padding:0 28px; display:flex; align-items:center; justify-content:space-between">
+              <div style="display:flex; align-items:center; gap:10px">
+                <img src="./dentallabs-logo.png" alt="" style="width:30px; height:30px; flex-shrink:0; object-fit:contain; display:block">
+                <span style="font-size:17px; font-weight:800; letter-spacing:-0.02em">Lab Order</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:22px">
+                <a href="/doctor/marketplace" style="font-size:14px; font-weight:600; color:#5B6477">Laboratories</a>
+                <a href="#1a-how" style="font-size:14px; font-weight:600; color:#5B6477">How it works</a>
+                <a href="#1a-doctors" style="font-size:14px; font-weight:600; color:#5B6477">For doctors</a>
+                <a href="#1a-labs" style="font-size:14px; font-weight:600; color:#5B6477">For laboratories</a>
+                <a href="#1a-faq" style="font-size:14px; font-weight:600; color:#5B6477">FAQ</a>
+                <div style="display:flex; align-items:center; gap:8px; margin-left:6px">
+                  <a href="/login" style="font-size:13px; font-weight:600; color:#0F172A; padding:9px 14px; border-radius:10px; border:1px solid rgba(15,23,42,0.12); background:#fff">Sign in</a>
+                  <a href="/register/doctor" style="font-size:13px; font-weight:700; color:#fff; padding:10px 18px; border-radius:10px; background:#9292FF">Get started</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="max-width:1140px; margin:0 auto; padding:72px 28px 56px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:20px">
+            <div style="display:inline-flex; align-items:center; gap:8px; height:28px; padding:0 13px; border-radius:999px; background:rgba(146,146,255,0.12); border:1px solid rgba(146,146,255,0.4); color:#5252CC; font-size:11.5px; font-weight:700; letter-spacing:0.05em; text-transform:uppercase">Digital dental lab ordering</div>
+            <h1 style="margin:0; font-size:52px; line-height:1.08; font-weight:800; letter-spacing:-0.03em; max-width:800px; text-wrap:pretty">Send dental lab orders without the chaos</h1>
+            <p style="margin:0; max-width:640px; font-size:18px; line-height:1.6; color:#5B6477; text-wrap:pretty">Pick a lab, send a structured order with files and prices, track it to delivery, and keep every invoice in one place — so no case is ever dictated down a phone line again.</p>
+            <div style="display:flex; gap:12px; margin-top:8px; align-items:center">
+              <a href="/register/doctor" style="font-size:15px; font-weight:700; color:#fff; padding:15px 28px; border-radius:10px; background:#9292FF; box-shadow:0 6px 16px rgba(146,146,255,0.3)">Create your free account</a>
+              <a href="/register/lab" style="font-size:15px; font-weight:600; color:#0F172A; padding:15px 26px; border-radius:10px; border:1px solid rgba(15,23,42,0.12); background:#fff">I run a laboratory</a>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:20px; margin-top:6px">
+              <span style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:#5B6477"><span class="ms" style="font-size:17px; color:#6E6EE8">check</span>Free to sign up</span>
+              <span style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:#5B6477"><span class="ms" style="font-size:17px; color:#6E6EE8">check</span>No setup fee, no contract</span>
+              <span style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:#5B6477"><span class="ms" style="font-size:17px; color:#6E6EE8">check</span>English · ქართული · Русский</span>
+            </div>
+
+            <div style="width:100%; margin-top:32px; background:#fff; border:1px solid rgba(15,23,42,0.08); border-radius:16px; padding:36px 24px; box-shadow:0 24px 60px rgba(15,23,42,0.08)">
+              <sc-if value="{{ wide }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex; align-items:stretch; justify-content:center">
+
+                <div style="flex:1 1 190px; min-width:0; max-width:250px; display:flex; flex-direction:column; align-items:center; gap:12px; padding:24px 16px; border:1px solid rgba(15,23,42,0.08); border-radius:16px; background:#FBFBFD">
+                  <div style="width:56px; height:56px; border-radius:999px; background:rgba(146,146,255,0.12); border:1px solid rgba(146,146,255,0.4); display:flex; align-items:center; justify-content:center"><span class="ms" style="font-size:27px; color:#5252CC">apartment</span></div>
+                  <div style="font-size:17px; font-weight:800; letter-spacing:-0.015em">Clinic</div>
+                  <div style="font-size:12.5px; line-height:1.55; color:#5B6477; text-align:center">Doctors, orders and invoices in one account</div>
+                </div>
+
+                <div style="flex:1 1 110px; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:14px; padding:12px 10px">
+                  <div style="display:flex; flex-direction:column; align-items:center; gap:7px">
+                    <div style="font-size:11.5px; font-weight:600; color:#5B6477; text-align:center; text-wrap:pretty">invites &amp; bills</div>
+                    <div style="display:flex; align-items:center; width:100%"><div style="flex:1 1 0; height:1px; background:linear-gradient(90deg, rgba(146,146,255,0.25), rgba(146,146,255,0.7))"></div><span class="ms" style="font-size:17px; color:#9292FF; margin-left:-4px">chevron_right</span></div>
+                  </div>
+                  <div style="display:flex; flex-direction:column; align-items:center; gap:7px">
+                    <div style="display:flex; align-items:center; width:100%"><span class="ms" style="font-size:17px; color:#9292FF; margin-right:-4px">chevron_left</span><div style="flex:1 1 0; height:1px; background:linear-gradient(90deg, rgba(146,146,255,0.7), rgba(146,146,255,0.25))"></div></div>
+                    <div style="font-size:11.5px; font-weight:600; color:#5B6477; text-align:center; text-wrap:pretty">orders on the clinic</div>
+                  </div>
+                </div>
+
+                <div style="flex:1 1 210px; min-width:0; max-width:270px; display:flex; flex-direction:column; align-items:center; gap:12px; padding:28px 18px; border:1px solid rgba(146,146,255,0.4); border-radius:16px; background:#fff; box-shadow:0 10px 28px rgba(146,146,255,0.1)">
+                  <div style="width:64px; height:64px; border-radius:999px; background:#9292FF; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(146,146,255,0.3)"><span class="ms" style="font-size:31px; color:#fff">stethoscope</span></div>
+                  <div style="font-size:16px; font-weight:800; letter-spacing:-0.01em">Doctor</div>
+                  <div style="font-size:12.5px; line-height:1.55; color:#5B6477; text-align:center">Builds the case on a tooth map, attaches the scan, sets the due date</div>
+                </div>
+
+                <div style="flex:1 1 110px; min-width:0; display:flex; flex-direction:column; justify-content:center; gap:14px; padding:12px 10px">
+                  <div style="display:flex; flex-direction:column; align-items:center; gap:7px">
+                    <div style="font-size:11.5px; font-weight:600; color:#5252CC; text-align:center; text-wrap:pretty">structured order + files</div>
+                    <div style="display:flex; align-items:center; width:100%"><div style="flex:1 1 0; height:1px; background:linear-gradient(90deg, rgba(146,146,255,0.25), rgba(146,146,255,0.7))"></div><span class="ms" style="font-size:17px; color:#9292FF; margin-left:-4px">chevron_right</span></div>
+                  </div>
+                  <div style="display:flex; flex-direction:column; align-items:center; gap:7px">
+                    <div style="display:flex; align-items:center; width:100%"><span class="ms" style="font-size:17px; color:#9292FF; margin-right:-4px">chevron_left</span><div style="flex:1 1 0; height:1px; background:linear-gradient(90deg, rgba(146,146,255,0.7), rgba(146,146,255,0.25))"></div></div>
+                    <div style="font-size:11.5px; font-weight:600; color:#5252CC; text-align:center; text-wrap:pretty">price, due date, status</div>
+                  </div>
+                </div>
+
+                <div style="flex:1 1 190px; min-width:0; max-width:250px; display:flex; flex-direction:column; align-items:center; gap:12px; padding:24px 16px; border:1px solid rgba(15,23,42,0.08); border-radius:16px; background:#FBFBFD">
+                  <div style="width:56px; height:56px; border-radius:999px; background:rgba(146,146,255,0.12); border:1px solid rgba(146,146,255,0.4); display:flex; align-items:center; justify-content:center"><span class="ms" style="font-size:27px; color:#5252CC">science</span></div>
+                  <div style="font-size:17px; font-weight:800; letter-spacing:-0.015em">Laboratory</div>
+                  <div style="font-size:12.5px; line-height:1.55; color:#5B6477; text-align:center">Publishes services, prices and the order form itself</div>
+                </div>
+
+              </div>
+              </sc-if>
+
+              <sc-if value="{{ narrow }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex; flex-direction:column; align-items:stretch; gap:0">
+                <div style="display:flex; flex-direction:column; align-items:center; gap:10px; padding:22px 16px; border:1px solid rgba(15,23,42,0.08); border-radius:16px; background:#FBFBFD">
+                  <div style="width:52px; height:52px; border-radius:999px; background:rgba(146,146,255,0.12); border:1px solid rgba(146,146,255,0.4); display:flex; align-items:center; justify-content:center"><span class="ms" style="font-size:25px; color:#5252CC">apartment</span></div>
+                  <div style="font-size:16px; font-weight:800; letter-spacing:-0.015em">Clinic</div>
+                  <div style="font-size:13.5px; line-height:1.55; color:#5B6477; text-align:center">Doctors, orders and invoices in one account</div>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:center; gap:7px; padding:16px 0">
+                  <div style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#5B6477"><span class="ms" style="font-size:17px; color:#9292FF">south</span>invites &amp; bills</div>
+                  <div style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#5B6477"><span class="ms" style="font-size:17px; color:#9292FF">north</span>orders on the clinic</div>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:center; gap:10px; padding:26px 16px; border:1px solid rgba(146,146,255,0.4); border-radius:16px; background:#fff; box-shadow:0 10px 28px rgba(146,146,255,0.1)">
+                  <div style="width:60px; height:60px; border-radius:999px; background:#9292FF; display:flex; align-items:center; justify-content:center; box-shadow:0 6px 16px rgba(146,146,255,0.3)"><span class="ms" style="font-size:29px; color:#fff">stethoscope</span></div>
+                  <div style="font-size:17px; font-weight:800; letter-spacing:-0.015em">Doctor</div>
+                  <div style="font-size:13.5px; line-height:1.55; color:#5B6477; text-align:center">Builds the case on a tooth map, attaches the scan, sets the due date</div>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:center; gap:7px; padding:16px 0">
+                  <div style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#5252CC"><span class="ms" style="font-size:17px; color:#9292FF">south</span>structured order + files</div>
+                  <div style="display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:#5252CC"><span class="ms" style="font-size:17px; color:#9292FF">north</span>price, due date, status</div>
+                </div>
+                <div style="display:flex; flex-direction:column; align-items:center; gap:10px; padding:22px 16px; border:1px solid rgba(15,23,42,0.08); border-radius:16px; background:#FBFBFD">
+                  <div style="width:52px; height:52px; border-radius:999px; background:rgba(146,146,255,0.12); border:1px solid rgba(146,146,255,0.4); display:flex; align-items:center; justify-content:center"><span class="ms" style="font-size:25px; color:#5252CC">science</span></div>
+                  <div style="font-size:16px; font-weight:800; letter-spacing:-0.015em">Laboratory</div>
+                  <div style="font-size:13.5px; line-height:1.55; color:#5B6477; text-align:center">Publishes services, prices and the order form itself</div>
+                </div>
+              </div>
+              </sc-if>
+
+              <div style="margin-top:34px; padding-top:22px; border-top:1px solid rgba(15,23,42,0.08); display:flex; justify-content:center; gap:36px; flex-wrap:wrap">
+                <div style="display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:#5B6477"><span class="ms" style="font-size:18px; color:#6E6EE8">check_circle</span>Nothing dictated by phone</div>
+                <div style="display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:#5B6477"><span class="ms" style="font-size:18px; color:#6E6EE8">check_circle</span>Every change on the record</div>
+                <div style="display:flex; align-items:center; gap:8px; font-size:12.5px; font-weight:600; color:#5B6477"><span class="ms" style="font-size:18px; color:#6E6EE8">check_circle</span>One invoice trail</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#5252CC; color:#fff">
+          <div style="max-width:1140px; margin:0 auto; padding:34px 28px; display:flex; align-items:center; justify-content:space-between; gap:32px; flex-wrap:wrap">
+            <div style="display:flex; align-items:center; gap:16px">
+              <span class="ms" style="font-size:32px; color:#fff">science</span>
+              <div>
+                <div style="font-size:21px; font-weight:800; letter-spacing:-0.02em">Ready to send a case?</div>
+                <div style="font-size:14.5px; line-height:1.55; color:#E3E3FF; margin-top:3px">Browse approved laboratories — their services, turnaround times and published prices.</div>
+              </div>
+            </div>
+            <a href="/doctor/marketplace" style="display:inline-flex; align-items:center; gap:8px; font-size:15px; font-weight:700; color:#5252CC; background:#fff; padding:15px 26px; border-radius:10px; flex-shrink:0" style-hover="background:#F1F1FF">Make an order<span class="ms" style="font-size:19px">arrow_forward</span></a>
+          </div>
+        </div>
+
+        <div style="background:#fff; border-top:1px solid rgba(15,23,42,0.08); border-bottom:1px solid rgba(15,23,42,0.08)">
+          <div style="max-width:1140px; margin:0 auto; padding:52px 28px 46px; display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:36px">
+            <div style="display:flex; flex-direction:column; gap:9px">
+              <span class="ms" style="font-size:26px; color:#6E6EE8">verified</span>
+              <div style="font-size:18px; font-weight:800; letter-spacing:-0.015em">Fewer remakes</div>
+              <div style="font-size:15px; line-height:1.6; color:#5B6477; text-wrap:pretty">Required fields, a tooth map and the lab's own shade list mean the case arrives complete — not approximately.</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:9px">
+              <span class="ms" style="font-size:26px; color:#6E6EE8">schedule</span>
+              <div style="font-size:18px; font-weight:800; letter-spacing:-0.015em">Five minutes, not five calls</div>
+              <div style="font-size:15px; line-height:1.6; color:#5B6477; text-wrap:pretty">Order from the chair, get a confirmed due date back, and see status changes without chasing anyone.</div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:9px">
+              <span class="ms" style="font-size:26px; color:#6E6EE8">payments</span>
+              <div style="font-size:18px; font-weight:800; letter-spacing:-0.015em">Money that adds up</div>
+              <div style="font-size:15px; line-height:1.6; color:#5B6477; text-wrap:pretty">Published prices, a breakdown before you submit, and one invoice trail both sides can check.</div>
+            </div>
+          </div>
+
+          <div style="max-width:1140px; margin:0 auto; padding:0 28px 60px">
+            <div style="border-top:1px solid rgba(15,23,42,0.08); padding-top:46px; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center">
+              <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#8A91A5">The problem</div>
+              <h2 style="margin:0; font-size:32px; line-height:1.18; font-weight:800; letter-spacing:-0.025em; max-width:680px; text-wrap:pretty">A large case cannot be explained on a phone call</h2>
+              <p style="margin:0; max-width:620px; font-size:15.5px; line-height:1.65; color:#5B6477; text-wrap:pretty">Shades, tooth numbers, materials, pontic design and due dates get dictated down the line and remembered differently by both sides. The mismatch shows up at seating.</p>
+            </div>
+
+            <div style="display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:20px; margin-top:34px">
+              <div style="border:1px solid rgba(220,38,38,0.22); background:#FDEAEA; border-radius:16px; padding:26px 26px 22px; display:flex; flex-direction:column; gap:16px">
+                <div style="display:flex; align-items:center; gap:9px"><span class="ms" style="font-size:21px; color:#DC2626">phone_in_talk</span><div style="font-size:17px; font-weight:800; letter-spacing:-0.015em; color:#0F172A">Phone &amp; paper today</div></div>
+                <div style="display:flex; flex-direction:column; gap:12px">
+                  <div style="display:flex; gap:10px; align-items:flex-start"><span class="ms" style="font-size:19px; color:#DC2626; margin-top:2px">close</span><span style="font-size:15px; line-height:1.55; color:#0F172A">Wrong shade or wrong tooth — remade, re-shipped, re-paid</span></div>
+                  <div style="display:flex; gap:10px; align-items:flex-start"><span class="ms" style="font-size:19px; color:#DC2626; margin-top:2px">close</span><span style="font-size:15px; line-height:1.55; color:#0F172A">"When is it due?" answered by four people, four ways</span></div>
+                  <div style="display:flex; gap:10px; align-items:flex-start"><span class="ms" style="font-size:19px; color:#DC2626; margin-top:2px">close</span><span style="font-size:15px; line-height:1.55; color:#0F172A">Prices agreed verbally, invoices reconciled from memory</span></div>
+                  <div style="display:flex; gap:10px; align-items:flex-start"><span class="ms" style="font-size:19px; color:#DC2626; margin-top:2px">close</span><span style="font-size:15px; line-height:1.55; color:#0F172A">A change to the case lives in someone's WhatsApp</span></div>
+                </div>
+              </div>
+              <div style="border:1px solid rgba(146,146,255,0.4); background:rgba(146,146,255,0.12); border-radius:16px; padding:26px 26px 22px; display:flex; flex-direction:column; gap:16px">
+                <div style="display:flex; align-items:center; gap:9px"><span class="ms" style="font-size:21px; color:#5252CC">task_alt</span><div style="font-size:17px; font-weight:800; letter-spacing:-0.015em; color:#0F172A">With Lab Order</div></div>
+                <div style="display:flex; flex-direction:column; gap:12px">
+                  <div style="display:flex; gap:10px; align-items:flex-start"><span class="ms" style="font-size:19px; color:#5252CC; margin-top:2px">check</span><span style="font-size:15px; line-height:1.55; color:#0F172A">Teeth, shade and material picked — never transcribed</span></div>
+                  <div style="display:flex; gap:10px; align-items:flex-start"><span class="ms" style="font-size:19px; color:#5252CC; margin-top:2px">check</span><span style="font-size:15px; line-height:1.55; color:#0F172A">One confirmed due date, visible to everyone on the case</span></div>
+                  <div style="display:flex; gap:10px; align-items:flex-start"><span class="ms" style="font-size:19px; color:#5252CC; margin-top:2px">check</span><span style="font-size:15px; line-height:1.55; color:#0F172A">Published prices, a breakdown before you submit</span></div>
+                  <div style="display:flex; gap:10px; align-items:flex-start"><span class="ms" style="font-size:19px; color:#5252CC; margin-top:2px">check</span><span style="font-size:15px; line-height:1.55; color:#0F172A">Every edit recorded, with a reason, and shown as a diff</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="1a-how" style="max-width:1140px; margin:0 auto; padding:64px 28px">
+          <div style="display:flex; flex-direction:column; gap:11px; margin-bottom:34px; max-width:660px">
+            <div style="font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#8A91A5">How it works</div>
+            <h2 style="margin:0; font-size:32px; line-height:1.18; font-weight:800; letter-spacing:-0.025em">One structured order, start to finish</h2>
+            <p style="margin:0; font-size:15.5px; line-height:1.65; color:#5B6477; text-wrap:pretty">Four steps, about five minutes. You can stop after any of them — the order saves as a draft.</p>
+          </div>
+          <div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:16px">
+            <div style="background:#fff; border:1px solid rgba(15,23,42,0.08); border-radius:16px; padding:22px; display:flex; flex-direction:column; gap:10px">
+              <div style="width:30px; height:30px; border-radius:999px; background:rgba(146,146,255,0.12); border:1px solid rgba(146,146,255,0.4); color:#5252CC; display:flex; align-items:center; justify-content:center; font-size:13.5px; font-weight:800">1</div>
+              <div style="font-size:17px; font-weight:800; letter-spacing:-0.015em">Pick a laboratory</div>
+              <div style="font-size:14.5px; line-height:1.65; color:#5B6477">Browse approved labs by city, service and turnaround. Every price is published up front.</div>
+            </div>
+            <div style="background:#fff; border:1px solid rgba(15,23,42,0.08); border-radius:16px; padding:22px; display:flex; flex-direction:column; gap:10px">
+              <div style="width:30px; height:30px; border-radius:999px; background:rgba(146,146,255,0.12); border:1px solid rgba(146,146,255,0.4); color:#5252CC; display:flex; align-items:center; justify-content:center; font-size:13.5px; font-weight:800">2</div>
+              <div style="font-size:17px; font-weight:800; letter-spacing:-0.015em">Fill the lab's own form</div>
+              <div style="font-size:14.5px; line-height:1.65; color:#5B6477">Teeth on a map, shade from a picker, material from a list. Required fields can't be skipped.</div>
+            </div>
+            <div style="background:#fff; border:1px solid rgba(15,23,42,0.08); border-radius:16px; padding:22px; display:flex; flex-direction:column; gap:10px">
+              <div style="width:30px; height:30px; border-radius:999px; background:rgba(146,146,255,0.12); border:1px solid rgba(146,146,255,0.4); color:#5252CC; display:flex; align-items:center; justify-content:center; font-size:13.5px; font-weight:800">3</div>
+              <div style="font-size:17px; font-weight:800; letter-spacing:-0.015em">Attach scans, set the due date</div>
+              <div style="font-size:14.5px; line-height:1.65; color:#5B6477">Digital impressions up to 100 MB per file, a requested due date, and rush if the lab offers it.</div>
+            </div>
+            <div style="background:#fff; border:1px solid rgba(15,23,42,0.08); border-radius:16px; padding:22px; display:flex; flex-direction:column; gap:10px">
+              <div style="width:30px; height:30px; border-radius:999px; background:rgba(146,146,255,0.12); border:1px solid rgba(146,146,255,0.4); color:#5252CC; display:flex; align-items:center; justify-content:center; font-size:13.5px; font-weight:800">4</div>
+              <div style="font-size:17px; font-weight:800; letter-spacing:-0.015em">Track it to delivery</div>
+              <div style="font-size:14.5px; line-height:1.65; color:#5B6477">Confirmed price and due date from the lab, a status on every step, and the invoice at the end.</div>
+            </div>
+          </div>
+        </div>
+
+        <div id="1a-doctors" style="background:#fff; border-top:1px solid rgba(15,23,42,0.08)">
+          <div style="max-width:1140px; margin:0 auto; padding:64px 28px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:56px">
+            <div style="display:flex; flex-direction:column; gap:18px">
+              <div style="display:inline-flex; align-self:flex-start; align-items:center; gap:7px; height:28px; padding:0 12px; border-radius:999px; background:rgba(146,146,255,0.12); color:#5252CC; font-size:12.5px; font-weight:700"><span class="ms" style="font-size:17px">stethoscope</span>For doctors &amp; clinics</div>
+              <h2 style="margin:0; font-size:32px; line-height:1.18; font-weight:800; letter-spacing:-0.025em; text-wrap:pretty">Order once, correctly, and see where every case stands</h2>
+              <div style="display:grid; gap:18px">
+                <div style="display:flex; gap:12px"><span class="ms" style="font-size:20px; color:#6E6EE8; margin-top:2px">grid_on</span><div><div style="font-size:15.5px; font-weight:700">Tooth map instead of dictation</div><div style="font-size:14.5px; line-height:1.65; color:#5B6477">Mark units, pontics and implants visually — the lab receives exactly what you selected.</div></div></div>
+                <div style="display:flex; gap:12px"><span class="ms" style="font-size:20px; color:#6E6EE8; margin-top:2px">payments</span><div><div style="font-size:15.5px; font-weight:700">The price before you submit</div><div style="font-size:14.5px; line-height:1.65; color:#5B6477">A live breakdown per unit, with rush surcharge shown separately. The lab confirms the final figure.</div></div></div>
+                <div style="display:flex; gap:12px"><span class="ms" style="font-size:20px; color:#6E6EE8; margin-top:2px">history</span><div><div style="font-size:15.5px; font-weight:700">Patients and case history</div><div style="font-size:14.5px; line-height:1.65; color:#5B6477">Every order filed under the patient, so a continuation starts from the last one instead of a blank page.</div></div></div>
+                <div style="display:flex; gap:12px"><span class="ms" style="font-size:20px; color:#6E6EE8; margin-top:2px">edit_note</span><div><div style="font-size:15.5px; font-weight:700">Changes on the record</div><div style="font-size:14.5px; line-height:1.65; color:#5B6477">Edit an open case with a reason; the lab sees a clear diff of what changed and re-prices if needed.</div></div></div>
+                <div style="display:flex; gap:12px"><span class="ms" style="font-size:20px; color:#6E6EE8; margin-top:2px">receipt_long</span><div><div style="font-size:15.5px; font-weight:700">Invoice you or the clinic</div><div style="font-size:14.5px; line-height:1.65; color:#5B6477">Bill per work location, with clinic identification codes held on file for billing.</div></div></div>
+              </div>
+              <div style="display:flex; gap:10px; margin-top:4px">
+                <a href="/register/doctor" style="font-size:14px; font-weight:700; color:#fff; padding:12px 22px; border-radius:10px; background:#9292FF">Create doctor account</a>
+                <a href="/register/clinic" style="font-size:14px; font-weight:600; color:#0F172A; padding:12px 22px; border-radius:10px; border:1px solid rgba(15,23,42,0.12)">Register a clinic</a>
+              </div>
+            </div>
+            <div style="background:#FBFBFD; border:1px solid rgba(15,23,42,0.08); border-radius:16px; padding:14px">
+              <div style="height:100%; min-height:460px; border-radius:11px; border:1px dashed rgba(146,146,255,0.45); background:repeating-linear-gradient(135deg, rgba(146,146,255,0.13) 0 8px, transparent 8px 16px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px">
+                <span class="ms" style="font-size:26px; color:#6E6EE8">image</span>
+                <span style="font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; color:#5252CC; text-align:center">screenshot — orders list with statuses &amp; due dates</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="1a-labs" style="background:#EEF0F5; border-top:1px solid rgba(15,23,42,0.08)">
+          <div style="max-width:1140px; margin:0 auto; padding:64px 28px; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:56px">
+            <div style="background:#fff; border:1px solid rgba(15,23,42,0.08); border-radius:16px; padding:14px; order:-1">
+              <div style="height:100%; min-height:460px; border-radius:11px; border:1px dashed rgba(146,146,255,0.45); background:repeating-linear-gradient(135deg, rgba(146,146,255,0.13) 0 8px, transparent 8px 16px); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px">
+                <span class="ms" style="font-size:26px; color:#6E6EE8">image</span>
+                <span style="font-family:ui-monospace, SFMono-Regular, Menlo, monospace; font-size:12px; color:#5252CC; text-align:center">screenshot — lab order dashboard &amp; order sheet</span>
+              </div>
+            </div>
+            <div style="display:flex; flex-direction:column; gap:18px">
+              <div style="display:inline-flex; align-self:flex-start; align-items:center; gap:7px; height:28px; padding:0 12px; border-radius:999px; background:rgba(146,146,255,0.12); color:#5252CC; font-size:12.5px; font-weight:700"><span class="ms" style="font-size:17px">science</span>For laboratories</div>
+              <h2 style="margin:0; font-size:32px; line-height:1.18; font-weight:800; letter-spacing:-0.025em; text-wrap:pretty">Define the order form once — every order arrives complete</h2>
+              <div style="display:grid; gap:18px">
+                <div style="display:flex; gap:12px"><span class="ms" style="font-size:20px; color:#6E6EE8; margin-top:2px">dashboard_customize</span><div><div style="font-size:15.5px; font-weight:700">Your services, your form</div><div style="font-size:14.5px; line-height:1.65; color:#5B6477">Start from templates — crown &amp; bridge, implants, milling, guides — and publish a form per service.</div></div></div>
+                <div style="display:flex; gap:12px"><span class="ms" style="font-size:20px; color:#6E6EE8; margin-top:2px">sell</span><div><div style="font-size:15.5px; font-weight:700">Pricing and turnaround you set</div><div style="font-size:14.5px; line-height:1.65; color:#5B6477">Per-unit and per-jaw pricing, minimum working days, optional rush surcharge — applied automatically.</div></div></div>
+                <div style="display:flex; gap:12px"><span class="ms" style="font-size:20px; color:#6E6EE8; margin-top:2px">inbox</span><div><div style="font-size:15.5px; font-weight:700">One dashboard for intake</div><div style="font-size:14.5px; line-height:1.65; color:#5B6477">Accept, price and schedule incoming cases; flag an order as needing doctor input and the case waits, not your bench.</div></div></div>
+                <div style="display:flex; gap:12px"><span class="ms" style="font-size:20px; color:#6E6EE8; margin-top:2px">groups</span><div><div style="font-size:15.5px; font-weight:700">Staff assignment &amp; Telegram chats</div><div style="font-size:14.5px; line-height:1.65; color:#5B6477">Assign technicians per order and open a group chat with the doctor when something needs a human answer.</div></div></div>
+                <div style="display:flex; gap:12px"><span class="ms" style="font-size:20px; color:#6E6EE8; margin-top:2px">account_balance_wallet</span><div><div style="font-size:15.5px; font-weight:700">Receivables, not guesswork</div><div style="font-size:14.5px; line-height:1.65; color:#5B6477">See who owes what, record payments, and keep finances behind a passcode lock.</div></div></div>
+              </div>
+              <div style="display:flex; gap:10px; margin-top:4px">
+                <a href="/register/lab" style="font-size:14px; font-weight:700; color:#fff; padding:12px 22px; border-radius:10px; background:#9292FF">Register your laboratory</a>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="1a-faq" style="background:#fff; border-top:1px solid rgba(15,23,42,0.08)">
+          <div style="max-width:820px; margin:0 auto; padding:64px 28px">
+            <h2 style="margin:0 0 24px; font-size:32px; line-height:1.18; font-weight:800; letter-spacing:-0.025em">Questions</h2>
+            <div style="display:flex; flex-direction:column; gap:10px">
+              <div style="border:1px solid rgba(15,23,42,0.08); border-radius:11px; overflow:hidden">
+                <div sc-camel-on-click="{{ toggle0 }}" style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 20px; cursor:pointer; font-size:15.5px; font-weight:700" style-hover="background:#FBFBFD">What does it cost?<span class="ms" style="font-size:20px; color:#8A91A5">expand_more</span></div>
+                <sc-if value="{{ open0 }}" hint-placeholder-val="{{ true }}"><div style="padding:0 20px 20px; font-size:15px; line-height:1.7; color:#5B6477">Creating an account is free for doctors, clinics and laboratories. Each laboratory sets its own service prices, and the order shows them before you submit.</div></sc-if>
+              </div>
+              <div style="border:1px solid rgba(15,23,42,0.08); border-radius:11px; overflow:hidden">
+                <div sc-camel-on-click="{{ toggle1 }}" style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 20px; cursor:pointer; font-size:15.5px; font-weight:700" style-hover="background:#FBFBFD">Do you support physical impressions?<span class="ms" style="font-size:20px; color:#8A91A5">expand_more</span></div>
+                <sc-if value="{{ open1 }}" hint-placeholder-val="{{ false }}"><div style="padding:0 20px 20px; font-size:15px; line-height:1.7; color:#5B6477">At this stage we work with digital impressions only — you attach scan files to the order. Conventional-impression workflows are on the roadmap.</div></sc-if>
+              </div>
+              <div style="border:1px solid rgba(15,23,42,0.08); border-radius:11px; overflow:hidden">
+                <div sc-camel-on-click="{{ toggle2 }}" style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 20px; cursor:pointer; font-size:15.5px; font-weight:700" style-hover="background:#FBFBFD">How does a laboratory get listed?<span class="ms" style="font-size:20px; color:#8A91A5">expand_more</span></div>
+                <sc-if value="{{ open2 }}" hint-placeholder-val="{{ false }}"><div style="padding:0 20px 20px; font-size:15px; line-height:1.7; color:#5B6477">Register, complete your legal and billing details, then submit for review. Once approved you appear in the doctors' lab directory and can publish services.</div></sc-if>
+              </div>
+              <div style="border:1px solid rgba(15,23,42,0.08); border-radius:11px; overflow:hidden">
+                <div sc-camel-on-click="{{ toggle3 }}" style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 20px; cursor:pointer; font-size:15.5px; font-weight:700" style-hover="background:#FBFBFD">Can I change an order after sending it?<span class="ms" style="font-size:20px; color:#8A91A5">expand_more</span></div>
+                <sc-if value="{{ open3 }}" hint-placeholder-val="{{ false }}"><div style="padding:0 20px 20px; font-size:15px; line-height:1.7; color:#5B6477">Yes, until the case is closed. You pick a reason for the change, the lab sees exactly what changed, and confirms whether the price or due date moves.</div></sc-if>
+              </div>
+              <div style="border:1px solid rgba(15,23,42,0.08); border-radius:11px; overflow:hidden">
+                <div sc-camel-on-click="{{ toggle4 }}" style="display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 20px; cursor:pointer; font-size:15.5px; font-weight:700" style-hover="background:#FBFBFD">Which languages are supported?<span class="ms" style="font-size:20px; color:#8A91A5">expand_more</span></div>
+                <sc-if value="{{ open4 }}" hint-placeholder-val="{{ false }}"><div style="padding:0 20px 20px; font-size:15px; line-height:1.7; color:#5B6477">English, Georgian and Russian, switchable anywhere in the app — including the order forms your lab publishes.</div></sc-if>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="background:#0F172A; color:#F1F2FA">
+          <div style="max-width:1140px; margin:0 auto; padding:64px 28px; display:flex; flex-direction:column; align-items:center; gap:16px; text-align:center">
+            <h2 style="margin:0; font-size:32px; line-height:1.15; font-weight:800; letter-spacing:-0.025em; max-width:620px; text-wrap:pretty">Your next case, ordered in five minutes</h2>
+            <p style="margin:0; max-width:540px; font-size:16px; line-height:1.6; color:#A1A6BD">Create an account and place your first order today — no contract, no setup fee.</p>
+            <div style="display:flex; gap:12px; margin-top:6px">
+              <a href="/register/doctor" style="font-size:15px; font-weight:700; color:#0F172A; padding:15px 28px; border-radius:10px; background:#B4B4FF">Get started as a doctor</a>
+              <a href="/register/lab" style="font-size:15px; font-weight:600; color:#F1F2FA; padding:15px 26px; border-radius:10px; border:1px solid rgba(255,255,255,0.16)">Register a laboratory</a>
+            </div>
+            <div style="display:flex; flex-wrap:wrap; justify-content:center; gap:20px; margin-top:2px">
+              <span style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:#A1A6BD"><span class="ms" style="font-size:17px; color:#B4B4FF">check</span>Free account</span>
+              <span style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:#A1A6BD"><span class="ms" style="font-size:17px; color:#B4B4FF">check</span>No setup fee</span>
+              <span style="display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:#A1A6BD"><span class="ms" style="font-size:17px; color:#B4B4FF">check</span>Leave whenever you like</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:18px; margin-top:26px; padding-top:22px; border-top:1px solid rgba(255,255,255,0.09); width:100%; justify-content:space-between; font-size:12.5px; color:#A1A6BD">
+              <span>© 2026 Lab Order</span>
+              <span style="display:flex; gap:18px"><a href="/login" style="color:#A1A6BD">Sign in</a><a href="#1a-faq" style="color:#A1A6BD">FAQ</a><a href="mailto:hello@dentallabs.ge" style="color:#A1A6BD">Contact</a></span>
+            </div>
+          </div>
+        </div>
+
+      </section>
+
+</x-dc>
+<script type="application/dc-logic" data-dc-script="" data-props="{&quot;faqAllOpen&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;}}">
+class Component extends DCLogic {
+  state = { open: 0, wide: true };
+  componentDidMount() {
+    this.mq = window.matchMedia('(min-width: 1000px)');
+    this.onMq = (e) => this.setState({ wide: e.matches });
+    this.setState({ wide: this.mq.matches });
+    this.mq.addEventListener('change', this.onMq);
+  }
+  componentWillUnmount() {
+    if (this.mq) this.mq.removeEventListener('change', this.onMq);
+  }
+  toggle(i) {
+    this.setState((s) => ({ open: s.open === i ? -1 : i }));
+  }
+  renderVals() {
+    const all = this.props.faqAllOpen ?? false;
+    const vals = { wide: this.state.wide, narrow: !this.state.wide };
+    for (let i = 0; i < 5; i += 1) {
+      vals['open' + i] = all || this.state.open === i;
+      vals['toggle' + i] = () => this.toggle(i);
+    }
+    return vals;
+  }
+}
+</script>
+
+
+</body></html>

@@ -1,8 +1,239 @@
 {
+  "nav": {
+    "labs": "Laboratories",
+    "how": "How it works",
+    "doctors": "For doctors",
+    "labsSection": "For laboratories",
+    "faq": "FAQ",
+    "signIn": "Sign in",
+    "getStarted": "Get started"
+  },
   "hero": {
+    "eyebrow": "Digital dental lab ordering",
     "title": "Send dental lab orders without the chaos",
-    "subtitle": "Pick a lab, send a structured order with files and prices, track delivery, and keep all your invoices in one place.",
-    "primaryCta": "Get started",
-    "secondaryCta": "Browse labs"
+    "subtitle": "Pick a lab, send a structured order with files and prices, track it to delivery, and keep every invoice in one place — so no case is ever dictated down a phone line again.",
+    "primaryCta": "Create your free account",
+    "secondaryCta": "I run a laboratory",
+    "checks": {
+      "free": "Free to sign up",
+      "noSetup": "No setup fee, no contract",
+      "languages": "English · ქართული · Русский"
+    }
+  },
+  "flow": {
+    "clinic": {
+      "title": "Clinic",
+      "body": "Doctors, orders and invoices in one account"
+    },
+    "doctor": {
+      "title": "Doctor",
+      "body": "Builds the case on a tooth map, attaches the scan, sets the due date"
+    },
+    "lab": {
+      "title": "Laboratory",
+      "body": "Publishes services, prices and the order form itself"
+    },
+    "clinicToDoctor": "invites & bills",
+    "doctorToClinic": "orders on the clinic",
+    "doctorToLab": "structured order + files",
+    "labToDoctor": "price, due date, status",
+    "proofs": {
+      "phone": "Nothing dictated by phone",
+      "record": "Every change on the record",
+      "invoice": "One invoice trail"
+    }
+  },
+  "band": {
+    "title": "Ready to send a case?",
+    "body": "Browse approved laboratories — their services, turnaround times and published prices.",
+    "cta": "Make an order"
+  },
+  "benefits": {
+    "remakes": {
+      "title": "Fewer remakes",
+      "body": "Required fields, a tooth map and the lab's own shade list mean the case arrives complete — not approximately."
+    },
+    "minutes": {
+      "title": "Five minutes, not five calls",
+      "body": "Order from the chair, get a confirmed due date back, and see status changes without chasing anyone."
+    },
+    "money": {
+      "title": "Money that adds up",
+      "body": "Published prices, a breakdown before you submit, and one invoice trail both sides can check."
+    }
+  },
+  "problem": {
+    "eyebrow": "The problem",
+    "title": "A large case cannot be explained on a phone call",
+    "body": "Shades, tooth numbers, materials, pontic design and due dates get dictated down the line and remembered differently by both sides. The mismatch shows up at seating.",
+    "before": {
+      "title": "Phone & paper today",
+      "items": [
+        "Wrong shade or wrong tooth — remade, re-shipped, re-paid",
+        "\"When is it due?\" answered by four people, four ways",
+        "Prices agreed verbally, invoices reconciled from memory",
+        "A change to the case lives in someone's WhatsApp"
+      ]
+    },
+    "after": {
+      "title": "With Dental Labs",
+      "items": [
+        "Teeth, shade and material picked — never transcribed",
+        "One confirmed due date, visible to everyone on the case",
+        "Published prices, a breakdown before you submit",
+        "Every edit recorded, with a reason, and shown as a diff"
+      ]
+    }
+  },
+  "how": {
+    "eyebrow": "How it works",
+    "title": "One structured order, start to finish",
+    "body": "Four steps, about five minutes. You can stop after any of them — the order saves as a draft.",
+    "steps": [
+      {
+        "title": "Pick a laboratory",
+        "body": "Browse approved labs by city, service and turnaround. Every price is published up front."
+      },
+      {
+        "title": "Fill the lab's own form",
+        "body": "Teeth on a map, shade from a picker, material from a list. Required fields can't be skipped."
+      },
+      {
+        "title": "Attach scans, set the due date",
+        "body": "Digital impressions up to 100 MB per file, a requested due date, and rush if the lab offers it."
+      },
+      {
+        "title": "Track it to delivery",
+        "body": "Confirmed price and due date from the lab, a status on every step, and the invoice at the end."
+      }
+    ]
+  },
+  "doctors": {
+    "pill": "For doctors & clinics",
+    "title": "Order once, correctly, and see where every case stands",
+    "features": [
+      {
+        "title": "Tooth map instead of dictation",
+        "body": "Mark units, pontics and implants visually — the lab receives exactly what you selected."
+      },
+      {
+        "title": "The price before you submit",
+        "body": "A live breakdown per unit, with rush surcharge shown separately. The lab confirms the final figure."
+      },
+      {
+        "title": "Patients and case history",
+        "body": "Every order filed under the patient, so a continuation starts from the last one instead of a blank page."
+      },
+      {
+        "title": "Changes on the record",
+        "body": "Edit an open case with a reason; the lab sees a clear diff of what changed and re-prices if needed."
+      },
+      {
+        "title": "Invoice you or the clinic",
+        "body": "Bill per work location, with clinic identification codes held on file for billing."
+      }
+    ],
+    "ctaDoctor": "Create doctor account",
+    "ctaClinic": "Register a clinic"
+  },
+  "labs": {
+    "pill": "For laboratories",
+    "title": "Define the order form once — every order arrives complete",
+    "features": [
+      {
+        "title": "Your services, your form",
+        "body": "Start from templates — crown & bridge, implants, milling, guides — and publish a form per service."
+      },
+      {
+        "title": "Pricing and turnaround you set",
+        "body": "Per-unit and per-jaw pricing, minimum working days, optional rush surcharge — applied automatically."
+      },
+      {
+        "title": "One dashboard for intake",
+        "body": "Accept, price and schedule incoming cases; flag an order as needing doctor input and the case waits, not your bench."
+      },
+      {
+        "title": "Staff assignment & Telegram chats",
+        "body": "Assign technicians per order and open a group chat with the doctor when something needs a human answer."
+      },
+      {
+        "title": "Receivables, not guesswork",
+        "body": "See who owes what, record payments, and keep finances behind a passcode lock."
+      }
+    ],
+    "cta": "Register your laboratory"
+  },
+  "faq": {
+    "title": "Questions",
+    "items": [
+      {
+        "q": "What does it cost?",
+        "a": "Creating an account is free for doctors, clinics and laboratories. Each laboratory sets its own service prices, and the order shows them before you submit."
+      },
+      {
+        "q": "Do you support physical impressions?",
+        "a": "At this stage we work with digital impressions only — you attach scan files to the order. Conventional-impression workflows are on the roadmap."
+      },
+      {
+        "q": "How does a laboratory get listed?",
+        "a": "Register, complete your legal and billing details, then submit for review. Once approved you appear in the doctors' lab directory and can publish services."
+      },
+      {
+        "q": "Can I change an order after sending it?",
+        "a": "Yes, until the case is closed. You pick a reason for the change, the lab sees exactly what changed, and confirms whether the price or due date moves."
+      },
+      {
+        "q": "Which languages are supported?",
+        "a": "English, Georgian and Russian, switchable anywhere in the app — including the order forms your lab publishes."
+      }
+    ]
+  },
+  "cta": {
+    "title": "Your next case, ordered in five minutes",
+    "body": "Create an account and place your first order today — no contract, no setup fee.",
+    "doctor": "Get started as a doctor",
+    "lab": "Register a laboratory",
+    "checks": {
+      "free": "Free account",
+      "noSetup": "No setup fee",
+      "leave": "Leave whenever you like"
+    }
+  },
+  "footer": {
+    "copyright": "© {{year}} Dental Labs",
+    "signIn": "Sign in",
+    "faq": "FAQ",
+    "contact": "Contact"
+  },
+  "mock": {
+    "orders": "Orders",
+    "all": "All",
+    "dueThisWeek": "Due this week",
+    "needsAttention": "Needs attention",
+    "patients": [
+      "Luka Tsereteli",
+      "Ana Kapanadze",
+      "Mariam Gelashvili",
+      "Giorgi Abashidze"
+    ],
+    "services": [
+      "Surgical guide · 2 implants",
+      "Crown & bridge · zirconia · 3 units",
+      "Implant restoration · screw-retained",
+      "Temporary crown · 1 unit"
+    ],
+    "sheetTitle": "Crown & bridge",
+    "sheetMeta": "Dr. Nino Beridze · Ana Kapanadze · 3 units zirconia",
+    "due": "Due {{date}}",
+    "status": "Status",
+    "statusHint": "Doctor sees updates instantly",
+    "team": "Team",
+    "teamNames": "Giorgi T. · Levan K.",
+    "assign": "Assign",
+    "chat": "Chat",
+    "chatLine": "Telegram order chat · 4 members",
+    "open": "Open",
+    "payment": "Payment",
+    "finalTotal": "Final total"
   }
 }

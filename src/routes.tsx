@@ -2,7 +2,11 @@ import { Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from '@/auth/ProtectedRoute';
 import { RoleGuard } from '@/auth/RoleGuard';
 import { RoleAwareRedirect } from '@/auth/RoleAwareRedirect';
+import { GuestRoute } from '@/auth/GuestRoute';
+import { PUBLIC_ROUTES } from '@/features/public/publicRoutes';
+import { doctorOrderNewPath } from '@/features/public/guestDraft';
 
+import { PublicLayout } from '@/layouts/PublicLayout';
 import { LoginPage } from '@/pages/public/LoginPage';
 import { DoctorRegisterPage } from '@/pages/public/DoctorRegisterPage';
 import { LabRegisterPage } from '@/pages/public/LabRegisterPage';
@@ -64,6 +68,45 @@ export function AppRoutes() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/forbidden" element={<ForbiddenPage />} />
+
+      {/* Public catalogue: the doctor's marketplace, lab profile and order
+          wizard, without an account. A signed-in visitor is sent to the same
+          screen inside their own area, so each page has one URL per audience. */}
+      <Route element={<PublicLayout />}>
+        <Route
+          path={PUBLIC_ROUTES.marketplace}
+          element={
+            <GuestRoute authedTo={({ base }) => `${base}/marketplace`}>
+              <MarketplacePage guest />
+            </GuestRoute>
+          }
+        />
+        <Route
+          path="/labs/:labId"
+          element={
+            <GuestRoute
+              authedTo={({ base, params, search }) => `${base}/labs/${params.labId}${search}`}
+            >
+              <LabPublicProfilePage guest />
+            </GuestRoute>
+          }
+        />
+        <Route
+          path={PUBLIC_ROUTES.orderNew}
+          element={
+            <GuestRoute
+              authedTo={({ base, search }) =>
+                // The doctor's copy also gets the resume flag when this
+                // browser holds a draft for the same service; the clinic's
+                // does not — it starts at the doctor picker.
+                base === '/doctor' ? doctorOrderNewPath(search) : `${base}/orders/new${search}`
+              }
+            >
+              <OrderCreateWizard guest />
+            </GuestRoute>
+          }
+        />
+      </Route>
 
       {/* Doctor */}
       <Route

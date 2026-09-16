@@ -21,5 +21,5 @@ export function AdminLayout() {
     },
     { to: '/admin/feedbacks', label: t('nav.feedbacks'), icon: 'feedback' },
   ];
-  return <AppShell brand="LabOrder" navEntries={nav} />;
+  return <AppShell brand="Dental Labs" navEntries={nav} />;
 }

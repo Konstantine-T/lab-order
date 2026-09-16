@@ -1,6 +1,6 @@
 {
   "app": {
-    "name": "Lab Order"
+    "name": "Dental Labs"
   },
   "actions": {
     "save": "Save",
@@ -263,5 +263,13 @@
     "answeredOn": "Answered {{date}}",
     "previousQuestions": "Previous questions ({{n}})",
     "resolvedByEdit": "Changed by the doctor"
+  },
+  "guestSubmit": {
+    "title": "Sign in to send this order",
+    "body": "Your order is complete. It needs an account to be sent to the lab — sign in, or create a doctor account in a minute.",
+    "savedOnDevice": "The order is saved on this device, so you can come back to it after signing in or registering.",
+    "notSaved": "The order could not be saved on this device (private browsing, or storage is full). If you leave this page, what you've filled in will be lost.",
+    "or": "or",
+    "register": "Create an account"
   }
 }

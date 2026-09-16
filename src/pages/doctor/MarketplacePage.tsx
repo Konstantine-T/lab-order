@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { ActingDoctorChip } from '@/features/clinic/ActingDoctorChip';
+import { catalogPaths } from '@/features/public/publicRoutes';
 import { supabase } from '@/lib/supabase';
 import { LabCard, type MarketplaceLab } from '@/components/LabCard';
 import { PageHeader } from '@/components/design/PageHeader';
@@ -13,18 +14,27 @@ import { motion, radii } from '@/theme/tokens';
 const ALL = '__all__';
 
 /**
- * The lab marketplace. Identical for a doctor and for a clinic admin ordering
- * on a doctor's behalf — the only difference is where a lab card links, and
- * that the clinic carries the acting doctor along in `?doctor=`.
+ * The lab marketplace. Identical for a doctor, for a clinic admin ordering on
+ * a doctor's behalf, and for a guest with no account — the only difference is
+ * where a lab card links, and that the clinic carries the acting doctor along
+ * in `?doctor=`. Nothing here needs a session: the query runs under the
+ * `labs_marketplace_read` policy, which admits `anon`.
  */
-export function MarketplacePage({ basePath = '/doctor' }: { basePath?: string }) {
+export function MarketplacePage({
+  basePath = '/doctor',
+  guest = false,
+}: {
+  basePath?: string;
+  guest?: boolean;
+}) {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
   const [search, setSearch] = useState('');
   const [city, setCity] = useState<string>(ALL);
   const [params] = useSearchParams();
   const doctorParam = params.get('doctor') ?? '';
-  const isClinic = basePath === '/clinic';
+  const isClinic = !guest && basePath === '/clinic';
+  const paths = catalogPaths(guest, basePath);
 
   const {
     data: labs = [],
@@ -165,7 +175,7 @@ export function MarketplacePage({ basePath = '/doctor' }: { basePath?: string })
             <LabCard
               key={lab.id}
               lab={lab}
-              to={`${basePath}/labs/${lab.id}${doctorParam ? `?doctor=${doctorParam}` : ''}`}
+              to={`${paths.lab(lab.id)}${doctorParam ? `?doctor=${doctorParam}` : ''}`}
             />
           ))}
         </Box>

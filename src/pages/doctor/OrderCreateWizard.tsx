@@ -67,6 +67,16 @@ import {
   useDebouncedDraftAutosave,
   type DraftBrokenness,
 } from '@/features/doctor/orderCreate/draftStorage';
+import { WorkLocationDialog } from '@/features/doctor/workLocations/WorkLocationDialog';
+import { createWorkLocation } from '@/features/doctor/workLocations/workLocationsApi';
+import type { WorkLocationInput } from '@/features/doctor/workLocations/schema';
+import { GuestSubmitDialog } from '@/features/public/GuestSubmitDialog';
+import {
+  clearGuestDraft,
+  readGuestDraft,
+  useGuestDraftAutosave,
+} from '@/features/public/guestDraft';
+import { catalogPaths } from '@/features/public/publicRoutes';
 
 /** Effective rush surcharge derived from the lab's pricing config + the
  * doctor's rush toggle. Returns undefined → calculatePrice falls back to no
@@ -104,18 +114,36 @@ function minTurnaroundDays(
  * that choice — patient, form, pricing, drafts, files — is identical, which is
  * the point: the clinic used to have a thinner parallel screen, and the two
  * drifted. `basePath` swaps the routes and the submit RPC; nothing else.
+ *
+ * `guest` is the third mode: no session at all. The form, the pricing and the
+ * validation are exactly the doctor's — the lab's catalogue is readable
+ * without an account (0034) — but there is no doctor to look patients up
+ * for, no work locations to pick from, nowhere to upload a file to, and
+ * nothing to submit as. The draft lives in this browser instead of
+ * `order_drafts`, and Send opens the sign-in dialog; the doctor's wizard then
+ * picks the draft up through `?resume=1`.
  */
-export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string }) {
+export function OrderCreateWizard({
+  basePath = '/doctor',
+  guest = false,
+}: {
+  basePath?: string;
+  guest?: boolean;
+}) {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
   const { user } = useAuth();
   const navigate = useNavigate();
   const [params] = useSearchParams();
 
-  const isClinic = basePath === '/clinic';
+  const isClinic = !guest && basePath === '/clinic';
   // Who the order is FOR. The clinic admin picks this first; a doctor is
-  // always acting for themselves.
-  const doctorId = isClinic ? params.get('doctor') || '' : user?.doctor_profile?.id;
+  // always acting for themselves; a guest is nobody yet.
+  const doctorId = guest
+    ? undefined
+    : isClinic
+      ? params.get('doctor') || ''
+      : user?.doctor_profile?.id;
   // Who is DOING the ordering — the draft's owner, so a clinic admin's autosave
   // never lands on the draft its doctor is halfway through (0023).
   const authorUserId = user?.id;
@@ -127,8 +155,19 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
   const continuesParam = params.get('continues') ?? '';
   const isContinuation = !!patientParam;
 
+  // The order built in this browser without an account — for the guest who
+  // closed the tab and came back, and for the doctor who has just signed in
+  // to send it (`?resume=1`). Read once, synchronously, so the first render
+  // already holds the answers; the server draft below is then told to keep
+  // its hands off.
+  const [resumed] = useState(() => {
+    if (!guest && params.get('resume') !== '1') return null;
+    const draft = readGuestDraft();
+    return draft && draft.labId === labParam && draft.serviceId === serviceParam ? draft : null;
+  });
+
   const [state, setState] = useState<WizardState>(() => ({
-    ...initialState,
+    ...(resumed ? resumed.state : initialState),
     lab_id: labParam,
     lab_service_id: serviceParam,
   }));
@@ -142,17 +181,30 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [failedUploads, setFailedUploads] = useState<string[]>([]);
   const [dismissedBroken, setDismissedBroken] = useState(false);
-  const draftHydratedRef = useRef(false);
+  const [guestDialogOpen, setGuestDialogOpen] = useState(false);
+  const [locationDialogOpen, setLocationDialogOpen] = useState(false);
+  const draftHydratedRef = useRef(!!resumed);
   const continuePatientRef = useRef(false);
   const queryClient = useQueryClient();
 
   const update = (patch: Partial<WizardState>) => setState((s) => ({ ...s, ...patch }));
 
+  // Once a signed-in doctor holds it in React state the browser copy has done
+  // its job: from here the server autosave carries the order, and leaving a
+  // second, older copy behind would only re-trigger the resume redirect —
+  // with stale answers — on the next visit. A guest keeps theirs; it is the
+  // only copy they have. Not in the state initialiser: StrictMode runs that
+  // twice, and the second run would find nothing.
+  useEffect(() => {
+    if (resumed && !guest) clearGuestDraft();
+  }, [resumed, guest]);
+
   // Where "change lab / service" and the initial bounce go. The acting doctor
   // rides along so the marketplace can keep ordering on their behalf.
+  const paths = catalogPaths(guest, basePath);
   const marketplacePath = isClinic
-    ? `${basePath}/marketplace${doctorId ? `?doctor=${doctorId}` : ''}`
-    : `${basePath}/marketplace`;
+    ? `${paths.marketplace}${doctorId ? `?doctor=${doctorId}` : ''}`
+    : paths.marketplace;
 
   // Nothing picked yet → send them to pick it. A clinic admin who arrives
   // without a doctor goes one step further back, to the doctor picker.
@@ -341,29 +393,43 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
     selectedService?.name ?? '',
   );
 
+  // The guest's equivalent: this browser, not `order_drafts`. Off in every
+  // other mode — the hook is a no-op when disabled, so it can sit here
+  // unconditionally and keep the hook order stable.
+  const guestSave = useGuestDraftAutosave(guest && !submittedOrderId, {
+    labId: labParam,
+    serviceId: serviceParam,
+    formVersionId: version?.id ?? null,
+    state,
+  });
+
   // ----- Validation ---------------------------------------------------------
   // Single page now: the checks that used to gate each step transition run once
   // on Submit. We flip all three "attempted" flags up front so every section
   // surfaces its inline errors at once, then return on the first hard failure
   // for the top-level banner + scroll.
   const [problems, setProblems] = useState<OrderProblem[]>([]);
+  const collectProblems = () =>
+    collectOrderProblems({
+      patient: state.patient,
+      answers: state.answers,
+      doctor_work_location_id: state.doctor_work_location_id,
+      requested_due_date: state.requested_due_date,
+      configuration: version?.configuration_json,
+      pricing: version?.pricing_configuration_json,
+      minDays: minTurnaroundDays(
+        selectedService?.average_turnaround_days,
+        version?.pricing_configuration_json,
+        state.rush_requested,
+      ),
+      // A guest has no locations by definition, and is told so in words; a
+      // red field on top would be nagging about something they cannot do yet.
+      noLocations: guest || locations.length === 0,
+    });
   // Once a submit has failed, keep the named problems in sync with what the
   // doctor is typing — a field they have just fixed must stop being red
   // without waiting for a second submit.
-  const liveProblems = problems.length === 0 ? problems : collectOrderProblems({
-    patient: state.patient,
-    answers: state.answers,
-    doctor_work_location_id: state.doctor_work_location_id,
-    requested_due_date: state.requested_due_date,
-    configuration: version?.configuration_json,
-    pricing: version?.pricing_configuration_json,
-    minDays: minTurnaroundDays(
-      selectedService?.average_turnaround_days,
-      version?.pricing_configuration_json,
-      state.rush_requested,
-    ),
-    noLocations: locations.length === 0,
-  });
+  const liveProblems = problems.length === 0 ? problems : collectProblems();
 
   const validateAll = (): boolean => {
     setError(null);
@@ -378,20 +444,7 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
       return false;
     }
 
-    const found = collectOrderProblems({
-      patient: state.patient,
-      answers: state.answers,
-      doctor_work_location_id: state.doctor_work_location_id,
-      requested_due_date: state.requested_due_date,
-      configuration: version?.configuration_json,
-      pricing: version?.pricing_configuration_json,
-      minDays: minTurnaroundDays(
-        selectedService?.average_turnaround_days,
-        version?.pricing_configuration_json,
-        state.rush_requested,
-      ),
-      noLocations: locations.length === 0,
-    });
+    const found = collectProblems();
 
     setProblems(found);
     if (found.length > 0) {
@@ -401,9 +454,53 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
     return true;
   };
 
+  // The lab republished its form between the guest saving and the doctor
+  // resuming. `lab_form_versions` is immutable, so a republish is a new id;
+  // the answers were given against the old one. They are kept — the work is
+  // theirs — but every field is checked and shown, so nothing is sent against
+  // questions they never saw. Only once: the doctor may then fix things
+  // without the banner re-flipping on every keystroke.
+  const formChanged =
+    !!resumed?.formVersionId && !!version && version.id !== resumed.formVersionId;
+  const driftCheckedRef = useRef(false);
+  useEffect(() => {
+    if (!formChanged || driftCheckedRef.current) return;
+    driftCheckedRef.current = true;
+    setPatientAttempted(true);
+    setSubmitAttempted(true);
+    setProblems(collectProblems());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [formChanged]);
+
   const handleSubmit = () => {
-    if (validateAll()) submit.mutate();
+    if (!validateAll()) return;
+    if (guest) {
+      // A complete order that only lacks an account. The draft is written
+      // before the dialog opens — before any sign-in attempt, before any
+      // navigation to register — so what the dialog says about it is true.
+      guestSave.saveNow();
+      setGuestDialogOpen(true);
+      return;
+    }
+    submit.mutate();
   };
+
+  // "Add work location" inside the wizard: a doctor who has none — a fresh
+  // registration, most often one resuming a guest order — used to be sent to
+  // the work locations page, mid-order. The new one is selected on return;
+  // the default-location effect above would pick it anyway when it is the
+  // only one, but selecting it by id also covers a doctor adding a second.
+  const addLocation = useMutation({
+    mutationFn: async (values: WorkLocationInput) => {
+      if (!doctorId) throw new Error('Missing doctor profile');
+      return createWorkLocation(doctorId, values);
+    },
+    onSuccess: (id) => {
+      update({ doctor_work_location_id: id });
+      void queryClient.invalidateQueries({ queryKey: ['doctor-locations-for-order', doctorId] });
+      void queryClient.invalidateQueries({ queryKey: ['doctor-work-locations', doctorId] });
+    },
+  });
 
   // ----- Derived rush -------------------------------------------------------
   const rush = effectiveRush(version?.pricing_configuration_json, state.rush_requested);
@@ -493,6 +590,9 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
         queryClient.invalidateQueries({ queryKey: ['doctor-draft', doctorId, authorUserId] });
         queryClient.removeQueries({ queryKey: ['draft-broken-check'] });
       }
+      // Already gone if this order was resumed from a guest draft; cheap to
+      // say again, and it is the rule: a sent order leaves nothing behind.
+      clearGuestDraft();
       setSubmittedOrderId(orderId);
     },
     onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
@@ -611,12 +711,33 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
           </>
         }
         actions={
-          <Stack direction="row" alignItems="center" spacing={0.75}>
-            <Icon name="cloud_done" size={15} sx={{ color: 'success.main' }} />
-            <Typography variant="body2" color="text.secondary" noWrap>
-              {t('orderCreate.draftSaved')}
-            </Typography>
-          </Stack>
+          guest ? (
+            // Where the draft is, and whether it is there at all. Nothing
+            // until the first write: "saved" before anything was typed would
+            // be a claim about nothing.
+            guestSave.status === 'failed' ? (
+              <Stack direction="row" alignItems="center" spacing={0.75}>
+                <Icon name="cloud_off" size={15} sx={{ color: 'warning.main' }} />
+                <Typography variant="body2" color="text.secondary" noWrap>
+                  {t('orderCreate.guest.notSaved')}
+                </Typography>
+              </Stack>
+            ) : guestSave.status === 'saved' ? (
+              <Stack direction="row" alignItems="center" spacing={0.75}>
+                <Icon name="cloud_done" size={15} sx={{ color: 'success.main' }} />
+                <Typography variant="body2" color="text.secondary" noWrap>
+                  {t('orderCreate.guest.savedOnDevice')}
+                </Typography>
+              </Stack>
+            ) : undefined
+          ) : (
+            <Stack direction="row" alignItems="center" spacing={0.75}>
+              <Icon name="cloud_done" size={15} sx={{ color: 'success.main' }} />
+              <Typography variant="body2" color="text.secondary" noWrap>
+                {t('orderCreate.draftSaved')}
+              </Typography>
+            </Stack>
+          )
         }
       />
 
@@ -637,14 +758,29 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
               disabled={isBroken}
               showError={submitAttempted && !!error}
               onSubmit={handleSubmit}
+              guest={guest}
               onAddLocation={
-                isClinic ? undefined : () => navigate('/doctor/work-locations')
+                isClinic || guest ? undefined : () => setLocationDialogOpen(true)
               }
             />
             <Callout tone="brand">{t('orderCreate.railHint')}</Callout>
           </>
         }
       >
+        {/* The doctor just signed in or registered to send this. Say so, and
+            say what is left — checking it over — rather than dropping them on
+            a filled form with no word of where it came from. */}
+        {resumed && !guest && !formChanged && (
+          <Callout tone="brand" icon="how_to_reg">
+            {t('orderCreate.guest.resumed')}
+          </Callout>
+        )}
+        {formChanged && (
+          <Callout tone="warning" title={t('orderCreate.guest.formChangedTitle')}>
+            {t('orderCreate.guest.formChangedBody')}
+          </Callout>
+        )}
+
         {isBroken && (
           <Callout tone="warning" title={t('orderCreate.brokenDraft.alert')}>
             <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
@@ -722,6 +858,7 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
           files={pendingFiles}
           onChange={setPendingFiles}
           disabled={submit.isPending}
+          guest={guest}
         />
       </SplitLayout>
 
@@ -732,6 +869,22 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
         answers={state.answers}
         rush={rush}
       />
+
+      {guest && (
+        <GuestSubmitDialog
+          open={guestDialogOpen}
+          onClose={() => setGuestDialogOpen(false)}
+          saveStatus={guestSave.status}
+        />
+      )}
+
+      {!guest && !isClinic && (
+        <WorkLocationDialog
+          open={locationDialogOpen}
+          onClose={() => setLocationDialogOpen(false)}
+          onSubmit={(values) => addLocation.mutateAsync(values).then(() => undefined)}
+        />
+      )}
     </>
   );
 }
@@ -740,30 +893,41 @@ export function OrderCreateWizard({ basePath = '/doctor' }: { basePath?: string 
 // Files
 // ============================================================================
 /**
- * The wizard's Files card. Uploads land in a later phase, so this shows the
- * mockup's dropzone chrome with the "coming soon" note rather than a control
- * that would do nothing.
+ * The wizard's Files card: files are picked here and uploaded once the order
+ * exists — see the submit mutation.
+ *
+ * Not offered to a guest. A `File` cannot follow the draft into localStorage,
+ * and the bucket's policies need an order to key off, so there is no honest
+ * way to hold a guest's attachments across the sign-in redirect. Saying
+ * "after you sign in" is better than a dropzone that quietly loses them.
  */
 function FilesCard({
   files,
   onChange,
   disabled,
   labEmail,
+  guest,
 }: {
   files: File[];
   onChange: (files: File[]) => void;
   disabled?: boolean;
   labEmail?: string | null;
+  guest?: boolean;
 }) {
   const { t } = useTranslation('doctor');
   return (
     <SectionCard
       icon="upload_file"
       title={t('orderCreate.filesAndDue.files')}
-      meta={t('orderCreate.filesAndDue.uploadHint')}
+      meta={guest ? undefined : t('orderCreate.filesAndDue.uploadHint')}
     >
-      {/* Picked now, uploaded after submit — see the submit mutation. */}
-      <PendingOrderFilesField files={files} onChange={onChange} disabled={disabled} />
+      {guest ? (
+        <Callout tone="neutral" icon="lock">
+          {t('orderCreate.guest.filesAfterSignIn')}
+        </Callout>
+      ) : (
+        <PendingOrderFilesField files={files} onChange={onChange} disabled={disabled} />
+      )}
       {/* No order code yet — the order doesn't exist until submit, so the copy
           asks for the patient's name instead of a number that can't be quoted. */}
       <LabContactLine email={labEmail} />
@@ -1073,6 +1237,7 @@ function SummaryRail({
   showError,
   onSubmit,
   onAddLocation,
+  guest,
 }: {
   state: WizardState;
   update: (p: Partial<WizardState>) => void;
@@ -1090,6 +1255,9 @@ function SummaryRail({
   onSubmit: () => void;
   /** Omitted when the actor can't manage the doctor's locations (clinic path). */
   onAddLocation?: () => void;
+  /** No session: the location is picked after sign-in, and Send opens the
+   *  sign-in dialog rather than submitting. */
+  guest?: boolean;
 }) {
   const { t } = useTranslation('doctor');
   const pricing = version?.pricing_configuration_json;
@@ -1248,7 +1416,13 @@ function SummaryRail({
 
         <Box data-form-error={locationError ? 'true' : undefined}>
           <FieldLabel sx={{ mb: 0.625 }}>{t('orderCreate.filesAndDue.workLocation')}</FieldLabel>
-          {locations.length === 0 ? (
+          {guest ? (
+            // Not the "you have none, add one" warning: a guest cannot add
+            // one, and it is not a problem with their order.
+            <Callout tone="neutral" icon="location_on">
+              {t('orderCreate.guest.workLocationAfterSignIn')}
+            </Callout>
+          ) : locations.length === 0 ? (
             <Callout
               tone="warning"
               title={t('orderCreate.filesAndDue.noLocations')}

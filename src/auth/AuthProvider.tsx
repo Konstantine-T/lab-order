@@ -10,6 +10,7 @@ import {
 import type { PropsWithChildren } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { clearGuestDraft } from '@/features/public/guestDraft';
 import type {
   AppUserRow,
   ClinicRow,
@@ -152,6 +153,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
       setSession(newSession);
 
+      // The guest draft holds a patient's name and date of birth, saved in
+      // this browser by whoever built an order before signing in. Signing out
+      // is the moment it must go: a shared clinic computer is the normal case,
+      // and the next person at the keyboard is not the same doctor.
+      if (event === 'SIGNED_OUT') clearGuestDraft();
+
       // `session` changes here, but `hydrate` — and with it `user` — cannot run
       // until the next tick (see the deadlock note below). Every render in
       // between would otherwise report `loading: false` while `user` still
@@ -184,6 +191,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
   }, []);
 
   const signOut = useCallback(async () => {
+    // Also on the SIGNED_OUT event above; here as well so the draft is gone
+    // even if the sign-out request itself fails on the way to the server.
+    clearGuestDraft();
     await supabase.auth.signOut();
   }, []);
 

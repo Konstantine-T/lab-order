@@ -147,6 +147,15 @@
       "editComment": "This reason needs a comment.",
       "dueDateTooSoon_one": "The desired due date is too soon — this lab needs at least {{count}} day.",
       "dueDateTooSoon_other": "The desired due date is too soon — this lab needs at least {{count}} days."
+    },
+    "guest": {
+      "filesAfterSignIn": "Files can be attached after you sign in.",
+      "workLocationAfterSignIn": "You'll choose a work location after signing in.",
+      "savedOnDevice": "Saved on this device",
+      "notSaved": "Not saved on this device",
+      "resumed": "Here is the order you started before signing in. Check it over, pick a work location, and send it.",
+      "formChangedTitle": "The lab has updated this form",
+      "formChangedBody": "Some questions may have changed since you filled it in. Please check your answers before sending."
     }
   },
   "orders": {

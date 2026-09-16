@@ -74,7 +74,7 @@ export function PublicAuthLayout({
           >
             <BrandMark />
             <Typography sx={{ fontSize: '1.0625rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
-              Lab Order
+              Dental Labs
             </Typography>
           </Stack>
           <Stack direction="row" spacing={0.5}>

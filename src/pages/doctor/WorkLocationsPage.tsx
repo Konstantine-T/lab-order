@@ -29,6 +29,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { WorkLocationDialog } from '@/features/doctor/workLocations/WorkLocationDialog';
+import { createWorkLocation } from '@/features/doctor/workLocations/workLocationsApi';
 import type { WorkLocationInput } from '@/features/doctor/workLocations/schema';
 import type { DoctorWorkLocationRow } from '@/types/database';
 
@@ -59,25 +60,7 @@ export function WorkLocationsPage() {
   const createMutation = useMutation({
     mutationFn: async (values: WorkLocationInput) => {
       if (!doctorId) throw new Error('Missing doctor profile');
-      if (values.is_default) {
-        await supabase
-          .from('doctor_work_locations')
-          .update({ is_default: false })
-          .eq('doctor_id', doctorId)
-          .is('archived_at', null);
-      }
-      const { error } = await supabase.from('doctor_work_locations').insert({
-        doctor_id: doctorId,
-        clinic_name: values.clinic_name,
-        branch_name: values.branch_name || null,
-        address: values.address,
-        city: values.city,
-        clinic_identification_code: values.clinic_identification_code || null,
-        clinic_invoice_email: values.clinic_invoice_email || null,
-        phone: values.phone || null,
-        is_default: values.is_default,
-      });
-      if (error) throw error;
+      await createWorkLocation(doctorId, values);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['doctor-work-locations', doctorId] }),
   });

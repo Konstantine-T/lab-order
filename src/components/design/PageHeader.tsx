@@ -43,7 +43,13 @@ export function PageHeader({
     <Box
       sx={{
         position: { xs: 'static', sm: 'sticky' },
-        top: { sm: layout.mobileBar, md: 0 },
+        // What the band sticks under. `AppShell` has a mobile top bar below
+        // `md` and nothing above it; a shell without that bar (`PublicLayout`)
+        // sets the variable to override both.
+        top: {
+          sm: `var(--page-header-top, ${layout.mobileBar}px)`,
+          md: 'var(--page-header-top, 0px)',
+        },
         zIndex: 40,
         mx: layout.gutterNeg,
         mt: { xs: -2.5, md: -3.25 },

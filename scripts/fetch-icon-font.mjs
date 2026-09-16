@@ -9,6 +9,7 @@
  *
  * Writes src/assets/fonts/material-symbols-rounded-subset.woff2.
  */
+import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -16,13 +17,17 @@ import { fileURLToPath } from 'node:url';
 const here = dirname(fileURLToPath(import.meta.url));
 const listPath = resolve(here, 'icon-names.txt');
 const outPath = resolve(here, '../src/assets/fonts/material-symbols-rounded-subset.woff2');
+const cssPath = resolve(here, '../src/assets/fonts/material-symbols.css');
 
 // Google serves woff2 only to browsers that advertise support.
 const UA =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36';
 
+// `\r?`: on a CRLF checkout the comment regex below would otherwise stop at
+// the `\r` and leave the comment line in the list, which Google answers with
+// a 400 for the whole request.
 const names = readFileSync(listPath, 'utf8')
-  .split('\n')
+  .split(/\r?\n/)
   .map((l) => l.replace(/#.*$/, '').trim())
   .filter(Boolean)
   .sort();
@@ -52,4 +57,18 @@ const buf = await fetch(fontUrl).then((r) => {
 });
 
 writeFileSync(outPath, Buffer.from(buf));
-console.log(`${names.length} icons → ${outPath} (${(buf.byteLength / 1024).toFixed(1)} KB)`);
+
+// Stamp the subset's hash into the CSS url. The dev server serves the font
+// under a fixed name, so a browser that has it cached keeps the OLD subset
+// after a rebuild and renders every new icon as its literal name — until
+// someone thinks of a hard refresh. A changed query string is a new URL.
+const hash = createHash('sha256').update(Buffer.from(buf)).digest('hex').slice(0, 8);
+const stamped = readFileSync(cssPath, 'utf8').replace(
+  /material-symbols-rounded-subset\.woff2(\?v=[0-9a-f]+)?/,
+  `material-symbols-rounded-subset.woff2?v=${hash}`,
+);
+writeFileSync(cssPath, stamped);
+
+console.log(
+  `${names.length} icons → ${outPath} (${(buf.byteLength / 1024).toFixed(1)} KB), css v=${hash}`,
+);

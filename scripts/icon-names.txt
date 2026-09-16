@@ -121,3 +121,11 @@ upload_file
 verified
 visibility
 warning
+cloud_off
+login
+dashboard_customize
+grid_on
+north
+phone_in_talk
+south
+stethoscope

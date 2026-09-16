@@ -8,15 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { PublicAuthLayout } from '@/layouts/PublicAuthLayout';
 import { RHFTextField } from '@/components/RHFTextField';
-import type { UserRole } from '@/types/database';
-
-/** Where each role's own area starts — the only place a login may land. */
-const ROLE_HOME: Record<UserRole, string> = {
-  DOCTOR: '/doctor',
-  LAB_MAIN_ADMIN: '/lab',
-  PLATFORM_ADMIN: '/admin',
-  CLINIC_ADMIN: '/clinic',
-};
+import { roleHome } from '@/auth/roleHome';
 
 const schema = z.object({
   email: z.string().email(),
@@ -38,7 +30,7 @@ export function LoginPage() {
   // Wait for `user`, not just `session`: the role decides where to land, and
   // it is only known once the profile has been fetched.
   if (!loading && session && user) {
-    const home = ROLE_HOME[user.role] ?? '/';
+    const home = roleHome(user.role);
     const from = (location.state as { from?: Location } | null)?.from?.pathname;
     // ProtectedRoute remembers the page you were bounced off, which is what you
     // want when a session expires mid-page. But signing out of /doctor/... and
