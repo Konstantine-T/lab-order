@@ -258,11 +258,21 @@ export async function removeOrderFile(file: OrderFileRow): Promise<void> {
 
 /** The bucket is private, so a URL has to be minted per view. Short-lived
  *  because it's handed straight to a click. */
-export async function getOrderFileUrl(storagePath: string): Promise<string> {
+export async function getOrderFileUrl(
+  storagePath: string,
+  /**
+   * Shown to the user if this fails. Without it the error carried the storage
+   * path — `<lab>/<order>/<uuid>-name.pdf` — which is internal plumbing and
+   * not what the doctor called the file.
+   */
+  displayName?: string,
+): Promise<string> {
   const { data, error } = await supabase.storage
     .from(ORDER_FILES_BUCKET)
     .createSignedUrl(storagePath, 60);
-  if (error || !data?.signedUrl) throw new OrderFileError(classify(error), storagePath, error);
+  if (error || !data?.signedUrl) {
+    throw new OrderFileError(classify(error), displayName ?? storagePath, error);
+  }
   return data.signedUrl;
 }
 

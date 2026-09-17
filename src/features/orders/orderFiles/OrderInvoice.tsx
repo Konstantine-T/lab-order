@@ -41,22 +41,42 @@ function useInvoiceError() {
 /** Name, size and a download, in one line. Shared by both sides. */
 function InvoiceFileLine({ invoice }: { invoice: OrderFileRow }) {
   const { t } = useTranslation('common');
+  const describeError = useInvoiceError();
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const open = async () => {
     setBusy(true);
+    setError(null);
     try {
-      const url = await getOrderFileUrl(invoice.storage_path);
-      window.open(url, '_blank', 'noopener');
+      // Private bucket — mint a short-lived URL per click rather than storing one.
+      const url = await getOrderFileUrl(invoice.storage_path, invoice.file_name);
+      globalThis.open(url, '_blank', 'noopener');
+    } catch (e) {
+      // Without this the button just stopped spinning and nothing happened —
+      // a missing object, an expired session or a blocked popup all looked
+      // identical to a dead button.
+      //
+      // A download failure gets its own wording: the shared map is phrased for
+      // uploads, and "couldn't upload" on a download button is worse than no
+      // message at all. Permission and network still use the shared text,
+      // which reads correctly either way.
+      const kind = e instanceof OrderFileError ? e.kind : 'generic';
+      setError(
+        kind === 'generic'
+          ? t('orderFiles.invoice.downloadFailed', { name: invoice.file_name })
+          : describeError(e, invoice.file_name),
+      );
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    // Wraps rather than truncates: this sits in the lab's 316px rail, where a
-    // non-shrinking row would crush its neighbours in Georgian.
-    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+    <Stack spacing={0.5} sx={{ minWidth: 0 }}>
+      {/* Wraps rather than truncates: this sits in the lab's 316px rail, where
+          a non-shrinking row would crush its neighbours in Georgian. */}
+      <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
       <Icon name={fileIconFor(invoice.file_type)} size={18} />
       <Typography variant="body2" sx={{ minWidth: 0, overflowWrap: 'anywhere', flex: '1 1 auto' }}>
         {invoice.file_name}
@@ -73,6 +93,12 @@ function InvoiceFileLine({ invoice }: { invoice: OrderFileRow }) {
       >
         {t('orderFiles.invoice.download')}
       </Button>
+      </Stack>
+      {error && (
+        <Typography variant="caption" color="error" sx={{ overflowWrap: 'anywhere' }}>
+          {error}
+        </Typography>
+      )}
     </Stack>
   );
 }

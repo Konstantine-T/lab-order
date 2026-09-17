@@ -190,7 +190,7 @@ export function OrderFilesField({
     setBusyPath(file.storage_path);
     try {
       // Private bucket — mint a short-lived URL per click rather than storing one.
-      const url = await getOrderFileUrl(file.storage_path);
+      const url = await getOrderFileUrl(file.storage_path, file.file_name);
       globalThis.open(url, '_blank', 'noopener');
     } catch (e) {
       setError(describeError(e, file.file_name));

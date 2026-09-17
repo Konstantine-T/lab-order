@@ -261,7 +261,8 @@
     "invoice": {
       "download": "Download",
       "acknowledgeHint": "This notice stays until you confirm it.",
-      "badge": "New invoice"
+      "badge": "New invoice",
+      "downloadFailed": "Couldn't open {{name}}. It may have been removed — ask the lab to attach it again."
     }
   },
   "nav": {
