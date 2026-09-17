@@ -51,11 +51,14 @@ const ORDER_COLUMNS: Column[] = [
   { key: 'order', width: '96px' },
   { key: 'customer', width: 'minmax(0, 1.2fr)' },
   { key: 'service', width: 'minmax(0, 1.2fr)' },
-  { key: 'due', width: '116px' },
+  // Holds a date plus the overdue pill, which measures 148px in Georgian.
+  { key: 'due', width: 'minmax(116px, auto)' },
   { key: 'billed', width: '96px', align: 'right' },
   { key: 'paid', width: '96px', align: 'right' },
   { key: 'outstanding', width: '104px', align: 'right' },
-  { key: 'status', width: '104px' },
+  // "ნაწილობრივ გადახდილი" is a 176px pill; `auto` gives it the room only
+  // when a row actually carries that status.
+  { key: 'status', width: 'minmax(104px, auto)' },
   { key: 'record', width: '92px', align: 'right' },
 ];
 

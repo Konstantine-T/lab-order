@@ -1078,8 +1078,24 @@ function PositionDetailList({
             {rows.length > 0 ? (
               <Stack divider={<Divider />}>
                 {rows.map((row, i) => (
-                  <Stack key={i} direction="row" alignItems="baseline" sx={{ px: 2.5, py: 1.25 }}>
-                    <Typography variant="body2" color="text.secondary" sx={{ minWidth: 220, flexShrink: 0 }}>
+                  <Stack
+                    key={i}
+                    direction="row"
+                    alignItems="baseline"
+                    // The label column was a hard 220px that could not shrink,
+                    // so a long Georgian label ("საბოლოო რესტავრაციის მასალა")
+                    // left almost nothing for its value. It keeps a comfortable
+                    // column where there is room and gives it up where there
+                    // isn't, wrapping rather than squeezing the value out.
+                    flexWrap="wrap"
+                    columnGap={1.5}
+                    sx={{ px: 2.5, py: 1.25 }}
+                  >
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ flex: '1 1 180px', minWidth: 0 }}
+                    >
                       {row.label}
                     </Typography>
                     <Typography variant="body2" fontWeight={500}>

@@ -62,6 +62,11 @@ export function Callout({
       }
       sx={[
         {
+          // The action sits beside the text as a flex sibling, and without
+          // this the row could not break: a long Georgian body plus a button
+          // pushed the whole callout past its container. The button drops
+          // beneath the text when there is no room for both.
+          flexWrap: 'wrap',
           px: 1.875,
           py: 1.5,
           borderRadius: `${radii.tile}px`,
@@ -95,7 +100,7 @@ export function Callout({
           </Typography>
         )}
       </Box>
-      {action}
+      {action && <Box sx={{ flexShrink: 0, ml: 'auto' }}>{action}</Box>}
       {!action && onClick && (
         <Icon name="chevron_right" size={16} sx={{ color: t.fg, flexShrink: 0 }} />
       )}

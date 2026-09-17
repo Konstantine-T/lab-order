@@ -39,7 +39,12 @@ export function StatusPill({
           fontSize: '0.6875rem',
           fontWeight: 700,
           lineHeight: 1.3,
-          whiteSpace: 'nowrap',
+          // Not `nowrap`: "საჭიროებს დაზუსტებას ექიმის მხრიდან" is ~250px of
+          // text, and a pill that refuses to wrap cannot shrink below it —
+          // so it spills out of whatever holds it. Short statuses never reach
+          // the wrap point.
+          maxWidth: '100%',
+          overflowWrap: 'anywhere',
           color: t.fg,
           bgcolor: t.bg,
         },

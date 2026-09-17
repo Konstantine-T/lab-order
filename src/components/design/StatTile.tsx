@@ -71,9 +71,18 @@ export function StatTile({
         <Typography sx={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
           {value}
         </Typography>
+        {/* Not `noWrap`. Four tiles across a 900px viewport leave ~57px of
+            text box, and "მზადაა მიწოდებისთვის" is ~134px — every Georgian
+            caption ellipsised to three characters, with no tooltip to recover
+            it. The value above already carries the emphasis, so the caption
+            can afford a second line. */}
         <Typography
-          sx={{ fontSize: '0.71875rem', fontWeight: 500, color: 'text.secondary' }}
-          noWrap
+          sx={{
+            fontSize: '0.71875rem',
+            fontWeight: 500,
+            color: 'text.secondary',
+            lineHeight: 1.35,
+          }}
         >
           {label}
         </Typography>

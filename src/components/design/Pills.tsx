@@ -221,7 +221,13 @@ export function MetaChip({
           color: color ?? 'text.primary',
           fontSize: '0.6875rem',
           fontWeight: 600,
-          whiteSpace: 'nowrap',
+          // A capsule holding a lab's street address or a full arch of tooth
+          // numbers has to wrap. `nowrap` made the chip's min-content the
+          // whole string, and a flex item cannot shrink below min-content —
+          // so it took its own line and then overflowed that too, inside a
+          // card whose overflow is hidden.
+          maxWidth: '100%',
+          overflowWrap: 'anywhere',
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}

@@ -198,9 +198,14 @@ export function ToothMap({
           >
             {t('toothMap.right')}
           </text>
+          {/* Anchored to its own end. Left at the default `start`, the label
+              began at x=404 inside a viewBox that ends at 420 — fine for "L"
+              and "Л", but "მარცხ" is ~35px wide and the SVG root clips, so the
+              last characters vanished at every viewport. */}
           <text
-            x={404}
+            x={413}
             y={350}
+            textAnchor="end"
             fontSize={11}
             fontWeight={700}
             fill={sideColor}

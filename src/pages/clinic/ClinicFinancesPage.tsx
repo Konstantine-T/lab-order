@@ -49,11 +49,12 @@ const ORDER_COLUMNS: Column[] = [
   { key: 'patient', width: 'minmax(0, 1fr)' },
   // Wide enough for a date and the overdue pill side by side; the three
   // name columns are elastic and give this the room.
-  { key: 'due', width: '146px' },
+  { key: 'due', width: 'minmax(146px, auto)' },
   { key: 'billed', width: '92px', align: 'right' },
   { key: 'paid', width: '88px', align: 'right' },
   { key: 'outstanding', width: '100px', align: 'right' },
-  { key: 'status', width: '108px' },
+  // "ნაწილობრივ გადახდილი" is a 176px pill in Georgian.
+  { key: 'status', width: 'minmax(108px, auto)' },
 ];
 
 function isOverdue(o: ClinicPayableOrder): boolean {
