@@ -130,6 +130,7 @@ export function LabInvoiceControl({ order }: { order: UploadTarget }) {
       qc.invalidateQueries({ queryKey: orderInvoiceKey(order.id) });
       // The doctor's alert re-arms server-side, so their view is stale too.
       qc.invalidateQueries({ queryKey: ['lab-order', order.id] });
+      qc.invalidateQueries({ queryKey: ['unacknowledged-invoices'] });
     },
     onError: (e) => setError(describeError(e, '')),
   });
@@ -261,6 +262,10 @@ export function DoctorInvoiceBlock({
       setError(null);
       qc.invalidateQueries({ queryKey: orderInvoiceKey(orderId) });
       qc.invalidateQueries({ queryKey: ['nav-alerts'] });
+      // The list badge is a separate query; without this the "new invoice"
+      // pill sits on the row for up to its staleTime after the doctor has
+      // already dealt with it.
+      qc.invalidateQueries({ queryKey: ['unacknowledged-invoices'] });
       onAcknowledged?.();
     },
     onError: (e) => setError(describeError(e, '')),
