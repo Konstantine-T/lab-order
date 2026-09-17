@@ -130,14 +130,30 @@ export function SectionCard({
               direction="row"
               alignItems="center"
               spacing={1}
-              sx={{ ml: 'auto', flexShrink: 0 }}
+              // `flexShrink: 0` here used to force this group to its full
+              // intrinsic width. In the 316px rail a long Georgian meta line
+              // blew the header out to 587px, the card's `overflow: hidden`
+              // cut it off, and nothing scrolled — the content was simply gone.
+              // The group shrinks now; only the buttons keep their size.
+              sx={{ ml: 'auto', minWidth: 0 }}
             >
               {meta && (
-                <Typography variant="caption" color="text.secondary">
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  // Wraps rather than running off the edge. Georgian runs
+                  // 40-60% longer than English, so this is the common case in
+                  // a narrow column, not an edge case.
+                  sx={{ minWidth: 0, overflowWrap: 'anywhere' }}
+                >
                   {meta}
                 </Typography>
               )}
-              {actions}
+              {actions && (
+                <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  {actions}
+                </Box>
+              )}
             </Stack>
           )}
         </Stack>

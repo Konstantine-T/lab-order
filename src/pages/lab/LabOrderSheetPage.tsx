@@ -503,9 +503,13 @@ export function LabOrderSheetPage() {
                     />
                     {/* Optional, same rule as the doctor's: a confirmed date
                         with no time means "that day, any time". */}
+                    {/* No `label`, matching the date picker directly above:
+                        "დადასტურებული დრო (არასავალდებულო)" is 298px of text
+                        inside a 242px input, so it overflowed the outline's
+                        notch and ran under the clock icon. The block already
+                        has a heading, and the placeholder says what it wants. */}
                     <TimePicker
                       ampm={false}
-                      label={t('orderSheet.confirmedDueTime')}
                       value={confirmedTime ? dayjs(`2000-01-01T${confirmedTime}`) : null}
                       onChange={(d: Dayjs | null) =>
                         setConfirmedTime(d && d.isValid() ? d.format('HH:mm') : '')

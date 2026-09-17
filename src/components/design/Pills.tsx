@@ -53,7 +53,16 @@ export function ChoicePill({
           fontSize: md ? '0.84375rem' : '0.78125rem',
           fontWeight: 600,
           lineHeight: 1.3,
-          whiteSpace: 'nowrap',
+          // Not `nowrap`. PillRow already wraps the row, but a single pill
+          // wider than the row still overflows it: the status pill
+          // "საჭიროებს დაზუსტებას ექიმის მხრიდან" measures 299px inside the
+          // 262px available in the 316px rail, and the card's overflow:hidden
+          // then eats the end of it. Short labels — Yes/No, A1, Universal —
+          // never reach the wrap point, so this only affects the ones that
+          // genuinely do not fit.
+          whiteSpace: 'normal',
+          textAlign: 'left',
+          maxWidth: '100%',
           cursor: disabled ? 'not-allowed' : 'pointer',
           opacity: disabled ? 0.5 : 1,
           transition: `all ${motion.fast}`,

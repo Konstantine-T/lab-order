@@ -1,23 +1,26 @@
-import { Box, Stack, type SxProps, type Theme } from '@mui/material';
-import type { ReactNode } from 'react';
+import { Box, Stack, useMediaQuery, useTheme, type SxProps, type Theme } from '@mui/material';
+import { useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { layout } from '@/theme/tokens';
 
 /**
  * The two-column body the mockups give every detail and wizard screen: a fluid
- * content column and a sticky right rail that clears the page header.
+ * content column and a right rail that clears the page header.
  *
  * Below `lg` the rail drops under the content, since 316px plus a readable
  * content column no longer fits.
  *
- * The rail is capped to the viewport and scrolls itself. Sticky positioning
- * pins an element in place; if that element is taller than the screen, the part
- * below the fold simply cannot be reached, because scrolling the page is
- * exactly what sticky prevents. The lab order sheet stacks enough cards to hit
- * this, and the order team section at the bottom became unreachable. The cap is
- * load-bearing, not decoration — don't remove it as unused styling.
+ * THE RAIL PINS ONLY WHEN IT FITS. Sticky positioning pins an element in place,
+ * so an element taller than the screen has a bottom that can never be reached —
+ * scrolling the page is precisely what sticky prevents. Capping the rail and
+ * giving it its own scrollbar does make everything reachable, but it buys that
+ * with a scroll inside a scroll: on the lab order sheet that is 1295px of
+ * controls inside a 622px box, and the sections below the fold read as missing.
  *
- * The cap is `lg`-only: below that the rail is a normal block in the page flow,
- * and an inner scroll container on a phone would be a trap.
+ * So the rail measures itself. Short enough to sit in the viewport — which is
+ * most screens — and it pins, which is the whole point of a rail. Taller, and
+ * it becomes an ordinary column that scrolls with the page: nothing pinned,
+ * nothing clipped, one scrollbar. CSS cannot express "sticky only if you fit",
+ * which is why this is measured rather than declared.
  */
 export function SplitLayout({
   children,
@@ -30,6 +33,36 @@ export function SplitLayout({
   rail: ReactNode;
   railFirstOnMobile?: boolean;
 }) {
+  const theme = useTheme();
+  const isWide = useMediaQuery(theme.breakpoints.up('lg'));
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const [fits, setFits] = useState(true);
+
+  // Room between the rail's top and the bottom of the window, with a little air
+  // so a pinned rail doesn't sit flush against the edge.
+  const measure = useCallback(() => {
+    const el = railRef.current;
+    if (!el) return;
+    const available = window.innerHeight - layout.railTop - 24;
+    setFits(el.scrollHeight <= available);
+  }, []);
+
+  useLayoutEffect(() => {
+    if (!isWide) return;
+    measure();
+    // The rail's height changes as cards load, expand, or gain an error — and
+    // the window's changes when it is resized. Both flip the answer.
+    const ro = new ResizeObserver(measure);
+    if (railRef.current) ro.observe(railRef.current);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [isWide, measure]);
+
+  const pinned = isWide && fits;
+
   return (
     <Stack
       direction={{ xs: railFirstOnMobile ? 'column-reverse' : 'column', lg: 'row' }}
@@ -41,47 +74,19 @@ export function SplitLayout({
       </Stack>
 
       <Stack
+        ref={railRef}
         spacing={1.75}
-        sx={(theme) => ({
+        sx={{
           width: { xs: '100%', lg: layout.railWidth },
           flexShrink: 0,
-          position: { lg: 'sticky' },
-          top: { lg: layout.railTop },
-          // Clears the header, then leaves a little air so the last card doesn't
-          // sit flush against the bottom of the window.
-          maxHeight: { lg: `calc(100vh - ${layout.railTop}px - 24px)` },
-          // `auto`, not `scroll`: a short rail shows no gutter and passes its
-          // scroll straight to the page.
-          overflowY: { xs: 'visible', lg: 'auto' },
-          // Without this the rail never scrolls at all. It is a column flex
-          // container, so its cards default to `flex-shrink: 1` and are
-          // *compressed* to fit the max-height instead of overflowing it —
-          // 1261px of cards squeezed into 622px, each one clipping its own
-          // contents, with scrollHeight === clientHeight so the browser sees
-          // nothing to scroll. Cards keep their natural height; the rail
-          // overflows; the scrollbar above becomes real.
+          ...(pinned
+            ? { position: 'sticky', top: layout.railTop }
+            : { position: 'static' }),
+          // Cards keep their natural height. In a column flex container they
+          // would otherwise inherit `flex-shrink: 1` and be compressed to fit,
+          // each one clipping its own contents rather than the column growing.
           '& > *': { flexShrink: 0 },
-          overscrollBehavior: { lg: 'contain' },
-          // A scroll container clips at its edges, and the rail's cards lift on
-          // hover. Pad the scroll box so the shadow and focus ring have room,
-          // then pull the same amount back off the margin so the column keeps
-          // its width.
-          pr: { lg: 0.5 },
-          mr: { lg: -0.5 },
-          // The platform scrollbar is heavy against a card-lined rail; this one
-          // takes its colours from the palette so it reads in both themes.
-          scrollbarWidth: 'thin',
-          scrollbarColor: `${theme.palette.divider} transparent`,
-          '&::-webkit-scrollbar': { width: 6 },
-          '&::-webkit-scrollbar-track': { background: 'transparent' },
-          '&::-webkit-scrollbar-thumb': {
-            backgroundColor: theme.palette.divider,
-            borderRadius: 3,
-          },
-          '&:hover::-webkit-scrollbar-thumb': {
-            backgroundColor: theme.palette.text.disabled,
-          },
-        })}
+        }}
       >
         {rail}
       </Stack>

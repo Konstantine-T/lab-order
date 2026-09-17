@@ -191,10 +191,23 @@ export function OrderTeamSection({ orderId, labId, disabled = false }: Props) {
                 </Button>
               </Stack>
             ) : (
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+              // `sm` is a viewport breakpoint, not a container one: this sits
+              // in the 316px rail, so on a wide screen it laid out as a row
+              // and the 260px minimum plus the button came to 332px inside a
+              // 262px box — clipped, with no scroll. It fills the width it has
+              // now, and the button wraps beneath when there isn't room.
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                flexWrap="wrap"
+                useFlexGap
+              >
                 <Autocomplete
                   size="small"
-                  sx={{ minWidth: 260 }}
+                  // A whole line to itself. Sharing the row with the button
+                  // left roughly 150px, which crushed the field until its
+                  // dropdown arrow sat on top of the label text.
+                  sx={{ width: '100%' }}
                   options={assignable}
                   value={pending}
                   onChange={(_, v) => setPending(v)}
