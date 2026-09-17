@@ -250,6 +250,10 @@
         "rushValue": "Enter the rush surcharge amount.",
         "rushTurnaround": "Enter the rush turnaround in days.",
         "priceDescription": "The price description is empty."
+      },
+      "publishBlocked": "Fix these before publishing",
+      "customQuestionIssues": {
+        "needsLabel": "Question {{index}} has no title — the doctor would see an empty heading. Give it one or remove it."
       }
     },
     "edit": {

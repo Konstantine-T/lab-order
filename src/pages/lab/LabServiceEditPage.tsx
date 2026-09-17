@@ -35,6 +35,10 @@ import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { templateName } from '@/features/lab/forms/templateLabels';
 import { isPricingComplete, pricingIssues } from '@/utils/pricing';
 import { pricingIssueMessage } from '@/features/lab/forms/pricingIssueMessages';
+import {
+  customQuestionIssues,
+  customQuestionIssueMessage,
+} from '@/features/lab/forms/customQuestionIssues';
 import type {
   FormConfiguration,
   LabFormRow,
@@ -239,8 +243,14 @@ export function LabServiceEditPage() {
   if (!service) return <Alert severity="error">{tc('errors.notFound')}</Alert>;
 
   const canShowCustomize = !!config && !!pricing && !!form;
+  // A question the lab never named renders to the doctor as a numbered section
+  // with an empty heading, so it blocks publish the same way an unpriced
+  // material does.
+  const questionIssues = customQuestionIssues(config);
   const canPublish =
-    canShowCustomize && isPricingComplete(pricing ?? undefined, template?.code);
+    canShowCustomize &&
+    isPricingComplete(pricing ?? undefined, template?.code) &&
+    questionIssues.length === 0;
   const isPublished = form?.status === 'PUBLISHED';
 
   // suppress unused variable warning — labId is used via auth context for the lab guard
@@ -339,12 +349,26 @@ export function LabServiceEditPage() {
       {form?.status === 'DRAFT' && canShowCustomize && !canPublish && (() => {
         // Spell out which material/field is blocking publish, right under the heading.
         const issues = pricingIssues(pricing ?? undefined, template?.code);
+        const lines = [
+          ...issues.map((issue) => pricingIssueMessage(issue, t)),
+          ...questionIssues.map((issue) => customQuestionIssueMessage(issue, t)),
+        ];
         return (
-          <Callout tone="warning" title={t('services.create.pricingRequiredForPublish')}>
-            {issues.length > 0
-              ? issues.map((issue, i) => (
+          <Callout
+            tone="warning"
+            // The old title named pricing only. Now that an unnamed question can
+            // also be the blocker, a pricing heading over "question 2 needs a
+            // title" would send the lab to the wrong tab.
+            title={
+              issues.length === 0
+                ? t('services.create.publishBlocked')
+                : t('services.create.pricingRequiredForPublish')
+            }
+          >
+            {lines.length > 0
+              ? lines.map((line, i) => (
                   <Box key={i} component="span" sx={{ display: 'block' }}>
-                    {pricingIssueMessage(issue, t)}
+                    {line}
                   </Box>
                 ))
               : undefined}

@@ -23,6 +23,10 @@ import { buildDefaultConfig } from '@/features/lab/forms/buildDefaultConfig';
 import { isCustomFormComplete } from '@/features/lab/forms/CustomFormBuilder';
 import { isPricingComplete, pricingIssues } from '@/utils/pricing';
 import { pricingIssueMessage } from '@/features/lab/forms/pricingIssueMessages';
+import {
+  customQuestionIssues,
+  customQuestionIssueMessage,
+} from '@/features/lab/forms/customQuestionIssues';
 import { OrderForm } from '@/features/orderForms/OrderForm';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
 import type {
@@ -164,9 +168,14 @@ export function LabServiceCreatePage() {
   });
 
   const canSave = !!templateId && !!config && !!pricing;
+  // A question the lab never named renders to the doctor as a numbered section
+  // with an empty heading, so it blocks publish the same way an unpriced
+  // material does.
+  const questionIssues = customQuestionIssues(config);
   const canPublish =
     canSave &&
     isPricingComplete(pricing ?? undefined, templateRow?.code) &&
+    questionIssues.length === 0 &&
     (templateRow?.code !== 'OTHER_CUSTOM' || (!!config && isCustomFormComplete(config)));
 
   return (
@@ -249,12 +258,23 @@ export function LabServiceCreatePage() {
         // exactly which material/field to fix (empty when a non-pricing rule,
         // e.g. an incomplete custom form, is what's blocking publish).
         const issues = pricingIssues(pricing ?? undefined, templateRow?.code);
+        const lines = [
+          ...issues.map((issue) => pricingIssueMessage(issue, t)),
+          ...questionIssues.map((issue) => customQuestionIssueMessage(issue, t)),
+        ];
         return (
-          <Callout tone="warning" title={t('services.create.pricingRequiredForPublish')}>
-            {issues.length > 0
-              ? issues.map((issue, i) => (
+          <Callout
+            tone="warning"
+            title={
+              issues.length === 0
+                ? t('services.create.publishBlocked')
+                : t('services.create.pricingRequiredForPublish')
+            }
+          >
+            {lines.length > 0
+              ? lines.map((line, i) => (
                   <Box key={i} component="span" sx={{ display: 'block' }}>
-                    {pricingIssueMessage(issue, t)}
+                    {line}
                   </Box>
                 ))
               : undefined}
