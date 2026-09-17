@@ -22,6 +22,13 @@ import { layout } from '@/theme/tokens';
  * nothing clipped, one scrollbar. CSS cannot express "sticky only if you fit",
  * which is why this is measured rather than declared.
  */
+/** Air below a pinned rail so it never sits flush against the window edge. */
+const RAIL_GUTTER = 24;
+
+/** Usable height for a pinned rail: window, less the header band it clears,
+ *  less that gutter. */
+const railSpace = () => window.innerHeight - layout.railTop - RAIL_GUTTER;
+
 export function SplitLayout({
   children,
   rail,
@@ -43,8 +50,7 @@ export function SplitLayout({
   const measure = useCallback(() => {
     const el = railRef.current;
     if (!el) return;
-    const available = window.innerHeight - layout.railTop - 24;
-    setFits(el.scrollHeight <= available);
+    setFits(el.scrollHeight <= railSpace());
   }, []);
 
   useLayoutEffect(() => {
@@ -60,8 +66,6 @@ export function SplitLayout({
       window.removeEventListener('resize', measure);
     };
   }, [isWide, measure]);
-
-  const pinned = isWide && fits;
 
   return (
     <Stack
@@ -79,13 +83,32 @@ export function SplitLayout({
         sx={{
           width: { xs: '100%', lg: layout.railWidth },
           flexShrink: 0,
-          ...(pinned
-            ? { position: 'sticky', top: layout.railTop }
+          ...(isWide
+            ? {
+                position: 'sticky',
+                top: layout.railTop,
+                // Short rail: nothing to scroll, and a max-height would only
+                // invite a scrollbar over a few pixels of rounding.
+                // Tall rail: it scrolls itself rather than scrolling away with
+                // the page. The rail holds the primary action — the wizard's
+                // submit — and a rail taller than the window used to carry that
+                // button off the bottom, so reaching it meant scrolling the
+                // whole form past.
+                ...(fits
+                  ? {}
+                  : { maxHeight: `calc(100vh - ${layout.railTop + RAIL_GUTTER}px)`, overflowY: 'auto' }),
+              }
             : { position: 'static' }),
           // Cards keep their natural height. In a column flex container they
           // would otherwise inherit `flex-shrink: 1` and be compressed to fit,
           // each one clipping its own contents rather than the column growing.
+          // Still required with the scroll: without it the children shrink to
+          // the capped height instead of overflowing it, which is the bug that
+          // made the rail look like it had no content rather than a scrollbar.
           '& > *': { flexShrink: 0 },
+          // Only when it actually scrolls, so a short rail keeps the page's
+          // own gutter rhythm.
+          ...(isWide && !fits ? { pr: 0.75 } : {}),
         }}
       >
         {rail}
