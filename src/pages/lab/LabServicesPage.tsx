@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { ServiceCard } from '@/components/ServiceCard';
+import { RushChip } from '@/features/lab/services/rushChip';
 import {
   Callout,
   CardGrid,
@@ -15,11 +16,11 @@ import {
   PageHeader,
   StatusPill,
 } from '@/components/design';
-import type { LabFormRow, LabServiceRow } from '@/types/database';
+import type { LabFormRow, LabServiceRow, PricingConfig } from '@/types/database';
 
 type ServiceWithForm = LabServiceRow & {
   lab_forms:
-    | (Pick<LabFormRow, 'id' | 'status' | 'title'> & {
+    | (Pick<LabFormRow, 'id' | 'status' | 'title' | 'current_version_id'> & {
         platform_form_templates: { code: string } | null;
       })
     | null;
@@ -42,7 +43,7 @@ export function LabServicesPage() {
         .from('lab_services')
         .select(
           'id, lab_id, name, short_description, average_turnaround_days, average_turnaround_label, cover_image_url, linked_lab_form_id, service_phase_type, is_active, sort_order, created_at, updated_at, ' +
-            'lab_forms!lab_services_linked_form_fk(id, status, title, platform_form_templates(code))',
+            'lab_forms!lab_services_linked_form_fk(id, status, title, current_version_id, platform_form_templates(code))',
         )
         .eq('lab_id', labId!)
         .order('sort_order')
@@ -51,6 +52,27 @@ export function LabServicesPage() {
       return (data ?? []) as unknown as ServiceWithForm[];
     },
   });
+
+  // Same batched lookup as the doctor's profile page: the rush option lives on
+  // the published version's pricing, and the card advertises it now.
+  const versionIds = services
+    .map((s) => s.lab_forms?.current_version_id)
+    .filter((x): x is string => !!x);
+
+  const { data: versions = [] } = useQuery({
+    queryKey: ['lab-service-pricing', labId, versionIds.join(',')],
+    enabled: versionIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('lab_form_versions')
+        .select('id, pricing_configuration_json')
+        .in('id', versionIds);
+      if (error) throw error;
+      return (data ?? []) as { id: string; pricing_configuration_json: PricingConfig }[];
+    },
+  });
+
+  const pricingByVersion = new Map(versions.map((v) => [v.id, v.pricing_configuration_json]));
 
   // Optimistic on purpose: a switch that waits for a round trip before moving
   // feels broken, and the only failure mode here is a stale flag that the
@@ -106,7 +128,7 @@ export function LabServicesPage() {
             <CircularProgress />
           </Box>
         ) : (
-          <CardGrid>
+          <CardGrid columns={3}>
             {services.map((s) => {
               const formStatus = s.lab_forms?.status ?? null;
               const formPublished = formStatus === 'PUBLISHED';
@@ -115,6 +137,16 @@ export function LabServicesPage() {
                 <ServiceCard
                   key={s.id}
                   templateCode={tplCode}
+                  rush={
+                    <RushChip
+                      pricing={
+                        s.lab_forms?.current_version_id
+                          ? pricingByVersion.get(s.lab_forms.current_version_id)
+                          : undefined
+                      }
+                      t={tc}
+                    />
+                  }
                   name={s.name}
                   description={s.short_description ?? undefined}
                   onClick={() => navigate(`/lab/services/${s.id}`)}

@@ -14,6 +14,7 @@ auto_awesome
 badge
 biotech
 block
+bolt
 calendar_month
 call
 category
@@ -24,6 +25,7 @@ chevron_left
 chevron_right
 close
 cloud_done
+cloud_off
 cloud_upload
 construction
 contact_support
@@ -31,6 +33,7 @@ content_copy
 content_cut
 dark_mode
 dashboard
+dashboard_customize
 delete
 dentistry
 deployed_code
@@ -54,6 +57,7 @@ feedback
 filter_alt_off
 folder_open
 forum
+grid_on
 group_add
 groups
 help
@@ -74,17 +78,20 @@ location_on
 lock
 lock_open
 lock_reset
+login
 logout
 mail
 manage_accounts
 menu
 more_vert
+north
 notifications
 open_in_new
 package_2
 payments
 person
 person_add
+phone_in_talk
 photo_camera
 precision_manufacturing
 priority_high
@@ -103,8 +110,10 @@ search_off
 sell
 send
 smartphone
+south
 south_east
 star
+stethoscope
 store
 storefront
 stylus_note
@@ -121,11 +130,3 @@ upload_file
 verified
 visibility
 warning
-cloud_off
-login
-dashboard_customize
-grid_on
-north
-phone_in_talk
-south
-stethoscope

@@ -112,7 +112,13 @@
   "rush": {
     "none": "Нет",
     "percent": "%",
-    "fixed": "Фиксированная"
+    "fixed": "Фиксированная",
+    "chipDays_one": "Срочно {{count}} день",
+    "chipDays_few": "Срочно {{count}} дня",
+    "chipDays_many": "Срочно {{count}} дней",
+    "chipDays_other": "Срочно {{count}} дней",
+    "chipPercent": "+{{value}}%",
+    "chipFixed": "+{{amount}}"
   },
   "roles": {
     "DOCTOR": "Врач",

@@ -16,8 +16,9 @@ import {
   SectionCard,
 } from '@/components/design';
 import { ServiceCard } from '@/components/ServiceCard';
+import { RushChip } from '@/features/lab/services/rushChip';
 import { whatsappUrl } from '@/features/labs/whatsapp';
-import type { LabRow, LabServiceRow } from '@/types/database';
+import type { LabRow, LabServiceRow, PricingConfig } from '@/types/database';
 import type { FormStatus } from '@/types/database';
 
 /**
@@ -91,6 +92,7 @@ export function LabPublicProfilePage({
   type FormWithTemplate = {
     id: string;
     status: FormStatus;
+    current_version_id: string | null;
     platform_form_templates: { code: string; name: string } | null;
   };
 
@@ -100,7 +102,7 @@ export function LabPublicProfilePage({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('lab_forms')
-        .select('id, status, platform_form_templates(code, name)')
+        .select('id, status, current_version_id, platform_form_templates(code, name)')
         .in('id', linkedFormIds);
       if (error) throw error;
       return (data ?? []) as unknown as FormWithTemplate[];
@@ -108,6 +110,28 @@ export function LabPublicProfilePage({
   });
 
   const formsById = new Map(forms.map((f) => [f.id, f]));
+
+  // The rush option lives on the published version's pricing, which nothing on
+  // this page needed until the card started advertising it. Fetched by id in
+  // one batch, the same shape as `forms` above — not one query per card.
+  const versionIds = forms
+    .map((f) => f.current_version_id)
+    .filter((x): x is string => !!x);
+
+  const { data: versions = [] } = useQuery({
+    queryKey: ['public-lab-form-pricing', labId, versionIds.join(',')],
+    enabled: versionIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('lab_form_versions')
+        .select('id, pricing_configuration_json')
+        .in('id', versionIds);
+      if (error) throw error;
+      return (data ?? []) as { id: string; pricing_configuration_json: PricingConfig }[];
+    },
+  });
+
+  const pricingByVersion = new Map(versions.map((v) => [v.id, v.pricing_configuration_json]));
 
   if (labLoading) {
     return (
@@ -196,7 +220,7 @@ export function LabPublicProfilePage({
           {services.length === 0 ? (
             <EmptyState icon="category" title={t('labProfile.noServices')} minHeight={180} />
           ) : (
-            <CardGrid>
+            <CardGrid columns={3}>
               {services.map((s) => {
                 const linked = s.linked_lab_form_id ? formsById.get(s.linked_lab_form_id) : null;
                 const orderable = !!linked && linked.status === 'PUBLISHED';
@@ -217,6 +241,16 @@ export function LabPublicProfilePage({
                     description={s.short_description ?? undefined}
                     disabled={!orderable}
                     onClick={orderable ? go : undefined}
+                    rush={
+                      <RushChip
+                        pricing={
+                          linked?.current_version_id
+                            ? pricingByVersion.get(linked.current_version_id)
+                            : undefined
+                        }
+                        t={tc}
+                      />
+                    }
                     chips={
                       s.average_turnaround_days || s.average_turnaround_label ? (
                         <MetaChip icon={<Icon name="schedule" size={13} />}>

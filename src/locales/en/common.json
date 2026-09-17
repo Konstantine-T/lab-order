@@ -112,7 +112,11 @@
   "rush": {
     "none": "None",
     "percent": "%",
-    "fixed": "Fixed"
+    "fixed": "Fixed",
+    "chipDays_one": "Rush {{count}} day",
+    "chipDays_other": "Rush {{count}} days",
+    "chipPercent": "+{{value}}%",
+    "chipFixed": "+{{amount}}"
   },
   "roles": {
     "DOCTOR": "Doctor",

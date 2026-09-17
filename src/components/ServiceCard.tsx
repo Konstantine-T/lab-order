@@ -25,6 +25,7 @@ export function ServiceCard({
   name,
   description,
   chips,
+  rush,
   meta,
   action,
   headerAction,
@@ -38,6 +39,10 @@ export function ServiceCard({
   description?: ReactNode;
   /** Fact capsules — turnaround, pricing model, form status. */
   chips?: ReactNode;
+  /** The lab's rush option, when it offers one on this service. Sits with the
+   *  other chips but is passed separately so it always renders last and in its
+   *  own tone — it is the one fact a doctor scans the grid for. */
+  rush?: ReactNode;
   /** Muted footer text at the left of the action. */
   meta?: ReactNode;
   action?: ReactNode;
@@ -89,11 +94,13 @@ export function ServiceCard({
       {/* A fixed height, not a ratio: a ratio ties the picture to the column
           width, and at two columns that made a 340px image with a name
           underneath it. This is a banner at any column count, and a portrait
-          upload and a landscape one still produce the same tile. */}
+          upload and a landscape one still produce the same tile. Three
+          narrower columns plus 200px of it gives the photo more of the card
+          than two wide ones did. */}
       <Box
         sx={{
           position: 'relative',
-          height: 168,
+          height: 200,
           flexShrink: 0,
           bgcolor: alpha(look.color, 0.12),
           borderBottom: 1,
@@ -163,9 +170,10 @@ export function ServiceCard({
         </Typography>
       )}
 
-      {chips && (
+      {(chips || rush) && (
         <Stack direction="row" sx={{ mt: 1.5, flexWrap: 'wrap', gap: 0.75 }}>
           {chips}
+          {rush}
         </Stack>
       )}
 

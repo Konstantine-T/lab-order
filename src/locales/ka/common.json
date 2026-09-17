@@ -112,7 +112,11 @@
   "rush": {
     "none": "არა",
     "percent": "%",
-    "fixed": "ფიქსირებული"
+    "fixed": "ფიქსირებული",
+    "chipDays_one": "სასწრაფო {{count}} დღე",
+    "chipDays_other": "სასწრაფო {{count}} დღე",
+    "chipPercent": "+{{value}}%",
+    "chipFixed": "+{{amount}}"
   },
   "roles": {
     "DOCTOR": "ექიმი",
