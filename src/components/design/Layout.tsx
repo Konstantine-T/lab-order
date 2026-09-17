@@ -53,6 +53,14 @@ export function SplitLayout({
           // `auto`, not `scroll`: a short rail shows no gutter and passes its
           // scroll straight to the page.
           overflowY: { xs: 'visible', lg: 'auto' },
+          // Without this the rail never scrolls at all. It is a column flex
+          // container, so its cards default to `flex-shrink: 1` and are
+          // *compressed* to fit the max-height instead of overflowing it —
+          // 1261px of cards squeezed into 622px, each one clipping its own
+          // contents, with scrollHeight === clientHeight so the browser sees
+          // nothing to scroll. Cards keep their natural height; the rail
+          // overflows; the scrollbar above becomes real.
+          '& > *': { flexShrink: 0 },
           overscrollBehavior: { lg: 'contain' },
           // A scroll container clips at its edges, and the rail's cards lift on
           // hover. Pad the scroll box so the shadow and focus ring have room,
