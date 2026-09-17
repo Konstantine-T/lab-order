@@ -25,9 +25,29 @@ import { layout } from '@/theme/tokens';
 /** Air below a pinned rail so it never sits flush against the window edge. */
 const RAIL_GUTTER = 24;
 
-/** Usable height for a pinned rail: window, less the header band it clears,
- *  less that gutter. */
-const railSpace = () => window.innerHeight - layout.railTop - RAIL_GUTTER;
+/**
+ * How far down the viewport the page's own sticky chrome reaches.
+ *
+ * `layout.railTop` is 76 and is wrong on the pages with a taller header band —
+ * the order wizard's is ~139 — so a rail pinned to the constant tucks its first
+ * rows underneath it, which is exactly how the summary card's title went
+ * missing. Measured from what is actually painted at the top edge, over the
+ * main column rather than over the rail so the rail cannot measure itself.
+ */
+function stickyChromeHeight(): number {
+  if (typeof document === 'undefined') return layout.railTop;
+  let bottom = 0;
+  for (const el of document.elementsFromPoint(Math.round(window.innerWidth * 0.35), 1)) {
+    if (!(el instanceof HTMLElement)) continue;
+    const pos = getComputedStyle(el).position;
+    if (pos === 'sticky' || pos === 'fixed') {
+      bottom = Math.max(bottom, el.getBoundingClientRect().bottom);
+    }
+  }
+  // Never above the token: a page with no sticky band still wants the gap the
+  // rail has always had.
+  return Math.max(layout.railTop, Math.round(bottom));
+}
 
 export function SplitLayout({
   children,
@@ -44,13 +64,20 @@ export function SplitLayout({
   const isWide = useMediaQuery(theme.breakpoints.up('lg'));
   const railRef = useRef<HTMLDivElement | null>(null);
   const [fits, setFits] = useState(true);
+  const [chrome, setChrome] = useState<number>(layout.railTop);
 
   // Room between the rail's top and the bottom of the window, with a little air
   // so a pinned rail doesn't sit flush against the edge.
   const measure = useCallback(() => {
     const el = railRef.current;
     if (!el) return;
-    setFits(el.scrollHeight <= railSpace());
+    // Highest seen wins. The band is shorter mid-travel than once pinned, and
+    // letting the offset shrink again makes the rail jump on every scroll tick.
+    setChrome((prev) => {
+      const next = Math.max(prev, stickyChromeHeight());
+      setFits(el.scrollHeight <= window.innerHeight - next - RAIL_GUTTER);
+      return next;
+    });
   }, []);
 
   useLayoutEffect(() => {
@@ -61,9 +88,15 @@ export function SplitLayout({
     const ro = new ResizeObserver(measure);
     if (railRef.current) ro.observe(railRef.current);
     window.addEventListener('resize', measure);
+    // And on scroll: the header band is itself sticky, so its bottom edge keeps
+    // moving until the page has scrolled far enough to pin it. Measuring only
+    // on resize samples it mid-travel and the rail pins to a stale offset —
+    // tucking its first rows under the band.
+    window.addEventListener('scroll', measure, { passive: true });
     return () => {
       ro.disconnect();
       window.removeEventListener('resize', measure);
+      window.removeEventListener('scroll', measure);
     };
   }, [isWide, measure]);
 
@@ -86,7 +119,9 @@ export function SplitLayout({
           ...(isWide
             ? {
                 position: 'sticky',
-                top: layout.railTop,
+                // Explicit px: a bare number here goes through MUI's spacing
+                // transform and does not land as the pixel offset it reads as.
+                top: `${chrome}px`,
                 // Short rail: nothing to scroll, and a max-height would only
                 // invite a scrollbar over a few pixels of rounding.
                 // Tall rail: it scrolls itself rather than scrolling away with
@@ -96,7 +131,7 @@ export function SplitLayout({
                 // whole form past.
                 ...(fits
                   ? {}
-                  : { maxHeight: `calc(100vh - ${layout.railTop + RAIL_GUTTER}px)`, overflowY: 'auto' }),
+                  : { maxHeight: `calc(100vh - ${chrome + RAIL_GUTTER}px)`, overflowY: 'auto' }),
               }
             : { position: 'static' }),
           // Cards keep their natural height. In a column flex container they
@@ -108,7 +143,11 @@ export function SplitLayout({
           '& > *': { flexShrink: 0 },
           // Only when it actually scrolls, so a short rail keeps the page's
           // own gutter rhythm.
-          ...(isWide && !fits ? { pr: 0.75 } : {}),
+          ...(isWide && !fits
+            ? {
+                pr: 0.75,
+              }
+            : {}),
         }}
       >
         {rail}
