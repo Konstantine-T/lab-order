@@ -32,6 +32,7 @@ import { initialState, type WizardState } from '@/features/doctor/orderCreate/ty
 import { normalizePatientPayload } from '@/features/doctor/orderCreate/patientName';
 import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
 import { LabContactLine } from '@/features/orders/orderFiles/LabContactLine';
+import { ClarificationPanel } from '@/features/orders/clarifications/ClarificationPanel';
 import type {
   DoctorWorkLocationRow,
   EditReasonCode,
@@ -405,6 +406,18 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
             )}
           </Alert>
         )}
+
+        {/* The lab's request, above the fields it is about.
+            The dashboard's "Waiting on you" card sends the doctor straight
+            here, so without this the one screen where the change actually
+            gets made is the one screen that never says what was asked for —
+            leaving them to go back to the order to re-read it.
+
+            `canAnswer` is the doctor's voice, not a claim they can type a
+            reply: it picks "make the change below" over the lab's own
+            "waiting for the doctor", and an edit request renders no answer
+            box either way. No `editTo` — its CTA would link to this page. */}
+        {orderId && <ClarificationPanel orderId={orderId} canAnswer />}
 
         <PatientStep
           state={state}
