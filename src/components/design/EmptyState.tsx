@@ -168,7 +168,11 @@ export function FileChip({
       }}
     >
       <Icon name={icon} size={17} sx={{ color: 'primary.dark', flexShrink: 0 }} />
-      <Box sx={{ minWidth: 0 }}>
+      {/* `flex: 1` so the text takes the slack and the trailing action lands on
+          the chip's right edge. Without it the box hugged its text and the
+          remove button sat against the filename with the rest of a full-width
+          chip empty to its right. */}
+      <Box sx={{ minWidth: 0, flex: 1 }}>
         <Typography sx={{ fontSize: '0.75rem', fontWeight: 600 }} noWrap>
           {name}
         </Typography>
@@ -178,7 +182,7 @@ export function FileChip({
           </Typography>
         )}
       </Box>
-      {action}
+      {action && <Box sx={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>{action}</Box>}
     </Stack>
   );
 }
