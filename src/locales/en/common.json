@@ -251,11 +251,18 @@
       "permission": "You don't have permission to upload to this order.",
       "duplicate": "That file is already attached.",
       "generic": "Couldn't upload {{name}}. Please try again.",
-      "partialSubmit": "Your order was created, but some files didn't upload: {{names}}. You can add them from the order page."
+      "partialSubmit": "Your order was created, but some files didn't upload: {{names}}. You can add them from the order page.",
+      "orderCancelled": "This order is cancelled — an invoice can't be attached to it.",
+      "noInvoice": "This order has no invoice."
     },
     "labContactWithCode": "File won’t upload? Email it to {{email}} quoting {{code}}.",
     "labContactNoCode": "File won’t upload? Email it to {{email}} with the patient’s name.",
-    "labContactSubject": "Order {{code}} — attachment"
+    "labContactSubject": "Order {{code}} — attachment",
+    "invoice": {
+      "download": "Download",
+      "acknowledgeHint": "This notice stays until you confirm it.",
+      "badge": "New invoice"
+    }
   },
   "nav": {
     "needsAttention": "{{count}} needing your attention"

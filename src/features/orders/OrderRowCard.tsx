@@ -51,6 +51,12 @@ type Props = {
    * line.
    */
   lineage?: ReactNode;
+  /**
+   * "New invoice" badge (0035). Its own slot for the same reason as `lineage`:
+   * an order can be waiting on the doctor, be a continuation, and carry an
+   * unseen invoice all at once, and folding any two together would hide one.
+   */
+  invoice?: ReactNode;
 };
 
 /**
@@ -77,6 +83,7 @@ export function OrderRowCard({
   progress,
   flag,
   lineage,
+  invoice,
 }: Props) {
   const { t } = useTranslation('common');
 
@@ -138,6 +145,7 @@ export function OrderRowCard({
             </Typography>
             {flag}
             {lineage}
+            {invoice}
           </Stack>
           {secondary && (
             <Typography

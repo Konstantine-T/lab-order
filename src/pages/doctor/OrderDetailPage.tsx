@@ -1,6 +1,6 @@
 import { Alert, AlertTitle, Box, Button, CircularProgress, Stack, Typography } from '@mui/material';
 import { Link as RouterLink, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
 import { formatDueWindow } from '@/features/orders/orderDates';
@@ -24,6 +24,7 @@ import {
 import { OrderForm } from '@/features/orderForms/OrderForm';
 import { OrderLineage } from '@/features/orders/OrderLineage';
 import { ClarificationPanel } from '@/features/orders/clarifications/ClarificationPanel';
+import { DoctorInvoiceBlock } from '@/features/orders/orderFiles/OrderInvoice';
 import { ORDER_PIPELINE, PIPELINE_ICONS, pipelineIndex } from '@/features/orders/pipeline';
 import { useContinueProject } from '@/features/doctor/orderCreate/useContinueProject';
 import type {
@@ -46,6 +47,7 @@ export function OrderDetailPage() {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
   const continueProject = useContinueProject();
+  const qc = useQueryClient();
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['order', orderId],
@@ -288,6 +290,15 @@ export function OrderDetailPage() {
                 />
               </SectionCard>
             )}
+
+            {/* Beside the price, not among the attachments: it is a billing
+                document, and a doctor looking at it is thinking about money,
+                not STL files. Renders nothing when there is no invoice. */}
+            <DoctorInvoiceBlock
+              orderId={order.id}
+              acknowledgedAt={order.invoice_acknowledged_at}
+              onAcknowledged={() => qc.invalidateQueries({ queryKey: ['order', order.id] })}
+            />
 
             {/* View + download only; adding/removing lives on the edit page. */}
             <SectionCard icon="upload_file" title={tc('orderFiles.title')}>

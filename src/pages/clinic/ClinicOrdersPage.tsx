@@ -19,6 +19,8 @@ import { supabase } from '@/lib/supabase';
 import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
 import { OrderRowCard } from '@/features/orders/OrderRowCard';
 import { LineageBadge } from '@/features/orders/LineageBadge';
+import { useUnacknowledgedInvoices } from '@/features/orders/orderFiles/useUnacknowledgedInvoices';
+import { InvoiceBadge } from '@/features/orders/orderFiles/InvoiceBadge';
 import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
 import { byDueDate, dueDateOf } from '@/features/orders/orderDates';
 import { clearDraft, loadDraftsByAuthor } from '@/features/doctor/orderCreate/draftStorage';
@@ -102,6 +104,8 @@ export function ClinicOrdersPage() {
   // already loaded, with one batched query for any parent this page didn't
   // fetch — never a query per row.
   const parentCodes = useParentOrderCodes(orders);
+  // No doctor filter: RLS already scopes the clinic to its own doctors.
+  const unseenInvoices = useUnacknowledgedInvoices();
 
   return (
     <>
@@ -212,6 +216,7 @@ export function ClinicOrdersPage() {
                     parentCode={parentCodes.get(o.continues_order_id ?? '')}
                   />
                 }
+                invoice={unseenInvoices.has(o.id) ? <InvoiceBadge /> : undefined}
                 code={o.order_code}
                 primary={patient}
                 secondary={[o.lab_services?.name, o.labs?.public_name, doctorName.get(o.doctor_id)]

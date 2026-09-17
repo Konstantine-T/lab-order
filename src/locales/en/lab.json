@@ -542,7 +542,18 @@
       "cancel": "Cancel",
       "confirm": "Send question"
     },
-    "confirmedDueTime": "Confirmed time (optional)"
+    "confirmedDueTime": "Confirmed time (optional)",
+    "invoiceDoc": {
+      "label": "Invoice document",
+      "attach": "Attach invoice",
+      "replace": "Replace invoice",
+      "replaceConfirm": {
+        "title": "Replace the invoice?",
+        "body": "The current invoice is deleted and the doctor is alerted again. They may already have paid against it.",
+        "cancel": "Keep it",
+        "confirm": "Choose a file"
+      }
+    }
   },
   "approvalBanner": {
     "PENDING_APPROVAL": {

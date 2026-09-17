@@ -18,6 +18,7 @@ import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
 import { LabContactLine } from '@/features/orders/orderFiles/LabContactLine';
 import { OrderCompletionActions } from '@/features/orders/completion/OrderCompletionActions';
 import { ClarificationPanel } from '@/features/orders/clarifications/ClarificationPanel';
+import { DoctorInvoiceBlock } from '@/features/orders/orderFiles/OrderInvoice';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
@@ -227,6 +228,14 @@ export function ClinicOrderDetailPage() {
           />
         </Box>
       </SectionCard>
+
+      {/* Beside the price, not among the attachments: it is a billing document.
+          Renders nothing when there is no invoice. */}
+      <DoctorInvoiceBlock
+        orderId={order.id}
+        acknowledgedAt={order.invoice_acknowledged_at}
+        onAcknowledged={() => qc.invalidateQueries({ queryKey: ['clinic-order', orderId] })}
+      />
 
       {/* Not gated on `version` — attachments exist whether or not the form
           version loaded. */}

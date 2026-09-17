@@ -30,6 +30,7 @@ import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip
 import { useAuth } from '@/auth/AuthProvider';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
+import { LabInvoiceControl } from '@/features/orders/orderFiles/OrderInvoice';
 import {
   Callout,
   ChoicePill,
@@ -482,6 +483,13 @@ export function LabOrderSheetPage() {
                       })}
                     </Typography>
                   )}
+                </Box>
+
+                {/* Directly under the price: this is where the lab is standing
+                    when it thinks about invoicing. Stacked, not a horizontal
+                    row — the rail is 316px and Georgian is long. */}
+                <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>
+                  <LabInvoiceControl order={{ id: order.id, lab_id: order.lab_id }} />
                 </Box>
 
                 <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2 }}>

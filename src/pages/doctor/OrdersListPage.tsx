@@ -54,6 +54,8 @@ import {
   checkDraftBrokenness,
 } from '@/features/doctor/orderCreate/draftStorage';
 import { useContinueProject } from '@/features/doctor/orderCreate/useContinueProject';
+import { useUnacknowledgedInvoices } from '@/features/orders/orderFiles/useUnacknowledgedInvoices';
+import { InvoiceBadge } from '@/features/orders/orderFiles/InvoiceBadge';
 
 const ALL_STATUSES: readonly OrderStatus[] = [
   'SUBMITTED',
@@ -132,6 +134,7 @@ export function OrdersListPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const continueProject = useContinueProject();
+  const unseenInvoices = useUnacknowledgedInvoices({ doctorId });
 
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
@@ -548,6 +551,7 @@ export function OrdersListPage() {
                         parentCode={parentCodes.get(row.continues_order_id ?? '')}
                       />
                     }
+                    invoice={unseenInvoices.has(row.id) ? <InvoiceBadge /> : undefined}
                     code={row.order_code}
                     primary={patientName}
                     secondary={[serviceName, labName].filter(Boolean).join(' · ')}

@@ -1,10 +1,47 @@
 {
   "permissions": {
     "allow": [
+
+      "Bash(git push:*)",
+      "Bash(git merge:*)",
+      "Bash(git checkout:*)",
       "Bash(awk 'NR>=104 && NR<=125' \"c:/Users/ThinkPad/workspace/lab-order/src/features/orderForms/CrownAndBridgeForm.tsx\")",
       "Bash(npx tsc *)",
       "Bash(echo \"EXIT=$?\")",
-      "Bash(ls c:\\\\\\\\Users\\\\\\\\ThinkPad\\\\\\\\workspace\\\\\\\\lab-order\\\\\\\\src\\\\\\\\components)"
+      "Bash(ls c:\\\\\\\\Users\\\\\\\\ThinkPad\\\\\\\\workspace\\\\\\\\lab-order\\\\\\\\src\\\\\\\\components)",
+      "Bash(npm -v)",
+      "Bash(npm install *)",
+      "Bash(unzip -l labs.zip)",
+      "Bash(npm run typecheck 2>&1 | tail -20)",
+      "Bash(npm run i18n:check 2>&1 | tail -40)",
+      "Bash(npm run i18n:check 2>&1 | grep -iE 'staff|labTeam|team\\\\.')",
+      "Bash(which supabase psql 2>/dev/null; ls ~/.supabase 2>/dev/null; printenv SUPABASE_ACCESS_TOKEN >/dev/null 2>&1 && echo TOKEN_SET || echo NO_TOKEN)",
+      "Bash(node scripts/apply-sql.mjs supabase/migrations/20260101_0012_lab_staff.sql)",
+      "Bash(sed -i '' 's|^SUPABASE_ACCESS_TOKEN=.*$|SUPABASE_ACCESS_TOKEN=sbp_REDACTED|' /Users/akhvlediani/lab-order/.env && grep -c '^SUPABASE_ACCESS_TOKEN=sbp_' /Users/akhvlediani/lab-order/.env)",
+      "Bash(cat > /tmp/verify-0012.sql <<'SQL'\nselect\n  \\(select count\\(*\\) from information_schema.tables where table_schema='public' and table_name in \\('lab_staff','order_staff_assignments','order_chats'\\)\\) as tables_created,\n  \\(select count\\(*\\) from pg_policies where schemaname='public' and tablename='lab_staff'\\) as lab_staff_policies,\n  \\(select count\\(*\\) from pg_policies where schemaname='public' and tablename='order_staff_assignments'\\) as assignment_policies,\n  \\(select count\\(*\\) from pg_policies where schemaname='public' and tablename='order_chats'\\) as chat_policies,\n  \\(select relrowsecurity from pg_class where relname='lab_staff'\\) as lab_staff_rls,\n  \\(select relrowsecurity from pg_class where relname='order_staff_assignments'\\) as assignments_rls,\n  \\(select relrowsecurity from pg_class where relname='order_chats'\\) as chats_rls,\n  \\(select count\\(*\\) from pg_proc p join pg_namespace n on n.oid=p.pronamespace where n.nspname='public' and p.proname in \\('get_order_staff','tg_assert_staff_matches_order_lab'\\)\\) as functions,\n  \\(select count\\(*\\) from pg_trigger where tgname in \\('lab_staff_set_updated_at','order_staff_assignments_check_lab'\\)\\) as triggers,\n  \\(select count\\(*\\) from pg_indexes where schemaname='public' and indexname='lab_staff_unique_active_phone'\\) as unique_phone_idx\nSQL\nnode scripts/apply-sql.mjs /tmp/verify-0012.sql)",
+      "Bash(cat > /tmp/verify-guard.sql <<'SQL'\nselect position\\('invalid signup role' in pg_get_functiondef\\(p.oid\\)\\) > 0 as guard_present\nfrom pg_proc p join pg_namespace n on n.oid = p.pronamespace\nwhere n.nspname='public' and p.proname='handle_new_user'\nSQL\nnode scripts/apply-sql.mjs /tmp/verify-guard.sql)",
+      "Bash(git -C /Users/akhvlediani/lab-order status --porcelain && git -C /Users/akhvlediani/lab-order log --oneline -3 && git -C /Users/akhvlediani/lab-order remote -v)",
+      "Bash(git -C /Users/akhvlediani/lab-order diff vite.config.ts package-lock.json .claude/settings.local.json | head -60)",
+      "Bash(git -C /Users/akhvlediani/lab-order diff vite.config.ts src/i18n/index.ts src/auth/AuthProvider.tsx)",
+      "Workflow",
+      "Bash(sed -i '' 's/sbp_REDACTED/sbp_REDACTED/' /Users/akhvlediani/lab-order/.claude/settings.local.json && grep -c sbp_REDACTED /Users/akhvlediani/lab-order/.claude/settings.local.json)",
+      "Bash(git -C /Users/akhvlediani/lab-order diff -- src/routes.tsx src/layouts/LabLayout.tsx src/types/database.ts src/i18n/index.ts supabase/migrations/20260101_0003_triggers.sql vite.config.ts scripts/apply-sql.mjs)",
+      "Bash(grep -n 'settings.local\\\\|\\\\.env\\\\|tsbuildinfo\\\\|labs.zip' /Users/akhvlediani/lab-order/.gitignore; git -C /Users/akhvlediani/lab-order ls-files | grep -E 'labs.zip|tsbuildinfo|settings.local')",
+      "Bash(git -C /Users/akhvlediani/lab-order diff --stat)",
+      "Bash(git -C /Users/akhvlediani/lab-order diff src/locales/en/lab.json src/locales/ka/lab.json src/locales/ru/lab.json)",
+      "Bash(git -C /Users/akhvlediani/lab-order diff src/locales/en/doctor.json src/locales/ka/doctor.json src/locales/ru/doctor.json src/locales/en/auth.json src/locales/ka/auth.json src/locales/ru/auth.json)",
+      "Bash(git -C /Users/akhvlediani/lab-order diff -- src/routes.tsx src/layouts/LabLayout.tsx src/auth/AuthProvider.tsx)",
+      "Bash(git -C /Users/akhvlediani/lab-order diff -- src/pages/lab/LabOrderSheetPage.tsx src/pages/doctor/OrderDetailPage.tsx)",
+      "Bash(node scripts/check-i18n-parity.mjs 2>&1 | head -80)",
+      "Bash(git -C /Users/akhvlediani/lab-order --no-pager diff -- src/pages/doctor/OrderDetailPage.tsx | head -200)",
+      "Bash(git -C /Users/akhvlediani/lab-order --no-pager diff -- src/pages/lab/LabOrderSheetPage.tsx | head -120)",
+      "Bash(git -C /Users/akhvlediani/lab-order --no-pager diff -- src/locales/en/lab.json src/locales/en/doctor.json | head -150)",
+      "Bash(for k in actions.archive errors.saveFailed errors.loadFailed actions.cancel actions.save actions.edit; do node -e \"const j=require\\('./src/locales/en/common.json'\\); const v=\\('$k'\\).split\\('.'\\).reduce\\(\\(a,b\\)=>a&&a[b], j\\); console.log\\('$k', '=>', v\\)\"; done)",
+      "Bash(node -e \"\nconst fs=require\\('fs'\\);\nfor \\(const l of ['en','ka','ru']\\) {\n  const lab=JSON.parse\\(fs.readFileSync\\('src/locales/'+l+'/lab.json'\\)\\);\n  const doc=JSON.parse\\(fs.readFileSync\\('src/locales/'+l+'/doctor.json'\\)\\);\n  console.log\\(l, 'lab.staff?', !!lab.staff, 'lab.staff.team?', !!\\(lab.staff&&lab.staff.team\\), 'nav.staff?', !!lab.nav.staff, 'doctor.orderDetail.labTeam?', !!doc.orderDetail.labTeam\\);\n}\")",
+      "Bash(git -C /Users/akhvlediani/lab-order diff -- src/types/database.ts src/i18n/index.ts)",
+      "Bash(npm run -s typecheck 2>&1 | tail -20; echo \"typecheck exit: $?\")",
+      "Bash(git -C /Users/akhvlediani/lab-order status --porcelain)",
+      "Bash(git -C /Users/akhvlediani/lab-order diff -- .claude/settings.local.json)"
     ]
   }
 }

@@ -14,6 +14,10 @@ export type OrderFileErrorKind =
   | 'network'
   | 'permission'
   | 'duplicate'
+  /** The invoice RPCs raise these by name (0035); without them every refusal
+   *  would read as a generic failure and tell the lab nothing. */
+  | 'orderCancelled'
+  | 'noInvoice'
   | 'generic';
 
 export class OrderFileError extends Error {
@@ -33,6 +37,12 @@ function classify(err: unknown): OrderFileErrorKind {
   const status = (err as { statusCode?: string | number; status?: number })?.statusCode
     ?? (err as { status?: number })?.status;
   const msg = String((err as { message?: string })?.message ?? '').toLowerCase();
+
+  // The 0035 RPCs raise bare codes. Checked before the generic matchers below,
+  // which would otherwise swallow `not_your_lab` into 'generic'.
+  if (msg.includes('order_cancelled')) return 'orderCancelled';
+  if (msg.includes('no_invoice')) return 'noInvoice';
+  if (msg.includes('not_your_lab') || msg.includes('not_your_order')) return 'permission';
 
   if (String(status) === '413' || msg.includes('too large') || msg.includes('exceeded the maximum')) {
     return 'tooLarge';
@@ -137,14 +147,102 @@ export async function uploadOrderFile(
   return data as OrderFileRow;
 }
 
+/**
+ * The order's attachments — everything except the invoice.
+ *
+ * The invoice is an `order_files` row too (0035), but it has its own block
+ * near the price on all four order screens. Without this filter it would also
+ * sit among the doctor's STLs, so the same document would appear twice with
+ * two different meanings.
+ */
 export async function listOrderFiles(orderId: string): Promise<OrderFileRow[]> {
   const { data, error } = await supabase
     .from('order_files')
     .select('*')
     .eq('order_id', orderId)
+    .neq('file_source', 'INVOICE')
     .order('created_at', { ascending: true });
   if (error) throw error;
   return (data ?? []) as OrderFileRow[];
+}
+
+/**
+ * The order's current invoice, or null.
+ *
+ * `maybeSingle` rather than `single`: no invoice is the normal state — the
+ * ticket's first decision is that it is optional — and an error here would
+ * blank the whole price card over a document that was never required.
+ */
+export async function fetchOrderInvoice(orderId: string): Promise<OrderFileRow | null> {
+  const { data, error } = await supabase
+    .from('order_files')
+    .select('*')
+    .eq('order_id', orderId)
+    .eq('file_source', 'INVOICE')
+    .maybeSingle();
+  if (error) throw error;
+  return (data as OrderFileRow | null) ?? null;
+}
+
+/**
+ * Attach or replace the order's invoice.
+ *
+ * Storage first, then one RPC that swaps the row and clears the doctor's
+ * acknowledgement together. Doing those as separate client writes could leave
+ * an order with a new invoice the doctor is never alerted to, or an alert with
+ * no document behind it.
+ *
+ * The old object is removed best-effort afterwards; a failure there orphans
+ * bytes rather than breaking the order, which is the same trade `uploadOrderFile`
+ * already makes on its rollback path.
+ */
+export async function replaceOrderInvoice(
+  order: UploadTarget,
+  file: File,
+): Promise<OrderFileRow> {
+  if (file.size > MAX_ORDER_FILE_BYTES) {
+    throw new OrderFileError('tooLarge', file.name);
+  }
+
+  const path = orderFilePath(order.lab_id, order.id, file.name);
+
+  const { error: upErr } = await supabase.storage
+    .from(ORDER_FILES_BUCKET)
+    .upload(path, file, { contentType: file.type || 'application/octet-stream', upsert: false });
+  if (upErr) throw new OrderFileError(classify(upErr), file.name, upErr);
+
+  const { data, error } = await supabase.rpc('replace_order_invoice', {
+    p_order_id: order.id,
+    p_storage_path: path,
+    p_file_name: file.name,
+    p_file_type: file.type || 'application/octet-stream',
+    p_file_size_bytes: file.size,
+  });
+
+  if (error) {
+    // The row never landed, so the object we just uploaded is unreferenced.
+    await supabase.storage.from(ORDER_FILES_BUCKET).remove([path]).catch(() => {});
+    throw new OrderFileError(classify(error), file.name, error);
+  }
+
+  // `returns table (...)` arrives as a one-row array.
+  const row = (Array.isArray(data) ? data[0] : data) as
+    | { new_file_id: string; previous_storage_path: string | null }
+    | undefined;
+  const previous = row?.previous_storage_path;
+  if (previous && previous !== path) {
+    await supabase.storage.from(ORDER_FILES_BUCKET).remove([previous]).catch(() => {});
+  }
+
+  const invoice = await fetchOrderInvoice(order.id);
+  if (!invoice) throw new OrderFileError('generic', file.name);
+  return invoice;
+}
+
+/** The doctor (or the clinic acting for them) confirms they have seen it. */
+export async function acknowledgeOrderInvoice(orderId: string): Promise<void> {
+  const { error } = await supabase.rpc('acknowledge_order_invoice', { p_order_id: orderId });
+  if (error) throw new OrderFileError(classify(error), '', error);
 }
 
 /** Row first here: dropping the object first would leave a row rendering a

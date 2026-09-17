@@ -260,6 +260,12 @@
       "sent": "Answer sent to the lab.",
       "editBody": "Open the order, make the change and save — that clears this by itself.",
       "editCta": "Change the order"
+    },
+    "invoice": {
+      "title": "Invoice",
+      "attached": "The lab attached an invoice",
+      "changed": "The lab changed the invoice",
+      "gotIt": "Got it"
     }
   },
   "orderEdit": {

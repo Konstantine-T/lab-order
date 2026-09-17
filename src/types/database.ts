@@ -80,7 +80,10 @@ export type MaterialOption = {
    *  publishable forms. */
   unit_price?: number;
 };
-export type FileSource = 'ORDER_FORM' | 'CHAT' | 'ADMIN_UPLOAD';
+/** `INVOICE` (0035) is the lab's billing document: at most one per order,
+ *  enforced by a partial unique index, and excluded from the attachments list
+ *  so it doesn't appear twice. */
+export type FileSource = 'ORDER_FORM' | 'CHAT' | 'ADMIN_UPLOAD' | 'INVOICE';
 
 export interface AppUserRow {
   id: string;
@@ -400,6 +403,13 @@ export interface OrderRow {
   requested_due_time: string | null;
   confirmed_due_time: string | null;
   invoice_recipient_type: InvoiceRecipientType;
+  /**
+   * When the doctor last confirmed they had seen the invoice (0035). Compared
+   * against the INVOICE file's own `created_at`: null means never seen,
+   * earlier means the lab has replaced it since. Deliberately not a boolean —
+   * two timestamps cannot contradict each other the way a flag and a file can.
+   */
+  invoice_acknowledged_at: string | null;
   generated_total: number | null;
   final_total: number | null;
   rush_type: RushType;

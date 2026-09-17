@@ -72,6 +72,36 @@ async function answeredClarificationCount(
   return Math.max(0, (withAny.count ?? 0) - (stillOpen.count ?? 0));
 }
 
+/**
+ * Orders whose invoice the doctor has not acknowledged (0035).
+ *
+ * Not a `head: true` count like its neighbours. PostgREST cannot compare two
+ * columns, and a replace deliberately keeps the old acknowledgement (it is
+ * what tells "changed" from "attached"), so `is null` alone would miss every
+ * replaced invoice. The rows read are only orders that have an invoice, which
+ * is a small set, and only two timestamps come back per row.
+ */
+async function unacknowledgedInvoiceCount(
+  scope: { column: 'doctor_id'; value: string } | null,
+): Promise<number> {
+  const q = supabase
+    .from('orders')
+    .select('id, invoice_acknowledged_at, order_files!inner(created_at)')
+    .eq('order_files.file_source', 'INVOICE');
+  const { data, error } = await (scope ? q.eq(scope.column, scope.value) : q);
+  if (error) return 0;
+
+  const rows = (data ?? []) as {
+    invoice_acknowledged_at: string | null;
+    order_files: { created_at: string }[];
+  }[];
+  return rows.filter((r) => {
+    const created = r.order_files?.[0]?.created_at;
+    if (!created) return false;
+    return !r.invoice_acknowledged_at || new Date(r.invoice_acknowledged_at) < new Date(created);
+  }).length;
+}
+
 /** Lab: new arrivals, unreviewed edits, and answers waiting to be read. */
 export function useLabNavAlerts(labId: string | undefined) {
   const { data } = useQuery({
@@ -101,17 +131,25 @@ export function useDoctorNavAlerts(doctorId: string | undefined) {
     enabled: !!doctorId,
     ...shared,
     queryFn: async () => {
-      const [waiting, answered] = await Promise.all([
+      const [waiting, answered, invoices] = await Promise.all([
         orderCount().eq('doctor_id', doctorId!).in('status', AWAITING_DOCTOR),
         answeredClarificationCount({ column: 'doctor_id', value: doctorId! }),
+        unacknowledgedInvoiceCount({ column: 'doctor_id', value: doctorId! }),
       ]);
       // An order the doctor has already answered still sits in
       // NEEDS_CLARIFICATION until the lab moves it — don't keep nagging about
       // work that is no longer theirs.
-      return { orders: Math.max(0, (waiting.count ?? 0) - answered) };
+      //
+      // The invoice count is added rather than merged: an order can be waiting
+      // on the doctor for a clarification *and* carry an unseen invoice, and
+      // both are things to go and do.
+      return {
+        orders: Math.max(0, (waiting.count ?? 0) - answered) + invoices,
+        invoices,
+      };
     },
   });
-  return data ?? { orders: 0 };
+  return data ?? { orders: 0, invoices: 0 };
 }
 
 /**
@@ -124,14 +162,18 @@ export function useClinicNavAlerts(clinicId: string | undefined) {
     enabled: !!clinicId,
     ...shared,
     queryFn: async () => {
-      const [waiting, answered] = await Promise.all([
+      const [waiting, answered, invoices] = await Promise.all([
         orderCount().in('status', AWAITING_DOCTOR),
         answeredClarificationCount(null),
+        unacknowledgedInvoiceCount(null),
       ]);
-      return { orders: Math.max(0, (waiting.count ?? 0) - answered) };
+      return {
+        orders: Math.max(0, (waiting.count ?? 0) - answered) + invoices,
+        invoices,
+      };
     },
   });
-  return data ?? { orders: 0 };
+  return data ?? { orders: 0, invoices: 0 };
 }
 
 /** Platform admin: labs sitting in the approval queue. */
