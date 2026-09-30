@@ -4,6 +4,22 @@ export { type ImplantPriceItem };
 
 export const TEMPLATE_CODE_IMPLANT = 'CONSTRUCTIONS_ON_IMPLANTS';
 
+/**
+ * Lab-placed abutments ("აბატმენტების ჩაყენება ლაბორატორიულად"): a distinct
+ * platform template drawing the implant configuration of Constructions on
+ * Implants on its own — brand, positions and each implant's abutment — with no
+ * bar and no crown, plus a transfer-check question. Its types live in
+ * `abutmentTypes.ts`; the code is declared here, beside its parent, so this
+ * module can answer `isImplantTemplate` without importing that one back.
+ */
+export const TEMPLATE_CODE_IMPLANT_ABUTMENTS = 'IMPLANT_ABUTMENTS';
+
+/** True for the templates drawn by ImplantRestorationForm and priced by the
+ *  implant component grid: Constructions on Implants and lab-placed abutments. */
+export function isImplantTemplate(code: string | undefined | null): boolean {
+  return code === TEMPLATE_CODE_IMPLANT || code === TEMPLATE_CODE_IMPLANT_ABUTMENTS;
+}
+
 // ─── Option lists ─────────────────────────────────────────────────────────────
 
 export const ABUTMENT_STATUS_OPTIONS = [

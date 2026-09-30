@@ -3,7 +3,11 @@ import type {
   PlatformTemplateFieldRow,
   PricingConfig,
 } from '@/types/database';
-import { DEFAULT_IMPLANT_PRICE_CONFIG } from '@/features/orderForms/implantTypes';
+import {
+  DEFAULT_IMPLANT_PRICE_CONFIG,
+  TEMPLATE_CODE_IMPLANT,
+  isImplantTemplate,
+} from '@/features/orderForms/implantTypes';
 import { isCnbTemplate } from '@/features/orderForms/cnbTypes';
 import { isFabTemplate } from '@/features/orderForms/fabTypes';
 import { isModelTemplateCode } from '@/features/orderForms/modelTypes';
@@ -37,7 +41,12 @@ export function buildDefaultConfig(
   const toothField = fields.find((f) => f.type === 'tooth_selection');
   const isSg = templateCode === 'SURGICAL_GUIDE';
   const isEsp = templateCode === 'EVIDENT_SMILE';
-  const isImplant = templateCode === 'CONSTRUCTIONS_ON_IMPLANTS';
+  // Constructions on Implants and lab-placed abutments share the implant
+  // component grid. Only the former has crowns, so only it gets a crown
+  // material list — whose absence is also what keeps an abutments-only
+  // service from advertising a crown's "from" price.
+  const isImplant = isImplantTemplate(templateCode);
+  const hasImplantCrowns = templateCode === TEMPLATE_CODE_IMPLANT;
   const isFab = isFabTemplate(templateCode);
   // Model (Print Model only — Titanium moved to C&B) is priced per jaw
   // (arch → qty, BOTH = 2), distinct from the material-based UNIT_BASED
@@ -54,7 +63,7 @@ export function buildDefaultConfig(
     model_per_jaw_price: isModel ? 0 : undefined,
     sg_support_fees: isSg ? [] : undefined,
     implant_price_config: isImplant ? DEFAULT_IMPLANT_PRICE_CONFIG : undefined,
-    implant_crown_materials: isImplant ? [] : undefined,
+    implant_crown_materials: hasImplantCrowns ? [] : undefined,
     rush: { type: 'NONE' },
   };
 

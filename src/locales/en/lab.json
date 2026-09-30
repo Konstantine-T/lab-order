@@ -162,7 +162,9 @@
     "grg_teeth": "Select Teeth",
     "grg_additive_wax_up": "Is This an Additive Wax Up?",
     "grg_approval_needed": "Does Doctor Need to Approve?",
-    "grg_notes": "Notes"
+    "grg_notes": "Notes",
+    "abTransferCheck": "Transfer check",
+    "fcDesign": "Tooth design"
   },
   "cnbForm": {
     "sections": {
@@ -173,7 +175,8 @@
       "maxLengthOfCentrals": "Max Preferred Length of Centrals",
       "checkDesign": "Check Design?",
       "occlusalContact": "Occlusal Contact",
-      "rxNotes": "Notes"
+      "rxNotes": "Notes",
+      "design": "Tooth design"
     },
     "builder": {
       "material": "Material",
@@ -212,7 +215,17 @@
     "nav": {
       "treatments": "Treatment",
       "shade": "Shade",
-      "clinicalParams": "Parameters"
+      "clinicalParams": "Parameters",
+      "design": "Design"
+    },
+    "design": {
+      "toothShape": "Tooth shape",
+      "shapes": {
+        "OVOID": "Ovoid",
+        "SQUARE": "Square",
+        "TAPERING": "Tapering"
+      },
+      "notesPlaceholder": "Design notes (optional) — e.g. what wasn't liked about the previous design, desired length, texture"
     }
   },
   "services": {
@@ -427,7 +440,14 @@
       "from": "Due from",
       "to": "Due to",
       "clear": "Clear filters",
-      "noResults": "No orders match your filters."
+      "noResults": "No orders match your filters.",
+      "allDoctors": "All doctors",
+      "allWorkLocations": "All work locations",
+      "orderCount_one": "{{count}} order",
+      "orderCount_other": "{{count}} orders",
+      "noMatches": "No matches",
+      "clearField": "Clear",
+      "openList": "Open"
     },
     "columns": {
       "code": "Order",
@@ -451,7 +471,8 @@
       "edited": "Edited",
       "completed": "Completed"
     },
-    "answeredBadge": "Answered"
+    "answeredBadge": "Answered",
+    "invoiceAttached": "Invoice attached"
   },
   "editedOrders": {
     "title": "Edited orders",
@@ -497,14 +518,16 @@
       "previousVersion": "Previous version",
       "fields": {
         "workLocation": "Work location",
-        "invoiceRecipient": "Invoice recipient"
+        "invoiceRecipient": "Invoice recipient",
+        "patient": "Patient"
       },
       "invoice": {
         "DOCTOR": "Doctor",
         "CLINIC": "Clinic"
       },
       "whatChanged": "What the doctor changed",
-      "otherAnswers": "Other answers"
+      "otherAnswers": "Other answers",
+      "patientRecordChanged": "Same name and date of birth, but a different patient record."
     },
     "history": {
       "label": "Edit history",
@@ -565,7 +588,11 @@
         "cancel": "Keep it",
         "confirm": "Choose a file"
       }
-    }
+    },
+    "patient": "Patient",
+    "patientDob": "Date of birth: {{date}}",
+    "dueConfirmed": "Confirmed",
+    "requestedDayHint": "The date the doctor asked for"
   },
   "approvalBanner": {
     "PENDING_APPROVAL": {
@@ -592,7 +619,9 @@
       "public": "Public profile",
       "legal": "Legal information",
       "billing": "Billing information",
-      "contact": "Contact information"
+      "contact": "Contact information",
+      "priceLists": "Price lists",
+      "account": "Your account"
     },
     "fields": {
       "publicName": "Public laboratory name",
@@ -617,7 +646,40 @@
     "saveSuccess": "Laboratory profile saved.",
     "submitSuccess": "Submitted for approval.",
     "incompleteWarning": "All fields are required before submitting for approval.",
-    "approvalNote": "Note from platform admin"
+    "approvalNote": "Note from platform admin",
+    "lockedAfterApproval": "Your laboratory is approved. Its name, description, legal, contact and bank details are locked — to change them, contact the platform team. You can still add translations, manage price lists and update your own account details.",
+    "translations": {
+      "tabBase": "Original",
+      "tabsA11y": "Profile language",
+      "hint": "Optional: add the name and description in other languages. Where a language is left empty, doctors see the original.",
+      "filled": "translated",
+      "missing": "not translated yet",
+      "save": "Save translations",
+      "saved": "Translations saved.",
+      "saveFailed": "Couldn't save the translations. Please try again."
+    },
+    "priceLists": {
+      "hint": "Optional: one file per language — PDF, JPG or PNG, up to 10 MB. Doctors get the file in their language, or another one if that language has none. Price lists are public: anyone browsing the catalogue can open them.",
+      "upload": "Upload",
+      "replace": "Replace",
+      "remove": "Remove",
+      "open": "Open",
+      "none": "No file yet",
+      "uploadedOn": "Uploaded {{date}}",
+      "errors": {
+        "wrongType": "Only PDF, JPG or PNG files can be uploaded.",
+        "tooLarge": "This file is larger than 10 MB.",
+        "network": "Connection problem. Check your internet and try again.",
+        "permission": "You don't have permission to change this laboratory's price lists.",
+        "generic": "Couldn't save the price list. Please try again."
+      }
+    },
+    "account": {
+      "hint": "Your own details as the account holder, as entered at registration. They are separate from the laboratory's public profile.",
+      "emailReadOnly": "The sign-in email can't be changed here.",
+      "saved": "Your details have been saved.",
+      "saveFailed": "Couldn't save your details. Please try again."
+    }
   },
   "espForm": {
     "fieldsLocked": "'Smile Package' uses a structured order form. Toggle each field on/off and mark it required as needed. Add extra custom questions below.",
@@ -827,7 +889,8 @@
       "positions": "Select implant positions",
       "configure": "Configure each implant",
       "bar": "Bar restoration",
-      "crownRestoration": "Crown & Bridge restoration"
+      "crownRestoration": "Crown & Bridge restoration",
+      "transferCheck": "Transfer check"
     },
     "notation": "Notation",
     "positions": {
@@ -948,7 +1011,11 @@
       },
       "crownMaterialsHelp": "Define the final crown materials doctors can choose from. Price is per tooth.",
       "addCrownMaterial": "Add crown material"
-    }
+    },
+    "transferCheck": {
+      "label": "Transfer check (verification jig) needed?"
+    },
+    "abutmentsFieldsLocked": "Lab-placed Abutments uses a structured order form. Add custom questions below if needed. Configure pricing in the Pricing tab."
   },
   "grgForm": {
     "yesNo": {

@@ -28,7 +28,11 @@ import {
 } from '@/features/orderForms/cnbTypes';
 import { TEMPLATE_CODE_SG, SG_SUPPORT_TYPES } from '@/features/orderForms/sgTypes';
 import { TEMPLATE_CODE_ESP } from '@/features/orderForms/espTypes';
-import { TEMPLATE_CODE_IMPLANT, DEFAULT_IMPLANT_PRICE_CONFIG } from '@/features/orderForms/implantTypes';
+import {
+  DEFAULT_IMPLANT_PRICE_CONFIG,
+  TEMPLATE_CODE_IMPLANT_ABUTMENTS,
+  isImplantTemplate,
+} from '@/features/orderForms/implantTypes';
 import { isFabTemplate } from '@/features/orderForms/fabTypes';
 import { isModelTemplateCode } from '@/features/orderForms/modelTypes';
 import { pricingIssues } from '@/utils/pricing';
@@ -62,7 +66,10 @@ export function PricingPanel({
   const isCnb = isCnbTemplate(templateCode);
   const isSg = templateCode === TEMPLATE_CODE_SG;
   const isEsp = templateCode === TEMPLATE_CODE_ESP;
-  const isImplant = templateCode === TEMPLATE_CODE_IMPLANT;
+  // Both implant templates price by the component grid; lab-placed abutments
+  // has no crowns and no bar, so those parts of the grid are left out for it.
+  const isImplant = isImplantTemplate(templateCode);
+  const abutmentsOnly = templateCode === TEMPLATE_CODE_IMPLANT_ABUTMENTS;
   const isFab = isFabTemplate(templateCode);
   const isModel = isModelTemplateCode(templateCode);
 
@@ -311,6 +318,7 @@ export function PricingPanel({
           {/* Constructions on Implants — brands + crown materials + per-item price grid */}
           {pricing.model === 'UNIT_BASED' && isImplant && (
             <ImplantPricingSection
+              abutmentsOnly={abutmentsOnly}
               config={pricing.implant_price_config ?? DEFAULT_IMPLANT_PRICE_CONFIG}
               onChange={(next) => onChange({ ...pricing, implant_price_config: next })}
               brands={pricing.implant_brands ?? []}
@@ -482,6 +490,9 @@ type ImplantPriceGroup = {
   hidePrice?: boolean;
 };
 
+/** The bar's price group — the one the abutments-only template never asks about. */
+const BAR_PRICE_GROUP = 'implantForm.pricing.groups.barMaterial';
+
 const IMPLANT_PRICE_GROUPS: ImplantPriceGroup[] = [
   { titleKey: 'implantForm.pricing.groups.abutmentType',    keys: ['individual', 'multiunit', 'tibase', 'factory'] },
   { titleKey: 'implantForm.pricing.groups.indMaterial',     keys: ['titanium', 'cocr', 'zirconia'] },
@@ -489,10 +500,11 @@ const IMPLANT_PRICE_GROUPS: ImplantPriceGroup[] = [
   { titleKey: 'implantForm.pricing.groups.retention',       keys: ['cement', 'screw'] },
   { titleKey: 'implantForm.pricing.groups.muaHex',          keys: ['hex', 'nonHex'] },
   { titleKey: 'implantForm.pricing.groups.muaUpperConn',    keys: ['cups', 'rosen', 'screwForBar'] },
-  { titleKey: 'implantForm.pricing.groups.barMaterial',     keys: ['titaniumBar', 'cocrMilled', 'cocrPrinted', 'zirconiaBar', 'peekBar'] },
+  { titleKey: BAR_PRICE_GROUP,                               keys: ['titaniumBar', 'cocrMilled', 'cocrPrinted', 'zirconiaBar', 'peekBar'] },
 ];
 
 function ImplantPricingSection({
+  abutmentsOnly,
   config,
   onChange,
   brands,
@@ -501,6 +513,8 @@ function ImplantPricingSection({
   onCrownMaterialsChange,
   t,
 }: {
+  /** Lab-placed abutments: no crown materials and no bar prices to set. */
+  abutmentsOnly?: boolean;
   config: Record<string, ImplantPriceItem>;
   onChange: (next: Record<string, ImplantPriceItem>) => void;
   brands: { id: string; name: string }[];
@@ -591,85 +605,89 @@ function ImplantPricingSection({
         </Box>
       </Box>
 
-      <Divider />
-
       {/* Crown materials — lab-defined */}
-      <Box>
-        <Typography
-          variant="overline"
-          sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 1 }}
-        >
-          {t('implantForm.pricing.groups.crownMaterials')}
-        </Typography>
-        <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-          {t('implantForm.pricing.crownMaterialsHelp')}
-        </Typography>
-        <Stack spacing={1}>
-          {crownMaterials.map((mat, i) => {
-            const color = MATERIAL_COLORS[i % MATERIAL_COLORS.length];
-            return (
-              <Stack
-                key={mat.id}
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={1.5}
-                alignItems={{ sm: 'center' }}
+      {!abutmentsOnly && (
+        <>
+          <Divider />
+
+          <Box>
+            <Typography
+              variant="overline"
+              sx={{ color: 'text.secondary', fontWeight: 700, letterSpacing: 1 }}
+            >
+              {t('implantForm.pricing.groups.crownMaterials')}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" display="block" mb={1}>
+              {t('implantForm.pricing.crownMaterialsHelp')}
+            </Typography>
+            <Stack spacing={1}>
+              {crownMaterials.map((mat, i) => {
+                const color = MATERIAL_COLORS[i % MATERIAL_COLORS.length];
+                return (
+                  <Stack
+                    key={mat.id}
+                    direction={{ xs: 'column', sm: 'row' }}
+                    spacing={1.5}
+                    alignItems={{ sm: 'center' }}
+                  >
+                    <Box
+                      sx={{
+                        width: 18,
+                        height: 18,
+                        borderRadius: '50%',
+                        bgcolor: color,
+                        flexShrink: 0,
+                        border: 1,
+                        borderColor: 'divider',
+                      }}
+                    />
+                    <TextField
+                      label={t('forms.editor.pricing.materialName')}
+                      value={mat.name}
+                      onChange={(e) => updateCrownMaterial(mat.id, { name: e.target.value })}
+                      size="small"
+                      sx={{ flex: 1 }}
+                    />
+                    <NumberField
+                      label={t('implantForm.pricing.pricePerImplant')}
+                      value={mat.unit_price}
+                      onChange={(v) => updateCrownMaterial(mat.id, { unit_price: v })}
+                      decimal
+                      min={0}
+                      InputProps={{
+                        endAdornment: <InputAdornment position="end">GEL</InputAdornment>,
+                      }}
+                      size="small"
+                      sx={{ width: 200 }}
+                    />
+                    <IconButton onClick={() => removeCrownMaterial(mat.id)} size="small">
+                      <Icon name="delete" size={18} />
+                    </IconButton>
+                  </Stack>
+                );
+              })}
+            </Stack>
+            <Box mt={1}>
+              <Button
+                startIcon={<Icon name="add" size={17} />}
+                variant="outlined"
+                onClick={addCrownMaterial}
+                disabled={crownMaterials.length >= MAX_MATERIALS}
+                size="small"
               >
-                <Box
-                  sx={{
-                    width: 18,
-                    height: 18,
-                    borderRadius: '50%',
-                    bgcolor: color,
-                    flexShrink: 0,
-                    border: 1,
-                    borderColor: 'divider',
-                  }}
-                />
-                <TextField
-                  label={t('forms.editor.pricing.materialName')}
-                  value={mat.name}
-                  onChange={(e) => updateCrownMaterial(mat.id, { name: e.target.value })}
-                  size="small"
-                  sx={{ flex: 1 }}
-                />
-                <NumberField
-                  label={t('implantForm.pricing.pricePerImplant')}
-                  value={mat.unit_price}
-                  onChange={(v) => updateCrownMaterial(mat.id, { unit_price: v })}
-                  decimal
-                  min={0}
-                  InputProps={{
-                    endAdornment: <InputAdornment position="end">GEL</InputAdornment>,
-                  }}
-                  size="small"
-                  sx={{ width: 200 }}
-                />
-                <IconButton onClick={() => removeCrownMaterial(mat.id)} size="small">
-                  <Icon name="delete" size={18} />
-                </IconButton>
-              </Stack>
-            );
-          })}
-        </Stack>
-        <Box mt={1}>
-          <Button
-            startIcon={<Icon name="add" size={17} />}
-            variant="outlined"
-            onClick={addCrownMaterial}
-            disabled={crownMaterials.length >= MAX_MATERIALS}
-            size="small"
-          >
-            {t('implantForm.pricing.addCrownMaterial')}
-          </Button>
-          <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
-            {crownMaterials.length} / {MAX_MATERIALS}
-          </Typography>
-        </Box>
-      </Box>
+                {t('implantForm.pricing.addCrownMaterial')}
+              </Button>
+              <Typography variant="caption" color="text.secondary" sx={{ ml: 2 }}>
+                {crownMaterials.length} / {MAX_MATERIALS}
+              </Typography>
+            </Box>
+          </Box>
+        </>
+      )}
 
       <Divider />
 
-      {IMPLANT_PRICE_GROUPS.map((group) => (
+      {IMPLANT_PRICE_GROUPS.filter((g) => !abutmentsOnly || g.titleKey !== BAR_PRICE_GROUP).map((group) => (
         <Box key={group.titleKey}>
           <Typography
             variant="overline"

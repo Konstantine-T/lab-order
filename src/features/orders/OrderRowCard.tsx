@@ -18,6 +18,12 @@ type Props = {
   total: string;
   /** When set, renders struck-through above `total` (discount indicator). */
   originalTotal?: string;
+  /**
+   * Pre-formatted creation date. Rendered in the meta column just before the
+   * due date, the other date a reader compares it with — created, due, total
+   * reads chronologically.
+   */
+  createdDate?: string;
   /** Pre-formatted due-date string. */
   dueDate?: string;
   /** Renders the due date in danger colour — overdue or due imminently. */
@@ -74,6 +80,7 @@ export function OrderRowCard({
   paymentStatus,
   total,
   originalTotal,
+  createdDate,
   dueDate,
   dueUrgent,
   avatarText,
@@ -157,12 +164,33 @@ export function OrderRowCard({
           )}
         </Box>
 
+        {/* Gaps only, no `spacing` margins: a block that wraps onto a second
+            line (the status pills, on a phone) then starts flush left instead
+            of carrying its margin with it. */}
         <Stack
           direction="row"
-          spacing={2.25}
           alignItems="center"
-          sx={{ gridArea: 'meta', flexShrink: 0, flexWrap: 'wrap', gap: 1.5 }}
+          sx={{
+            gridArea: 'meta',
+            flexShrink: 0,
+            flexWrap: 'wrap',
+            columnGap: { xs: 2.5, md: 3.75 },
+            rowGap: 1.5,
+          }}
         >
+          {createdDate && (
+            <Box sx={{ textAlign: { md: 'right' } }}>
+              <Typography
+                sx={{ fontSize: '0.65625rem', fontWeight: 600, color: 'text.secondary', whiteSpace: 'nowrap' }}
+              >
+                {t('orderCard.created')}
+              </Typography>
+              <Typography sx={{ fontSize: '0.78125rem', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                {createdDate}
+              </Typography>
+            </Box>
+          )}
+
           {dueDate && (
             <Box sx={{ textAlign: { md: 'right' } }}>
               <Typography

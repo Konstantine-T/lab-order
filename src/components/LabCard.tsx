@@ -3,6 +3,8 @@ import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design/Icon';
 import { StatusPill } from '@/components/design/StatusPill';
+import { useLabText } from '@/features/lab/labText';
+import { pickPriceList, priceListUrl } from '@/features/lab/priceList/priceListApi';
 import { brand, motion, radii } from '@/theme/tokens';
 import { formatGELShort, type StartingPrice } from '@/utils/pricing';
 
@@ -14,6 +16,10 @@ export type MarketplaceLab = {
   short_description: string | null;
   logo_url: string | null;
   created_at?: string | null;
+  /** Per-language name / description (0037); read through `labText`. */
+  public_translations?: unknown;
+  /** Per-language price-list files (0038); read through `pickPriceList`. */
+  price_lists?: unknown;
   services?: {
     name: string;
     average_turnaround_days: number | null;
@@ -52,9 +58,15 @@ const NEW_FOR_DAYS = 30;
 
 export function LabCard({ lab, to }: { lab: MarketplaceLab; to?: string }) {
   const { t } = useTranslation('doctor');
+  const { labText, lang } = useLabText();
   const target = to ?? `/doctor/labs/${lab.id}`;
+  const name = labText(lab, 'public_name');
+  const description = labText(lab, 'short_description');
+  // The colour stays keyed to the base name so a lab keeps its tile across
+  // languages; the initials follow the name the reader actually sees.
   const [from, toColor] = gradientFor(lab.public_name);
   const services = lab.services ?? [];
+  const priceList = pickPriceList(lab.price_lists, lang);
 
   // Turnaround is per-service in the schema; the card shows the range across
   // this lab's active services, matching the mockup's single "3-7 days" line.
@@ -73,17 +85,19 @@ export function LabCard({ lab, to }: { lab: MarketplaceLab; to?: string }) {
     !!lab.created_at &&
     Date.now() - new Date(lab.created_at).getTime() < NEW_FOR_DAYS * 24 * 60 * 60 * 1000;
 
+  // The card is a container, not a link: the "View services" CTA is the link
+  // and stretches over the whole card (its ::after), so a click anywhere still
+  // opens the lab — with ctrl/middle-click and "open in new tab" intact — while
+  // the price-list link sits above it as a sibling anchor, never nested in it.
   return (
     <Card
-      component={RouterLink}
-      to={target}
       sx={{
+        position: 'relative',
         display: 'flex',
         flexDirection: 'column',
         height: '100%',
         p: 2.75,
         borderRadius: '18px',
-        textDecoration: 'none',
         color: 'text.primary',
         transition: `border-color ${motion.slow}, box-shadow ${motion.slow}`,
         '&:hover': {
@@ -110,7 +124,7 @@ export function LabCard({ lab, to }: { lab: MarketplaceLab; to?: string }) {
             placeItems: 'center',
           }}
         >
-          {!lab.logo_url && initialsOf(lab.public_name)}
+          {!lab.logo_url && initialsOf(name)}
         </Box>
 
         <Box sx={{ minWidth: 0, flex: 1 }}>
@@ -119,7 +133,7 @@ export function LabCard({ lab, to }: { lab: MarketplaceLab; to?: string }) {
               sx={{ fontSize: '0.96875rem', fontWeight: 800, letterSpacing: '-0.01em' }}
               noWrap
             >
-              {lab.public_name}
+              {name}
             </Typography>
             {isNew && <StatusPill tone="brand">{t('marketplace.new')}</StatusPill>}
           </Stack>
@@ -145,7 +159,7 @@ export function LabCard({ lab, to }: { lab: MarketplaceLab; to?: string }) {
         )}
       </Stack>
 
-      {lab.short_description && (
+      {description && (
         <Typography
           sx={{
             mt: 1.5,
@@ -158,7 +172,7 @@ export function LabCard({ lab, to }: { lab: MarketplaceLab; to?: string }) {
             overflow: 'hidden',
           }}
         >
-          {lab.short_description}
+          {description}
         </Typography>
       )}
 
@@ -192,7 +206,17 @@ export function LabCard({ lab, to }: { lab: MarketplaceLab; to?: string }) {
       <Stack
         direction="row"
         alignItems="center"
-        sx={{ mt: 'auto', pt: 1.75, borderTop: 1, borderColor: 'divider' }}
+        sx={{
+          mt: 'auto',
+          pt: 1.75,
+          borderTop: 1,
+          borderColor: 'divider',
+          // A long services line plus both actions wraps instead of
+          // overflowing on a narrow card; the actions stay together, right.
+          flexWrap: 'wrap',
+          columnGap: 1.25,
+          rowGap: 1,
+        }}
       >
         <Stack direction="row" alignItems="center" spacing={0.625} sx={{ minWidth: 0 }}>
           <Icon name="verified" size={15} sx={{ color: 'success.main' }} />
@@ -204,23 +228,83 @@ export function LabCard({ lab, to }: { lab: MarketplaceLab; to?: string }) {
         <Stack
           direction="row"
           alignItems="center"
-          spacing={0.75}
-          sx={{
-            ml: 'auto',
-            flexShrink: 0,
-            bgcolor: 'primary.main',
-            color: '#fff',
-            fontSize: '0.75rem',
-            fontWeight: 700,
-            px: 1.875,
-            py: 1,
-            borderRadius: '9px',
-            transition: `background-color ${motion.base}`,
-            '.MuiCard-root:hover &': { bgcolor: 'primary.dark' },
-          }}
+          spacing={1.25}
+          sx={{ ml: 'auto', flexShrink: 0 }}
         >
-          {t('marketplace.viewServices')}
-          <Icon name="arrow_forward" size={15} />
+          {priceList && (
+            <Box
+              component="a"
+              href={priceListUrl(priceList)}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={t('marketplace.priceListFor', { name })}
+              sx={{
+                // Above the stretched CTA, so this link wins the click in its
+                // own area.
+                position: 'relative',
+                zIndex: 1,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.625,
+                px: 1.5,
+                py: 0.875,
+                borderRadius: '9px',
+                border: 1,
+                borderColor: 'divider',
+                color: 'text.primary',
+                bgcolor: 'background.paper',
+                fontSize: '0.75rem',
+                fontWeight: 700,
+                textDecoration: 'none',
+                transition: `border-color ${motion.base}, color ${motion.base}`,
+                '&:hover': { borderColor: 'primary.main', color: 'primary.dark' },
+                '&:focus-visible': {
+                  outline: `2px solid ${brand.main}`,
+                  outlineOffset: 2,
+                },
+              }}
+            >
+              <Icon name="receipt_long" size={15} />
+              {t('marketplace.priceList')}
+            </Box>
+          )}
+
+          <Stack
+            component={RouterLink}
+            to={target}
+            direction="row"
+            alignItems="center"
+            spacing={0.75}
+            aria-label={t('marketplace.viewServicesFor', { name })}
+            sx={{
+              flexShrink: 0,
+              bgcolor: 'primary.main',
+              color: '#fff',
+              fontSize: '0.75rem',
+              fontWeight: 700,
+              textDecoration: 'none',
+              px: 1.875,
+              py: 1,
+              borderRadius: '9px',
+              transition: `background-color ${motion.base}`,
+              '.MuiCard-root:hover &': { bgcolor: 'primary.dark' },
+              '&:focus-visible': {
+                outline: `2px solid ${brand.main}`,
+                outlineOffset: 2,
+              },
+              // Stretched over the whole card: clicking anywhere on it opens
+              // the lab, and it stays a real link for ctrl/middle-click.
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                inset: 0,
+                borderRadius: '18px',
+              },
+            }}
+          >
+            {t('marketplace.viewServices')}
+            <Icon name="arrow_forward" size={15} />
+          </Stack>
         </Stack>
       </Stack>
     </Card>

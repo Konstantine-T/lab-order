@@ -30,8 +30,7 @@ const CLASSICAL: Record<string, string> = {
 /**
  * VITA 3D-MASTER tabs, coloured along the guide's own axes: darker with each
  * value group, a yellow (L) or red (R) cast either side of M, and more
- * saturated as chroma rises. The bleached 0M tabs are here for when a list
- * includes them; the crown-and-bridge list does not today.
+ * saturated as chroma rises, with the bleached 0M tabs the palest of all.
  */
 const MASTER: Record<string, string> = {
   '0M1': '#F7F5F0',
@@ -221,7 +220,7 @@ function MasterGrid({ groups, tile }: { groups: MasterGroup[]; tile: (code: stri
         <Typography sx={axisText}>{t('shadePicker.lighter')}</Typography>
         <Typography sx={{ ...axisText, textAlign: 'right' }}>{t('shadePicker.valueAxis')}</Typography>
       </Stack>
-      {/* Wraps on a phone: five value groups are ~490px wide. */}
+      {/* Wraps on a phone: the six value groups (0M–5M) are ~540px of tiles alone. */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', columnGap: 2, rowGap: 1.5, alignItems: 'flex-start' }}>
         {groups.map((group) => (
           <Stack key={group.value} alignItems="center" spacing={0.75}>

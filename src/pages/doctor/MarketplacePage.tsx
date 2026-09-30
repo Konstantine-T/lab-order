@@ -8,6 +8,7 @@ import { catalogPaths } from '@/features/public/publicRoutes';
 import { supabase } from '@/lib/supabase';
 import { SERVICE_PRICE_EMBED, servicePrice, type ServicePriceEmbed } from '@/features/catalog/servicePrice';
 import { LabCard, type MarketplaceLab } from '@/components/LabCard';
+import { labNames, useLabText } from '@/features/lab/labText';
 import { PageHeader } from '@/components/design/PageHeader';
 import { Icon } from '@/components/design/Icon';
 import { motion, radii } from '@/theme/tokens';
@@ -30,6 +31,7 @@ export function MarketplacePage({
 }) {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
+  const { labText, lang } = useLabText();
   const [search, setSearch] = useState('');
   const [city, setCity] = useState<string>(ALL);
   const [params] = useSearchParams();
@@ -50,6 +52,7 @@ export function MarketplacePage({
         .from('labs')
         .select(
           `id, public_name, city, short_description, logo_url, created_at,
+           public_translations, price_lists,
            lab_services(name, average_turnaround_days, is_active, ${SERVICE_PRICE_EMBED})`,
         )
         .eq('approval_status', 'APPROVED_ACTIVE')
@@ -90,12 +93,24 @@ export function MarketplacePage({
     return [...seen].sort((a, b) => a.localeCompare(b));
   }, [labs]);
 
-  const filtered = labs.filter((l) => {
+  // The server sorts by the base name; a lab shown under its translated name
+  // is re-sorted here so the list reads alphabetically in the reader's language.
+  const sorted = useMemo(
+    () =>
+      [...labs].sort((a, b) =>
+        labText(a, 'public_name').localeCompare(labText(b, 'public_name'), lang),
+      ),
+    [labs, labText, lang],
+  );
+
+  const filtered = sorted.filter((l) => {
     if (city !== ALL && l.city?.trim() !== city) return false;
     if (!search) return true;
     const q = search.toLowerCase();
     return (
-      l.public_name.toLowerCase().includes(q) ||
+      // Every name the lab goes by, so a doctor typing the Russian name finds
+      // the lab whatever language the page is in.
+      labNames(l).some((n) => n.toLowerCase().includes(q)) ||
       (l.city ?? '').toLowerCase().includes(q) ||
       (l.services ?? []).some((s) => s.name.toLowerCase().includes(q))
     );

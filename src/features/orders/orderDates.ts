@@ -55,6 +55,85 @@ function tieBreak(a: DatedOrder, b: DatedOrder): number {
   return ca > cb ? -1 : 1;
 }
 
+// ===== Sorting a list ========================================================
+
+/**
+ * How an order list can be read. Due date first answers "what do I work on
+ * next"; newest first answers "what just came in". The same person asks both,
+ * on the same screen, so it is a choice rather than a hard-coded order.
+ */
+export type OrderSort = 'created_desc' | 'created_asc' | 'due_asc' | 'due_desc';
+
+export const ORDER_SORTS: readonly OrderSort[] = [
+  'created_desc', // the default — "what just came in"
+  'created_asc',
+  'due_asc', // the previous behaviour — "what's next"
+  'due_desc',
+];
+
+export const DEFAULT_ORDER_SORT: OrderSort = 'created_desc';
+
+/** A stored value from an older build, or a hand-edited one, is not trusted. */
+export function isOrderSort(value: unknown): value is OrderSort {
+  return typeof value === 'string' && (ORDER_SORTS as readonly string[]).includes(value);
+}
+
+/** Rows a sort can finish on. The id is optional so any `DatedOrder` still fits. */
+type SortableOrder = DatedOrder & { id?: string };
+
+/**
+ * The last word when every key is equal: two orders created in the same second
+ * still come out in one fixed order, so a background refetch cannot swap them.
+ */
+function byId(a: SortableOrder, b: SortableOrder): number {
+  const ia = a.id ?? '';
+  const ib = b.id ?? '';
+  if (ia === ib) return 0;
+  return ia < ib ? -1 : 1;
+}
+
+/** `created_at` is an ISO timestamp, which compares correctly as a string. */
+const byCreated =
+  (direction: 1 | -1) =>
+  (a: SortableOrder, b: SortableOrder): number => {
+    const ca = a.created_at ?? '';
+    const cb = b.created_at ?? '';
+    if (ca !== cb) return (ca < cb ? -1 : 1) * direction;
+    return byId(a, b);
+  };
+
+/**
+ * Due date either way round. Only the comparison of two real dates flips: an
+ * undated order is unscheduled, not "furthest away", so it stays last in both
+ * directions. Any pair involving a missing date is `byDueDate`'s case, which
+ * already puts it last and breaks ties on newest-created.
+ */
+const byDue =
+  (direction: 1 | -1) =>
+  (a: SortableOrder, b: SortableOrder): number => {
+    const da = dueDateOf(a);
+    const db = dueDateOf(b);
+    if (da != null && db != null && da !== db) return (da < db ? -1 : 1) * direction;
+    return byDueDate(a, b) || byId(a, b);
+  };
+
+const COMPARATORS: Record<OrderSort, (a: SortableOrder, b: SortableOrder) => number> = {
+  created_desc: byCreated(-1),
+  created_asc: byCreated(1),
+  // `byDueDate`, with a final tiebreak so equal rows never compare as 0.
+  due_asc: byDue(1),
+  due_desc: byDue(-1),
+};
+
+/**
+ * The comparator for a given choice. Every one is total: equal keys fall
+ * through to `created_at` (newest first for the due-date sorts), then to the
+ * id. `due_asc` is `byDueDate`.
+ */
+export function orderComparator(sort: OrderSort): (a: SortableOrder, b: SortableOrder) => number {
+  return COMPARATORS[sort] ?? COMPARATORS[DEFAULT_ORDER_SORT];
+}
+
 // ===== The one-hour window ==================================================
 
 /** A time is stored as `HH:MM:SS`; only the first five characters are shown. */

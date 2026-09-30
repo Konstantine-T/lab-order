@@ -2,6 +2,7 @@ import type { MaterialOption, PricingConfig, RushType } from '@/types/database';
 import { isModelTemplateCode } from '@/features/orderForms/modelTypes';
 import { SG_SUPPORT_TYPES } from '@/features/orderForms/sgTypes';
 import { TEMPLATE_CODE_PRINT } from '@/features/orderForms/fabTypes';
+import { isImplantTemplate } from '@/features/orderForms/implantTypes';
 
 export type PriceLineItem = {
   label: string;
@@ -398,6 +399,7 @@ const MATERIAL_TEMPLATES = new Set([
   'CROWN_AND_BRIDGE',
   'TEMPORARY_CROWN',
   'TITANIUM_MILLING', // now mirrors C&B (per-tooth-material), not Model
+  'FINAL_CONSTRUCTION', // C&B plus a design section, priced the same way
   'EVIDENT_SMILE',
   'PRINT',
   'MILLING',
@@ -484,8 +486,9 @@ export function pricingIssues(
       ) {
         issues.push({ kind: 'sg-price' });
       }
-    } else if (templateCode === 'CONSTRUCTIONS_ON_IMPLANTS') {
-      // Always publishable — prices default to zero and that's valid here.
+    } else if (isImplantTemplate(templateCode)) {
+      // Constructions on Implants and lab-placed abutments. Always publishable
+      // — prices default to zero and that's valid here.
     } else {
       if ((pricing.unit_price ?? 0) <= 0) issues.push({ kind: 'unit-price' });
     }
@@ -635,7 +638,8 @@ export function startingPrice(
   // of a component, and any bundle would be one we made up. The crown is the
   // figure that stands on its own: the lab lists it per tooth, exactly like
   // crown & bridge, and a crown on an abutment already in the mouth costs
-  // exactly that. No crown priced, nothing to show.
+  // exactly that. No crown priced, nothing to show — which is always the case
+  // for lab-placed abutments, a template with no crowns at all.
   if (pricing.implant_price_config !== undefined || pricing.implant_crown_materials !== undefined) {
     const amount = cheapestMaterial(pricing.implant_crown_materials);
     return amount === null ? null : { amount, per: 'tooth' };

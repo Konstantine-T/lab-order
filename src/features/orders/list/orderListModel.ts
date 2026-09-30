@@ -1,6 +1,11 @@
 import dayjs from 'dayjs';
 import type { OrderRow, OrderStatus } from '@/types/database';
-import { byDueDate, dueDateOf } from '@/features/orders/orderDates';
+import {
+  DEFAULT_ORDER_SORT,
+  dueDateOf,
+  orderComparator,
+  type OrderSort,
+} from '@/features/orders/orderDates';
 import { pipelineIndex } from '@/features/orders/pipeline';
 
 /**
@@ -40,6 +45,8 @@ export type ListOrderRow = Pick<
   | 'completed_at'
   | 'cancelled_at'
   | 'has_unreviewed_edits'
+  | 'edit_count'
+  | 'last_edited_at'
   | 'continues_order_id'
 > & {
   /** `service_snapshot->>name` — the service as it was when the order was sent. */
@@ -63,7 +70,7 @@ export type ListOrderRow = Pick<
 export const LIST_ORDER_SELECT =
   'id, order_code, doctor_id, lab_id, patient_id, status, payment_status, generated_total, final_total, ' +
   'requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, completed_at, cancelled_at, ' +
-  'has_unreviewed_edits, continues_order_id, ' +
+  'has_unreviewed_edits, edit_count, last_edited_at, continues_order_id, ' +
   'service_name:service_snapshot->>name, lab_name:lab_snapshot->>public_name, doctor_snapshot, ' +
   'patients(first_name, last_name), labs(public_name), lab_services(name), ' +
   'order_clarifications(question, asked_at, needs_edit, answered_at, resolved_by_edit_at)';
@@ -189,37 +196,31 @@ export function groupOf(row: ListOrderRow): OrderGroupKey {
   return 'delivered';
 }
 
-/** The archive groups: newest first rather than soonest-due. */
-const newestFirst = (at: (r: ListOrderRow) => string | null) => (a: ListOrderRow, b: ListOrderRow) => {
-  const x = at(a) ?? a.created_at;
-  const y = at(b) ?? b.created_at;
-  return x === y ? 0 : x > y ? -1 : 1;
-};
-
 /**
- * Rows split into groups, each sorted for how it is read: live work by the
- * soonest deadline (it is a work queue), finished and cancelled work by the
- * newest first (it is an archive).
+ * Rows split into groups, each sorted the way the reader chose — newest first
+ * unless they picked otherwise. The groups themselves stay where they are; the
+ * sort orders the cards inside every one of them, the archive groups included.
  */
-export function groupRows(rows: ListOrderRow[]): Map<OrderGroupKey, ListOrderRow[]> {
+export function groupRows(
+  rows: ListOrderRow[],
+  sort: OrderSort = DEFAULT_ORDER_SORT,
+): Map<OrderGroupKey, ListOrderRow[]> {
   const groups = new Map<OrderGroupKey, ListOrderRow[]>(GROUP_ORDER.map((g) => [g, []]));
   for (const row of rows) groups.get(groupOf(row))!.push(row);
-  for (const [key, list] of groups) {
-    if (key === 'completed') list.sort(newestFirst((r) => r.completed_at));
-    else if (key === 'cancelled') list.sort(newestFirst((r) => r.cancelled_at));
-    else list.sort(byDueDate);
-  }
+  const compare = orderComparator(sort);
+  for (const list of groups.values()) list.sort(compare);
   return groups;
 }
 
 // ===== Quick filters =========================================================
 
-export type QuickFilter = 'all' | 'dueThisWeek' | 'needsAnswer' | 'unpaid' | 'ready';
+export type QuickFilter = 'all' | 'dueThisWeek' | 'needsAnswer' | 'edited' | 'unpaid' | 'ready';
 
 export const QUICK_FILTERS: readonly QuickFilter[] = [
   'all',
   'dueThisWeek',
   'needsAnswer',
+  'edited',
   'unpaid',
   'ready',
 ];
@@ -255,6 +256,15 @@ export function isDueThisWeek(row: ListOrderRow, week = currentWeek()): boolean 
 export const isUnpaid = (row: ListOrderRow) =>
   row.status !== 'CANCELLED' && row.final_total != null && row.payment_status !== 'PAID';
 
+/**
+ * "Changed": the order was edited after it was sent — by the doctor, or by a
+ * clinic admin on the doctor's behalf — in any status, completed and cancelled
+ * included. `edit_count` and not `has_unreviewed_edits`: the latter is the
+ * lab's attention flag and clears the moment the lab opens the order, which
+ * would make an order leave this filter for a reason the doctor cannot see.
+ */
+export const isEdited = (row: ListOrderRow) => (row.edit_count ?? 0) > 0;
+
 /** "Ready for pickup" — the phone's aqua tile. */
 export const isReady = (row: ListOrderRow) => row.status === 'READY_FOR_DELIVERY';
 
@@ -264,6 +274,8 @@ export function matchesQuick(row: ListOrderRow, quick: QuickFilter, week = curre
       return isDueThisWeek(row, week);
     case 'needsAnswer':
       return needsDoctor(row);
+    case 'edited':
+      return isEdited(row);
     case 'unpaid':
       return isUnpaid(row);
     case 'ready':

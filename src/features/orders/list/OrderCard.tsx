@@ -10,6 +10,7 @@ import { pipelineIndex } from '@/features/orders/pipeline';
 import { formatGELShort } from '@/utils/pricing';
 import { brand, lift, motion, palette2026, radii, surfaces, tone } from '@/theme/tokens';
 import {
+  isEdited,
   labNameOf,
   openQuestion,
   patientShortName,
@@ -18,7 +19,7 @@ import {
   type ListOrderRow,
   type OrderGroupKey,
 } from './orderListModel';
-import { dueLine, relativeAge, shortDate } from './listFormat';
+import { dueLine, pastDate, recentAge, shortDate } from './listFormat';
 
 /** The card bar's five stages: sent · confirmed · in progress · ready · delivered. */
 const BAR_STAGES = 5;
@@ -49,9 +50,9 @@ type Props = {
 
 /**
  * One order in the doctor's and the clinic's grouped lists, built to the
- * redesign's board card: code and a state tag, the service, who and where, the
- * lab's open question in gold, a five-stage bar, and the due date with the
- * price.
+ * redesign's board card: code and creation date with a state tag, the service,
+ * who and where, the lab's open question in gold, a five-stage bar, and the due
+ * date with the price.
  *
  * Gold frame when the order is waiting on the doctor, aqua when it is ready.
  */
@@ -89,7 +90,14 @@ export function OrderCard({
           : null
         : dueLine(row, t, now);
 
-  const hasBadges = !!row.continues_order_id || invoiceUnseen || row.has_unreviewed_edits;
+  const created = pastDate(row.created_at, t, now);
+  // One edit marker, never two: "under review" while the lab has not opened
+  // the change yet, then "changed <date>" for good — the fact the "Changed"
+  // filter matches on.
+  const editedAt = row.last_edited_at ? pastDate(row.last_edited_at, t, now) : null;
+  const edited = isEdited(row) || row.has_unreviewed_edits;
+
+  const hasBadges = !!row.continues_order_id || invoiceUnseen || edited;
 
   return (
     <Box
@@ -139,6 +147,18 @@ export function OrderCard({
             sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary', flexShrink: 0 }}
           >
             {row.order_code}
+            {' · '}
+            {/* When it was created — the due date is the footer's, labelled. */}
+            <Box
+              component="time"
+              dateTime={row.created_at}
+              title={t('orderList.createdOn', {
+                date: dayjs(row.created_at).format(t('orderList.dateFormatYear')),
+              })}
+              sx={{ fontWeight: 500 }}
+            >
+              {created}
+            </Box>
           </Typography>
           {tag && (
             <Stack
@@ -197,11 +217,24 @@ export function OrderCard({
             <LineageBadge continuesOrderId={row.continues_order_id} parentCode={parentCode} />
             {invoiceUnseen && <InvoiceBadge />}
             {/* The doctor's edit has not been looked at by the lab yet. */}
-            {row.has_unreviewed_edits && (
-              <StatusPill tone="neutral">
-                <Icon name="edit_note" size={13} />
-                {t('orderList.editPending')}
-              </StatusPill>
+            {row.has_unreviewed_edits ? (
+              <Box
+                component="span"
+                title={editedAt ? t('orderList.editedOn', { date: editedAt }) : undefined}
+                sx={{ display: 'inline-flex', maxWidth: '100%' }}
+              >
+                <StatusPill tone="neutral">
+                  <Icon name="edit_note" size={13} />
+                  {t('orderList.editPending')}
+                </StatusPill>
+              </Box>
+            ) : (
+              edited && (
+                <StatusPill tone="neutral">
+                  <Icon name="history" size={13} />
+                  {editedAt ? t('orderList.editedOn', { date: editedAt }) : t('orderList.quick.edited')}
+                </StatusPill>
+              )
             )}
           </Stack>
         )}
@@ -316,7 +349,7 @@ type TranslateFn = (key: string, opts?: Record<string, unknown>) => string;
 /**
  * The corner tag, from what the row actually says:
  *   waiting on you → what is being asked of the doctor, in gold;
- *   sent           → how long ago;
+ *   sent           → how long ago, while that is recent;
  *   in progress    → the status the lab set;
  *   ready          → "ready", in aqua;
  *   handed over / completed → whether it has been paid, once there is a bill.
@@ -331,8 +364,12 @@ function stateTag(row: ListOrderRow, group: OrderGroupKey, t: TranslateFn, now: 
       if (row.status === 'RECEIVED_BY_CLINIC')
         return { label: t('orderList.tag.readyToClose'), tone: 'gold' };
       return { label: t(`orderStatus.${row.status}`), tone: 'gold' };
-    case 'sent':
-      return { label: relativeAge(row.created_at, t, now), tone: 'muted' };
+    case 'sent': {
+      // "12 min ago", "today", "yesterday". Older than that it would only
+      // repeat the creation date the header already shows beside the code.
+      const age = recentAge(row.created_at, t, now);
+      return age ? { label: age, tone: 'muted' } : null;
+    }
     case 'inProgress':
       // Still NEEDS_CLARIFICATION but answered: the lab's move again.
       if (row.status === 'NEEDS_CLARIFICATION')

@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { PageHeader, StatusPill } from '@/components/design';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import dayjs from 'dayjs';
 import { appendDueWindow, dueTimeOf } from '@/features/orders/orderDates';
+import { pastDate, shortDate } from '@/features/orders/list/listFormat';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { OrderStatusChip } from '@/components/OrderStatusChip';
@@ -74,7 +74,7 @@ export function LabEditedOrdersPage() {
             const total = row.final_total ?? row.generated_total;
             const dueRaw = row.confirmed_due_date ?? row.requested_due_date;
             const due = dueRaw
-              ? appendDueWindow(dayjs(dueRaw).format('MMM D'), dueTimeOf(row), tc)
+              ? appendDueWindow(shortDate(dueRaw, tc), dueTimeOf(row), tc)
               : undefined;
             return (
               <OrderRowCard
@@ -96,6 +96,7 @@ export function LabEditedOrdersPage() {
                 }
                 status={<OrderStatusChip status={row.status} />}
                 total={total != null ? formatGEL(total) : '—'}
+                createdDate={pastDate(row.created_at, tc)}
                 dueDate={due}
                 avatarText={doctorName}
                 onClick={() => navigate(`/lab/orders/${row.id}`)}

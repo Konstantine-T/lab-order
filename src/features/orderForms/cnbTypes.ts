@@ -62,10 +62,13 @@ export type ShadeScale = 'CLASSICAL' | '3D_MASTER';
 export const SHADE_SCALES: ShadeScale[] = ['CLASSICAL', '3D_MASTER'];
 
 /**
- * VITA Toothguide 3D-MASTER — standard 26 tabs, grouped by lightness (value) 1–5.
- * (The bleached 0M group is intentionally omitted; add it here if labs need it.)
+ * VITA Toothguide 3D-MASTER — 29 tabs, grouped by lightness (value) 0–5.
+ * The 0M group is the bleach/whitened range; it was omitted at first and added
+ * when a lab asked for it. It goes first because the scale runs lightest to
+ * darkest and 0M is lighter than 1M.
  */
 export const SHADE_GROUPS_3D_MASTER: Array<{ family: string; shades: string[] }> = [
+  { family: '0', shades: ['0M1', '0M2', '0M3'] },
   { family: '1', shades: ['1M1', '1M2'] },
   { family: '2', shades: ['2L1.5', '2L2.5', '2M1', '2M2', '2M3', '2R1.5', '2R2.5'] },
   { family: '3', shades: ['3L1.5', '3L2.5', '3M1', '3M2', '3M3', '3R1.5', '3R2.5'] },
@@ -96,13 +99,27 @@ export const TEMPLATE_CODE_TEMPORARY_CROWN = 'TEMPORARY_CROWN';
  */
 export const TEMPLATE_CODE_TITANIUM_MILLING = 'TITANIUM_MILLING';
 
+/**
+ * Final Construction ("საბოლოო კონსტრუქცია"): the superstructure made again
+ * because the doctor did not like its design — the bar stays, only the
+ * zirconia on top is redone. It is the Crown & Bridge form (same sections,
+ * per-tooth-material pricing) plus a design section of its own; see
+ * `fcTypes.ts`. It is not linked to the order it redoes.
+ *
+ * Declared here rather than in `fcTypes.ts` because that module builds on this
+ * one, and `isCnbTemplate` below needs the code.
+ */
+export const TEMPLATE_CODE_FINAL_CONSTRUCTION = 'FINAL_CONSTRUCTION';
+
 /** True for the templates that share the Crown & Bridge form: C&B, Temporary
- *  Crown, and Titanium Milling. */
+ *  Crown, Titanium Milling and Final Construction (which adds a design section,
+ *  so `OrderForm` routes it to its own wrapper before this check). */
 export function isCnbTemplate(code: string | undefined | null): boolean {
   return (
     code === TEMPLATE_CODE_CNB ||
     code === TEMPLATE_CODE_TEMPORARY_CROWN ||
-    code === TEMPLATE_CODE_TITANIUM_MILLING
+    code === TEMPLATE_CODE_TITANIUM_MILLING ||
+    code === TEMPLATE_CODE_FINAL_CONSTRUCTION
   );
 }
 

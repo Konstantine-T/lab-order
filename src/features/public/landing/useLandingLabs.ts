@@ -11,6 +11,8 @@ import {
 export type LandingLab = {
   id: string;
   public_name: string;
+  /** Per-language display names (0037); shown through `labText`. */
+  public_translations: unknown;
   city: string | null;
   logo_url: string | null;
   /** Active services. */
@@ -31,7 +33,7 @@ const SERVICES_PER_CARD = 3;
  * the guest catalogue does.
  */
 const SELECT = `
-  id, public_name, city, logo_url,
+  id, public_name, public_translations, city, logo_url,
   lab_services (
     id, name, is_active, sort_order, created_at, average_turnaround_days,
     ${SERVICE_PRICE_EMBED}
@@ -50,6 +52,7 @@ type ServiceRow = ServicePriceEmbed & {
 type LabQueryRow = {
   id: string;
   public_name: string;
+  public_translations: unknown;
   city: string | null;
   logo_url: string | null;
   lab_services: ServiceRow[] | null;
@@ -81,6 +84,7 @@ function toLandingLab(row: LabQueryRow): { lab: LandingLab; pricedCount: number 
     lab: {
       id: row.id,
       public_name: row.public_name.trim(),
+      public_translations: row.public_translations ?? null,
       city: row.city?.trim() || null,
       logo_url: row.logo_url,
       serviceCount: active.length,

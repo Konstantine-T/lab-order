@@ -20,7 +20,12 @@ import { SHADE_GROUPS, isCnbTemplate } from '@/features/orderForms/cnbTypes';
 import { TEMPLATE_CODE_SG } from '@/features/orderForms/sgTypes';
 import { isModelTemplateCode } from '@/features/orderForms/modelTypes';
 import { TEMPLATE_CODE_ESP } from '@/features/orderForms/espTypes';
-import { TEMPLATE_CODE_IMPLANT } from '@/features/orderForms/implantTypes';
+import {
+  TEMPLATE_CODE_IMPLANT,
+  TEMPLATE_CODE_IMPLANT_ABUTMENTS,
+  isImplantTemplate,
+} from '@/features/orderForms/implantTypes';
+import { FC_TOOTH_SHAPES } from '@/features/orderForms/fcTypes';
 import { isFabTemplate } from '@/features/orderForms/fabTypes';
 import type { FieldConfig, FormConfiguration } from '@/types/database';
 import { CustomFormBuilder } from './CustomFormBuilder';
@@ -38,7 +43,7 @@ export function FieldsPanel({
     config._templateCode === TEMPLATE_CODE_SG ||
     isModelTemplateCode(config._templateCode) ||
     config._templateCode === TEMPLATE_CODE_ESP ||
-    config._templateCode === TEMPLATE_CODE_IMPLANT ||
+    isImplantTemplate(config._templateCode) ||
     isFabTemplate(config._templateCode);
 
   const updateField = (i: number, patch: Partial<FieldConfig>) => {
@@ -82,6 +87,8 @@ export function FieldsPanel({
             ? t('espForm.fieldsLocked')
             : config._templateCode === TEMPLATE_CODE_IMPLANT
             ? t('implantForm.fieldsLocked')
+            : config._templateCode === TEMPLATE_CODE_IMPLANT_ABUTMENTS
+            ? t('implantForm.abutmentsFieldsLocked')
             : isFabTemplate(config._templateCode)
             ? t('fabForm.fieldsLocked')
             : t('services.edit.cnbFieldsLocked')}
@@ -250,6 +257,7 @@ function FieldCard({
 // ─── Field preview dispatcher ─────────────────────────────────────────────────
 
 function FieldPreview({ field }: { field: FieldConfig }) {
+  const { t } = useTranslation('lab');
   switch (field.type) {
     case 'cnb_treatments':
       return <ToothMap value={[]} readOnly />;
@@ -285,6 +293,29 @@ function FieldPreview({ field }: { field: FieldConfig }) {
 
     case 'cnb_occlusal_contact':
       return <OptionPills options={['Tight', 'Zero', 'Relief']} />;
+
+    // Final Construction's design section: tooth shape, then a design note.
+    case 'fc_design':
+      return (
+        <Stack spacing={1.5}>
+          <OptionPills
+            options={FC_TOOTH_SHAPES}
+            getLabel={(s) => t(`cnbForm.design.shapes.${s}`)}
+          />
+          <TextField
+            multiline
+            minRows={2}
+            fullWidth
+            disabled
+            placeholder={t('cnbForm.design.notesPlaceholder')}
+            InputProps={{ readOnly: true }}
+          />
+        </Stack>
+      );
+
+    // Lab-placed abutments: the transfer-check question.
+    case 'ab_transfer_check':
+      return <OptionPills options={['Yes', 'No']} />;
 
     case 'cnb_rx_notes':
       return (
@@ -418,14 +449,21 @@ function FieldPreview({ field }: { field: FieldConfig }) {
   }
 }
 
-function OptionPills({ options }: { options: readonly string[] }) {
+function OptionPills({
+  options,
+  getLabel,
+}: {
+  options: readonly string[];
+  /** Defaults to the shared Yes / No / … option labels. */
+  getLabel?: (option: string) => string;
+}) {
   const { t } = useTranslation('lab');
   return (
     <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
       {options.map((opt) => (
         <Chip
           key={opt}
-          label={t(`cnbForm.options.${opt}`, { defaultValue: opt })}
+          label={getLabel ? getLabel(opt) : t(`cnbForm.options.${opt}`, { defaultValue: opt })}
           variant="outlined"
           sx={{ borderRadius: 999, fontWeight: 500 }}
         />

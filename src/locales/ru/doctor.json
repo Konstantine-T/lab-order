@@ -48,7 +48,10 @@
     "servicesCount_one": "{{count}} услуга",
     "servicesCount_few": "{{count}} услуги",
     "servicesCount_many": "{{count}} услуг",
-    "servicesCount_other": "{{count}} услуг"
+    "servicesCount_other": "{{count}} услуг",
+    "priceList": "Прайс-лист",
+    "priceListFor": "Прайс-лист — {{name}} (откроется в новой вкладке)",
+    "viewServicesFor": "Смотреть услуги — {{name}}"
   },
   "labProfile": {
     "back": "Назад к лабораториям",
@@ -58,7 +61,9 @@
     "orderDisabled": "Форма не опубликована",
     "turnaround": "{{days}} раб. дн.",
     "continuingFor": "Продолжение проекта — выберите услугу.",
-    "newOrderFor": "Новый заказ для этого пациента — выберите услугу."
+    "newOrderFor": "Новый заказ для этого пациента — выберите услугу.",
+    "priceList": "Прайс-лист",
+    "priceListA11y": "Прайс-лист (откроется в новой вкладке)"
   },
   "orderCreate": {
     "digitalImpressionsNote": "На данном этапе мы работаем только с цифровыми слепками.",

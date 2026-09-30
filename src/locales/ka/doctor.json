@@ -44,7 +44,10 @@
     "days_one": "{{count}} დღე",
     "days_other": "{{count}} დღე",
     "servicesCount_one": "{{count}} სერვისი",
-    "servicesCount_other": "{{count}} სერვისი"
+    "servicesCount_other": "{{count}} სერვისი",
+    "priceList": "ფასების სია",
+    "priceListFor": "ფასების სია — {{name}} (იხსნება ახალ ჩანართში)",
+    "viewServicesFor": "სერვისების ნახვა — {{name}}"
   },
   "labProfile": {
     "back": "უკან ლაბორატორიებზე",
@@ -54,7 +57,9 @@
     "orderDisabled": "ფორმა გამოუქვეყნებელია",
     "turnaround": "{{days}} სამუშაო დღე",
     "continuingFor": "პროექტის გაგრძელება — აირჩიეთ სერვისი.",
-    "newOrderFor": "ახალი შეკვეთა ამ პაციენტისთვის — აირჩიეთ სერვისი."
+    "newOrderFor": "ახალი შეკვეთა ამ პაციენტისთვის — აირჩიეთ სერვისი.",
+    "priceList": "ფასების სია",
+    "priceListA11y": "ფასების სია (იხსნება ახალ ჩანართში)"
   },
   "orderCreate": {
     "digitalImpressionsNote": "ამ ეტაპზე ვმუშაობთ მხოლოდ ციფრულ ანაბეჭდზე.",

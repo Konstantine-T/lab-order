@@ -26,6 +26,13 @@ import {
   type CnbErrors,
   type CnbSectionCode,
 } from './cnbTypes';
+import {
+  FC_TOOTH_SHAPES,
+  isFcDesignEnabled,
+  isFcDesignRequired,
+  validateFcDesign,
+  type FcDesignAnswers,
+} from './fcTypes';
 import type { FormConfiguration, PricingConfig } from '@/types/database';
 
 type Props = {
@@ -48,6 +55,17 @@ type Props = {
   onRawChange?: (next: Record<string, unknown>) => void;
   /** Validation errors for those custom questions, keyed by field code. */
   customErrors?: Record<string, string>;
+  /**
+   * Final Construction's design section — tooth shape and a design note —
+   * drawn right after the treatments and numbered with the rest. Only that
+   * template passes it (see `FinalConstructionForm`); its answers live beside
+   * `value` in the flat answers map, not inside the Crown & Bridge shape, so
+   * the other templates' stored answers stay exactly as they were.
+   */
+  design?: {
+    value: FcDesignAnswers;
+    onChange: (next: FcDesignAnswers) => void;
+  };
 };
 
 export { coerceCnbAnswers, validateCnb };
@@ -88,8 +106,10 @@ export function CrownAndBridgeForm({
   rawValues,
   onRawChange,
   customErrors,
+  design,
 }: Props) {
   const { t } = useTranslation('lab');
+  const { t: tc } = useTranslation('common');
   // Validated on every render for the sections' done ticks; shown only once
   // the doctor has tried to submit.
   const validation = validateCnb(value, configuration);
@@ -110,8 +130,18 @@ export function CrownAndBridgeForm({
   // numbered one by one but rendered together in one card.
   let counter = 0;
   const numbers: Partial<Record<CnbSectionCode, number>> = {};
-  for (const code of CNB_SECTION_CODES) if (enabled(code)) numbers[code] = ++counter;
+  // Final Construction's design section follows the treatments: which teeth
+  // and in what, then what they should look like, then their shade.
+  const designOn = !!design && isFcDesignEnabled(configuration);
+  let designNo = 0;
+  for (const code of CNB_SECTION_CODES) {
+    if (enabled(code)) numbers[code] = ++counter;
+    if (code === 'treatments' && designOn) designNo = ++counter;
+  }
   const no = (code: CnbSectionCode) => numbers[code] ?? 0;
+  const designRequired = designOn && isFcDesignRequired(configuration);
+  const designValidation = design ? validateFcDesign(design.value, configuration) : {};
+  const designError = showErrors ? designValidation.fcToothShape : undefined;
 
   const clinical = CLINICAL_CODES.filter(enabled);
   // One question alone gets its own card, titled by the question, as before.
@@ -307,6 +337,51 @@ export function CrownAndBridgeForm({
             // material list; those unit prices are then not what it costs.
             pricedPerTooth={pricing?.model === 'UNIT_BASED'}
           />
+        </NumberedSection>
+      )}
+
+      {design && designOn && (
+        <NumberedSection
+          number={designNo}
+          label={`${t('cnbForm.sections.design')}${designRequired ? ' *' : ''}`}
+          navLabel={t('cnbForm.nav.design')}
+          done={
+            !designValidation.fcToothShape &&
+            (!!design.value.fcToothShape || !!design.value.fcDesignNotes.trim())
+          }
+        >
+          <Stack spacing={1.75}>
+            <Stack spacing={1} alignItems="flex-start">
+              <Typography component="span" sx={{ fontSize: '0.8125rem', fontWeight: 600 }}>
+                {t('cnbForm.design.toothShape')}
+                {designRequired && <RequiredMark />}
+              </Typography>
+              <SegmentedChoice
+                value={design.value.fcToothShape}
+                options={FC_TOOTH_SHAPES}
+                getLabel={(shape) => t(`cnbForm.design.shapes.${shape}`)}
+                onChange={(fcToothShape) => design.onChange({ ...design.value, fcToothShape })}
+                readOnly={readOnly}
+                allowDeselect={!designRequired}
+                error={!!designError}
+                ariaLabel={t('cnbForm.design.toothShape')}
+              />
+              {/* Under the choice it is about, not under the note. */}
+              <ErrorHelper>{designError && tc('errors.required')}</ErrorHelper>
+            </Stack>
+            <TextField
+              value={design.value.fcDesignNotes}
+              onChange={(e) => design.onChange({ ...design.value, fcDesignNotes: e.target.value })}
+              placeholder={t('cnbForm.design.notesPlaceholder')}
+              multiline
+              minRows={3}
+              fullWidth
+              InputProps={{
+                readOnly: !!readOnly,
+                endAdornment: readOnly && <CopyAdornment text={design.value.fcDesignNotes} />,
+              }}
+            />
+          </Stack>
         </NumberedSection>
       )}
 

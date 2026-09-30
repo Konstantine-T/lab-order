@@ -134,7 +134,7 @@ export function OrdersListPage() {
   });
   const location = locations[0];
 
-  const filters = useOrderListFilters(orders);
+  const filters = useOrderListFilters(orders, { sortArea: 'doctor' });
 
   // Parent order codes for the continuation badges. Resolved from the rows
   // already loaded, with one batched query for any parent this page didn't
@@ -378,6 +378,7 @@ export function OrdersListPage() {
             rows={filters.filtered}
             drafts={drafts}
             resetKey={filters.resetKey}
+            sort={filters.sort}
             renderCard={(row, group) => (
               <OrderCard
                 row={row}

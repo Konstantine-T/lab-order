@@ -13,6 +13,7 @@ import {
   type ListOrderRow,
   type QuickFilter,
 } from './orderListModel';
+import { useOrderSort, type OrderSortArea } from './useOrderSort';
 
 /**
  * The orders list's filter state and what it does to the rows — shared by the
@@ -25,11 +26,13 @@ import {
 export function useOrderListFilters(
   rows: ListOrderRow[],
   options: {
+    /** Which list this is: each area remembers its own sort. */
+    sortArea: Extract<OrderSortArea, 'doctor' | 'clinic'>;
     /** Extra text a search should match — the doctor's name on the clinic list. */
     searchText?: (row: ListOrderRow) => string;
-  } = {},
+  },
 ) {
-  const { searchText } = options;
+  const { searchText, sortArea } = options;
 
   const [search, setSearch] = useState('');
   const [quick, setQuick] = useState<QuickFilter>('all');
@@ -40,6 +43,8 @@ export function useOrderListFilters(
   const [dateFrom, setDateFrom] = useState<Dayjs | null>(null);
   const [dateTo, setDateTo] = useState<Dayjs | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  // A preference, not a filter: "Clear" leaves it alone and it survives reloads.
+  const [sort, setSort] = useOrderSort(sortArea);
 
   const from = dateFrom?.isValid() ? dateFrom.format('YYYY-MM-DD') : null;
   const to = dateTo?.isValid() ? dateTo.format('YYYY-MM-DD') : null;
@@ -126,9 +131,10 @@ export function useOrderListFilters(
     setDateTo(null);
   };
 
-  /** Changes whenever the result set's definition does — groups key on it to
-   *  fold back to their first page, as the old pager went back to page 1. */
-  const resetKey = [q, quick, labId, patientId, doctorId, statuses.join(','), from, to].join('|');
+  /** Changes whenever the result set's definition or its order does — groups
+   *  key on it to fold back to their first page, as the old pager went back to
+   *  page 1. */
+  const resetKey = [q, quick, labId, patientId, doctorId, statuses.join(','), from, to, sort].join('|');
 
   return {
     search,
@@ -149,6 +155,8 @@ export function useOrderListFilters(
     setDateTo,
     advancedOpen,
     setAdvancedOpen,
+    sort,
+    setSort,
     counts,
     filtered,
     labOptions,

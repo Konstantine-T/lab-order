@@ -19,6 +19,8 @@ import { ServiceCard } from '@/components/ServiceCard';
 import { RushChip } from '@/features/lab/services/rushChip';
 import { formatGELShort, startingPrice } from '@/utils/pricing';
 import { whatsappUrl } from '@/features/labs/whatsapp';
+import { useLabText } from '@/features/lab/labText';
+import { pickPriceList, priceListUrl } from '@/features/lab/priceList/priceListApi';
 import type { LabRow, LabServiceRow, PricingConfig } from '@/types/database';
 import type { FormStatus } from '@/types/database';
 
@@ -38,6 +40,7 @@ export function LabPublicProfilePage({
   const { labId } = useParams<{ labId: string }>();
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
+  const { labText, lang } = useLabText();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const paths = catalogPaths(guest, basePath);
@@ -55,7 +58,10 @@ export function LabPublicProfilePage({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('labs')
-        .select('id, public_name, city, short_description, logo_url, contact_phone, contact_email, working_address')
+        .select(
+          'id, public_name, city, short_description, logo_url, contact_phone, contact_email, working_address, ' +
+            'public_translations, price_lists',
+        )
         .eq('id', labId!)
         .eq('approval_status', 'APPROVED_ACTIVE')
         .eq('is_active', true)
@@ -64,7 +70,8 @@ export function LabPublicProfilePage({
       return data as
         | (Pick<LabRow,
             'id' | 'public_name' | 'city' | 'short_description' | 'logo_url' |
-            'contact_phone' | 'contact_email' | 'working_address'
+            'contact_phone' | 'contact_email' | 'working_address' |
+            'public_translations' | 'price_lists'
           >)
         | null;
     },
@@ -143,15 +150,34 @@ export function LabPublicProfilePage({
   }
   if (!lab) return <Alert severity="error">{tc('errors.notFound')}</Alert>;
 
+  const description = labText(lab, 'short_description');
+  // The file in the reader's language, else whichever exists (ka → en → ru).
+  const priceList = pickPriceList(lab.price_lists, lang);
+
   return (
     <>
       <PageHeader
         backTo={`${paths.marketplace}${doctorParam ? `?doctor=${doctorParam}` : ''}`}
-        title={lab.public_name}
+        title={labText(lab, 'public_name')}
         subtitle={lab.city ?? undefined}
         chips={
           !guest && doctorParam ? (
             <ActingDoctorChip doctorId={doctorParam} changeTo={`${basePath}/orders/new`} />
+          ) : undefined
+        }
+        actions={
+          priceList ? (
+            <Button
+              component="a"
+              href={priceListUrl(priceList)}
+              target="_blank"
+              rel="noopener noreferrer"
+              variant="outlined"
+              startIcon={<Icon name="receipt_long" size={17} />}
+              aria-label={t('labProfile.priceListA11y')}
+            >
+              {t('labProfile.priceList')}
+            </Button>
           ) : undefined
         }
       />
@@ -176,9 +202,9 @@ export function LabPublicProfilePage({
               <Icon name="store" size={32} sx={{ color: 'primary.dark' }} />
             </Avatar>
             <Stack flex={1} spacing={1} sx={{ minWidth: 0 }}>
-              {lab.short_description && (
+              {description && (
                 <Typography variant="body1" color="text.secondary">
-                  {lab.short_description}
+                  {description}
                 </Typography>
               )}
               <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.75 }}>

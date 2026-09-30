@@ -4,8 +4,8 @@ import { Icon, PageHeader } from '@/components/design';
 import { useQuery } from '@tanstack/react-query';
 import { useContinueProject } from '@/features/doctor/orderCreate/useContinueProject';
 import { useTranslation } from 'react-i18next';
-import dayjs from 'dayjs';
 import { appendDueWindow, dueTimeOf } from '@/features/orders/orderDates';
+import { pastDate, shortDate } from '@/features/orders/list/listFormat';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { OrderRowCard } from '@/features/orders/OrderRowCard';
@@ -117,7 +117,7 @@ export function PatientOrdersPage() {
             const total = row.final_total ?? row.generated_total;
             const dueRaw = row.confirmed_due_date ?? row.requested_due_date;
             const due = dueRaw
-              ? appendDueWindow(dayjs(dueRaw).format('MMM D'), dueTimeOf(row), tc)
+              ? appendDueWindow(shortDate(dueRaw, tc), dueTimeOf(row), tc)
               : undefined;
             return (
               <OrderRowCard
@@ -135,6 +135,7 @@ export function PatientOrdersPage() {
                 paymentStatus={<PaymentStatusChip status={row.payment_status} />}
                 total={total != null ? formatGEL(total) : '—'}
                 originalTotal={hasDiscount ? formatGEL(row.generated_total!) : undefined}
+                createdDate={pastDate(row.created_at, tc)}
                 dueDate={due}
                 avatarText={serviceName || '?'}
                 onClick={() => navigate(`/doctor/orders/${row.id}`)}

@@ -44,7 +44,10 @@
     "days_one": "{{count}} day",
     "days_other": "{{count}} days",
     "servicesCount_one": "{{count}} service",
-    "servicesCount_other": "{{count}} services"
+    "servicesCount_other": "{{count}} services",
+    "priceList": "Price list",
+    "priceListFor": "Price list — {{name}} (opens in a new tab)",
+    "viewServicesFor": "View services — {{name}}"
   },
   "labProfile": {
     "back": "Back to labs",
@@ -54,7 +57,9 @@
     "orderDisabled": "No published form",
     "turnaround": "{{days}} working day(s)",
     "continuingFor": "Continuing a project — pick a service.",
-    "newOrderFor": "New order for this patient — pick a service."
+    "newOrderFor": "New order for this patient — pick a service.",
+    "priceList": "Price list",
+    "priceListA11y": "Price list (opens in a new tab)"
   },
   "orderCreate": {
     "digitalImpressionsNote": "At this stage we work with digital impressions only.",

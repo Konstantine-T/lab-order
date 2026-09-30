@@ -189,6 +189,16 @@
       "name": "Titanium Milling",
       "description": "Titanium milled constructions — identical to the Crown & Bridge form.",
       "help": "Titanium-milled constructions — identical to the Crown & Bridge form. Configure the same per-tooth sections and per-material pricing."
+    },
+    "IMPLANT_ABUTMENTS": {
+      "name": "Lab-placed Abutments",
+      "description": "Implant configuration only — brand, positions and abutments — without the crown.",
+      "help": "Only the implant configuration from Constructions on Implants: the doctor picks the brand, marks the positions and configures each implant's abutment — no bar, no crown — then answers whether a transfer check is needed. In Pricing, add your implant brands and abutment component prices."
+    },
+    "FINAL_CONSTRUCTION": {
+      "name": "Final Construction",
+      "description": "Remaking only the superstructure when its design wasn't liked — the Crown & Bridge form with design choices.",
+      "help": "For remaking only the top construction because of its design — e.g. the bar stays and the zirconia is made again. The Crown & Bridge form plus a design section: tooth shape and design notes. Configure the same sections and per-material pricing."
     }
   },
   "errors": {
@@ -237,7 +247,8 @@
     "continuesFrom": "Continues from",
     "continuation": "Continuation",
     "dueWindow": "{{start}}–{{end}}",
-    "dueWindowNextDay": "(+1 day)"
+    "dueWindowNextDay": "(+1 day)",
+    "created": "Created"
   },
   "orderFiles": {
     "title": "Attachments",
@@ -300,7 +311,8 @@
       "dueThisWeek": "Due this week",
       "needsAnswer": "Needs your reply",
       "unpaid": "Unpaid",
-      "ready": "Ready for pickup"
+      "ready": "Ready for pickup",
+      "edited": "Changed"
     },
     "labFilter": "Lab",
     "patientFilter": "Patient",
@@ -339,7 +351,10 @@
     "cancelledOn": "Cancelled {{date}}",
     "editPending": "Edit under review",
     "reply": "Reply",
-    "quoted": "“{{text}}”"
+    "quoted": "“{{text}}”",
+    "editedOn": "Changed {{date}}",
+    "createdOn": "Created {{date}}",
+    "dateFormatYear": "MMM D, YYYY"
   },
   "shadePicker": {
     "family": {
@@ -360,5 +375,12 @@
     "light": "light",
     "dark": "dark",
     "none": "No shade chosen yet"
+  },
+  "orderSort": {
+    "label": "Sort",
+    "created_desc": "Newest first",
+    "created_asc": "Oldest first",
+    "due_asc": "Due soonest",
+    "due_desc": "Due latest"
   }
 }

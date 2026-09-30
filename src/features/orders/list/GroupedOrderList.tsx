@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
 import { Box, Skeleton, Stack } from '@mui/material';
+import type { OrderSort } from '@/features/orders/orderDates';
 import { OrderGroupSection } from './OrderGroupSection';
 import { GROUP_ORDER, groupRows, type ListOrderRow, type OrderGroupKey } from './orderListModel';
 
@@ -15,16 +16,19 @@ export function GroupedOrderList({
   drafts = [],
   renderCard,
   resetKey,
+  sort,
 }: {
   /** Already filtered; grouped and sorted here. */
   rows: ListOrderRow[];
+  /** How the cards inside each group are ordered; newest first when left out. */
+  sort?: OrderSort;
   /** Unfinished orders, drawn first as their own group. */
   drafts?: DraftItem[];
   renderCard: (row: ListOrderRow, group: OrderGroupKey) => ReactNode;
   /** Changes when the filters do, folding every group back to its first page. */
   resetKey?: string;
 }) {
-  const groups = useMemo(() => groupRows(rows), [rows]);
+  const groups = useMemo(() => groupRows(rows, sort), [rows, sort]);
 
   return (
     <Stack spacing={3.25}>

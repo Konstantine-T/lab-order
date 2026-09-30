@@ -93,7 +93,7 @@ export function ClinicOrdersPage() {
     [doctorName],
   );
 
-  const filters = useOrderListFilters(orders, { searchText: doctorOf });
+  const filters = useOrderListFilters(orders, { sortArea: 'clinic', searchText: doctorOf });
   const doctorOptions = useMemo(
     () =>
       doctors
@@ -242,6 +242,7 @@ export function ClinicOrdersPage() {
             rows={filters.filtered}
             drafts={draftItems}
             resetKey={filters.resetKey}
+            sort={filters.sort}
             renderCard={(row, group) => (
               <OrderCard
                 row={row}

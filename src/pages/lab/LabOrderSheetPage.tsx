@@ -48,10 +48,19 @@ import { recordPayment } from '@/features/lab/finances/financeApi';
 import { OrderForm } from '@/features/orderForms/OrderForm';
 import {
   diffStates,
+  patientDisplay,
+  patientFullName,
   stateFromLive,
   stateFromSnapshot,
   type EditState,
+  type LivePatientEmbed,
 } from '@/features/lab/orderEdits/diff';
+import {
+  initialDueFields,
+  isDueDirty,
+  requestedDaySlotProps,
+  requestedDaySwatchSx,
+} from '@/features/lab/orderSheet/dueConfirmation';
 import { OrderAnswersDiff } from '@/features/lab/orderEdits/OrderAnswersDiff';
 import { OrderLineage } from '@/features/orders/OrderLineage';
 import { ClarificationPanel } from '@/features/orders/clarifications/ClarificationPanel';
@@ -70,7 +79,10 @@ import type {
 } from '@/types/database';
 import { LAB_SELECTABLE_STATUSES } from '@/types/database';
 
-type DetailRow = OrderRow;
+// The patient is embedded so the sheet can show who the case is for; the lab
+// reads it under patients_lab_via_order (0009), the same grant its order lists
+// already use.
+type DetailRow = OrderRow & { patients: LivePatientEmbed | null };
 
 export function LabOrderSheetPage() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -102,7 +114,7 @@ export function LabOrderSheetPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('*')
+        .select('*, patients(first_name, last_name, date_of_birth)')
         .eq('id', orderId!)
         .maybeSingle();
       if (error) throw error;
@@ -180,8 +192,12 @@ export function LabOrderSheetPage() {
     hydratedRef.current = order.id;
     setFinalPrice(order.final_total?.toString() ?? '');
     setPaidAmount(order.paid_total?.toString() ?? '0');
-    setConfirmedDue(order.confirmed_due_date ?? '');
-    setConfirmedTime(order.confirmed_due_time?.slice(0, 5) ?? '');
+    // Pre-filled with the doctor's request until the lab confirms its own, so
+    // agreeing is one click. The confirm button's dirty check below is what
+    // stops the pre-fill from passing for a saved confirmation.
+    const due = initialDueFields(order);
+    setConfirmedDue(due.date);
+    setConfirmedTime(due.time);
     setPendingStatus(order.status);
   }, [order]);
 
@@ -319,6 +335,11 @@ export function LabOrderSheetPage() {
     city?: string;
   };
   const statusDirty = !!pendingStatus && pendingStatus !== order.status;
+  const dueDirty = isDueDirty({ date: confirmedDue, time: confirmedTime }, order);
+  const dueSaved = order.confirmed_due_date != null || order.confirmed_due_time != null;
+  const patientName = order.patients
+    ? patientFullName(order.patients.first_name, order.patients.last_name)
+    : '';
   // One open question at a time (the DB enforces it too) — until the doctor
   // answers, there is nothing new to ask.
   // Both asks write the same row and the DB allows one open per order, so
@@ -507,8 +528,26 @@ export function LabOrderSheetPage() {
                         setConfirmedDue(d && d.isValid() ? d.format('YYYY-MM-DD') : '')
                       }
                       format="YYYY-MM-DD"
-                      slotProps={{ textField: { size: 'small', fullWidth: true } }}
+                      slotProps={{
+                        textField: { size: 'small', fullWidth: true },
+                        day: requestedDaySlotProps(
+                          order.requested_due_date,
+                          t('orderSheet.requestedDayHint'),
+                        ),
+                      }}
                     />
+                    {/* The calendar marks the doctor's day; without this line
+                        the marker is a mystery the first time it's seen. */}
+                    {order.requested_due_date && (
+                      <Stack direction="row" alignItems="center" spacing={0.75}>
+                        <Box aria-hidden sx={requestedDaySwatchSx}>
+                          {dayjs(order.requested_due_date).format('D')}
+                        </Box>
+                        <Typography variant="caption" color="text.secondary">
+                          {t('orderSheet.requestedDayHint')}
+                        </Typography>
+                      </Stack>
+                    )}
                     {/* Optional, same rule as the doctor's: a confirmed date
                         with no time means "that day, any time". */}
                     {/* No `label`, matching the date picker directly above:
@@ -539,9 +578,14 @@ export function LabOrderSheetPage() {
                           confirmed_due_time: confirmedTime || null,
                         })
                       }
-                      disabled={update.isPending}
+                      // Same shape as the status card: live only when the fields
+                      // differ from what is saved, so a pre-filled date reads as
+                      // proposed and a confirmed one as settled.
+                      disabled={update.isPending || !dueDirty}
                     >
-                      {t('orderSheet.confirmDue')}
+                      {!dueDirty && dueSaved
+                        ? t('orderSheet.dueConfirmed')
+                        : t('orderSheet.confirmDue')}
                     </Button>
                   </Stack>
                 </Box>
@@ -638,7 +682,9 @@ export function LabOrderSheetPage() {
           label={t('orderSheet.lineage.continuesFrom')}
         />
 
-        {/* The mockup's six-cell fact grid across the top of the sheet. */}
+        {/* The fact grid across the top of the sheet, led by the patient: the
+            case is about them, and every other lab screen leads with them too.
+            The date of birth tells two same-named patients apart. */}
         <SectionCard>
           <Box
             sx={{
@@ -647,6 +693,23 @@ export function LabOrderSheetPage() {
               gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, minmax(0, 1fr))' },
             }}
           >
+            {/* Full width on a phone: the two-column grid would otherwise
+                strand the seventh cell, and a Georgian name needs the room. */}
+            <Box sx={{ gridColumn: { xs: '1 / -1', sm: 'auto' }, minWidth: 0 }}>
+              <FactCell
+                label={t('orderSheet.patient')}
+                value={
+                  <Box component="span" sx={{ overflowWrap: 'anywhere' }}>
+                    {patientName || '—'}
+                  </Box>
+                }
+                hint={
+                  order.patients?.date_of_birth
+                    ? t('orderSheet.patientDob', { date: order.patients.date_of_birth })
+                    : undefined
+                }
+              />
+            </Box>
             <FactCell label={t('orderSheet.doctor')} value={doctorFullName || '—'} hint={doctor.phone ?? undefined} />
             <FactCell label={t('orderSheet.service')} value={serviceSnap?.name ?? '—'} />
             <FactCell
@@ -727,8 +790,21 @@ export function LabOrderSheetPage() {
               </FormControl>
 
               <Stack spacing={1}>
-                {/* Patient rows omitted on purpose — patient PII is doctor-only
-                    and must never surface on the lab side. */}
+                <DiffRow
+                  label={t('orderSheet.diff.fields.patient')}
+                  changed={editReview.diff.patient}
+                  before={patientDisplay(editReview.before.patient)}
+                  after={patientDisplay(editReview.after.patient)}
+                  // A switch to another patient with the same name and date
+                  // of birth draws "A → A"; say why it is flagged.
+                  note={
+                    editReview.diff.patient &&
+                    patientDisplay(editReview.before.patient) ===
+                      patientDisplay(editReview.after.patient)
+                      ? t('orderSheet.diff.patientRecordChanged')
+                      : undefined
+                  }
+                />
                 <DiffRow
                   label={t('orderSheet.diff.fields.workLocation')}
                   changed={editReview.diff.workLocation}
@@ -860,11 +936,13 @@ function DiffRow({
   changed,
   before,
   after,
+  note,
 }: {
   label: string;
   changed: boolean;
   before: string | undefined | null;
   after: string | undefined | null;
+  note?: string;
 }) {
   return (
     <Box
@@ -895,6 +973,11 @@ function DiffRow({
         )}
         <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }}>{after || '—'}</Typography>
       </Stack>
+      {note && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+          {note}
+        </Typography>
+      )}
     </Box>
   );
 }

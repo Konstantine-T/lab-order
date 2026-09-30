@@ -37,12 +37,19 @@ import {
   coerceImplantAnswers,
   emptyImplantAnswers,
   type ImplantRestorationAnswers,
-  type ImplantRestorationErrors,
   type ImplantConfig,
   type AbutmentStatus,
   type AbutmentType,
   type GingivalHeightMode,
 } from './implantTypes';
+import {
+  AB_TRANSFER_CHECK,
+  isAbutmentFieldEnabled,
+  isAbutmentFieldRequired,
+  validateAbutments,
+  type ImplantAbutmentAnswers,
+  type ImplantAbutmentErrors,
+} from './abutmentTypes';
 
 export { coerceImplantAnswers, validateImplantRestoration, emptyImplantAnswers };
 export type { ImplantRestorationAnswers };
@@ -74,8 +81,17 @@ function posLabel(pos: number, notation: 'Universal' | 'FDI'): string {
 type Props = {
   configuration: FormConfiguration;
   pricing?: PricingConfig;
-  value: ImplantRestorationAnswers;
-  onChange: (next: ImplantRestorationAnswers) => void;
+  /** The abutments variant's answers are the implant answers plus its
+   *  transfer check, so one shape serves both. */
+  value: ImplantAbutmentAnswers;
+  onChange: (next: ImplantAbutmentAnswers) => void;
+  /**
+   * `full` is Constructions on Implants. `abutments` is the lab-placed
+   * abutments template: the same brand, positions and per-implant abutment
+   * configuration, then a transfer-check question in place of the bar and
+   * crown sections.
+   */
+  variant?: 'full' | 'abutments';
   readOnly?: boolean;
   showErrors?: boolean;
   /**
@@ -100,10 +116,17 @@ export function ImplantRestorationForm({
   rawValues,
   onRawChange,
   customErrors,
+  variant = 'full',
 }: Props) {
   const { t } = useTranslation('lab');
+  const { t: tc } = useTranslation('common');
   const a = value;
-  const errors: ImplantRestorationErrors = showErrors ? validateImplantRestoration(a) : {};
+  const abutmentsOnly = variant === 'abutments';
+  const errors: ImplantAbutmentErrors = showErrors
+    ? abutmentsOnly
+      ? validateAbutments(a, configuration)
+      : validateImplantRestoration(a)
+    : {};
 
   const labBrands = pricing?.implant_brands ?? [];
 
@@ -112,7 +135,7 @@ export function ImplantRestorationForm({
   // Which position is pending deletion confirmation
   const [pendingDelete, setPendingDelete] = useState<number | null>(null);
 
-  const set = (patch: Partial<ImplantRestorationAnswers>) => onChange({ ...a, ...patch });
+  const set = (patch: Partial<ImplantAbutmentAnswers>) => onChange({ ...a, ...patch });
 
   // ── Position management ──────────────────────────────────────────────────
 
@@ -272,8 +295,14 @@ export function ImplantRestorationForm({
   // questions start from an inflated total and the doctor sees 1, 2, 6.
   const hasPositions = a.implantPositions.length > 0;
   const configureSn = hasPositions ? ns() : 0;
-  const barSn = hasPositions ? ns() : 0;
-  const finalSn = hasPositions ? ns() : 0;
+  const barSn = hasPositions && !abutmentsOnly ? ns() : 0;
+  const finalSn = hasPositions && !abutmentsOnly ? ns() : 0;
+  // The abutments variant's own question. It does not depend on the positions,
+  // so it is there from the start, numbered after whatever precedes it.
+  const transferCheckOn = abutmentsOnly && isAbutmentFieldEnabled(configuration, AB_TRANSFER_CHECK);
+  const transferCheckRequired =
+    transferCheckOn && isAbutmentFieldRequired(configuration, AB_TRANSFER_CHECK);
+  const transferCheckSn = transferCheckOn ? ns() : 0;
 
   // ── Has lab-determines (provisional price warning) ─────────────────────────
   const hasLabDetermines = a.implantPositions.some((pos) => {
@@ -666,7 +695,7 @@ export function ImplantRestorationForm({
       )}
 
       {/* 4. Bar restoration */}
-      {a.implantPositions.length > 0 && (
+      {a.implantPositions.length > 0 && !abutmentsOnly && (
         <NumberedSection number={barSn} label={t('implantForm.sections.bar')}>
           <Stack spacing={2}>
             <Stack spacing={1}>
@@ -761,7 +790,7 @@ export function ImplantRestorationForm({
       )}
 
       {/* 5. Crown & Bridge restoration */}
-      {a.implantPositions.length > 0 && (
+      {a.implantPositions.length > 0 && !abutmentsOnly && (
         <NumberedSection number={finalSn} label={t('implantForm.sections.crownRestoration')}>
           <CrownAndBridgeForm
             configuration={configuration}
@@ -772,6 +801,33 @@ export function ImplantRestorationForm({
             showErrors={showErrors}
             markedTeeth={a.implantPositions}
           />
+        </NumberedSection>
+      )}
+
+      {/* Abutments variant: transfer check (yes / no, not priced) */}
+      {transferCheckOn && (
+        <NumberedSection
+          number={transferCheckSn}
+          label={`${t('implantForm.sections.transferCheck')}${transferCheckRequired ? ' *' : ''}`}
+          done={a.abTransferCheck !== undefined}
+        >
+          <Stack spacing={1}>
+            <Typography variant="body2" fontWeight={600}>
+              {t('implantForm.transferCheck.label')}
+            </Typography>
+            <PillGroup
+              value={a.abTransferCheck === true ? 'Yes' : a.abTransferCheck === false ? 'No' : ''}
+              options={['Yes', 'No'] as const}
+              getLabel={(v) => t(`cnbForm.options.${v}`)}
+              // '' = the chosen pill clicked again: back to unanswered.
+              onChange={(v) =>
+                set({ abTransferCheck: v === 'Yes' ? true : v === 'No' ? false : undefined })
+              }
+              readOnly={readOnly}
+              allowDeselect={!transferCheckRequired}
+            />
+            <ErrorHelper>{errors.abTransferCheck && tc('errors.required')}</ErrorHelper>
+          </Stack>
         </NumberedSection>
       )}
 

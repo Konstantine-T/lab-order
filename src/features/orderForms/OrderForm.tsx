@@ -9,6 +9,13 @@ import {
   type CnbAnswers,
 } from './CrownAndBridgeForm';
 import { isCnbTemplate, emptyCnbAnswers } from './cnbTypes';
+import { FinalConstructionForm } from './FinalConstructionForm';
+import {
+  TEMPLATE_CODE_FINAL_CONSTRUCTION,
+  coerceFinalConstructionAnswers,
+  validateFinalConstruction,
+  type FinalConstructionAnswers,
+} from './fcTypes';
 import {
   SurgicalGuideForm,
   coerceSgAnswers,
@@ -38,6 +45,12 @@ import {
   TEMPLATE_CODE_IMPLANT,
   type ImplantRestorationAnswers,
 } from './ImplantRestorationForm';
+import {
+  TEMPLATE_CODE_IMPLANT_ABUTMENTS,
+  coerceAbutmentAnswers,
+  validateAbutments,
+  type ImplantAbutmentAnswers,
+} from './abutmentTypes';
 import {
   GingivalReductionGuideForm,
   coerceGrgAnswers,
@@ -122,6 +135,23 @@ function OrderFormBody({
       : undefined,
   };
 
+  // Before the Crown & Bridge check, which also matches it: the same form, plus
+  // a design section of its own.
+  if (configuration._templateCode === TEMPLATE_CODE_FINAL_CONSTRUCTION) {
+    const fc = coerceFinalConstructionAnswers(values, pricing?.materials);
+    return (
+      <FinalConstructionForm
+        configuration={configuration}
+        pricing={pricing}
+        value={fc}
+        onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
+        readOnly={readOnly}
+        showErrors={showErrors}
+        {...customProps}
+      />
+    );
+  }
+
   if (isCnbTemplate(configuration._templateCode)) {
     const cnb = coerceCnbAnswers(values, pricing?.materials);
     return (
@@ -159,6 +189,22 @@ function OrderFormBody({
         configuration={configuration}
         pricing={pricing}
         value={implant}
+        onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
+        readOnly={readOnly}
+        showErrors={showErrors}
+        {...customProps}
+      />
+    );
+  }
+
+  if (configuration._templateCode === TEMPLATE_CODE_IMPLANT_ABUTMENTS) {
+    const abutments = coerceAbutmentAnswers(values);
+    return (
+      <ImplantRestorationForm
+        variant="abutments"
+        configuration={configuration}
+        pricing={pricing}
+        value={abutments}
         onChange={(next) => onChange({ ...values, ...(next as unknown as OrderFormValue) })}
         readOnly={readOnly}
         showErrors={showErrors}
@@ -267,6 +313,11 @@ export function isOrderFormValid(
     return false;
   }
 
+  // Before the Crown & Bridge check, which also matches it.
+  if (configuration._templateCode === TEMPLATE_CODE_FINAL_CONSTRUCTION) {
+    const fc = coerceFinalConstructionAnswers(values, pricing?.materials);
+    return Object.keys(validateFinalConstruction(fc, configuration)).length === 0;
+  }
   if (isCnbTemplate(configuration._templateCode)) {
     const cnb = coerceCnbAnswers(values, pricing?.materials);
     return Object.keys(validateCnb(cnb, configuration)).length === 0;
@@ -287,6 +338,10 @@ export function isOrderFormValid(
     const implant = coerceImplantAnswers(values);
     return Object.keys(validateImplantRestoration(implant)).length === 0;
   }
+  if (configuration._templateCode === TEMPLATE_CODE_IMPLANT_ABUTMENTS) {
+    const abutments = coerceAbutmentAnswers(values);
+    return Object.keys(validateAbutments(abutments, configuration)).length === 0;
+  }
   if (configuration._templateCode === TEMPLATE_CODE_GRG) {
     const grg = coerceGrgAnswers(values);
     return Object.keys(validateGrg(grg, configuration)).length === 0;
@@ -301,4 +356,4 @@ export function isOrderFormValid(
 }
 
 export { emptyCnbAnswers, emptySgAnswers, emptyModelAnswers, emptyEspAnswers, emptyImplantAnswers, emptyGrgAnswers, emptyPrintAnswers, emptyMillingAnswers };
-export type { CnbAnswers, SgAnswers, ModelAnswers, EspAnswers, ImplantRestorationAnswers, GrgAnswers };
+export type { CnbAnswers, SgAnswers, ModelAnswers, EspAnswers, ImplantRestorationAnswers, GrgAnswers, ImplantAbutmentAnswers, FinalConstructionAnswers };

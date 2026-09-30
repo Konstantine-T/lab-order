@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
   Box,
   Button,
@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { ChoicePill, Icon } from '@/components/design';
 import { focusRing, motion, radii, surfaces, tone } from '@/theme/tokens';
 import type { OrderStatus } from '@/types/database';
+import { DEFAULT_ORDER_SORT, ORDER_SORTS, type OrderSort } from '@/features/orders/orderDates';
 import type { FilterOption, QuickFilter } from './orderListModel';
 import type { OrderListFilterState } from './useOrderListFilters';
 
@@ -36,6 +37,67 @@ const ALL_STATUSES: readonly OrderStatus[] = [
   'COMPLETED',
   'CANCELLED',
 ];
+
+/**
+ * The pill every menu in the bar opens from: control height, hairline border
+ * (brand when something is picked), a chevron on the end.
+ */
+function MenuTrigger({
+  open,
+  active,
+  onOpen,
+  ariaLabel,
+  maxWidth = 260,
+  children,
+}: {
+  open: boolean;
+  /** Something other than the default is picked. */
+  active: boolean;
+  onOpen: (anchor: HTMLElement) => void;
+  ariaLabel?: string;
+  /** A doctor's or patient's name can run long and is cut; a fixed label need not be. */
+  maxWidth?: number | string;
+  children: ReactNode;
+}) {
+  const mode = useTheme().palette.mode;
+  return (
+    <Box
+      component="button"
+      type="button"
+      aria-haspopup="menu"
+      aria-expanded={open}
+      aria-label={ariaLabel}
+      onClick={(e) => onOpen(e.currentTarget)}
+      sx={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 0.75,
+        height: 34,
+        px: 1.5,
+        maxWidth,
+        borderRadius: `${radii.control}px`,
+        border: 1,
+        borderColor: active ? 'primary.main' : surfaces[mode].control,
+        bgcolor: 'background.paper',
+        color: 'text.primary',
+        fontFamily: 'inherit',
+        fontSize: '0.78125rem',
+        fontWeight: 500,
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
+        transition: `border-color ${motion.fast}`,
+        '&:hover': { borderColor: 'primary.main' },
+        // The shared ring: border and glow. The glow alone is ~1.3:1 on the mist.
+        '&:focus-visible': { outline: 'none', ...focusRing },
+      }}
+    >
+      <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
+        {children}
+      </Box>
+      <Icon name="expand_more" size={16} sx={{ color: 'text.secondary' }} />
+    </Box>
+  );
+}
 
 /**
  * The redesign's "Lab: All ▾" control — a control-height pill that opens a
@@ -56,7 +118,6 @@ function FilterMenu({
   showAll?: boolean;
 }) {
   const { t } = useTranslation('common');
-  const mode = useTheme().palette.mode;
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const picked = options.find((o) => o.value === value);
   const shown = picked?.label ?? (showAll ? t('orderList.quick.all') : null);
@@ -68,48 +129,17 @@ function FilterMenu({
 
   return (
     <>
-      <Box
-        component="button"
-        type="button"
-        aria-haspopup="menu"
-        aria-expanded={!!anchor}
-        onClick={(e) => setAnchor(e.currentTarget)}
-        sx={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 0.75,
-          height: 34,
-          px: 1.5,
-          maxWidth: 260,
-          borderRadius: `${radii.control}px`,
-          border: 1,
-          borderColor: picked ? 'primary.main' : surfaces[mode].control,
-          bgcolor: 'background.paper',
-          color: 'text.primary',
-          fontFamily: 'inherit',
-          fontSize: '0.78125rem',
-          fontWeight: 500,
-          cursor: 'pointer',
-          whiteSpace: 'nowrap',
-          transition: `border-color ${motion.fast}`,
-          '&:hover': { borderColor: 'primary.main' },
-          // The shared ring: border and glow. The glow alone is ~1.3:1 on the mist.
-          '&:focus-visible': { outline: 'none', ...focusRing },
-        }}
-      >
-        <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {label}
-          {shown && (
-            <>
-              {': '}
-              <Box component="b" sx={{ fontWeight: 700 }}>
-                {shown}
-              </Box>
-            </>
-          )}
-        </Box>
-        <Icon name="expand_more" size={16} sx={{ color: 'text.secondary' }} />
-      </Box>
+      <MenuTrigger open={!!anchor} active={!!picked} onOpen={setAnchor}>
+        {label}
+        {shown && (
+          <>
+            {': '}
+            <Box component="b" sx={{ fontWeight: 700 }}>
+              {shown}
+            </Box>
+          </>
+        )}
+      </MenuTrigger>
       <Menu
         anchorEl={anchor}
         open={!!anchor}
@@ -122,6 +152,56 @@ function FilterMenu({
         {options.map((o) => (
           <MenuItem key={o.value} selected={o.value === value} onClick={() => pick(o.value)}>
             {o.label}
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
+  );
+}
+
+/**
+ * "Sort: Newest first ▾" — how the cards inside each group are ordered. In the
+ * always-visible row, never behind "More filters": the complaint it answers is
+ * that the order was invisible and could not be changed. A phone drops the
+ * "Sort:" word to keep the row short; the menu and its label still say it.
+ */
+function SortMenu({ value, onChange }: { value: OrderSort; onChange: (sort: OrderSort) => void }) {
+  const { t } = useTranslation('common');
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const label = t('orderSort.label');
+  const shown = t(`orderSort.${value}`);
+
+  const pick = (next: OrderSort) => {
+    onChange(next);
+    setAnchor(null);
+  };
+
+  return (
+    <>
+      <MenuTrigger
+        open={!!anchor}
+        active={value !== DEFAULT_ORDER_SORT}
+        onOpen={setAnchor}
+        ariaLabel={`${label}: ${shown}`}
+        maxWidth="100%"
+      >
+        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+          {label}
+          {': '}
+        </Box>
+        <Box component="b" sx={{ fontWeight: 700 }}>
+          {shown}
+        </Box>
+      </MenuTrigger>
+      <Menu
+        anchorEl={anchor}
+        open={!!anchor}
+        onClose={() => setAnchor(null)}
+        slotProps={{ paper: { sx: { minWidth: 200 } } }}
+      >
+        {ORDER_SORTS.map((s) => (
+          <MenuItem key={s} selected={s === value} onClick={() => pick(s)}>
+            {t(`orderSort.${s}`)}
           </MenuItem>
         ))}
       </Menu>
@@ -210,7 +290,8 @@ function QuickTiles({
 
 /**
  * Quick filters with counts, the Lab / Patient (and, for a clinic, Doctor)
- * menus, and the finer status and due-date controls behind "More filters".
+ * menus, the sort, and the finer status and due-date controls behind "More
+ * filters".
  *
  * Below `sm` the tiles above take over "waiting on you" and "due this week",
  * so those two chips step aside rather than say the same thing twice.
@@ -288,28 +369,46 @@ export function OrdersFilterBar({
         {chip('all')}
         {chip('dueThisWeek', { phone: false })}
         {chip('needsAnswer', { phone: false })}
+        {chip('edited')}
         {chip('unpaid')}
         {/* Only the phone tiles offer "ready"; keep it visible if one set it
             and the window then grew. */}
         {quick === 'ready' && chip('ready', { phone: false })}
 
-        <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'block' } }} />
-
-        {/* From `sm` up the menus sit in the row; a phone keeps them under
-            "More filters" so the row stays one line under the tiles. */}
-        <Box sx={{ display: { xs: 'none', sm: 'contents' } }}>{menus}</Box>
-        <ChoicePill
-          selected={filters.advancedOpen}
-          onClick={() => filters.setAdvancedOpen((v) => !v)}
+        {/* From `md` up the controls travel as one group: pushed right beside
+            the chips when the row has room, and wrapping onto their own line
+            together — still right-aligned — rather than splitting half on each
+            line. Narrower, every control flows on its own, which packs the
+            wrapped lines tighter. */}
+        <Stack
+          direction="row"
+          alignItems="center"
+          sx={{
+            display: { xs: 'contents', md: 'flex' },
+            flexWrap: 'wrap',
+            gap: 0.75,
+            minWidth: 0,
+            ml: 'auto',
+            justifyContent: 'flex-end',
+          }}
         >
-          <Icon name="tune" size={15} />
-          {t('doctor:orders.moreFilters')}
-        </ChoicePill>
-        {filters.hasFilters && (
-          <Button size="small" onClick={filters.clear} sx={{ whiteSpace: 'nowrap' }}>
-            {t('doctor:orders.filters.clear')}
-          </Button>
-        )}
+          {/* From `sm` up the menus sit in the row; a phone keeps them under
+              "More filters" so the row stays short under the tiles. */}
+          <Box sx={{ display: { xs: 'none', sm: 'contents' } }}>{menus}</Box>
+          <SortMenu value={filters.sort} onChange={filters.setSort} />
+          <ChoicePill
+            selected={filters.advancedOpen}
+            onClick={() => filters.setAdvancedOpen((v) => !v)}
+          >
+            <Icon name="tune" size={15} />
+            {t('doctor:orders.moreFilters')}
+          </ChoicePill>
+          {filters.hasFilters && (
+            <Button size="small" onClick={filters.clear} sx={{ whiteSpace: 'nowrap' }}>
+              {t('doctor:orders.filters.clear')}
+            </Button>
+          )}
+        </Stack>
       </Stack>
 
       <Collapse in={filters.advancedOpen} unmountOnExit>

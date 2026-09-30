@@ -133,9 +133,19 @@ export function LabDashboardPage() {
     <>
       <PageHeader
         size="h3"
-        title={t('dashboard.welcome', {
-          name: user ? `${user.first_name} ${user.last_name}` : '',
-        })}
+        // The page welcomes the business, so the lab's own name — the sidebar
+        // and account menu keep the person's. The person's name is only the
+        // fallback for a lab row without one (public_name is set at signup).
+        title={
+          // A company name is longer than a first name; let it wrap.
+          <Box component="span" sx={{ overflowWrap: 'anywhere' }}>
+            {t('dashboard.welcome', {
+              name:
+                lab?.public_name?.trim() ||
+                (user ? `${user.first_name} ${user.last_name}`.trim() : ''),
+            })}
+          </Box>
+        }
         subtitle={dayjs().format('dddd, MMMM D')}
         actions={
           <>

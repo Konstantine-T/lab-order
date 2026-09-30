@@ -1,9 +1,11 @@
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { alpha, Box, Stack, Typography, useTheme } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
+import { useLabText } from '@/features/lab/labText';
+import { useLabPublicTranslations } from '@/features/lab/useLabPublicTranslations';
 import { initialsOf, layout, motion, palette2026, radii, surfaces } from '@/theme/tokens';
 import { PeriLink } from './ui';
 
@@ -49,6 +51,16 @@ export function WizardHeader({
   const { t: tc } = useTranslation('common');
   const theme = useTheme();
   const mode = theme.palette.mode;
+
+  // The lab's name in the reader's language (0037). The wizard only ever
+  // works on the lab in `?lab=` — it redirects without one, and a draft only
+  // loads for that lab — so the id comes from there.
+  const [params] = useSearchParams();
+  const translations = useLabPublicTranslations(lab ? params.get('lab') : null);
+  const { labText } = useLabText();
+  const labName = lab
+    ? labText({ public_name: lab.name, public_translations: translations }, 'public_name')
+    : '';
 
   const body = (
     <Stack
@@ -158,15 +170,15 @@ export function WizardHeader({
               fontWeight: 700,
             }}
           >
-            {initialsOf(lab.name)}
+            {initialsOf(labName)}
           </Box>
           <Typography
             sx={{ fontSize: '0.8125rem', minWidth: 0, flex: 1 }}
             noWrap
-            title={`${lab.name} · ${lab.service}`}
+            title={`${labName} · ${lab.service}`}
           >
             <Box component="b" sx={{ fontWeight: 600 }}>
-              {lab.name}
+              {labName}
             </Box>{' '}
             · {lab.service}
           </Typography>

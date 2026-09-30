@@ -12,10 +12,23 @@ export const shortDate = (iso: string, t: TranslateFn) =>
   dayjs(iso).format(t('common:orderList.dateFormat'));
 
 /**
- * "12 წთ წინ", "1 სთ წინ", "დღეს", "გუშინ", then a date — how long ago an
- * order was sent, as the board's "sent" column labels it.
+ * `shortDate`, plus the year when it is not the current one — for a date that
+ * looks back (when an order was created, when it was last changed), where a
+ * case from last September must not pass for this one's.
  */
-export function relativeAge(iso: string, t: TranslateFn, now: Dayjs = dayjs()): string {
+export function pastDate(iso: string, t: TranslateFn, now: Dayjs = dayjs()): string {
+  const at = dayjs(iso);
+  return at.year() === now.year()
+    ? at.format(t('common:orderList.dateFormat'))
+    : at.format(t('common:orderList.dateFormatYear'));
+}
+
+/**
+ * "12 წთ წინ", "1 სთ წინ", "დღეს", "გუშინ" — how long ago an order was sent,
+ * while that is still recent enough to say so; null once it is older than
+ * yesterday.
+ */
+export function recentAge(iso: string, t: TranslateFn, now: Dayjs = dayjs()): string | null {
   const at = dayjs(iso);
   const minutes = now.diff(at, 'minute');
   if (minutes < 1) return t('common:orderList.age.justNow');
@@ -24,7 +37,15 @@ export function relativeAge(iso: string, t: TranslateFn, now: Dayjs = dayjs()): 
   if (minutes < 6 * 60) return t('common:orderList.age.hours', { count: Math.floor(minutes / 60) });
   if (at.isSame(now, 'day')) return t('common:orderList.age.today');
   if (at.isSame(now.subtract(1, 'day'), 'day')) return t('common:orderList.age.yesterday');
-  return shortDate(iso, t);
+  return null;
+}
+
+/**
+ * "12 წთ წინ", "1 სთ წინ", "დღეს", "გუშინ", then a date — how long ago an
+ * order was sent, as the board's "sent" column labels it.
+ */
+export function relativeAge(iso: string, t: TranslateFn, now: Dayjs = dayjs()): string {
+  return recentAge(iso, t, now) ?? shortDate(iso, t);
 }
 
 export type DueLine = {

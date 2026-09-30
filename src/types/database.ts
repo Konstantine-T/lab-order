@@ -124,10 +124,42 @@ export interface DoctorWorkLocationRow {
   created_at: string;
 }
 
+/** The languages a lab can translate its public profile into and upload a
+ *  price list for (0037, 0038). The same three the UI ships in. */
+export type LabTextLang = 'ka' | 'en' | 'ru';
+
+/** The lab columns that have per-language display text. Deliberately not the
+ *  legal or banking fields, and not `city` (it is the marketplace filter key). */
+export type LabTextField = 'public_name' | 'short_description';
+
+/** `labs.public_translations` (0037): optional display text per language.
+ *  An absent language or field falls back to the base column. The server
+ *  (`set_lab_public_translations` + a CHECK) never stores empty strings. */
+export type LabPublicTranslations = Partial<
+  Record<LabTextLang, Partial<Record<LabTextField, string>>>
+>;
+
+/** One uploaded price-list file (0038). `path` is `<lab_id>/<lang>.<ext>` in
+ *  the public `lab-price-lists` bucket; `uploaded_at` busts the CDN cache when
+ *  a file is replaced under the same path. */
+export type LabPriceListEntry = {
+  path: string;
+  name: string;
+  uploaded_at: string;
+};
+
+/** `labs.price_lists` (0038): at most one file per language, all optional. */
+export type LabPriceLists = Partial<Record<LabTextLang, LabPriceListEntry>>;
+
 export interface LabRow {
   id: string;
   owner_user_id: string;
   public_name: string;
+  /** Optional per-language public name / description (0037). Read through
+   *  `labText()`; `public_name` / `short_description` stay the fallback. */
+  public_translations: LabPublicTranslations;
+  /** Optional per-language price-list files (0038). */
+  price_lists: LabPriceLists;
   legal_name: string | null;
   identification_code: string | null;
   legal_address: string | null;
@@ -518,11 +550,23 @@ export type EditReasonCode =
   | 'MY_MISTAKE'
   | 'UNFORESEEN_EVENT';
 
+/** The patient as edit_order captured it (0009 onwards, 0031 at runtime).
+ * Null when the patient row could not be read at edit time. */
+export interface OrderEditSnapshotPatient {
+  id: string;
+  first_name: string;
+  last_name: string;
+  date_of_birth: string | null;
+  gender: string | null;
+}
+
 /** Pre-edit state captured server-side by edit_order before mutating the live
- * order. The RPC's snapshot JSON also carries a `patient` object, but it's
- * deliberately omitted here: patient PII is doctor-only and the only consumer
- * of this type is the lab edit-review, which must never read it. */
+ * order. The lab edit-review reads `patient` to show when an edit moved the
+ * order to another patient (the lab may read its orders' patients, see
+ * patients_lab_via_order in 0009). Optional because older snapshots may lack
+ * it; read it defensively (see features/lab/orderEdits/diff.ts). */
 export interface OrderEditSnapshot {
+  patient?: OrderEditSnapshotPatient | null;
   doctor_work_location_id: string;
   work_location_snapshot: Record<string, unknown>;
   invoice_recipient_type: InvoiceRecipientType;

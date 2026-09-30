@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { PUBLIC_ROUTES } from '@/features/public/publicRoutes';
 import { initialsOf, lift, motion, palette2026, radii } from '@/theme/tokens';
 import { formatGELShort } from '@/utils/pricing';
+import { useLabText } from '@/features/lab/labText';
 import { useLandingLabs, type LandingLab } from './useLandingLabs';
 import { ArrowLink, Container, SectionHead } from './primitives';
 import { landingRadii, useLandingTones } from './helpers';
@@ -105,6 +106,9 @@ function LabCard({ lab }: { lab: LandingLab }) {
   const { t } = useTranslation('landing');
   const { t: td } = useTranslation('doctor');
   const tones = useLandingTones();
+  // The lab's own translation of its name, when it has one (0037).
+  const { labText } = useLabText();
+  const name = labText(lab, 'public_name');
 
   // The same "2–5 days" the marketplace's own cards print.
   const turnaround = !lab.turnaround
@@ -134,14 +138,14 @@ function LabCard({ lab }: { lab: LandingLab }) {
       ]}
     >
       <Stack direction="row" alignItems="center" sx={{ gap: '12px', minWidth: 0 }}>
-        <LabAvatar lab={lab} />
+        <LabAvatar lab={lab} name={name} />
         <Stack sx={{ gap: '2px', minWidth: 0 }}>
           <Typography
             component="h3"
             noWrap
             sx={{ fontSize: '1.0625rem', fontWeight: 600, lineHeight: 1.35 }}
           >
-            {lab.public_name}
+            {name}
           </Typography>
           {lab.city && (
             <Typography noWrap sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
@@ -224,7 +228,7 @@ function LabCard({ lab }: { lab: LandingLab }) {
 }
 
 /** The lab's logo, or its initials on the chip surface. */
-function LabAvatar({ lab }: { lab: LandingLab }) {
+function LabAvatar({ lab, name }: { lab: LandingLab; name: string }) {
   const tones = useLandingTones();
   const sx = {
     width: 44,
@@ -256,7 +260,7 @@ function LabAvatar({ lab }: { lab: LandingLab }) {
         fontWeight: 700,
       }}
     >
-      {initialsOf(lab.public_name)}
+      {initialsOf(name)}
     </Box>
   );
 }
