@@ -9,11 +9,15 @@ import { ArrowLink, Container, SectionHead } from './primitives';
 import { landingRadii, useLandingTones } from './helpers';
 
 /** How many real labs the teaser shows before the "your lab here" card. */
-const LAB_COUNT = 2;
+// One, as in the design — and the owner's call (2026-09-30): the second live
+// lab still carries test-looking services ("s & g", "test service"), which
+// the copy memo flags as a blocker on the front page. The best-stocked lab
+// (most published prices) takes the slot.
+const LAB_COUNT = 1;
 
 /**
- * "The catalogue — prices and turnaround": up to two live labs as cards, then
- * a dashed "your lab here" card, on the design's three-column row.
+ * "The catalogue — prices and turnaround": the best-stocked live lab as a
+ * card, then a dashed "your lab here" card beside it.
  *
  * The design's lab card also carried a rating, a case count, an on-time
  * percentage and a verified tick. The platform has none of those yet, so the
@@ -66,7 +70,8 @@ export function LandingCatalog() {
             gridTemplateColumns: {
               xs: 'minmax(0, 1fr)',
               sm: 'repeat(2, minmax(0, 1fr))',
-              md: 'repeat(3, minmax(0, 1fr))',
+              // The design's lab card is the wider one.
+              md: 'minmax(0, 1.3fr) minmax(0, 1fr)',
             },
             gap: { xs: '12px', sm: '20px' },
           }}
@@ -74,15 +79,8 @@ export function LandingCatalog() {
           {isLoading
             ? Array.from({ length: LAB_COUNT }, (_, i) => <LabCardSkeleton key={i} />)
             : shown.map((lab) => <LabCard key={lab.id} lab={lab} />)}
-          {/* The dashed card fills whatever the lab cards leave of the row. */}
-          <YourLabCard
-            sx={{
-              gridColumn: {
-                sm: `span ${count % 2 === 0 ? 2 : 1}`,
-                md: `span ${Math.max(1, 3 - count)}`,
-              },
-            }}
-          />
+          {/* With no lab to show, the dashed card takes the whole row. */}
+          <YourLabCard sx={{ gridColumn: { sm: count === 0 ? 'span 2' : 'auto' } }} />
         </Box>
       </Container>
     </Box>

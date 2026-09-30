@@ -1,7 +1,7 @@
 {
   "meta": {
     "title": "Dentallabs.ge — Order from dental labs online | Dental Chain",
-    "description": "Pick a lab, mark the teeth on the chart and send an order in 5 minutes. Confirmed price and due date, every invoice in one place."
+    "description": "Pick a lab, mark the teeth on the chart and send an order in 5 minutes. Price and due date confirmed by the lab in writing."
   },
   "nav": {
     "labs": "Labs",
@@ -83,15 +83,15 @@
       },
       {
         "title": "Price before you send",
-        "body": "The lab confirms it in writing. Invoice to you or your clinic."
+        "body": "You see the lab’s price before sending; the lab confirms the final price in writing."
       },
       {
-        "title": "Live status",
+        "title": "Status online",
         "body": "Submitted → Received → In progress → Ready → Completed."
       },
       {
-        "title": "Chat in Telegram",
-        "body": "Every order gets its own chat with the lab, right in Telegram."
+        "title": "Questions inside the order",
+        "body": "The lab asks its questions right in the order — and your answers stay there."
       }
     ]
   },
@@ -139,7 +139,7 @@
     "items": [
       {
         "q": "What does it cost?",
-        "a": "The account is free. You pay only for the lab's work — at a price you see before sending, which the lab confirms in writing."
+        "a": "The account is free. You pay only for the lab’s work: you see the lab’s price before sending, and the lab confirms the final price and due date in writing."
       },
       {
         "q": "Do you take physical impressions?",
@@ -151,7 +151,7 @@
       },
       {
         "q": "Can I change an order after sending it?",
-        "a": "Yes — until the case is closed. The lab sees exactly what changed and confirms the price and due date again."
+        "a": "Yes — until the case is closed. The lab sees exactly what changed and updates the price and due date if needed."
       }
     ]
   },

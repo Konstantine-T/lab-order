@@ -37,6 +37,7 @@
     "search": "Поиск лабораторий или услуг…",
     "allCities": "Все города",
     "turnaround": "СРОК",
+    "fromPrice": "от {{price}}",
     "viewServices": "Смотреть услуги",
     "new": "НОВАЯ",
     "daysUnit": "дн.",

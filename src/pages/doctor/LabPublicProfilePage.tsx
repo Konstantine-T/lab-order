@@ -17,6 +17,7 @@ import {
 } from '@/components/design';
 import { ServiceCard } from '@/components/ServiceCard';
 import { RushChip } from '@/features/lab/services/rushChip';
+import { formatGELShort, startingPrice } from '@/utils/pricing';
 import { whatsappUrl } from '@/features/labs/whatsapp';
 import type { LabRow, LabServiceRow, PricingConfig } from '@/types/database';
 import type { FormStatus } from '@/types/database';
@@ -225,6 +226,12 @@ export function LabPublicProfilePage({
                 const linked = s.linked_lab_form_id ? formsById.get(s.linked_lab_form_id) : null;
                 const orderable = !!linked && linked.status === 'PUBLISHED';
                 const tplCode = linked?.platform_form_templates?.code;
+                const pricing = linked?.current_version_id
+                  ? pricingByVersion.get(linked.current_version_id)
+                  : undefined;
+                // Only an orderable service advertises a price — the number is
+                // one the doctor can reproduce in the form behind the button.
+                const from = orderable ? startingPrice(pricing, tplCode) : null;
                 const go = () =>
                   navigate(
                     `${paths.orderNew}?lab=${lab.id}&service=${s.id}` +
@@ -241,22 +248,22 @@ export function LabPublicProfilePage({
                     description={s.short_description ?? undefined}
                     disabled={!orderable}
                     onClick={orderable ? go : undefined}
-                    rush={
-                      <RushChip
-                        pricing={
-                          linked?.current_version_id
-                            ? pricingByVersion.get(linked.current_version_id)
-                            : undefined
-                        }
-                        t={tc}
-                      />
-                    }
+                    rush={<RushChip pricing={pricing} t={tc} />}
                     chips={
-                      s.average_turnaround_days || s.average_turnaround_label ? (
-                        <MetaChip icon={<Icon name="schedule" size={13} />}>
-                          {s.average_turnaround_label ??
-                            t('labProfile.turnaround', { days: s.average_turnaround_days })}
-                        </MetaChip>
+                      from || s.average_turnaround_days || s.average_turnaround_label ? (
+                        <>
+                          {from && (
+                            <MetaChip icon={<Icon name="sell" size={13} />}>
+                              {t('marketplace.fromPrice', { price: formatGELShort(from.amount) })}
+                            </MetaChip>
+                          )}
+                          {(s.average_turnaround_days || s.average_turnaround_label) && (
+                            <MetaChip icon={<Icon name="schedule" size={13} />}>
+                              {s.average_turnaround_label ??
+                                t('labProfile.turnaround', { days: s.average_turnaround_days })}
+                            </MetaChip>
+                          )}
+                        </>
                       ) : undefined
                     }
                     action={

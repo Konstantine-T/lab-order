@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design/Icon';
 import { StatusPill } from '@/components/design/StatusPill';
 import { brand, motion, radii } from '@/theme/tokens';
+import { formatGELShort, type StartingPrice } from '@/utils/pricing';
 
 /** A lab plus its active services, as the marketplace query returns it. */
 export type MarketplaceLab = {
@@ -13,7 +14,12 @@ export type MarketplaceLab = {
   short_description: string | null;
   logo_url: string | null;
   created_at?: string | null;
-  services?: { name: string; average_turnaround_days: number | null }[];
+  services?: {
+    name: string;
+    average_turnaround_days: number | null;
+    /** The service's "from" price; null when it can't be ordered or has no number. */
+    from?: StartingPrice | null;
+  }[];
 };
 
 // The mockups give each lab a distinct gradient tile. Picking by name hash
@@ -171,6 +177,13 @@ export function LabCard({ lab, to }: { lab: MarketplaceLab; to?: string }) {
               }}
             >
               {s.name}
+              {s.from && (
+                // The landing promises "prices and turnaround" in the
+                // catalogue; this is where the first click checks it.
+                <Box component="span" sx={{ fontWeight: 800, ml: 0.75 }}>
+                  {t('marketplace.fromPrice', { price: formatGELShort(s.from.amount) })}
+                </Box>
+              )}
             </Box>
           ))}
         </Stack>

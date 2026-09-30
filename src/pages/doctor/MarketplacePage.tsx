@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { ActingDoctorChip } from '@/features/clinic/ActingDoctorChip';
 import { catalogPaths } from '@/features/public/publicRoutes';
 import { supabase } from '@/lib/supabase';
+import { SERVICE_PRICE_EMBED, servicePrice, type ServicePriceEmbed } from '@/features/catalog/servicePrice';
 import { LabCard, type MarketplaceLab } from '@/components/LabCard';
 import { PageHeader } from '@/components/design/PageHeader';
 import { Icon } from '@/components/design/Icon';
@@ -44,11 +45,12 @@ export function MarketplacePage({
     queryKey: ['marketplace-labs'],
     queryFn: async () => {
       // Services come along for the ride: the card shows their names, their
-      // count, and the turnaround range derived from them.
+      // "from" prices, their count, and the turnaround range derived from them.
       const { data, error } = await supabase
         .from('labs')
         .select(
-          'id, public_name, city, short_description, logo_url, created_at, lab_services(name, average_turnaround_days, is_active)',
+          `id, public_name, city, short_description, logo_url, created_at,
+           lab_services(name, average_turnaround_days, is_active, ${SERVICE_PRICE_EMBED})`,
         )
         .eq('approval_status', 'APPROVED_ACTIVE')
         .eq('is_active', true)
@@ -56,12 +58,22 @@ export function MarketplacePage({
       if (error) throw error;
 
       return (data ?? []).map((row) => {
-        const { lab_services: svc, ...lab } = row as typeof row & {
-          lab_services?: { name: string; average_turnaround_days: number | null; is_active: boolean }[];
+        const { lab_services: svc, ...lab } = row as unknown as Omit<MarketplaceLab, 'services'> & {
+          lab_services?: (ServicePriceEmbed & {
+            name: string;
+            average_turnaround_days: number | null;
+            is_active: boolean;
+          })[];
         };
         return {
           ...lab,
-          services: (svc ?? []).filter((s) => s.is_active),
+          services: (svc ?? [])
+            .filter((s) => s.is_active)
+            .map((s) => ({
+              name: s.name,
+              average_turnaround_days: s.average_turnaround_days,
+              from: servicePrice(s),
+            })),
         } as MarketplaceLab;
       });
     },

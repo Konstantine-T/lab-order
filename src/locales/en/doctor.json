@@ -37,6 +37,7 @@
     "search": "Search labs or services…",
     "allCities": "All cities",
     "turnaround": "TURNAROUND",
+    "fromPrice": "from {{price}}",
     "viewServices": "View services",
     "new": "NEW",
     "daysUnit": "days",

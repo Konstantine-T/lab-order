@@ -1,7 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
-import { startingPrice, type StartingPrice } from '@/utils/pricing';
-import type { FormStatus, PricingConfig } from '@/types/database';
+import type { StartingPrice } from '@/utils/pricing';
+import {
+  SERVICE_PRICE_EMBED,
+  servicePrice,
+  type ServicePriceEmbed,
+} from '@/features/catalog/servicePrice';
 
 /** A lab as the landing page's catalogue teaser shows it. */
 export type LandingLab = {
@@ -22,42 +26,25 @@ const SERVICES_PER_CARD = 3;
 
 /**
  * One round trip: labs → their services → each service's linked form → that
- * form's template code and published version's pricing. Every hop runs under
- * a policy that admits `anon` (0004, phase4-6, 0034), so this works for a
- * signed-out visitor exactly as the guest catalogue does.
- *
- * The `!column` hints are required, not decoration: lab_services ↔ lab_forms
- * and lab_forms ↔ lab_form_versions each have foreign keys both ways
- * (`linked_lab_form_id` / `service_id`, `current_version_id` /
- * `lab_form_id`), and PostgREST refuses an ambiguous embed. The whole pricing
- * JSON comes along rather than picked keys: a missing key has to stay
- * `undefined` (a per-jaw price is detected by its mere presence), and a
- * JSON-path select would turn it into `null`.
+ * form's template code and published version's pricing (see
+ * `SERVICE_PRICE_EMBED`), so this works for a signed-out visitor exactly as
+ * the guest catalogue does.
  */
 const SELECT = `
   id, public_name, city, logo_url,
   lab_services (
     id, name, is_active, sort_order, created_at, average_turnaround_days,
-    form:lab_forms!linked_lab_form_id (
-      status,
-      template:platform_form_templates ( code ),
-      version:lab_form_versions!current_version_id ( pricing_configuration_json )
-    )
+    ${SERVICE_PRICE_EMBED}
   )
 `;
 
-type ServiceRow = {
+type ServiceRow = ServicePriceEmbed & {
   id: string;
   name: string;
   is_active: boolean;
   sort_order: number | null;
   created_at: string | null;
   average_turnaround_days: number | null;
-  form: {
-    status: FormStatus;
-    template: { code: string } | null;
-    version: { pricing_configuration_json: PricingConfig | null } | null;
-  } | null;
 };
 
 type LabQueryRow = {
@@ -84,11 +71,9 @@ function toLandingLab(row: LabQueryRow): { lab: LandingLab; pricedCount: number 
     .map((s) => s.average_turnaround_days)
     .filter((d): d is number => typeof d === 'number' && d > 0);
 
-  // Only a service a doctor can order right now advertises a price — the same
-  // "published form" test the lab's profile uses to enable its order button.
+  // Only a service a doctor can order right now advertises a price.
   const priced = active.flatMap((s) => {
-    if (s.form?.status !== 'PUBLISHED') return [];
-    const from = startingPrice(s.form.version?.pricing_configuration_json, s.form.template?.code);
+    const from = servicePrice(s);
     return from ? [{ id: s.id, name: s.name.trim(), from }] : [];
   });
 

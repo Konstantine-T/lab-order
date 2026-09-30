@@ -37,6 +37,7 @@
     "search": "ლაბორატორიის ან სერვისის ძიება…",
     "allCities": "ყველა ქალაქი",
     "turnaround": "ვადა",
+    "fromPrice": "{{price}}-დან",
     "viewServices": "სერვისების ნახვა",
     "new": "ახალი",
     "daysUnit": "დღე",

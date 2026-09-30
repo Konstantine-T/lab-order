@@ -31,7 +31,7 @@ import { palette2026, radii } from '@/theme/tokens';
 type Step = { title: string; body: string };
 
 /** Icons for the four "why" tiles, in the order of `why.items`. */
-const WHY_ICONS = ['dentistry', 'sell', 'timeline', 'send'] as const;
+const WHY_ICONS = ['dentistry', 'sell', 'timeline', 'forum'] as const;
 
 /**
  * The dark theme's hairline around a mist surface, drawn inside the box
