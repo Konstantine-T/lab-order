@@ -15,3 +15,4 @@ export { DataTable, DataRow, Pager, type Column } from './DataTable';
 export { ProgressSteps, ProgressBar, type Step } from './ProgressSteps';
 export { InitialsAvatar } from './Avatar';
 export { NavBadge } from './NavBadge';
+export { CopyAdornment } from './CopyAdornment';

@@ -1,5 +1,6 @@
 import { Stack, TextField } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { CopyAdornment } from '@/components/design';
 import { ToothMap } from '@/components/ToothMap';
 import { NumberedSection, PillGroup, ErrorHelper, CustomQuestionSections } from './primitives';
 import {
@@ -123,7 +124,7 @@ export function GingivalReductionGuideForm({
             placeholder={f('notes.placeholder')}
             value={a.notes}
             onChange={(e) => set({ notes: e.target.value })}
-            InputProps={{ readOnly: !!readOnly }}
+            InputProps={{ readOnly: !!readOnly, endAdornment: readOnly && <CopyAdornment text={a.notes} /> }}
           />
         </NumberedSection>
       )}

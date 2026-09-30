@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Chip, Stack, TextField, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { CopyAdornment } from '@/components/design';
 import { NumberedSection, PillGroup, MmInput, ErrorHelper, CustomQuestionSections } from './primitives';
 import { TreatmentBuilder } from './TreatmentBuilder';
 import { SHADE_SCALES, shadeGroupsForScale, type CnbNotation, type CnbToothAssignment } from './cnbTypes';
@@ -268,7 +269,7 @@ export function EspForm({
               multiline
               minRows={2}
               fullWidth
-              InputProps={{ readOnly: !!readOnly }}
+              InputProps={{ readOnly: !!readOnly, endAdornment: readOnly && <CopyAdornment text={a.shadeNotes} /> }}
               sx={{ maxWidth: 520 }}
             />
           </Stack>
@@ -312,7 +313,7 @@ export function EspForm({
             placeholder={esp('notes.placeholder')}
             value={a.notes}
             onChange={(e) => set({ notes: e.target.value })}
-            InputProps={{ readOnly: !!readOnly }}
+            InputProps={{ readOnly: !!readOnly, endAdornment: readOnly && <CopyAdornment text={a.notes} /> }}
           />
         </NumberedSection>
       )}

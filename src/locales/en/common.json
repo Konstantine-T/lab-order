@@ -23,7 +23,9 @@
     "viewDetails": "View details",
     "signOut": "Sign out",
     "close": "Close",
-    "support": "Support"
+    "support": "Support",
+    "copy": "Copy",
+    "copied": "Copied"
   },
   "feedback": {
     "tooltip": "Found a problem or have a suggestion? Write to us directly here.",

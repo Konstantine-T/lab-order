@@ -10,7 +10,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import { Icon } from '@/components/design';
+import { Icon, CopyAdornment } from '@/components/design';
 import { useTranslation } from 'react-i18next';
 import { ToothMap } from '@/components/ToothMap';
 import { NumberedSection, PillGroup, ErrorHelper, CustomQuestionSections } from './primitives';
@@ -370,7 +370,7 @@ export function SurgicalGuideForm({
                   fullWidth
                   value={a.tempNotes}
                   onChange={(e) => set({ tempNotes: e.target.value })}
-                  InputProps={{ readOnly: !!readOnly }}
+                  InputProps={{ readOnly: !!readOnly, endAdornment: readOnly && <CopyAdornment text={a.tempNotes} /> }}
                 />
               </Stack>
             </Stack>
@@ -685,7 +685,7 @@ function ImplantDetailCard({
             multiline
             minRows={2}
             fullWidth
-            InputProps={{ readOnly: !!readOnly }}
+            InputProps={{ readOnly: !!readOnly, endAdornment: readOnly && <CopyAdornment text={detail.notes} /> }}
           />
         </Stack>
     </Box>

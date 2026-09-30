@@ -1,5 +1,6 @@
 import { Stack, TextField } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { CopyAdornment } from '@/components/design';
 import { NumberedSection, PillGroup, ErrorHelper, CustomQuestionSections } from './primitives';
 import {
   emptyModelAnswers,
@@ -129,7 +130,7 @@ export function ModelForm({
             placeholder={mf('markings.placeholder')}
             value={a.markings}
             onChange={(e) => set({ markings: e.target.value })}
-            InputProps={{ readOnly: !!readOnly }}
+            InputProps={{ readOnly: !!readOnly, endAdornment: readOnly && <CopyAdornment text={a.markings} /> }}
           />
         </NumberedSection>
       )}
@@ -180,7 +181,7 @@ export function ModelForm({
             placeholder={mf('notes.placeholder')}
             value={a.notes}
             onChange={(e) => set({ notes: e.target.value })}
-            InputProps={{ readOnly: !!readOnly }}
+            InputProps={{ readOnly: !!readOnly, endAdornment: readOnly && <CopyAdornment text={a.notes} /> }}
           />
         </NumberedSection>
       )}

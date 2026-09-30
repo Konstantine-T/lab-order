@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Stack, TextField } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { CopyAdornment } from '@/components/design';
 import { ShadePicker } from '@/components/ShadePicker';
 import { NumberedSection, PillGroup, MmInput, ErrorHelper, CustomQuestionSections } from './primitives';
 import { TreatmentBuilder } from './TreatmentBuilder';
@@ -117,7 +118,7 @@ export function CrownAndBridgeForm({
               multiline
               minRows={2}
               fullWidth
-              InputProps={{ readOnly: !!readOnly }}
+              InputProps={{ readOnly: !!readOnly, endAdornment: readOnly && <CopyAdornment text={value.shadeNotes} /> }}
               sx={{ maxWidth: 520 }}
             />
           </Stack>
@@ -269,7 +270,7 @@ export function CrownAndBridgeForm({
             multiline
             minRows={10}
             fullWidth
-            InputProps={{ readOnly: !!readOnly }}
+            InputProps={{ readOnly: !!readOnly, endAdornment: readOnly && <CopyAdornment text={value.rxNotes} /> }}
             placeholder=""
           />
         </NumberedSection>

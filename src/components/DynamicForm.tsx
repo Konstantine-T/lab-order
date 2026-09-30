@@ -14,6 +14,7 @@ import {
 import { ToothMap } from './ToothMap';
 import { ShadePicker } from './ShadePicker';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import { CopyAdornment } from './design';
 import dayjs from 'dayjs';
 import type { FieldConfig, FormConfiguration } from '@/types/database';
 
@@ -75,6 +76,8 @@ export function FieldRenderer({
   const helper = error ?? field.helper_text;
   // One place to decide, so a new branch can't quietly keep its label.
   const labelOf = (text: string) => (hideLabel ? undefined : text);
+  // Free-text answers are the ones worth copying out of a read-only order.
+  const copy = readOnly && typeof value === 'string' ? <CopyAdornment text={value} /> : undefined;
 
   switch (field.type) {
     case 'custom_question':
@@ -86,7 +89,7 @@ export function FieldRenderer({
           onChange={(e) => onChange(e.target.value)}
           helperText={helper}
           error={!!error}
-          InputProps={{ readOnly: !!readOnly }}
+          InputProps={{ readOnly: !!readOnly, endAdornment: copy }}
           inputProps={field.type === 'custom_question' ? { maxLength: 200 } : undefined}
           fullWidth
         />
@@ -99,7 +102,7 @@ export function FieldRenderer({
           onChange={(e) => onChange(e.target.value)}
           helperText={helper}
           error={!!error}
-          InputProps={{ readOnly: !!readOnly }}
+          InputProps={{ readOnly: !!readOnly, endAdornment: copy }}
           multiline
           minRows={3}
           fullWidth

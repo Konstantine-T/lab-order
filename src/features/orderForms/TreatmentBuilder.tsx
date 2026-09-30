@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { Alert, Box, Stack, TextField, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { ToothMap, toDisplayLabel } from '@/components/ToothMap';
-import { Icon, MetaChip } from '@/components/design';
+import { Icon, MetaChip, CopyAdornment } from '@/components/design';
 import { formatGEL } from '@/utils/pricing';
 import { motion, radii } from '@/theme/tokens';
 import { PillGroup, ErrorHelper } from './primitives';
@@ -265,7 +265,7 @@ export function TreatmentBuilder({
         multiline
         minRows={2}
         fullWidth
-        InputProps={{ readOnly: !!readOnly }}
+        InputProps={{ readOnly: !!readOnly, endAdornment: readOnly && <CopyAdornment text={notes} /> }}
       />
 
       {error && <ErrorHelper>{error}</ErrorHelper>}

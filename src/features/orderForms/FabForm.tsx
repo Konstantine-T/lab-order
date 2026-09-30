@@ -1,5 +1,6 @@
 import { Alert, MenuItem, Stack, TextField } from '@mui/material';
 import { useTranslation } from 'react-i18next';
+import { CopyAdornment } from '@/components/design';
 import { NumberedSection, ErrorHelper, CustomQuestionSections } from './primitives';
 import { NumberField } from '@/components/NumberField';
 import { ToothMap } from '@/components/ToothMap';
@@ -118,7 +119,7 @@ export function PrintForm({
           multiline
           minRows={2}
           fullWidth
-          InputProps={{ readOnly: !!readOnly }}
+          InputProps={{ readOnly: !!readOnly, endAdornment: readOnly && <CopyAdornment text={value.notes} /> }}
         />
       </NumberedSection>
 
@@ -204,7 +205,7 @@ export function MillingForm({
           multiline
           minRows={2}
           fullWidth
-          InputProps={{ readOnly: !!readOnly }}
+          InputProps={{ readOnly: !!readOnly, endAdornment: readOnly && <CopyAdornment text={value.notes} /> }}
         />
       </NumberedSection>
 
