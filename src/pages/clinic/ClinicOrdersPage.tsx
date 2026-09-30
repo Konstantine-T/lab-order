@@ -1,47 +1,40 @@
-import { useMemo, useState } from 'react';
-import {
-  Box,
-  Button,
-  CircularProgress,
-  FormControl,
-  InputLabel,
-  MenuItem,
-  Select,
-  Stack,
-  Typography,
-} from '@mui/material';
+import { useCallback, useMemo } from 'react';
+import { Button, InputAdornment, Stack, TextField } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { EmptyState, Icon, PageHeader } from '@/components/design';
+import { Icon, PageHeader } from '@/components/design';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
-import { OrderRowCard } from '@/features/orders/OrderRowCard';
-import { LineageBadge } from '@/features/orders/LineageBadge';
 import { useUnacknowledgedInvoices } from '@/features/orders/orderFiles/useUnacknowledgedInvoices';
-import { InvoiceBadge } from '@/features/orders/orderFiles/InvoiceBadge';
 import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
-import { byDueDate, dueDateOf } from '@/features/orders/orderDates';
+import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { clearDraft, loadDraftsByAuthor } from '@/features/doctor/orderCreate/draftStorage';
-import { formatGEL } from '@/utils/pricing';
-import type { ClinicDoctorRow, OrderRow } from '@/types/database';
-
-type ClinicOrderRow = OrderRow & {
-  patients: { first_name: string; last_name: string } | null;
-  labs: { public_name: string } | null;
-  lab_services: { name: string } | null;
-};
+import { OrderCard } from '@/features/orders/list/OrderCard';
+import { DraftCard } from '@/features/orders/list/DraftCard';
+import { GroupedOrderList, OrderListSkeleton } from '@/features/orders/list/GroupedOrderList';
+import { OrdersFilterBar } from '@/features/orders/list/OrdersFilterBar';
+import { PHONE_ADD_SX } from '@/features/orders/list/listStyles';
+import { useOrderListFilters } from '@/features/orders/list/useOrderListFilters';
+import { relativeAge } from '@/features/orders/list/listFormat';
+import {
+  activeCount,
+  LIST_ORDER_SELECT,
+  shortName,
+  type ListOrderRow,
+  type OrderGroupKey,
+} from '@/features/orders/list/orderListModel';
+import type { ClinicDoctorRow } from '@/types/database';
 
 export function ClinicOrdersPage() {
   const { t } = useTranslation('clinic');
+  const { t: tc } = useTranslation('common');
+  const { t: td } = useTranslation('doctor');
   const { user } = useAuth();
   const clinicId = user?.clinic?.id;
   const authorUserId = user?.id;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-
-  const [doctorFilter, setDoctorFilter] = useState<string>('ALL');
 
   const { data: doctors = [] } = useQuery({
     queryKey: ['clinic-doctors', clinicId],
@@ -58,12 +51,10 @@ export function ClinicOrdersPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select(
-          'id, order_code, doctor_id, status, payment_status, generated_total, final_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, continues_order_id, patients(first_name, last_name), labs(public_name), lab_services(name)',
-        )
+        .select(LIST_ORDER_SELECT)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as ClinicOrderRow[];
+      return (data ?? []) as unknown as ListOrderRow[];
     },
   });
 
@@ -91,14 +82,25 @@ export function ClinicOrdersPage() {
     return m;
   }, [doctors]);
 
-  // Soonest deadline first, like the lab's and doctor's lists. The query orders
-  // by created_at — a deterministic base for the tiebreak, but not what a work
-  // queue should read by.
-  const visible = useMemo(() => {
-    const rows =
-      doctorFilter === 'ALL' ? orders : orders.filter((o) => o.doctor_id === doctorFilter);
-    return [...rows].sort(byDueDate);
-  }, [orders, doctorFilter]);
+  // The clinic's current roster first; the order's own snapshot for a doctor
+  // the roster no longer lists.
+  const doctorOf = useCallback(
+    (row: ListOrderRow) =>
+      doctorName.get(row.doctor_id) ??
+      [row.doctor_snapshot?.first_name, row.doctor_snapshot?.last_name]
+        .filter(Boolean)
+        .join(' '),
+    [doctorName],
+  );
+
+  const filters = useOrderListFilters(orders, { searchText: doctorOf });
+  const doctorOptions = useMemo(
+    () =>
+      doctors
+        .map((d) => ({ value: d.doctor_id, label: `${d.first_name} ${d.last_name}` }))
+        .sort((a, b) => a.label.localeCompare(b.label)),
+    [doctors],
+  );
 
   // Parent order codes for the continuation badges. Resolved from the rows
   // already loaded, with one batched query for any parent this page didn't
@@ -107,33 +109,108 @@ export function ClinicOrdersPage() {
   // No doctor filter: RLS already scopes the clinic to its own doctors.
   const unseenInvoices = useUnacknowledgedInvoices();
 
+  const subtitle = [
+    user?.clinic?.public_name,
+    isLoading ? null : tc('orderList.activeCount', { count: activeCount(orders) }),
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  // A draft is not an order: it has no status, lab or due date to match, so
+  // those filters hide it. The doctor filter is the exception — a draft is for
+  // one doctor.
+  const draftItems = drafts
+    .filter((d) => !filters.hasOrderFilters && (!filters.doctorId || d.doctorId === filters.doctorId))
+    .map((d) => ({
+      key: d.doctorId,
+      node: (
+        <DraftCard
+          serviceName={d.serviceName}
+          meta={[shortName(d.state.patient.first_name, d.state.patient.last_name), d.labName]
+            .filter(Boolean)
+            .join(' · ')}
+          doctorName={doctorName.get(d.doctorId)}
+          savedAgo={relativeAge(d.updatedAt, tc)}
+          onContinue={() =>
+            navigate(
+              `/clinic/orders/new?doctor=${d.doctorId}&lab=${d.state.lab_id}&service=${d.state.lab_service_id}`,
+            )
+          }
+          onDiscard={() => discardDraft(d.doctorId)}
+        />
+      ),
+    }));
+
+  /** The two asks that name what to do next get their button on the card; the
+   *  rest is on the order, as it always was for the clinic. */
+  const cardActions = (row: ListOrderRow, group: OrderGroupKey) => {
+    if (row.status === 'NEEDS_DOCTOR_INPUT') {
+      return (
+        <Button
+          fullWidth
+          variant="contained"
+          size="small"
+          startIcon={<Icon name="edit" size={16} />}
+          onClick={() => navigate(`/clinic/orders/${row.id}/edit`)}
+        >
+          {td('orderDetail.clarification.editCta')}
+        </Button>
+      );
+    }
+    if (row.status === 'NEEDS_CLARIFICATION' && group === 'needsYou') {
+      return (
+        <Button
+          fullWidth
+          variant="contained"
+          size="small"
+          startIcon={<Icon name="forum" size={16} />}
+          onClick={() => navigate(`/clinic/orders/${row.id}`)}
+        >
+          {tc('orderList.reply')}
+        </Button>
+      );
+    }
+    return undefined;
+  };
+
   return (
     <>
       <PageHeader
         title={t('orders.title')}
-        subtitle={t('orders.subtitle')}
+        subtitle={subtitle || t('orders.subtitle')}
         actions={
           <>
-            <FormControl size="small" sx={{ minWidth: 200 }}>
-              <InputLabel>{t('orders.filterByDoctor')}</InputLabel>
-              <Select
-                label={t('orders.filterByDoctor')}
-                value={doctorFilter}
-                onChange={(e) => setDoctorFilter(e.target.value)}
-              >
-                <MenuItem value="ALL">{t('orders.allDoctors')}</MenuItem>
-                {doctors.map((d) => (
-                  <MenuItem key={d.doctor_id} value={d.doctor_id}>
-                    {d.first_name} {d.last_name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <TextField
+              placeholder={tc('orderList.searchPlaceholder')}
+              value={filters.search}
+              onChange={(e) => filters.setSearch(e.target.value)}
+              size="small"
+              sx={{ width: { sm: 260 } }}
+              inputProps={{ 'aria-label': tc('orderList.searchPlaceholder') }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Icon name="search" size={18} sx={{ color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            {/* The top bar carries "New order" from `md` up; below it the bar
+                has none, so the page keeps its own — a square on a phone, so
+                the search beside it keeps room for its placeholder. */}
+            <Button
+              variant="contained"
+              aria-label={t('orders.newOrder')}
+              onClick={() => navigate('/clinic/orders/new')}
+              sx={PHONE_ADD_SX}
+            >
+              <Icon name="add" size={20} />
+            </Button>
             <Button
               variant="contained"
               startIcon={<Icon name="add" size={17} />}
               onClick={() => navigate('/clinic/orders/new')}
-              sx={{ flexShrink: 0 }}
+              sx={{ flexShrink: 0, display: { xs: 'none', sm: 'inline-flex', md: 'none' } }}
             >
               {t('orders.newOrder')}
             </Button>
@@ -141,98 +218,44 @@ export function ClinicOrdersPage() {
         }
       />
 
-      {drafts.length > 0 && (
-        <Stack spacing={1.25} sx={{ mb: 2 }}>
-          {drafts.map((d) => {
-            const patient = `${d.state.patient.first_name} ${d.state.patient.last_name}`.trim();
-            return (
-              <Stack
-                key={d.doctorId}
-                direction={{ xs: 'column', sm: 'row' }}
-                alignItems={{ sm: 'center' }}
-                spacing={1.5}
-                sx={(theme) => ({
-                  px: 2.25,
-                  py: 1.625,
-                  borderRadius: '14px',
-                  border: 1,
-                  borderColor: 'primary.main',
-                  bgcolor:
-                    theme.palette.mode === 'light'
-                      ? 'rgba(146,146,255,0.09)'
-                      : 'rgba(146,146,255,0.14)',
-                })}
-              >
-                <Icon name="draft" size={21} sx={{ color: 'primary.dark' }} />
-                <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }}>
-                    {t('orders.draft.bannerTitle', {
-                      doctor: doctorName.get(d.doctorId) ?? '',
-                    })}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" noWrap>
-                    {[patient, d.labName, d.serviceName].filter(Boolean).join(' · ')}
-                  </Typography>
-                </Box>
-                <Button
-                  size="small"
-                  variant="contained"
-                  onClick={() =>
-                    navigate(
-                      `/clinic/orders/new?doctor=${d.doctorId}&lab=${d.state.lab_id}&service=${d.state.lab_service_id}`,
-                    )
-                  }
-                >
-                  {t('orders.draft.resume')}
-                </Button>
-                <Button size="small" color="inherit" onClick={() => discardDraft(d.doctorId)}>
-                  {t('orders.draft.discard')}
-                </Button>
-              </Stack>
-            );
-          })}
-        </Stack>
-      )}
+      <Stack spacing={2.5}>
+        {!isLoading && orders.length > 0 && (
+          <OrdersFilterBar filters={filters} doctorOptions={doctorOptions} />
+        )}
 
-      {isLoading ? (
-        <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-          <CircularProgress />
-        </Box>
-      ) : visible.length === 0 ? (
-        <EmptyState icon="inbox" title={t('orders.empty')} minHeight={240} />
-      ) : (
-        <Stack spacing={1.25}>
-          {visible.map((o) => {
-            const patient = o.patients
-              ? `${o.patients.first_name} ${o.patients.last_name}`
-              : '—';
-            const total = o.final_total ?? o.generated_total;
-            return (
-              <OrderRowCard
-                key={o.id}
-                lineage={
-                  <LineageBadge
-                    continuesOrderId={o.continues_order_id}
-                    parentCode={parentCodes.get(o.continues_order_id ?? '')}
-                  />
-                }
-                invoice={unseenInvoices.has(o.id) ? <InvoiceBadge /> : undefined}
-                code={o.order_code}
-                primary={patient}
-                secondary={[o.lab_services?.name, o.labs?.public_name, doctorName.get(o.doctor_id)]
-                  .filter(Boolean)
-                  .join(' · ')}
-                status={<OrderStatusChip status={o.status} />}
-                paymentStatus={<PaymentStatusChip status={o.payment_status} />}
-                total={total != null ? formatGEL(total) : '—'}
-                dueDate={dueDateOf(o) ?? undefined}
-                avatarText={patient}
-                onClick={() => navigate(`/clinic/orders/${o.id}`)}
+        {isLoading ? (
+          <OrderListSkeleton />
+        ) : orders.length === 0 && draftItems.length === 0 ? (
+          <OrdersEmptyState title={t('orders.empty')} />
+        ) : filters.filtered.length === 0 && filters.hasFilters && draftItems.length === 0 ? (
+          <OrdersEmptyState
+            icon="filter_alt_off"
+            title={td('orders.filters.noResults')}
+            action={
+              <Button size="small" onClick={filters.clear}>
+                {td('orders.filters.clear')}
+              </Button>
+            }
+          />
+        ) : (
+          <GroupedOrderList
+            rows={filters.filtered}
+            drafts={draftItems}
+            resetKey={filters.resetKey}
+            renderCard={(row, group) => (
+              <OrderCard
+                row={row}
+                group={group}
+                href={`/clinic/orders/${row.id}`}
+                doctorName={doctorOf(row) || undefined}
+                invoiceUnseen={unseenInvoices.has(row.id)}
+                parentCode={parentCodes.get(row.continues_order_id ?? '')}
+                actions={cardActions(row, group)}
               />
-            );
-          })}
-        </Stack>
-      )}
+            )}
+          />
+        )}
+      </Stack>
     </>
   );
 }

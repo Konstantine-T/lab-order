@@ -1,7 +1,7 @@
 import { alpha, Box, Stack, Typography, useTheme } from '@mui/material';
 import type { ReactNode } from 'react';
 import { Icon } from '@/components/design/Icon';
-import { palette2026, surfaces } from '@/theme/tokens';
+import { palette2026, surfaces, tone } from '@/theme/tokens';
 
 export type Step = {
   key: string;
@@ -10,6 +10,8 @@ export type Step = {
   icon?: string;
   /** Timestamp under the label, once the step has happened. */
   at?: ReactNode;
+  /** A second fact about the step — who is on it, what was confirmed. */
+  note?: ReactNode;
 };
 
 /**
@@ -18,19 +20,31 @@ export type Step = {
  * dimmed.
  *
  * Below `sm` it turns vertical — six labelled bubbles never fit on a phone.
+ *
+ * `variant="track"` is the 2026-09 order screen's version: small dots on a
+ * left-aligned rail, the text under each dot rather than centred on it, and a
+ * phone list with the date on the right.
  */
 export function ProgressSteps({
   steps,
   current,
   /** Renders every step as complete and stops the pulse — a finished case. */
   complete,
+  variant = 'bubbles',
+  ariaLabel,
 }: {
   steps: Step[];
   /** Index of the in-flight step. */
   current: number;
   complete?: boolean;
+  variant?: 'bubbles' | 'track';
+  /** Names the list for screen readers when no heading sits above it. */
+  ariaLabel?: string;
 }) {
   const mode = useTheme().palette.mode;
+  if (variant === 'track') {
+    return <TrackSteps steps={steps} current={current} complete={complete} ariaLabel={ariaLabel} />;
+  }
   // "Not yet" is dashed grey; the current stage's label reads in aqua text.
   const dashedColor = surfaces[mode].dashed;
   const activeText = mode === 'light' ? palette2026.aquaText : '#7FDCFB';
@@ -123,6 +137,11 @@ export function ProgressSteps({
                     {step.at}
                   </Typography>
                 )}
+                {step.note && (
+                  <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }}>
+                    {step.note}
+                  </Typography>
+                )}
               </Box>
             </Stack>
             {i < steps.length - 1 && (
@@ -143,6 +162,172 @@ export function ProgressSteps({
         );
       })}
     </Stack>
+  );
+}
+
+/**
+ * One stage marker on the track: a filled aqua dot with a tick once done, an
+ * aqua dot inside a soft ring for the stage the case is at, and an empty dashed
+ * circle for what has not happened yet.
+ */
+function TrackDot({ state, size }: { state: 'done' | 'active' | 'future'; size: number }) {
+  const mode = useTheme().palette.mode;
+  return (
+    <Box
+      aria-hidden
+      sx={{
+        width: size,
+        height: size,
+        flexShrink: 0,
+        borderRadius: '50%',
+        display: 'grid',
+        placeItems: 'center',
+        ...(state === 'future'
+          ? {
+              border: '1.5px dashed',
+              borderColor: surfaces[mode].textMuted,
+              bgcolor: 'background.paper',
+            }
+          : { bgcolor: 'success.main', color: 'common.white' }),
+        ...(state === 'active' && { boxShadow: `0 0 0 ${size / 6}px ${tone('success', mode).bg}` }),
+      }}
+    >
+      {state === 'done' && (
+        <Icon
+          name="check"
+          size={Math.round(size * 0.6)}
+          sx={{ fontVariationSettings: `'FILL' 0, 'wght' 700, 'GRAD' 0, 'opsz' 20` }}
+        />
+      )}
+      {state === 'active' && (
+        <Box sx={{ width: size / 3, height: size / 3, borderRadius: '50%', bgcolor: 'common.white' }} />
+      )}
+    </Box>
+  );
+}
+
+/** Solid aqua where the case has been, dashed grey where it has not. */
+function trackLine(reached: boolean, dashed: string, direction: '90deg' | '180deg') {
+  return reached
+    ? { bgcolor: 'success.main' }
+    : { background: `repeating-linear-gradient(${direction}, ${dashed} 0 5px, transparent 5px 9px)` };
+}
+
+function TrackSteps({
+  steps,
+  current,
+  complete,
+  ariaLabel,
+}: {
+  steps: Step[];
+  current: number;
+  complete?: boolean;
+  ariaLabel?: string;
+}) {
+  const mode = useTheme().palette.mode;
+  const dashed = surfaces[mode].dashed;
+  const activeText = tone('success', mode).fg;
+  const stateOf = (i: number) =>
+    complete || i < current ? 'done' : i === current ? 'active' : 'future';
+  const last = steps.length - 1;
+
+  const labelSx = (i: number) => {
+    const state = stateOf(i);
+    return {
+      fontSize: '0.8125rem',
+      fontWeight: state === 'future' ? 600 : 700,
+      lineHeight: 1.45,
+      color: state === 'active' ? activeText : state === 'future' ? 'text.secondary' : 'text.primary',
+    } as const;
+  };
+
+  return (
+    <>
+      {/* Desktop: a left-aligned rail, each stage's text hanging under its dot. */}
+      <Box
+        component="ol"
+        aria-label={ariaLabel}
+        sx={{ display: { xs: 'none', md: 'flex' }, listStyle: 'none', m: 0, p: 0 }}
+      >
+        {steps.map((step, i) => (
+          <Box
+            component="li"
+            key={step.key}
+            aria-current={stateOf(i) === 'active' ? 'step' : undefined}
+            sx={{
+              // The last stage has no line to draw, so it takes only the room
+              // its own text needs instead of an equal share.
+              flex: i === last ? '0 1 auto' : 1,
+              maxWidth: i === last ? 160 : undefined,
+              minWidth: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 1,
+            }}
+          >
+            <Stack direction="row" alignItems="center">
+              <TrackDot state={stateOf(i)} size={24} />
+              {i < last && (
+                <Box sx={{ flex: 1, height: 3, ...trackLine(stateOf(i + 1) !== 'future', dashed, '90deg') }} />
+              )}
+            </Stack>
+            <Box sx={{ pr: 1.5, minWidth: 0 }}>
+              <Typography sx={labelSx(i)}>{step.label}</Typography>
+              {(step.at || step.note) && (
+                <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.45 }}>
+                  {step.at}
+                  {step.at && step.note ? ' · ' : null}
+                  {step.note}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+        ))}
+      </Box>
+
+      {/* Phone: one row per stage, the date pushed to the right edge. */}
+      <Box
+        component="ol"
+        aria-label={ariaLabel}
+        sx={{ display: { xs: 'block', md: 'none' }, listStyle: 'none', m: 0, p: 0 }}
+      >
+        {steps.map((step, i) => (
+          <Box
+            component="li"
+            key={step.key}
+            aria-current={stateOf(i) === 'active' ? 'step' : undefined}
+            sx={{ display: 'flex', gap: 1.5 }}
+          >
+            <Stack alignItems="center" sx={{ pt: '1px' }}>
+              <TrackDot state={stateOf(i)} size={20} />
+              {i < last && (
+                <Box sx={{ width: 2, flex: 1, minHeight: 12, ...trackLine(stateOf(i + 1) !== 'future', dashed, '180deg') }} />
+              )}
+            </Stack>
+            <Stack
+              direction="row"
+              justifyContent="space-between"
+              alignItems="baseline"
+              spacing={1}
+              sx={{ flex: 1, minWidth: 0, pb: i < last ? 1.25 : 0 }}
+            >
+              <Typography sx={{ ...labelSx(i), minWidth: 0 }}>
+                {step.label}
+                {step.note ? ' · ' : null}
+                {step.note}
+              </Typography>
+              {step.at && (
+                <Typography
+                  sx={{ fontSize: '0.8125rem', color: 'text.secondary', whiteSpace: 'nowrap', flexShrink: 0 }}
+                >
+                  {step.at}
+                </Typography>
+              )}
+            </Stack>
+          </Box>
+        ))}
+      </Box>
+    </>
   );
 }
 

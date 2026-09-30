@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import {
   Alert,
-  AlertTitle,
   Box,
   Button,
   CircularProgress,
@@ -12,38 +11,30 @@ import {
   DialogTitle,
   TextField,
 } from '@mui/material';
-import { Link as RouterLink, useParams } from 'react-router-dom';
-import { CardStack, FactCell, Icon, PageHeader, SectionCard } from '@/components/design';
-import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
-import { LabContactLine } from '@/features/orders/orderFiles/LabContactLine';
-import { OrderCompletionActions } from '@/features/orders/completion/OrderCompletionActions';
-import { ClarificationPanel } from '@/features/orders/clarifications/ClarificationPanel';
-import { DoctorInvoiceBlock } from '@/features/orders/orderFiles/OrderInvoice';
+import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import dayjs from 'dayjs';
-import { formatDueWindow, dueTimeOf } from '@/features/orders/orderDates';
 import { supabase } from '@/lib/supabase';
-import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
-import { OrderForm } from '@/features/orderForms/OrderForm';
-import { formatGEL } from '@/utils/pricing';
-import type { LabFormVersionRow, OrderAnswerRow, OrderRow } from '@/types/database';
-
-type DetailRow = OrderRow & {
-  patients: { first_name: string; last_name: string; date_of_birth: string | null } | null;
-  /** Live, not the snapshot: you email a lab at the address it has now. */
-  labs: { contact_email: string | null } | null;
-};
+import { OrderCompletionActions } from '@/features/orders/completion/OrderCompletionActions';
+import { OrderDetailView } from '@/features/orders/detail/OrderDetailView';
+import { useOrderContacts } from '@/features/orders/detail/useOrderContacts';
+import {
+  DETAIL_ORDER_SELECT,
+  isTerminal,
+  type DetailOrder,
+} from '@/features/orders/detail/types';
+import type { LabFormVersionRow, OrderAnswerRow } from '@/types/database';
 
 /**
- * Read-only order detail for a clinic admin — full order data of a doctor under
- * the clinic. Access is enforced by the clinic RLS SELECT policies on orders /
- * order_answers / patients (0013 migration); this page never writes.
+ * Order detail for a clinic admin — full order data of a doctor under the
+ * clinic, on the same screen the doctor sees. Reads are enforced by the clinic
+ * RLS SELECT policies on orders / order_answers / patients (0013); the writes
+ * it offers — edit, answer, complete, cancel — are each authorized server-side
+ * by can_act_for_doctor, exactly as for the doctor themselves.
  */
 export function ClinicOrderDetailPage() {
   const { orderId } = useParams<{ orderId: string }>();
   const { t } = useTranslation('clinic');
-  const { t: td } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
 
   const { data: order, isLoading } = useQuery({
@@ -52,11 +43,11 @@ export function ClinicOrderDetailPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('*, patients(first_name, last_name, date_of_birth), labs(contact_email)')
+        .select(DETAIL_ORDER_SELECT)
         .eq('id', orderId!)
         .maybeSingle();
       if (error) throw error;
-      return (data as DetailRow | null) ?? null;
+      return (data as DetailOrder | null) ?? null;
     },
   });
 
@@ -72,6 +63,10 @@ export function ClinicOrderDetailPage() {
       return (data ?? []) as OrderAnswerRow[];
     },
   });
+
+  // The RPCs gate on participants; a clinic admin the RPC does not count as
+  // one gets empty rows, and the staff line and chat simply do not appear.
+  const { staff, chatLink } = useOrderContacts(orderId);
 
   const { data: version } = useQuery({
     queryKey: ['order-version', order?.lab_form_version_id],
@@ -116,146 +111,31 @@ export function ClinicOrderDetailPage() {
   }
   if (!order) return <Alert severity="error">{tc('errors.notFound')}</Alert>;
 
-  const labSnap = order.lab_snapshot as { public_name?: string } | null;
-  const serviceSnap = order.service_snapshot as { name?: string } | null;
   const answersMap: Record<string, unknown> = {};
   for (const a of answers) answersMap[a.field_code] = a.answer_json;
-  const total = order.final_total ?? order.generated_total;
-  const isTerminal = order.status === 'COMPLETED' || order.status === 'CANCELLED';
 
   return (
-    <>
-      <PageHeader
-        backTo="/clinic/orders"
-        title={order.order_code}
-        subtitle={[
-          order.patients ? `${order.patients.first_name} ${order.patients.last_name}` : null,
-          serviceSnap?.name,
-        ]
-          .filter(Boolean)
-          .join(' · ')}
-        chips={
-          <>
-            <OrderStatusChip status={order.status} />
-            <PaymentStatusChip status={order.payment_status} />
-          </>
-        }
-        actions={
-          <>
-            {!isTerminal && (
-              <>
-                <Button
-                  component={RouterLink}
-                  to={`/clinic/orders/${order.id}/edit`}
-                  variant="outlined"
-                  size="small"
-                  startIcon={<Icon name="edit" size={16} />}
-                >
-                  {tc('actions.edit')}
-                </Button>
-                <Button
-                  color="error"
-                  variant="outlined"
-                  size="small"
-                  onClick={() => setCancelOpen(true)}
-                >
-                  {t('orderDetail.cancelOrder')}
-                </Button>
-              </>
-            )}
-            {/* Outside the !isTerminal gate on purpose: a completed case still
-                needs its "reopen" escape hatch. */}
-            <OrderCompletionActions orderId={order.id} status={order.status} />
-          </>
-        }
-      />
-
-      <CardStack>
-      {order.status === 'CANCELLED' && (
-        <Alert severity="error">
-          <AlertTitle>{t('orderDetail.cancelledTitle')}</AlertTitle>
-          {order.cancellation_reason || t('orderDetail.noReason')}
-        </Alert>
-      )}
-
-      {/* A clinic admin answers on behalf of its doctor — can_act_for_doctor
-          authorizes it server-side, exactly as for edits and completion. */}
-      <ClarificationPanel
-        orderId={order.id}
-        canAnswer={!isTerminal}
-        editTo={`/clinic/orders/${order.id}/edit`}
-      />
-
-      <SectionCard>
-        <Box
-          sx={{
-            display: 'grid',
-            gap: 1.75,
-            gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, minmax(0, 1fr))' },
-          }}
-        >
-          <FactCell label={t('orderDetail.lab')} value={labSnap?.public_name ?? '—'} />
-          <FactCell label={t('orderDetail.service')} value={serviceSnap?.name ?? '—'} />
-          <FactCell
-            label={t('orderDetail.patient')}
-            value={
-              order.patients
-                ? `${order.patients.first_name} ${order.patients.last_name}`
-                : '—'
-            }
-            hint={order.patients?.date_of_birth ?? undefined}
-          />
-          <FactCell
-            label={
-              order.confirmed_due_date
-                ? t('orderDetail.confirmedDueDate')
-                : t('orderDetail.dueDate')
-            }
-            value={formatDueWindow(
-              order.confirmed_due_date ?? order.requested_due_date,
-              dueTimeOf(order),
-              tc,
-            )}
-          />
-          <FactCell
-            label={t('orderDetail.total')}
-            value={total != null ? formatGEL(total) : '—'}
-          />
-          <FactCell
-            label={t('orderDetail.createdAt')}
-            value={dayjs(order.created_at).format('YYYY-MM-DD')}
-            hint={dayjs(order.created_at).format('HH:mm')}
-          />
-        </Box>
-      </SectionCard>
-
-      {/* Beside the price, not among the attachments: it is a billing document.
-          Renders nothing when there is no invoice. */}
-      <DoctorInvoiceBlock
-        orderId={order.id}
-        acknowledgedAt={order.invoice_acknowledged_at}
-        onAcknowledged={() => qc.invalidateQueries({ queryKey: ['clinic-order', orderId] })}
-      />
-
-      {/* Not gated on `version` — attachments exist whether or not the form
-          version loaded. */}
-      <SectionCard icon="upload_file" title={tc('orderFiles.title')}>
-        <OrderFilesField orderId={order.id} labId={order.lab_id} />
-        <LabContactLine email={order.labs?.contact_email} orderCode={order.order_code} />
-      </SectionCard>
-
-      {version && (
-        <SectionCard icon="assignment" title={td('orderDetail.answers')}>
-          <OrderForm
-            configuration={version.configuration_json}
-            pricing={version.pricing_configuration_json}
-            values={answersMap}
-            onChange={() => {}}
-            readOnly
-          />
-        </SectionCard>
-      )}
-
+    <OrderDetailView
+      order={order}
+      answers={answersMap}
+      version={version}
+      staff={staff}
+      chatLink={chatLink}
+      basePath="/clinic"
+      ordersLabel={t('nav.orders')}
+      doctorOnPhone
+      onInvoiceAcknowledged={() => qc.invalidateQueries({ queryKey: ['clinic-order', orderId] })}
+      // Ungated by status: a completed case still needs its "reopen" escape
+      // hatch.
+      actions={<OrderCompletionActions orderId={order.id} status={order.status} size="medium" />}
+      railFooter={
+        !isTerminal(order) ? (
+          <Button color="error" variant="outlined" fullWidth onClick={() => setCancelOpen(true)}>
+            {t('orderDetail.cancelOrder')}
+          </Button>
+        ) : undefined
+      }
+    >
       <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>{t('orderDetail.cancel.title')}</DialogTitle>
         <DialogContent>
@@ -282,7 +162,6 @@ export function ClinicOrderDetailPage() {
           </Button>
         </DialogActions>
       </Dialog>
-      </CardStack>
-    </>
+    </OrderDetailView>
   );
 }

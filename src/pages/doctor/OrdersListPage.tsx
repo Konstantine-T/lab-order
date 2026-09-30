@@ -1,53 +1,27 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
-  Box,
   Button,
-  Checkbox,
-  CircularProgress,
-  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
   InputAdornment,
-  InputLabel,
-  ListItemText,
-  MenuItem,
-  OutlinedInput,
-  Select,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
-import { DatePicker } from '@mui/x-date-pickers';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import dayjs, { type Dayjs } from 'dayjs';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
-import {
-  ChoicePill,
-  Icon,
-  PageHeader,
-  PillRow,
-  ProgressBar,
-  StatusPill,
-} from '@/components/design';
-import { formatGEL } from '@/utils/pricing';
-import { OrderRowCard } from '@/features/orders/OrderRowCard';
-import { LineageBadge } from '@/features/orders/LineageBadge';
+import { Icon, PageHeader } from '@/components/design';
 import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
-import { appendDueWindow, byDueDate, dueDateOf, dueTimeOf } from '@/features/orders/orderDates';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
-import { OrdersPaginator } from '@/features/orders/OrdersPaginator';
-import { ORDER_PIPELINE, pipelineIndex } from '@/features/orders/pipeline';
 import { OrderCompletionActions } from '@/features/orders/completion/OrderCompletionActions';
 import { canComplete } from '@/types/database';
-import type { OrderRow, OrderStatus } from '@/types/database';
+import type { DoctorWorkLocationRow } from '@/types/database';
 import {
   loadDraft,
   clearDraft,
@@ -55,74 +29,19 @@ import {
 } from '@/features/doctor/orderCreate/draftStorage';
 import { useContinueProject } from '@/features/doctor/orderCreate/useContinueProject';
 import { useUnacknowledgedInvoices } from '@/features/orders/orderFiles/useUnacknowledgedInvoices';
-import { InvoiceBadge } from '@/features/orders/orderFiles/InvoiceBadge';
-
-const ALL_STATUSES: readonly OrderStatus[] = [
-  'SUBMITTED',
-  'RECEIVED',
-  'NEEDS_CLARIFICATION',
-  'NEEDS_DOCTOR_INPUT',
-  'IN_PROGRESS',
-  'READY_FOR_DELIVERY',
-  'SENT_TO_CLINIC',
-  'RECEIVED_BY_CLINIC',
-  'TRY_IN_PHASE',
-  'COMPLETED',
-  'CANCELLED',
-];
-
-/** The mockups' four quick filters, above the finer status/date controls. */
-const QUICK = ['all', 'active', 'needsAction', 'completed'] as const;
-type Quick = (typeof QUICK)[number];
-
-/** Statuses where the ball is in the doctor's court. */
-// Statuses where the case is waiting on the doctor, not on the lab.
-// RECEIVED_BY_CLINIC is here because closing a case is the doctor's call
-// (0022): the work is sitting at the clinic and nothing moves until the
-// doctor confirms it seated.
-const NEEDS_ACTION: readonly OrderStatus[] = [
-  'NEEDS_CLARIFICATION',
-  // The lab is blocked until the doctor changes something — the most
-  // action-needing state there is. The home page's callout links here, so
-  // leaving it out sent the doctor to a list that hid what they were told about.
-  'NEEDS_DOCTOR_INPUT',
-  'TRY_IN_PHASE',
-  'RECEIVED_BY_CLINIC',
-];
-
-type Row = OrderRow & {
-  patients: { first_name: string; last_name: string } | null;
-  labs: { public_name: string } | null;
-  lab_services: { name: string } | null;
-  service_snapshot: { name?: string } | null;
-  /** Embedded so a question the doctor has already answered stops counting as
-   *  something waiting on them (0029). */
-  order_clarifications: { answered_at: string | null; resolved_by_edit_at: string | null }[];
-};
-
-/**
- * Is this order still waiting on the doctor?
- *
- * An order with no clarification rows at all predates the feature, so it keeps
- * the old behaviour and stays in the list.
- */
-const awaitsDoctorAnswer = (row: Row) =>
-  row.order_clarifications.length === 0 ||
-  row.order_clarifications.some(
-    // An edit request closed by a save leaves `answered_at` null forever, so
-    // checking it alone keeps the order flagged as needing attention.
-    (c) => c.answered_at === null && c.resolved_by_edit_at === null,
-  );
-
-const matchesQuick = (row: Row, quick: Quick) => {
-  if (quick === 'all') return true;
-  if (quick === 'completed') return row.status === 'COMPLETED';
-  if (quick === 'needsAction') {
-    if (row.status === 'NEEDS_CLARIFICATION') return awaitsDoctorAnswer(row);
-    return NEEDS_ACTION.includes(row.status as OrderStatus);
-  }
-  return row.status !== 'COMPLETED' && row.status !== 'CANCELLED';
-};
+import { OrderCard } from '@/features/orders/list/OrderCard';
+import { DraftCard } from '@/features/orders/list/DraftCard';
+import { GroupedOrderList, OrderListSkeleton } from '@/features/orders/list/GroupedOrderList';
+import { OrdersFilterBar } from '@/features/orders/list/OrdersFilterBar';
+import { useOrderListFilters } from '@/features/orders/list/useOrderListFilters';
+import {
+  activeCount,
+  LIST_ORDER_SELECT,
+  shortName,
+  type ListOrderRow,
+  type OrderGroupKey,
+} from '@/features/orders/list/orderListModel';
+import { PHONE_ADD_SX } from '@/features/orders/list/listStyles';
 
 export function OrdersListPage() {
   const { t } = useTranslation('doctor');
@@ -135,16 +54,6 @@ export function OrdersListPage() {
   const queryClient = useQueryClient();
   const continueProject = useContinueProject();
   const unseenInvoices = useUnacknowledgedInvoices({ doctorId });
-
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(25);
-
-  const [search, setSearch] = useState('');
-  const [quick, setQuick] = useState<Quick>('all');
-  const [statuses, setStatuses] = useState<OrderStatus[]>([]);
-  const [dateFrom, setDateFrom] = useState<Dayjs | null>(null);
-  const [dateTo, setDateTo] = useState<Dayjs | null>(null);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const [draftModalOpen, setDraftModalOpen] = useState(false);
   const [draftSeen, setDraftSeen] = useState(false);
@@ -197,95 +106,40 @@ export function OrdersListPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select(
-          'id, order_code, status, payment_status, generated_total, final_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, service_snapshot, lab_id, patient_id, continues_order_id, ' +
-            'patients(first_name, last_name), labs(public_name), lab_services(name), order_clarifications(answered_at, resolved_by_edit_at)',
-        )
+        .select(LIST_ORDER_SELECT)
         .eq('doctor_id', doctorId!)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as Row[];
+      return (data ?? []) as unknown as ListOrderRow[];
     },
   });
 
-  const hasFilters = !!(
-    search ||
-    quick !== 'all' ||
-    statuses.length > 0 ||
-    dateFrom?.isValid() ||
-    dateTo?.isValid()
-  );
+  // The subtitle's "clinic, branch" — the doctor's default work location. Same
+  // key and query as the work-locations page, so the two share one cache entry
+  // and an edit there refreshes the line here.
+  const { data: locations = [] } = useQuery({
+    queryKey: ['doctor-work-locations', doctorId],
+    enabled: !!doctorId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('doctor_work_locations')
+        .select('*')
+        .eq('doctor_id', doctorId!)
+        .is('archived_at', null)
+        .order('is_default', { ascending: false })
+        .order('created_at', { ascending: true });
+      if (error) throw error;
+      return (data ?? []) as DoctorWorkLocationRow[];
+    },
+  });
+  const location = locations[0];
 
-  const filtered = useMemo(() => {
-    let result = orders.filter((row) => matchesQuick(row, quick));
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
-      result = result.filter((row) => {
-        const patient = row.patients
-          ? `${row.patients.first_name} ${row.patients.last_name}`.toLowerCase()
-          : '';
-        const service = (
-          row.lab_services?.name ??
-          row.service_snapshot?.name ??
-          ''
-        ).toLowerCase();
-        const lab = (row.labs?.public_name ?? '').toLowerCase();
-        return (
-          row.order_code.toLowerCase().includes(q) ||
-          patient.includes(q) ||
-          service.includes(q) ||
-          lab.includes(q)
-        );
-      });
-    }
-    if (statuses.length > 0) {
-      result = result.filter((row) => statuses.includes(row.status as OrderStatus));
-    }
-    if (dateFrom?.isValid()) {
-      const from = dateFrom.format('YYYY-MM-DD');
-      result = result.filter((row) => {
-        const due = dueDateOf(row);
-        return due != null && due >= from;
-      });
-    }
-    if (dateTo?.isValid()) {
-      const to = dateTo.format('YYYY-MM-DD');
-      result = result.filter((row) => {
-        const due = dueDateOf(row);
-        return due != null && due <= to;
-      });
-    }
-    // Soonest deadline first. The query orders by created_at, which is a
-    // deterministic base for the tiebreak but the wrong thing to show: this is
-    // a work queue, so it reads by when things are due. Sort a copy.
-    return [...result].sort(byDueDate);
-  }, [orders, quick, search, statuses, dateFrom, dateTo]);
+  const filters = useOrderListFilters(orders);
 
-  const quickCounts = useMemo(
-    () =>
-      Object.fromEntries(
-        QUICK.map((q) => [q, orders.filter((row) => matchesQuick(row, q)).length]),
-      ) as Record<Quick, number>,
-    [orders],
-  );
-
-  const visible = useMemo(
-    () => filtered.slice((page - 1) * pageSize, page * pageSize),
-    [filtered, page, pageSize],
-  );
-
-  useEffect(() => {
-    setPage(1);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, quick, statuses, dateFrom?.format('YYYY-MM-DD'), dateTo?.format('YYYY-MM-DD')]);
-
-  const clearFilters = () => {
-    setSearch('');
-    setQuick('all');
-    setStatuses([]);
-    setDateFrom(null);
-    setDateTo(null);
-  };
+  // Parent order codes for the continuation badges. Resolved from the rows
+  // already loaded, with one batched query for any parent this page didn't
+  // fetch — never a query per row.
+  const parentCodes = useParentOrderCodes(orders);
 
   const handleDraftContinue = () => {
     if (!draft) return;
@@ -303,24 +157,136 @@ export function OrdersListPage() {
     ? `${draft.state.patient.first_name} ${draft.state.patient.last_name}`.trim() || '—'
     : '';
 
-  // Parent order codes for the continuation badges. Resolved from the rows
-  // already loaded, with one batched query for any parent this page didn't
-  // fetch — never a query per row.
-  const parentCodes = useParentOrderCodes(orders);
+  const subtitle = [
+    user ? tc('orderList.doctorName', { name: `${user.first_name} ${user.last_name}` }) : null,
+    location
+      ? [location.clinic_name, location.branch_name].filter(Boolean).join(', ')
+      : null,
+    isLoading ? null : tc('orderList.activeCount', { count: activeCount(orders) }),
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  // A draft is not an order: it matches no status, lab or date, so any filter
+  // hides it rather than pretending it passed.
+  const drafts =
+    draft && !filters.hasFilters
+      ? [
+          {
+            key: 'draft',
+            node: (
+              <DraftCard
+                serviceName={draft.serviceName}
+                meta={[
+                  shortName(draft.state.patient.first_name, draft.state.patient.last_name),
+                  draft.labName,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+                outdated={draftBroken?.broken}
+                onContinue={handleDraftContinue}
+                onDiscard={handleDraftDiscard}
+              />
+            ),
+          },
+        ]
+      : [];
+
+  /**
+   * What can be done from the card itself — the old row footer's actions, plus
+   * the redesign's reply button on a question. The detail screen still has
+   * all of them.
+   */
+  const cardActions = (row: ListOrderRow, group: OrderGroupKey) => {
+    if (row.status === 'CANCELLED') return undefined;
+    if (row.status === 'COMPLETED') {
+      return (
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={<Icon name="add" size={16} />}
+          onClick={() => continueProject.start(row.lab_id, row.patient_id, row.id)}
+        >
+          {t('orders.continueProject')}
+        </Button>
+      );
+    }
+    // The lab is blocked on a change: the change is the action.
+    if (row.status === 'NEEDS_DOCTOR_INPUT') {
+      return (
+        <Button
+          fullWidth
+          variant="contained"
+          size="small"
+          startIcon={<Icon name="edit" size={16} />}
+          onClick={() => navigate(`/doctor/orders/${row.id}/edit`)}
+        >
+          {t('orderDetail.clarification.editCta')}
+        </Button>
+      );
+    }
+    const edit = (
+      <Button
+        size="small"
+        startIcon={<Icon name="edit" size={16} />}
+        onClick={() => navigate(`/doctor/orders/${row.id}/edit`)}
+      >
+        {t('orders.editButton')}
+      </Button>
+    );
+    if (row.status === 'NEEDS_CLARIFICATION' && group === 'needsYou') {
+      return (
+        <>
+          <Button
+            variant="contained"
+            size="small"
+            sx={{ flex: 1 }}
+            startIcon={<Icon name="forum" size={16} />}
+            // The answer box lives in the clarification panel on the order.
+            onClick={() => navigate(`/doctor/orders/${row.id}`)}
+          >
+            {tc('orderList.reply')}
+          </Button>
+          {edit}
+        </>
+      );
+    }
+    if (canComplete(row.status)) {
+      return (
+        <>
+          {edit}
+          <OrderCompletionActions orderId={row.id} status={row.status} />
+        </>
+      );
+    }
+    return edit;
+  };
+
+  const newOrderButton = (
+    <Button
+      variant="contained"
+      component={RouterLink}
+      to="/doctor/marketplace"
+      startIcon={<Icon name="add" size={17} />}
+    >
+      {t('orders.newOrder')}
+    </Button>
+  );
 
   return (
     <>
       <PageHeader
-        title={t('orders.title')}
-        subtitle={t('orders.subtitle')}
+        title={t('nav.orders')}
+        subtitle={subtitle}
         actions={
           <>
             <TextField
-              placeholder={t('orders.filters.search')}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              placeholder={tc('orderList.searchPlaceholder')}
+              value={filters.search}
+              onChange={(e) => filters.setSearch(e.target.value)}
               size="small"
-              sx={{ width: { sm: 250 } }}
+              sx={{ width: { sm: 260 } }}
+              inputProps={{ 'aria-label': tc('orderList.searchPlaceholder') }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -329,11 +295,24 @@ export function OrdersListPage() {
                 ),
               }}
             />
+            {/* The top bar carries "New order" from `md` up; below it the bar
+                has none, so the page keeps its own — a square on a phone, so
+                the search beside it keeps room for its placeholder. */}
+            <Button
+              variant="contained"
+              component={RouterLink}
+              to="/doctor/marketplace"
+              aria-label={t('orders.newOrder')}
+              sx={PHONE_ADD_SX}
+            >
+              <Icon name="add" size={20} />
+            </Button>
             <Button
               variant="contained"
               component={RouterLink}
               to="/doctor/marketplace"
               startIcon={<Icon name="add" size={17} />}
+              sx={{ display: { xs: 'none', sm: 'inline-flex', md: 'none' } }}
             >
               {t('orders.newOrder')}
             </Button>
@@ -377,262 +356,39 @@ export function OrdersListPage() {
         </DialogActions>
       </Dialog>
 
-      <Stack spacing={2}>
-        {/* Unfinished-draft banner — the mockups' brand-tinted resume strip. */}
-        {draft && !isLoading && (
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            alignItems={{ sm: 'center' }}
-            spacing={1.5}
-            sx={(theme) => ({
-              px: 2.25,
-              py: 1.625,
-              borderRadius: '14px',
-              border: 1,
-              borderColor: 'primary.main',
-              bgcolor:
-                theme.palette.mode === 'light'
-                  ? 'rgba(146,146,255,0.09)'
-                  : 'rgba(146,146,255,0.14)',
-            })}
-          >
-            <Icon name="draft" size={21} sx={{ color: 'primary.dark' }} />
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }}>
-                {t('orders.draft.bannerTitle')}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" noWrap>
-                {[draftPatientName, draft.labName, draft.serviceName]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </Typography>
-            </Box>
-            {draftBroken?.broken && (
-              <StatusPill tone="warning">{t('orders.draft.brokenTooltip')}</StatusPill>
-            )}
-            <Button size="small" variant="contained" onClick={handleDraftContinue}>
-              {t('orders.draft.resume')}
-            </Button>
-            <Button size="small" color="inherit" onClick={handleDraftDiscard}>
-              {t('orders.draft.discard')}
-            </Button>
-          </Stack>
-        )}
-
-        {/* Quick filters + the finer controls behind a toggle. */}
-        {!isLoading && orders.length > 0 && (
-          <Box>
-            <PillRow>
-              {QUICK.map((q) => (
-                <ChoicePill
-                  key={q}
-                  selected={quick === q}
-                  count={quickCounts[q]}
-                  onClick={() => setQuick(q)}
-                >
-                  {t(`orders.quick.${q}`)}
-                </ChoicePill>
-              ))}
-              <ChoicePill
-                selected={advancedOpen}
-                onClick={() => setAdvancedOpen((v) => !v)}
-                sx={{ ml: 'auto' }}
-              >
-                <Icon name="tune" size={15} />
-                {t('orders.moreFilters')}
-              </ChoicePill>
-            </PillRow>
-
-            <Collapse in={advancedOpen}>
-              <Stack
-                direction={{ xs: 'column', sm: 'row' }}
-                spacing={1.5}
-                flexWrap="wrap"
-                useFlexGap
-                alignItems={{ sm: 'center' }}
-                sx={{ mt: 1.75 }}
-              >
-                <FormControl size="small" sx={{ minWidth: 190 }}>
-                  <InputLabel>{t('orders.filters.status')}</InputLabel>
-                  <Select
-                    multiple
-                    value={statuses}
-                    onChange={(e) => setStatuses(e.target.value as OrderStatus[])}
-                    input={<OutlinedInput label={t('orders.filters.status')} />}
-                    renderValue={(sel) =>
-                      sel.length === 0 ? '' : sel.map((s) => tc(`orderStatus.${s}`)).join(', ')
-                    }
-                  >
-                    {ALL_STATUSES.map((s) => (
-                      <MenuItem key={s} value={s}>
-                        <Checkbox checked={statuses.includes(s)} size="small" />
-                        <ListItemText primary={tc(`orderStatus.${s}`)} />
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-                <DatePicker
-                  label={t('orders.filters.from')}
-                  value={dateFrom}
-                  onChange={(d) => setDateFrom(d)}
-                  format="YYYY-MM-DD"
-                  slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
-                />
-                <DatePicker
-                  label={t('orders.filters.to')}
-                  value={dateTo}
-                  onChange={(d) => setDateTo(d)}
-                  format="YYYY-MM-DD"
-                  slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
-                />
-                {hasFilters && (
-                  <Button size="small" onClick={clearFilters} sx={{ whiteSpace: 'nowrap' }}>
-                    {t('orders.filters.clear')}
-                  </Button>
-                )}
-              </Stack>
-            </Collapse>
-          </Box>
-        )}
+      <Stack spacing={2.5}>
+        {!isLoading && orders.length > 0 && <OrdersFilterBar filters={filters} />}
 
         {isLoading ? (
-          <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-            <CircularProgress />
-          </Box>
-        ) : orders.length === 0 ? (
+          <OrderListSkeleton />
+        ) : orders.length === 0 && drafts.length === 0 ? (
+          <OrdersEmptyState title={t('orders.empty')} action={newOrderButton} />
+        ) : filters.filtered.length === 0 && filters.hasFilters ? (
           <OrdersEmptyState
-            title={t('orders.empty')}
+            icon="filter_alt_off"
+            title={t('orders.filters.noResults')}
             action={
-              <Button
-                startIcon={<Icon name="add" size={17} />}
-                variant="contained"
-                component={RouterLink}
-                to="/doctor/marketplace"
-              >
-                {t('orders.newOrder')}
+              <Button size="small" onClick={filters.clear}>
+                {t('orders.filters.clear')}
               </Button>
             }
           />
-        ) : filtered.length === 0 ? (
-          <OrdersEmptyState icon="filter_alt_off" title={t('orders.filters.noResults')} />
         ) : (
-          <Stack spacing={2}>
-            <Stack spacing={1.25}>
-              {visible.map((row) => {
-                const patientName = row.patients
-                  ? `${row.patients.first_name} ${row.patients.last_name}`
-                  : '—';
-                const serviceName = row.lab_services?.name ?? row.service_snapshot?.name ?? '';
-                const labName = row.labs?.public_name ?? '';
-                const hasDiscount =
-                  row.final_total != null &&
-                  row.generated_total != null &&
-                  row.final_total < row.generated_total;
-                const total = row.final_total ?? row.generated_total;
-                const dueRaw = dueDateOf(row);
-                const due = dueRaw
-                  ? appendDueWindow(dayjs(dueRaw).format('MMM D'), dueTimeOf(row), tc)
-                  : undefined;
-                const overdue =
-                  !!dueRaw &&
-                  row.status !== 'COMPLETED' &&
-                  row.status !== 'CANCELLED' &&
-                  dayjs(dueRaw).diff(dayjs(), 'day') <= 1;
-                const step = pipelineIndex(row.status as OrderStatus);
-                const needsAction = NEEDS_ACTION.includes(row.status as OrderStatus);
-                const next = step != null ? ORDER_PIPELINE[step + 1] : undefined;
-
-                return (
-                  <OrderRowCard
-                    key={row.id}
-                    lineage={
-                      <LineageBadge
-                        continuesOrderId={row.continues_order_id}
-                        parentCode={parentCodes.get(row.continues_order_id ?? '')}
-                      />
-                    }
-                    invoice={unseenInvoices.has(row.id) ? <InvoiceBadge /> : undefined}
-                    code={row.order_code}
-                    primary={patientName}
-                    secondary={[serviceName, labName].filter(Boolean).join(' · ')}
-                    status={<OrderStatusChip status={row.status} />}
-                    paymentStatus={<PaymentStatusChip status={row.payment_status} />}
-                    total={total != null ? formatGEL(total) : '—'}
-                    originalTotal={hasDiscount ? formatGEL(row.generated_total!) : undefined}
-                    dueDate={due}
-                    dueUrgent={overdue}
-                    avatarText={patientName}
-                    highlight={needsAction}
-                    flag={
-                      needsAction ? (
-                        <StatusPill tone="warning">{tc(`orderStatus.${row.status}`)}</StatusPill>
-                      ) : undefined
-                    }
-                    onClick={() => navigate(`/doctor/orders/${row.id}`)}
-                    progress={
-                      step == null ? undefined : (
-                        <ProgressBar
-                          total={ORDER_PIPELINE.length}
-                          current={step}
-                          complete={row.status === 'COMPLETED'}
-                          caption={
-                            row.status === 'COMPLETED'
-                              ? t('orders.pipelineDone')
-                              : next
-                                ? t('orders.pipelineNext', {
-                                    current: tc(`orderStatus.${ORDER_PIPELINE[step]}`),
-                                    next: tc(`orderStatus.${next}`),
-                                  })
-                                : tc(`orderStatus.${ORDER_PIPELINE[step]}`)
-                          }
-                        />
-                      )
-                    }
-                    footer={
-                      row.status === 'CANCELLED' ? undefined : (
-                        <Stack direction="row" spacing={1} sx={{ px: 2.5, py: 1.25 }}>
-                          {row.status !== 'COMPLETED' && (
-                            <Button
-                              size="small"
-                              startIcon={<Icon name="edit" size={16} />}
-                              onClick={() => navigate(`/doctor/orders/${row.id}/edit`)}
-                            >
-                              {t('orders.editButton')}
-                            </Button>
-                          )}
-                          {canComplete(row.status) && (
-                            <OrderCompletionActions orderId={row.id} status={row.status} />
-                          )}
-                          {row.status === 'COMPLETED' && (
-                            <Button
-                              size="small"
-                              variant="contained"
-                              startIcon={<Icon name="add" size={16} />}
-                              onClick={() =>
-                                continueProject.start(row.lab_id, row.patient_id, row.id)
-                              }
-                            >
-                              {t('orders.continueProject')}
-                            </Button>
-                          )}
-                        </Stack>
-                      )
-                    }
-                  />
-                );
-              })}
-            </Stack>
-            <OrdersPaginator
-              page={page}
-              pageSize={pageSize}
-              total={filtered.length}
-              onPageChange={setPage}
-              onPageSizeChange={(s) => {
-                setPageSize(s);
-                setPage(1);
-              }}
-            />
-          </Stack>
+          <GroupedOrderList
+            rows={filters.filtered}
+            drafts={drafts}
+            resetKey={filters.resetKey}
+            renderCard={(row, group) => (
+              <OrderCard
+                row={row}
+                group={group}
+                href={`/doctor/orders/${row.id}`}
+                invoiceUnseen={unseenInvoices.has(row.id)}
+                parentCode={parentCodes.get(row.continues_order_id ?? '')}
+                actions={cardActions(row, group)}
+              />
+            )}
+          />
         )}
       </Stack>
       {continueProject.modal}
