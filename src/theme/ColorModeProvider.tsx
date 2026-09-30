@@ -34,7 +34,11 @@ export function ColorModeProvider({ children }: PropsWithChildren) {
   const [pref, setPrefState] = useState<ColorPref>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored === 'light' || stored === 'dark' || stored === 'system') return stored;
-    return 'system';
+    // Light for a browser that has never chosen. The 2026-09 redesign is drawn
+    // light-first; dark stays one click away and is derived from its palette.
+    // Only reached with nothing stored — anyone who already has a preference
+    // (chosen, or written here on an earlier visit) keeps it.
+    return 'light';
   });
 
   const mode: PaletteMode = pref === 'system' ? (prefersDark ? 'dark' : 'light') : pref;
@@ -46,7 +50,7 @@ export function ColorModeProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', mode === 'light' ? '#EEF0F5' : '#1E1F2C');
+    if (meta) meta.setAttribute('content', mode === 'light' ? '#F7F9FF' : '#171B2E');
   }, [mode]);
 
   const value = useMemo<ColorModeContextValue>(

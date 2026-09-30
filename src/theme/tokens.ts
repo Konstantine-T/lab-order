@@ -1,24 +1,61 @@
 import { alpha, createTheme, type PaletteMode } from '@mui/material';
 
-// Design tokens extracted from the July 2026 redesign mockups.
-// See docs/superpowers/specs/2026-07-29-design-foundation-design.md.
+// Design tokens from the September 2026 "Redesign & Growth" bundle.
 //
 // Everything below is exported raw as well as baked into the MUI theme, so a
 // one-off `sx` can reach for `tone('warning', mode).bg` instead of pasting a hex
 // and drifting off-system.
+//
+// The redesign's colour story, which the rest of this file encodes:
+//   ink       — the primary action and anything selected (buttons, the chosen
+//               segment of a toggle, the picked material). Not periwinkle.
+//   periwinkle — the brand: links, focus, the logo.
+//   aqua      — done / confirmed, and nothing else: finished steps, a confirmed
+//               price or date, the selected teeth. Dashed grey is "not yet".
+//   gold      — waiting on you.
 
-const BRAND = '#9292FF';
-const BRAND_STRONG = '#5252CC'; // active nav, links on tint
-const BRAND_LINK = '#6E6EE8'; // hover / link
-const BRAND_SOFT = '#B4B4FF'; // avatars; primary on dark
+const INK = '#20263D';
+const INK_2 = '#2B3357';
+const INK_LINE = '#3A4160';
+const INK_TEXT = '#C9D1F5';
+const INK_MUTED = '#8A93B8';
+
+const PERI = '#7987F7';
+const PERI_HOVER = '#6B79EE';
+const PERI_L = '#90A0FD';
+
+const AQUA = '#44C9F6';
+const AQUA_SOFT = '#E6F7FE';
+const AQUA_TEXT = '#0B6B8A';
+
+const GOLD = '#FBCD56';
+const GOLD_SOFT = '#FFF4D6';
+const GOLD_TEXT = '#7A5A00';
+
+const MIST = '#F7F9FF'; // page ground
+const HAIR = '#E6EAF5'; // dividers
+const BORDER = '#E3E7F3'; // card edges
+const CTRL = '#D9DEF0'; // input and control edges
+const CHIP = '#EEF1FB';
+const CHIP_TEXT = '#3F4A6B';
+const DASHED = '#C9D0EA'; // not-yet-done
+const SEC = '#5B6478';
+const MUTED = '#9AA3BD';
+
+// The names the rest of the codebase already reads. BRAND is the periwinkle
+// accent, not the primary colour — primary is ink now.
+const BRAND = PERI;
+const BRAND_STRONG = PERI_HOVER; // active nav, links on tint
+const BRAND_LINK = PERI_HOVER; // hover / link
+const BRAND_SOFT = PERI_L; // avatars; primary on dark
 
 /** Corner radii, in px. */
 export const radii = {
   pill: 999,
-  control: 10,
-  card: 16,
-  tile: 11,
-  chipSm: 8,
+  control: 9,
+  card: 12,
+  tile: 10,
+  chipSm: 7,
 } as const;
 
 /** The only three durations the mockups use. */
@@ -48,9 +85,9 @@ export const layout = {
 
 /** Hover lift for interactive cards, straight from the mockups. */
 export const lift = {
-  card: `0 8px 24px ${alpha(BRAND, 0.12)}`,
-  cardStrong: `0 10px 28px ${alpha(BRAND, 0.1)}`,
-  cta: `0 6px 16px ${alpha(BRAND, 0.3)}`,
+  card: `0 8px 24px ${alpha(INK, 0.07)}`,
+  cardStrong: `0 10px 28px ${alpha(INK, 0.09)}`,
+  cta: `0 6px 16px ${alpha(INK, 0.22)}`,
 } as const;
 
 /**
@@ -91,50 +128,27 @@ export type Tone = 'brand' | 'success' | 'warning' | 'danger' | 'info' | 'neutra
 type ToneStyle = { fg: string; bg: string; border: string; dot: string };
 
 const LIGHT_TONES: Record<Tone, ToneStyle> = {
-  brand: { fg: BRAND_STRONG, bg: alpha(BRAND, 0.12), border: alpha(BRAND, 0.4), dot: BRAND },
-  success: { fg: '#15803D', bg: '#E3F4E8', border: 'rgba(22,163,74,0.25)', dot: '#16A34A' },
-  warning: { fg: '#B45309', bg: '#FEF3E2', border: 'rgba(180,83,9,0.25)', dot: '#F59E0B' },
-  danger: { fg: '#DC2626', bg: '#FDEAEA', border: 'rgba(220,38,38,0.22)', dot: '#DC2626' },
-  // The mockups' sky tone: "Sent to clinic", "Try-in phase", a due date that is
-  // close but not late.
-  info: { fg: '#0369A1', bg: '#E5F3FB', border: 'rgba(3,105,161,0.25)', dot: '#0284C7' },
-  neutral: { fg: '#5B6477', bg: '#FBFBFD', border: 'rgba(15,23,42,0.08)', dot: '#64748B' },
+  brand: { fg: PERI_HOVER, bg: alpha(PERI, 0.12), border: alpha(PERI, 0.35), dot: PERI },
+  // Aqua is "done / confirmed" in the redesign — there is no green in it.
+  success: { fg: AQUA_TEXT, bg: AQUA_SOFT, border: alpha(AQUA, 0.4), dot: AQUA },
+  // Gold is "waiting on you".
+  warning: { fg: GOLD_TEXT, bg: GOLD_SOFT, border: alpha(GOLD, 0.6), dot: GOLD },
+  // The design has no red. Errors, overdue and unpaid still need one.
+  danger: { fg: '#C2334D', bg: '#FDECEF', border: 'rgba(194,51,77,0.22)', dot: '#E0485F' },
+  // Handed over / in someone else's hands. Kept off aqua so aqua stays "done".
+  info: { fg: '#3D4BB8', bg: '#EEF0FF', border: alpha(PERI, 0.3), dot: PERI },
+  neutral: { fg: SEC, bg: CHIP, border: BORDER, dot: MUTED },
 };
 
 // Dark tones follow the pattern the mockups' dark surfaces establish: a light
 // foreground on a ~12% fill with a ~30% border.
 const DARK_TONES: Record<Tone, ToneStyle> = {
-  brand: { fg: BRAND_SOFT, bg: alpha(BRAND, 0.15), border: alpha(BRAND, 0.35), dot: BRAND },
-  success: {
-    fg: '#4ADE80',
-    bg: 'rgba(74,222,128,0.12)',
-    border: 'rgba(74,222,128,0.3)',
-    dot: '#4ADE80',
-  },
-  warning: {
-    fg: '#FBBF24',
-    bg: 'rgba(251,191,36,0.12)',
-    border: 'rgba(251,191,36,0.3)',
-    dot: '#FBBF24',
-  },
-  danger: {
-    fg: '#F87171',
-    bg: 'rgba(248,113,113,0.12)',
-    border: 'rgba(248,113,113,0.3)',
-    dot: '#F87171',
-  },
-  info: {
-    fg: '#7DD3FC',
-    bg: 'rgba(125,211,252,0.12)',
-    border: 'rgba(125,211,252,0.3)',
-    dot: '#7DD3FC',
-  },
-  neutral: {
-    fg: '#A1A6BD',
-    bg: 'rgba(255,255,255,0.04)',
-    border: 'rgba(255,255,255,0.09)',
-    dot: '#8A91A5',
-  },
+  brand: { fg: PERI_L, bg: alpha(PERI, 0.16), border: alpha(PERI, 0.36), dot: PERI },
+  success: { fg: '#7FDCFB', bg: alpha(AQUA, 0.14), border: alpha(AQUA, 0.34), dot: AQUA },
+  warning: { fg: '#FCD877', bg: alpha(GOLD, 0.13), border: alpha(GOLD, 0.32), dot: GOLD },
+  danger: { fg: '#F58A9C', bg: 'rgba(224,72,95,0.14)', border: 'rgba(224,72,95,0.34)', dot: '#E0485F' },
+  info: { fg: '#AEB9FF', bg: alpha(PERI, 0.13), border: alpha(PERI, 0.3), dot: PERI_L },
+  neutral: { fg: INK_MUTED, bg: alpha('#FFFFFF', 0.04), border: INK_LINE, dot: INK_MUTED },
 };
 
 /** Tinted status colours — the fill/text pairing behind pills and alert rows. */
@@ -144,16 +158,24 @@ export const tone = (name: Tone, mode: PaletteMode): ToneStyle =>
 /** Surfaces and text that MUI's palette has no slot for. */
 export const surfaces = {
   light: {
-    subtle: '#FBFBFD',
-    borderSolid: '#E2E5EE',
-    textMuted: '#8A91A5',
+    subtle: MIST,
+    borderSolid: BORDER,
+    textMuted: MUTED,
     sidebar: '#FFFFFF',
+    chip: CHIP,
+    chipText: CHIP_TEXT,
+    control: CTRL,
+    dashed: DASHED,
   },
   dark: {
     subtle: 'rgba(255,255,255,0.03)',
-    borderSolid: 'rgba(255,255,255,0.12)',
-    textMuted: '#5C6175',
-    sidebar: '#1E2036',
+    borderSolid: INK_LINE,
+    textMuted: INK_MUTED,
+    sidebar: INK,
+    chip: alpha('#FFFFFF', 0.06),
+    chipText: INK_TEXT,
+    control: INK_LINE,
+    dashed: '#4A5277',
   },
 } as const;
 
@@ -164,45 +186,65 @@ export const brand = {
   soft: BRAND_SOFT,
 } as const;
 
+/** The redesign's named colours, for the few places a tone doesn't fit. */
+export const palette2026 = {
+  ink: INK,
+  ink2: INK_2,
+  peri: PERI,
+  aqua: AQUA,
+  aquaSoft: AQUA_SOFT,
+  aquaText: AQUA_TEXT,
+  gold: GOLD,
+  goldSoft: GOLD_SOFT,
+  goldText: GOLD_TEXT,
+} as const;
+
 const tokens = (mode: PaletteMode) => {
   const light = mode === 'light';
-  const divider = light ? 'rgba(15, 23, 42, 0.08)' : 'rgba(255, 255, 255, 0.09)';
+  const divider = light ? HAIR : INK_LINE;
 
   return {
     palette: {
       mode,
+      // Ink, not periwinkle: the redesign draws every primary action and every
+      // selected control in ink. On dark, ink would vanish into the ground, so
+      // primary lifts to the light periwinkle there.
       primary: {
-        main: light ? BRAND : BRAND_SOFT,
-        light: light ? BRAND_SOFT : '#D0D0FF',
-        dark: light ? BRAND_LINK : '#8A8AF5',
-        contrastText: '#FFFFFF',
+        main: light ? INK : PERI_L,
+        light: light ? INK_2 : '#B3BEFF',
+        dark: light ? '#151A2C' : PERI,
+        contrastText: light ? '#FFFFFF' : INK,
       },
-      secondary: { main: light ? '#0F172A' : '#E2E8F0' },
-      error: { main: light ? '#DC2626' : '#F87171' },
-      warning: { main: light ? '#F59E0B' : '#FBBF24' },
-      success: { main: light ? '#16A34A' : '#4ADE80' },
-      info: { main: light ? '#0284C7' : '#7DD3FC' },
+      // Periwinkle as a palette slot, so `color="secondary"` reaches the brand.
+      secondary: { main: light ? PERI : PERI_L, contrastText: '#FFFFFF' },
+      error: { main: light ? '#E0485F' : '#F58A9C' },
+      warning: { main: GOLD, contrastText: GOLD_TEXT },
+      success: { main: AQUA, contrastText: light ? AQUA_TEXT : INK },
+      info: { main: light ? PERI : PERI_L },
       background: light
-        ? { default: '#EEF0F5', paper: '#FFFFFF' }
-        : // Sourced from the mockups' own dark surfaces (screens index, the
-          // Telegram card); paper is lifted off default so cards separate.
-          { default: '#151628', paper: '#1E2036' },
+        ? { default: MIST, paper: '#FFFFFF' }
+        : // Built from the design's own ink-side tokens (its dark labs panel):
+          // the ground sits below ink so ink-coloured cards separate from it.
+          { default: '#171B2E', paper: INK },
       text: light
-        ? { primary: '#0F172A', secondary: '#5B6477', disabled: '#CBD5E1' }
-        : { primary: '#F1F2FA', secondary: '#A1A6BD', disabled: '#5C6175' },
+        ? { primary: INK, secondary: SEC, disabled: DASHED }
+        : { primary: '#EEF1FB', secondary: INK_TEXT, disabled: '#4A5277' },
       divider,
       action: {
-        hover: alpha(light ? BRAND : BRAND_SOFT, light ? 0.07 : 0.08),
-        selected: alpha(light ? BRAND : BRAND_SOFT, light ? 0.13 : 0.16),
-        focus: alpha(BRAND, 0.2),
+        hover: alpha(light ? INK : PERI_L, light ? 0.045 : 0.08),
+        selected: alpha(light ? PERI : PERI_L, light ? 0.12 : 0.16),
+        focus: alpha(PERI, 0.22),
       },
     },
 
     // Compact scale from the mockups: 17px page titles, 13.5px nav, 12-13px
     // body. Sizes are rem so browser font-size settings still apply.
     typography: {
+      // The redesign sets Latin in Noto Sans Georgian too, so order codes and
+      // prices share the Georgian text's letterforms rather than switching face
+      // mid-line. Inter stays as the fallback for any glyph Noto lacks.
       fontFamily:
-        '"Inter Variable", Inter, "Noto Sans Georgian", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
+        '"Noto Sans Georgian", "Inter Variable", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif',
       h1: { fontSize: '2rem', fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.15 },
       h2: { fontSize: '1.625rem', fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.2 },
       h3: { fontSize: '1.3125rem', fontWeight: 800, letterSpacing: '-0.025em', lineHeight: 1.25 },
@@ -305,17 +347,20 @@ const tokens = (mode: PaletteMode) => {
           contained: {
             fontWeight: 700,
             boxShadow: 'none',
-            '&:hover': {
-              backgroundColor: light ? BRAND_LINK : BRAND_SOFT,
-              boxShadow: `0 8px 20px ${alpha(BRAND, light ? 0.45 : 0.25)}`,
-            },
+            '&:hover': { boxShadow: `0 6px 16px ${alpha(INK, light ? 0.2 : 0.45)}` },
           },
-          // The mockups' secondary action: a white button with a hairline
-          // border that turns brand on hover.
+          // Only primary gets a fixed hover colour. This used to sit on
+          // `contained`, which forced every contained button — an error-red
+          // "discard", say — to periwinkle on hover.
+          containedPrimary: {
+            '&:hover': { backgroundColor: light ? INK_2 : '#B3BEFF' },
+          },
+          // The redesign's secondary action: white, a control-coloured hairline,
+          // ink text; the edge turns periwinkle on hover.
           outlined: {
             backgroundColor: light ? '#FFFFFF' : alpha('#FFFFFF', 0.03),
-            borderColor: light ? 'rgba(15, 23, 42, 0.12)' : 'rgba(255, 255, 255, 0.16)',
-            color: light ? '#0F172A' : '#F1F2FA',
+            borderColor: light ? CTRL : INK_LINE,
+            color: light ? INK : '#EEF1FB',
             '&:hover': {
               borderColor: BRAND,
               backgroundColor: alpha(BRAND, light ? 0.04 : 0.08),
@@ -368,9 +413,8 @@ const tokens = (mode: PaletteMode) => {
             fontSize: '0.8125rem',
             backgroundColor: light ? '#FFFFFF' : alpha('#FFFFFF', 0.02),
             transition: `border-color ${motion.base}, box-shadow ${motion.base}`,
-            '& fieldset': {
-              borderColor: light ? 'rgba(15, 23, 42, 0.1)' : 'rgba(255, 255, 255, 0.14)',
-            },
+            // The design's control edge, a touch stronger than a card's.
+            '& fieldset': { borderColor: light ? CTRL : INK_LINE },
             '&:hover fieldset': { borderColor: alpha(BRAND, 0.5) },
             // The mockups' focus treatment: brand border plus a soft ring,
             // rather than MUI's default border thickening.
@@ -404,7 +448,7 @@ const tokens = (mode: PaletteMode) => {
             paddingInline: 10,
             paddingBlock: 6,
             borderRadius: 8,
-            backgroundColor: light ? '#0F172A' : '#1F1F38',
+            backgroundColor: light ? INK : '#2B3357',
           },
         },
       },
