@@ -1,117 +1,132 @@
-import { alpha, Box, Link, Stack, Typography } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import type { ReactNode } from 'react';
+import { Box, Link, Stack, Typography } from '@mui/material';
+import { Trans, useTranslation } from 'react-i18next';
+import { BrandMark } from '@/components/BrandMark';
 import { Icon } from '@/components/design';
 import { PUBLIC_ROUTES } from '@/features/public/publicRoutes';
 import { LandingNav } from '@/features/public/landing/LandingNav';
-import { FlowCard } from '@/features/public/landing/FlowCard';
+import { HeroOrderCard } from '@/features/public/landing/HeroOrderCard';
+import { LandingCatalog } from '@/features/public/landing/LandingCatalog';
 import { Faq } from '@/features/public/landing/Faq';
+import { LandingFooter } from '@/features/public/landing/LandingFooter';
 import {
-  OrderSheetMock,
-  OrdersListMock,
-  ScreenFrame,
-} from '@/features/public/landing/ScreenMocks';
-import {
-  BrandPill,
-  CheckLine,
   Container,
   Eyebrow,
-  FeatureRow,
-  Lede,
   LinkButton,
+  SectionHead,
   SectionTitle,
 } from '@/features/public/landing/primitives';
-import { NAV_HEIGHT, scrollToAnchor, useLandingTones } from '@/features/public/landing/helpers';
-import { brand, radii } from '@/theme/tokens';
+import {
+  anchoredSx,
+  CHAIN_SITES,
+  CONTACT_EMAIL,
+  landingRadii,
+  listOf,
+  useDocumentMeta,
+  useLandingTones,
+} from '@/features/public/landing/helpers';
+import { palette2026, radii } from '@/theme/tokens';
+
+type Step = { title: string; body: string };
+
+/** Icons for the four "why" tiles, in the order of `why.items`. */
+const WHY_ICONS = ['dentistry', 'sell', 'timeline', 'send'] as const;
 
 /**
- * The front door for anyone without a session — a port of the Claude Design
- * page in `design/Landing Page.dc.html`, section for section.
+ * The dark theme's hairline around a mist surface, drawn inside the box
+ * rather than as a border: a border would take 2px out of the text column,
+ * and the design's tile titles ("სტატუსი რეალურ დროში") fit on one line with
+ * none to spare.
+ */
+const edgeShadow = (edge: string) => (edge === 'transparent' ? 'none' : `inset 0 0 0 1px ${edge}`);
+
+/**
+ * The front door for anyone without a session — the 2026-09 redesign's
+ * landing (`page01` desktop, `page02` phone), section for section: hero with
+ * a live order card, the Dental Chain strip, three steps, why, the two
+ * audiences, the catalogue teaser, FAQ, and the closing CTA with the footer.
  *
- * Every link goes somewhere real: registration and sign-in to their pages,
- * "Laboratories" and "Make an order" to the guest catalogue (the design
- * pointed them at the doctor's marketplace, which needs a session this
- * visitor does not have), section links to in-page anchors, contact to the
- * mailbox the design names. The two "screenshot" slots hold live-built
- * screens rather than images — see `ScreenMocks`.
+ * Every link goes somewhere real. "Send an order" and "Laboratories" go to
+ * the guest catalogue, where a visitor can pick a lab and start an order
+ * before having an account; registration and sign-in go to their pages;
+ * section links scroll in place. What the design shows but the platform
+ * doesn't have yet — ratings, case counts, a verified tick, "invite your
+ * lab", legal pages — is left out rather than faked.
  */
 export function LandingPage() {
   const { t } = useTranslation('landing');
   const tones = useLandingTones();
-  const year = new Date().getFullYear();
-
-  type Step = { title: string; body: string };
-  const steps = t('how.steps', { returnObjects: true }) as Step[];
-  const doctorFeatures = t('doctors.features', { returnObjects: true }) as Step[];
-  const labFeatures = t('labs.features', { returnObjects: true }) as Step[];
-  const before = t('problem.before.items', { returnObjects: true }) as string[];
-  const after = t('problem.after.items', { returnObjects: true }) as string[];
-
-  const DOCTOR_ICONS = ['grid_on', 'payments', 'history', 'edit_note', 'receipt_long'];
-  const LAB_ICONS = ['dashboard_customize', 'sell', 'inbox', 'groups', 'account_balance_wallet'];
-
-  // Anchored sections clear the sticky nav when jumped to.
-  const anchored = { scrollMarginTop: NAV_HEIGHT + 8 };
+  useDocumentMeta(t('meta.title'), t('meta.description'));
 
   return (
-    <Box sx={{ bgcolor: 'background.default', color: 'text.primary', minHeight: '100vh' }}>
-      {/* ---- Hero: nav rides inside the wash so the tint starts at the top ---- */}
-      <Box
+    <Box
+      sx={{
+        bgcolor: tones.ground,
+        color: 'text.primary',
+        minHeight: '100vh',
+        fontSize: '0.9375rem',
+        lineHeight: 1.6,
+        // A guard, not a layout tool: nothing here should be wider than the
+        // viewport, but if a long word ever is, it must not scroll the page
+        // sideways. `clip` (unlike `hidden`) keeps the nav's `sticky` working.
+        overflowX: 'clip',
+      }}
+    >
+      <LandingNav />
+      <Box component="main">
+        <Hero />
+        <ChainStrip />
+        <HowItWorks />
+        <Why />
+        <Audiences />
+        <LandingCatalog />
+        <FaqSection />
+      </Box>
+      <LandingFooter />
+    </Box>
+  );
+}
+
+function Hero() {
+  const { t } = useTranslation('landing');
+  const tones = useLandingTones();
+
+  return (
+    <Box component="section" sx={{ bgcolor: tones.subtle }}>
+      <Container
         sx={{
-          position: 'relative',
-          background: `radial-gradient(900px 420px at 50% -80px, ${alpha(brand.main, 0.18)}, transparent 70%)`,
+          pt: { xs: '36px', sm: '56px', lg: '88px' },
+          pb: { xs: '32px', sm: '56px', lg: '88px' },
+          display: 'grid',
+          gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: 'minmax(0, 1.2fr) minmax(0, 1fr)' },
+          gap: { xs: '28px', sm: '40px', lg: '64px' },
+          alignItems: 'center',
         }}
       >
-        <LandingNav />
-
-        <Container
-          sx={{
-            pt: { xs: 5, md: 9 },
-            pb: 7,
-            textAlign: 'center',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            gap: 2.5,
-          }}
-        >
-          <Box
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              height: 28,
-              px: 1.625,
-              borderRadius: `${radii.pill}px`,
-              bgcolor: tones.brandTint.bg,
-              border: 1,
-              borderColor: tones.brandTint.border,
-              color: tones.brandTint.fg,
-              fontSize: '0.71875rem',
-              fontWeight: 700,
-              letterSpacing: '0.05em',
-              textTransform: 'uppercase',
-            }}
-          >
-            {t('hero.eyebrow')}
-          </Box>
+        <Stack sx={{ gap: { xs: '16px', sm: '22px' }, maxWidth: { sm: 640, lg: 'none' }, minWidth: 0 }}>
+          <Eyebrow>{t('hero.eyebrow')}</Eyebrow>
           <Typography
-            variant="h1"
             component="h1"
             sx={{
-              fontSize: { xs: '2.125rem', sm: '2.75rem', md: '3.25rem' },
-              lineHeight: 1.08,
-              fontWeight: 800,
-              letterSpacing: '-0.03em',
-              maxWidth: 800,
-              textWrap: 'pretty',
+              // The design's clamp(32px, 4.2vw, 48px), with a phone floor low
+              // enough that "ლაბორატორიული" still fits a 320px screen.
+              fontSize: { xs: 'clamp(1.75rem, 8.2vw, 3rem)', lg: '3rem' },
+              lineHeight: 1.15,
+              fontWeight: 700,
+              letterSpacing: '-0.02em',
+              overflowWrap: 'break-word',
             }}
           >
-            {t('hero.title')}
+            <Trans
+              ns="landing"
+              i18nKey="hero.title"
+              components={{ accent: <Box component="span" sx={{ color: tones.accent }} /> }}
+            />
           </Typography>
           <Typography
             sx={{
-              maxWidth: 640,
-              fontSize: { xs: '1rem', md: '1.125rem' },
+              maxWidth: 520,
+              fontSize: { xs: '1rem', sm: '1.125rem' },
               lineHeight: 1.6,
               color: 'text.secondary',
               textWrap: 'pretty',
@@ -121,372 +136,501 @@ export function LandingPage() {
           </Typography>
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
-            spacing={1.5}
-            sx={{ mt: 1, width: { xs: '100%', sm: 'auto' } }}
+            sx={{ gap: { xs: '10px', sm: '12px' }, pt: '6px', flexWrap: 'wrap' }}
           >
-            <LinkButton to="/register/doctor" size="lg">
+            <LinkButton to={PUBLIC_ROUTES.marketplace} variant="primary" size="lg">
               {t('hero.primaryCta')}
             </LinkButton>
             <LinkButton to="/register/lab" variant="outlined" size="lg">
               {t('hero.secondaryCta')}
             </LinkButton>
           </Stack>
-          <Stack direction="row" justifyContent="center" sx={{ flexWrap: 'wrap', gap: { xs: 1.25, sm: 2.5 }, mt: 0.75 }}>
-            <CheckLine>{t('hero.checks.free')}</CheckLine>
-            <CheckLine>{t('hero.checks.noSetup')}</CheckLine>
-            <CheckLine>{t('hero.checks.languages')}</CheckLine>
-          </Stack>
-
-          <FlowCard />
-        </Container>
-      </Box>
-
-      {/* ---- Band: straight to the catalogue ---- */}
-      <Box sx={{ bgcolor: brand.strong, color: '#fff' }}>
-        <Container>
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-            sx={{ py: 4.25, gap: 4, flexWrap: 'wrap' }}
-          >
-            <Stack direction="row" alignItems="center" spacing={2}>
-              <Icon name="science" size={32} sx={{ color: '#fff' }} />
-              <Box>
-                <Typography sx={{ fontSize: '1.3125rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
-                  {t('band.title')}
-                </Typography>
-                <Typography sx={{ fontSize: '0.90625rem', lineHeight: 1.55, color: alpha('#fff', 0.86), mt: 0.375 }}>
-                  {t('band.body')}
-                </Typography>
-              </Box>
-            </Stack>
-            <LinkButton to={PUBLIC_ROUTES.marketplace} variant="onBand" size="lg" endIcon="arrow_forward">
-              {t('band.cta')}
-            </LinkButton>
-          </Stack>
-        </Container>
-      </Box>
-
-      {/* ---- Benefits + the problem ---- */}
-      <Box sx={{ bgcolor: 'background.paper', borderTop: 1, borderBottom: 1, borderColor: 'divider' }}>
-        <Container>
-          <Box
+          {/* The design drops the language list on phones to keep this to one line. */}
+          <Typography
             sx={{
-              pt: { xs: 5, md: 6.5 },
-              pb: { xs: 5, md: 5.75 },
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: 'repeat(3, minmax(0, 1fr))' },
-              gap: { xs: 3.5, md: 4.5 },
+              pt: '2px',
+              fontSize: '0.8125rem',
+              color: 'text.secondary',
+              textAlign: { xs: 'center', sm: 'left' },
             }}
           >
-            {(
-              [
-                ['verified', 'remakes'],
-                ['schedule', 'minutes'],
-                ['payments', 'money'],
-              ] as const
-            ).map(([icon, key]) => (
-              <Stack key={key} spacing={1.125}>
-                <Icon name={icon} size={26} sx={{ color: brand.link }} />
-                <Typography sx={{ fontSize: '1.125rem', fontWeight: 800, letterSpacing: '-0.015em' }}>
-                  {t(`benefits.${key}.title`)}
-                </Typography>
-                <Lede size="0.9375rem">{t(`benefits.${key}.body`)}</Lede>
-              </Stack>
-            ))}
-          </Box>
-
-          <Box sx={{ pb: 7.5 }}>
-            <Stack alignItems="center" spacing={1.5} sx={{ pt: 5.75, borderTop: 1, borderColor: 'divider', textAlign: 'center' }}>
-              <Eyebrow>{t('problem.eyebrow')}</Eyebrow>
-              <SectionTitle maxWidth={680} align="center">
-                {t('problem.title')}
-              </SectionTitle>
-              <Lede maxWidth={620} align="center">
-                {t('problem.body')}
-              </Lede>
-            </Stack>
-
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', md: 'repeat(2, minmax(0, 1fr))' },
-                gap: 2.5,
-                mt: 4.25,
-              }}
-            >
-              <CompareCard
-                icon="phone_in_talk"
-                title={t('problem.before.title')}
-                items={before}
-                itemIcon="close"
-                color={tones.danger.fg}
-                bg={tones.danger.bg}
-                border={tones.danger.border}
-              />
-              <CompareCard
-                icon="task_alt"
-                title={t('problem.after.title')}
-                items={after}
-                itemIcon="check"
-                color={tones.brandTint.fg}
-                bg={tones.brandTint.bg}
-                border={tones.brandTint.border}
-              />
+            {t('hero.trust')}
+            <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
+              {` · ${t('hero.languages')}`}
             </Box>
-          </Box>
-        </Container>
-      </Box>
+          </Typography>
+        </Stack>
 
-      {/* ---- How it works ---- */}
-      <Box id="how" sx={anchored}>
-        <Container sx={{ py: 8 }}>
-          <Stack spacing={1.375} sx={{ mb: 4.25, maxWidth: 660 }}>
-            <Eyebrow>{t('how.eyebrow')}</Eyebrow>
-            <SectionTitle>{t('how.title')}</SectionTitle>
-            <Lede>{t('how.body')}</Lede>
-          </Stack>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' },
-              gap: 2,
-            }}
-          >
-            {steps.map((s, i) => (
-              <Stack
-                key={s.title}
-                spacing={1.25}
-                sx={{
-                  bgcolor: 'background.paper',
-                  border: 1,
-                  borderColor: 'divider',
-                  borderRadius: `${radii.card}px`,
-                  p: 2.75,
-                }}
-              >
-                <Box
-                  sx={{
-                    width: 30,
-                    height: 30,
-                    borderRadius: '50%',
-                    bgcolor: tones.brandTint.bg,
-                    border: 1,
-                    borderColor: tones.brandTint.border,
-                    color: tones.brandTint.fg,
-                    display: 'grid',
-                    placeItems: 'center',
-                    fontSize: '0.84375rem',
-                    fontWeight: 800,
-                  }}
-                >
-                  {i + 1}
-                </Box>
-                <Typography sx={{ fontSize: '1.0625rem', fontWeight: 800, letterSpacing: '-0.015em' }}>
-                  {s.title}
-                </Typography>
-                <Typography sx={{ fontSize: '0.90625rem', lineHeight: 1.65, color: 'text.secondary' }}>
-                  {s.body}
-                </Typography>
-              </Stack>
-            ))}
-          </Box>
-        </Container>
-      </Box>
-
-      {/* ---- For doctors & clinics ---- */}
-      <Box id="doctors" sx={{ ...anchored, bgcolor: 'background.paper', borderTop: 1, borderColor: 'divider' }}>
-        <Container
-          sx={{
-            py: 8,
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)' },
-            gap: { xs: 4, md: 7 },
-            alignItems: 'center',
-          }}
-        >
-          <Stack spacing={2.25}>
-            <BrandPill icon="stethoscope">{t('doctors.pill')}</BrandPill>
-            <SectionTitle>{t('doctors.title')}</SectionTitle>
-            <Stack spacing={2.25}>
-              {doctorFeatures.map((f, i) => (
-                <FeatureRow key={f.title} icon={DOCTOR_ICONS[i]} title={f.title} body={f.body} />
-              ))}
-            </Stack>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25} sx={{ mt: 0.5 }}>
-              <LinkButton to="/register/doctor">{t('doctors.ctaDoctor')}</LinkButton>
-              <LinkButton to="/register/clinic" variant="outlined">
-                {t('doctors.ctaClinic')}
-              </LinkButton>
-            </Stack>
-          </Stack>
-          <ScreenFrame>
-            <OrdersListMock />
-          </ScreenFrame>
-        </Container>
-      </Box>
-
-      {/* ---- For laboratories ---- */}
-      <Box id="labs" sx={{ ...anchored, borderTop: 1, borderColor: 'divider' }}>
-        <Container
-          sx={{
-            py: 8,
-            display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)' },
-            gap: { xs: 4, md: 7 },
-            alignItems: 'center',
-          }}
-        >
-          {/* The design leads with the screen on desktop; on a phone the
-              words come first, so the screen reads as illustration and not
-              as the section itself. */}
-          <Box sx={{ order: { xs: 2, md: 0 } }}>
-            <ScreenFrame>
-              <OrderSheetMock />
-            </ScreenFrame>
-          </Box>
-          <Stack spacing={2.25}>
-            <BrandPill icon="science">{t('labs.pill')}</BrandPill>
-            <SectionTitle>{t('labs.title')}</SectionTitle>
-            <Stack spacing={2.25}>
-              {labFeatures.map((f, i) => (
-                <FeatureRow key={f.title} icon={LAB_ICONS[i]} title={f.title} body={f.body} />
-              ))}
-            </Stack>
-            <Stack direction="row" sx={{ mt: 0.5 }}>
-              <LinkButton to="/register/lab">{t('labs.cta')}</LinkButton>
-            </Stack>
-          </Stack>
-        </Container>
-      </Box>
-
-      {/* ---- FAQ ---- */}
-      <Box id="faq" sx={{ ...anchored, bgcolor: 'background.paper', borderTop: 1, borderColor: 'divider' }}>
-        <Container maxWidth={820} sx={{ py: 8 }}>
-          <SectionTitle sx={{ mb: 3 }}>{t('faq.title')}</SectionTitle>
-          <Faq />
-        </Container>
-      </Box>
-
-      {/* ---- Closing CTA + footer ---- */}
-      <Box sx={{ bgcolor: tones.ink, color: tones.inkText }}>
-        <Container>
-          <Stack alignItems="center" spacing={2} sx={{ py: 8, textAlign: 'center' }}>
-            <SectionTitle maxWidth={620} align="center" color={tones.inkText} sx={{ lineHeight: 1.15 }}>
-              {t('cta.title')}
-            </SectionTitle>
-            <Lede maxWidth={540} align="center" color={tones.inkMuted} size="1rem">
-              {t('cta.body')}
-            </Lede>
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              spacing={1.5}
-              sx={{ mt: 0.75, width: { xs: '100%', sm: 'auto' } }}
-            >
-              <LinkButton to="/register/doctor" variant="soft" size="lg">
-                {t('cta.doctor')}
-              </LinkButton>
-              <LinkButton to="/register/lab" variant="ghostDark" size="lg">
-                {t('cta.lab')}
-              </LinkButton>
-            </Stack>
-            <Stack direction="row" justifyContent="center" sx={{ flexWrap: 'wrap', gap: { xs: 1.25, sm: 2.5 }, mt: 0.25 }}>
-              <CheckLine color={tones.inkMuted} iconColor={brand.soft}>{t('cta.checks.free')}</CheckLine>
-              <CheckLine color={tones.inkMuted} iconColor={brand.soft}>{t('cta.checks.noSetup')}</CheckLine>
-              <CheckLine color={tones.inkMuted} iconColor={brand.soft}>{t('cta.checks.leave')}</CheckLine>
-            </Stack>
-
-            <Stack
-              direction={{ xs: 'column', sm: 'row' }}
-              alignItems="center"
-              justifyContent="space-between"
-              spacing={1.5}
-              sx={{
-                width: '100%',
-                mt: 3.25,
-                pt: 2.75,
-                borderTop: 1,
-                borderColor: 'rgba(255,255,255,0.09)',
-                fontSize: '0.78125rem',
-                color: tones.inkMuted,
-              }}
-            >
-              <span>{t('footer.copyright', { year })}</span>
-              <Stack direction="row" spacing={2.25}>
-                <FooterLink to="/login">{t('footer.signIn')}</FooterLink>
-                <FooterLink to="#faq">{t('footer.faq')}</FooterLink>
-                <FooterLink to="mailto:hello@dentallabs.ge">{t('footer.contact')}</FooterLink>
-              </Stack>
-            </Stack>
-          </Stack>
-        </Container>
-      </Box>
+        <Box sx={{ minWidth: 0, width: '100%', maxWidth: { sm: 600, lg: 'none' } }}>
+          <HeroOrderCard />
+        </Box>
+      </Container>
     </Box>
   );
 }
 
-/** "Phone & paper today" vs "With Dental Labs": a tinted card of four lines. */
-function CompareCard({
-  icon,
-  title,
-  items,
-  itemIcon,
-  color,
-  bg,
-  border,
-}: {
-  icon: string;
-  title: string;
-  items: string[];
-  itemIcon: string;
-  color: string;
-  bg: string;
-  border: string;
-}) {
+/**
+ * "Part of Dental Chain": the sister sites, then this one. There are no logo
+ * files for DentalMall.ge and DentalCourse.ge in the app, so each gets a
+ * neutral glyph in the muted colour instead of an invented mark. On phones
+ * the label takes its own line and the grey descriptions drop, as the
+ * design's phone frame does.
+ */
+function ChainStrip() {
+  const { t } = useTranslation('landing');
+  const tones = useLandingTones();
+
   return (
-    <Stack
-      spacing={2}
-      sx={{ bgcolor: bg, border: 1, borderColor: border, borderRadius: `${radii.card}px`, p: '26px 26px 22px' }}
+    <Box
+      component="section"
+      aria-label="Dental Chain"
+      sx={{ bgcolor: tones.ground, borderTop: 1, borderBottom: 1, borderColor: 'divider' }}
     >
-      <Stack direction="row" alignItems="center" spacing={1.125}>
-        <Icon name={icon} size={21} sx={{ color }} />
-        <Typography sx={{ fontSize: '1.0625rem', fontWeight: 800, letterSpacing: '-0.015em' }}>
-          {title}
+      <Container
+        sx={{
+          py: { xs: '16px', sm: '22px' },
+          display: 'flex',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          columnGap: { xs: '20px', md: '36px' },
+          rowGap: { xs: '10px', sm: '12px' },
+        }}
+      >
+        <Typography
+          sx={{
+            flexBasis: { xs: '100%', sm: 'auto' },
+            fontSize: '0.75rem',
+            fontWeight: 600,
+            letterSpacing: '0.02em',
+            color: 'text.secondary',
+          }}
+        >
+          {t('chain.label')}
         </Typography>
-      </Stack>
-      <Stack spacing={1.5}>
-        {items.map((line) => (
-          <Stack key={line} direction="row" spacing={1.25} alignItems="flex-start">
-            <Icon name={itemIcon} size={19} sx={{ color, mt: 0.25 }} />
-            <Typography sx={{ fontSize: '0.9375rem', lineHeight: 1.55 }}>{line}</Typography>
-          </Stack>
-        ))}
-      </Stack>
-    </Stack>
+        <ChainItem
+          href={CHAIN_SITES.mall.href}
+          mark={<Icon name="storefront" size={22} sx={{ color: tones.muted }} />}
+          name={CHAIN_SITES.mall.name}
+          note={t('chain.mall')}
+        />
+        <ChainItem
+          href={CHAIN_SITES.course.href}
+          mark={<Icon name="stylus_note" size={22} sx={{ color: tones.muted }} />}
+          name={CHAIN_SITES.course.name}
+          note={t('chain.course')}
+        />
+        {/* This site: named, not linked. */}
+        <ChainItem mark={<BrandMark size={22} />} name="Dentallabs.ge" note={t('chain.labs')} />
+      </Container>
+    </Box>
   );
 }
 
-function FooterLink({ to, children }: { to: string; children: string }) {
+function ChainItem({
+  href,
+  mark,
+  name,
+  note,
+}: {
+  href?: string;
+  mark: ReactNode;
+  name: string;
+  note: string;
+}) {
   const tones = useLandingTones();
-  const sx = { color: tones.inkMuted, '&:hover': { color: tones.inkText } } as const;
-  if (to.startsWith('#')) {
-    return (
-      <Link href={to} onClick={scrollToAnchor} underline="none" sx={sx}>
-        {children}
-      </Link>
-    );
-  }
-  if (to.startsWith('mailto:')) {
-    return (
-      <Link href={to} underline="none" sx={sx}>
-        {children}
-      </Link>
-    );
-  }
+  const body = (
+    <>
+      {mark}
+      <span>{name}</span>
+      <Box
+        component="span"
+        sx={{ display: { xs: 'none', sm: 'inline' }, ml: '4px', fontWeight: 500, color: tones.muted }}
+      >
+        {note}
+      </Box>
+    </>
+  );
+  const sx = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '8px',
+    flexShrink: 0,
+    fontSize: '0.875rem',
+    fontWeight: 600,
+    color: 'text.primary',
+    whiteSpace: 'nowrap',
+  } as const;
+
+  if (!href) return <Box sx={sx}>{body}</Box>;
   return (
-    <Link component={RouterLink} to={to} underline="none" sx={sx}>
-      {children}
+    <Link
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      underline="none"
+      sx={{ ...sx, '&:hover': { color: tones.accent } }}
+    >
+      {body}
     </Link>
+  );
+}
+
+function HowItWorks() {
+  const { t } = useTranslation('landing');
+  const tones = useLandingTones();
+  const steps = listOf<Step>(t('how.steps', { returnObjects: true }));
+
+  return (
+    <Box component="section" id="how" sx={anchoredSx}>
+      <Container
+        sx={{
+          pt: { xs: '40px', sm: '72px', lg: '96px' },
+          pb: { xs: '16px', sm: '64px', lg: '80px' },
+          display: 'flex',
+          flexDirection: 'column',
+          gap: { xs: '20px', sm: '44px' },
+        }}
+      >
+        <SectionHead eyebrow={t('how.eyebrow')} title={t('how.title')} />
+        {/* Desktop: three columns under a heavy ink rule. Phones and small
+            tablets: a numbered list with hairlines between the rows. */}
+        <Box
+          component="ol"
+          sx={{
+            listStyle: 'none',
+            m: 0,
+            p: 0,
+            display: 'grid',
+            gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'repeat(3, minmax(0, 1fr))' },
+            gap: { xs: 0, md: '32px', lg: '40px' },
+          }}
+        >
+          {steps.map((s, i) => (
+            <Box
+              component="li"
+              key={s.title}
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'row', md: 'column' },
+                gap: { xs: '16px', md: '14px' },
+                py: { xs: '16px', md: 0 },
+                pt: { md: '22px' },
+                borderTop: { xs: '1px solid', md: '2px solid' },
+                borderColor: { xs: 'divider', md: 'text.primary' },
+                minWidth: 0,
+              }}
+            >
+              <Typography
+                aria-hidden
+                sx={{
+                  width: { xs: 24, md: 'auto' },
+                  flexShrink: 0,
+                  pt: { xs: '2px', md: 0 },
+                  fontSize: '0.8125rem',
+                  fontWeight: 700,
+                  color: tones.accent,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {String(i + 1).padStart(2, '0')}
+              </Typography>
+              <Stack sx={{ gap: { xs: '4px', md: '6px' }, minWidth: 0 }}>
+                <Typography
+                  component="h3"
+                  sx={{
+                    fontSize: { xs: '1rem', md: 'clamp(1.125rem, 1.8vw, 1.25rem)' },
+                    fontWeight: { xs: 600, md: 700 },
+                    lineHeight: 1.3,
+                  }}
+                >
+                  {s.title}
+                </Typography>
+                <Typography
+                  sx={{ fontSize: { xs: '0.8125rem', md: '0.9375rem' }, lineHeight: 1.6, color: 'text.secondary' }}
+                >
+                  {s.body}
+                </Typography>
+              </Stack>
+            </Box>
+          ))}
+        </Box>
+      </Container>
+    </Box>
+  );
+}
+
+function Why() {
+  const { t } = useTranslation('landing');
+  const tones = useLandingTones();
+  const items = listOf<Step>(t('why.items', { returnObjects: true }));
+
+  return (
+    <Box component="section">
+      <Container
+        sx={{
+          pb: { xs: '24px', sm: '80px', lg: '96px' },
+          display: 'flex',
+          flexDirection: 'column',
+          gap: { xs: '16px', sm: '36px' },
+        }}
+      >
+        <SectionHead eyebrow={t('why.eyebrow')} title={t('why.title')} />
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: 'minmax(0, 1fr)',
+              sm: 'repeat(2, minmax(0, 1fr))',
+              lg: 'repeat(4, minmax(0, 1fr))',
+            },
+            gap: { xs: '10px', sm: '20px' },
+          }}
+        >
+          {items.map((it, i) => (
+            <Box
+              key={it.title}
+              sx={{
+                display: 'flex',
+                flexDirection: { xs: 'row', sm: 'column' },
+                alignItems: 'flex-start',
+                gap: '14px',
+                minWidth: 0,
+                p: { xs: '16px', sm: '26px 24px' },
+                bgcolor: tones.subtle,
+                boxShadow: edgeShadow(tones.subtleEdge),
+                borderRadius: `${landingRadii.card}px`,
+              }}
+            >
+              <Box
+                sx={{
+                  width: { xs: 38, sm: 44 },
+                  height: { xs: 38, sm: 44 },
+                  flexShrink: 0,
+                  display: 'grid',
+                  placeItems: 'center',
+                  borderRadius: `${radii.card}px`,
+                  bgcolor: tones.done.bg,
+                  color: tones.done.fg,
+                }}
+              >
+                <Icon name={WHY_ICONS[i] ?? 'check'} size={22} />
+              </Box>
+              <Stack sx={{ gap: '4px', minWidth: 0 }}>
+                <Typography component="h3" sx={{ fontSize: '1rem', fontWeight: 600, lineHeight: 1.35 }}>
+                  {it.title}
+                </Typography>
+                <Typography
+                  sx={{ fontSize: { xs: '0.8125rem', sm: '0.875rem' }, lineHeight: 1.5, color: 'text.secondary' }}
+                >
+                  {it.body}
+                </Typography>
+              </Stack>
+            </Box>
+          ))}
+        </Box>
+      </Container>
+    </Box>
+  );
+}
+
+/** For doctors (mist) and for labs (ink), side by side; stacked below `md`. */
+function Audiences() {
+  const { t } = useTranslation('landing');
+  const tones = useLandingTones();
+  const doctorItems = listOf<string>(t('doctors.items', { returnObjects: true }));
+  const labItems = listOf<string>(t('labs.items', { returnObjects: true }));
+
+  return (
+    <Box component="section">
+      <Container
+        sx={{
+          // The design's phone frame runs 12px here, which glues the catalogue's
+          // eyebrow to the ink card; a little more air reads as a new section.
+          pb: { xs: '32px', sm: '80px', lg: '96px' },
+          display: 'grid',
+          gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'repeat(2, minmax(0, 1fr))' },
+          gap: { xs: '12px', sm: '24px' },
+        }}
+      >
+        <Panel id="doctors" bg={tones.subtle} edge={tones.subtleEdge}>
+          <Eyebrow>{t('doctors.eyebrow')}</Eyebrow>
+          <PanelTitle>{t('doctors.title')}</PanelTitle>
+          <Stack component="ul" sx={{ m: 0, p: 0, listStyle: 'none', gap: '12px' }}>
+            {doctorItems.map((line) => (
+              <PanelItem
+                key={line}
+                marker={
+                  <Box
+                    sx={{
+                      width: 20,
+                      height: 20,
+                      mt: '3px',
+                      flexShrink: 0,
+                      display: 'grid',
+                      placeItems: 'center',
+                      borderRadius: '50%',
+                      bgcolor: tones.done.bg,
+                      color: tones.done.fg,
+                    }}
+                  >
+                    <Icon name="check" size={14} />
+                  </Box>
+                }
+              >
+                {line}
+              </PanelItem>
+            ))}
+          </Stack>
+          <PanelActions>
+            <LinkButton to="/register/doctor" variant="ink">
+              {t('doctors.ctaDoctor')}
+            </LinkButton>
+            <LinkButton to="/register/clinic" variant="outlined">
+              {t('doctors.ctaClinic')}
+            </LinkButton>
+          </PanelActions>
+        </Panel>
+
+        <Panel
+          id="labs"
+          bg={tones.ink}
+          edge={tones.mode === 'dark' ? tones.inkLine : 'transparent'}
+          color="#fff"
+        >
+          <Eyebrow color={palette2026.aqua}>{t('labs.eyebrow')}</Eyebrow>
+          <PanelTitle color="#fff">{t('labs.title')}</PanelTitle>
+          <Stack component="ul" sx={{ m: 0, p: 0, listStyle: 'none', gap: '12px', color: tones.inkText }}>
+            {labItems.map((line) => (
+              <PanelItem
+                key={line}
+                marker={
+                  <Box component="span" aria-hidden sx={{ color: palette2026.aqua, flexShrink: 0 }}>
+                    —
+                  </Box>
+                }
+              >
+                {line}
+              </PanelItem>
+            ))}
+          </Stack>
+          <PanelActions>
+            <LinkButton to="/register/lab" variant="white">
+              {t('labs.cta')}
+            </LinkButton>
+            <Typography
+              sx={{ fontSize: '0.8125rem', color: tones.inkText, textAlign: { xs: 'center', sm: 'left' } }}
+            >
+              {t('labs.concierge')}
+            </Typography>
+          </PanelActions>
+        </Panel>
+      </Container>
+    </Box>
+  );
+}
+
+function Panel({
+  id,
+  bg,
+  edge,
+  color,
+  children,
+}: {
+  id: string;
+  bg: string;
+  edge: string;
+  color?: string;
+  children: ReactNode;
+}) {
+  return (
+    <Box
+      id={id}
+      sx={{
+        ...anchoredSx,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: { xs: '12px', sm: '20px' },
+        minWidth: 0,
+        p: { xs: '24px', sm: '40px' },
+        bgcolor: bg,
+        color,
+        boxShadow: edgeShadow(edge),
+        borderRadius: { xs: `${landingRadii.card}px`, sm: `${landingRadii.panel}px` },
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
+
+function PanelTitle({ children, color }: { children: string; color?: string }) {
+  return (
+    <SectionTitle color={color} sx={{ fontSize: { xs: '1.25rem', sm: 'clamp(1.375rem, 2.2vw, 1.625rem)' } }}>
+      {children}
+    </SectionTitle>
+  );
+}
+
+function PanelItem({ marker, children }: { marker: ReactNode; children: string }) {
+  return (
+    <Box
+      component="li"
+      sx={{ display: 'flex', alignItems: 'flex-start', gap: '12px', fontSize: { xs: '0.875rem', sm: '0.9375rem' } }}
+    >
+      {marker}
+      <span>{children}</span>
+    </Box>
+  );
+}
+
+function PanelActions({ children }: { children: ReactNode }) {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: { xs: 'column', sm: 'row' },
+        alignItems: { xs: 'stretch', sm: 'center' },
+        flexWrap: 'wrap',
+        gap: { xs: '10px', sm: '12px' },
+        pt: '8px',
+      }}
+    >
+      {children}
+    </Box>
+  );
+}
+
+function FaqSection() {
+  const { t } = useTranslation('landing');
+  const tones = useLandingTones();
+
+  return (
+    <Box component="section" id="faq" sx={anchoredSx}>
+      <Container
+        sx={{
+          pb: { xs: '48px', sm: '88px', lg: '104px' },
+          display: 'grid',
+          gridTemplateColumns: { xs: 'minmax(0, 1fr)', md: 'minmax(0, 380px) minmax(0, 1fr)' },
+          gap: { xs: '16px', sm: '32px', md: '64px' },
+          alignItems: 'start',
+        }}
+      >
+        <Stack sx={{ gap: '12px', minWidth: 0 }}>
+          <Eyebrow>{t('faq.eyebrow')}</Eyebrow>
+          <SectionTitle>{t('faq.title')}</SectionTitle>
+          <Typography sx={{ fontSize: '0.9375rem', color: 'text.secondary' }}>
+            {`${t('faq.more')} `}
+            <Link
+              href={`mailto:${CONTACT_EMAIL}`}
+              underline="hover"
+              sx={{ color: tones.accent, fontWeight: 600, overflowWrap: 'anywhere' }}
+            >
+              {CONTACT_EMAIL}
+            </Link>
+          </Typography>
+        </Stack>
+        <Faq />
+      </Container>
+    </Box>
   );
 }

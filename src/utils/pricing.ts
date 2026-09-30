@@ -1,5 +1,7 @@
-import type { PricingConfig, RushType } from '@/types/database';
+import type { MaterialOption, PricingConfig, RushType } from '@/types/database';
 import { isModelTemplateCode } from '@/features/orderForms/modelTypes';
+import { SG_SUPPORT_TYPES } from '@/features/orderForms/sgTypes';
+import { TEMPLATE_CODE_PRINT } from '@/features/orderForms/fabTypes';
 
 export type PriceLineItem = {
   label: string;
@@ -513,4 +515,131 @@ export function formatGEL(amount: number): string {
     currency: 'GEL',
     maximumFractionDigits: 2,
   }).format(amount);
+}
+
+const NBSP = '\u00A0';
+
+/**
+ * "145 ₾", "145.5 ₾", "1 500 ₾" — the redesign's short price: the lari sign
+ * after the number and no forced decimals. Both spaces are no-break spaces, so
+ * a narrow chip never strands the ₾ (or half a thousand) on a line of its own.
+ */
+export function formatGELShort(amount: number): string {
+  const n = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(amount);
+  return `${n.replace(/,/g, NBSP)}${NBSP}₾`;
+}
+
+/** What a "from" price buys: one tooth, one jaw, one implant, or a whole order. */
+export type StartingPrice = { amount: number; per: 'tooth' | 'jaw' | 'implant' | 'order' };
+
+/**
+ * A price the lab actually set: a finite number above zero. Anything else —
+ * unset, 0, NaN, a stray string — is "not priced": `calculatePrice` would turn
+ * it into 0, and a card must never advertise "from 0".
+ */
+function positivePrice(v: unknown): number | null {
+  return typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : null;
+}
+
+function cheapestMaterial(materials: MaterialOption[] | undefined): number | null {
+  let min: number | null = null;
+  for (const m of materials ?? []) {
+    const p = positivePrice(m?.unit_price);
+    if (p !== null && (min === null || p < min)) min = p;
+  }
+  return min;
+}
+
+/**
+ * Lowest price a service advertises, for "from X ₾" on cards; null when it
+ * publishes no number.
+ *
+ * `calculatePrice` needs the doctor's answers to pick its rule and a card has
+ * none, so this reads the rule off the config alone — in `pricingShape`'s
+ * order, each answer-dependent test replaced by the config field that branch
+ * prices from. The amount is always one the doctor can reproduce on the next
+ * click: the smallest order the form accepts, with the cheapest option at
+ * every choice. Optional extras (rush, the Evident Smile gingival guide) stay
+ * out, as on any "from" price.
+ *
+ * `templateCode` only matters for Print, whose materials are priced per typed
+ * unit rather than per tooth; without it a material list reads as per tooth.
+ */
+export function startingPrice(
+  pricing: PricingConfig | null | undefined,
+  templateCode?: string | null,
+): StartingPrice | null {
+  if (!pricing) return null;
+
+  if (pricing.model === 'FIXED_PRICE') {
+    const amount = positivePrice(pricing.fixed_price);
+    return amount === null ? null : { amount, per: 'order' };
+  }
+  // LAB_DESCRIBED prices in prose, NO_PRICING not at all, and an unknown model
+  // is priced at 0 — none of them has a number to show.
+  if (pricing.model !== 'UNIT_BASED') return null;
+
+  // Model printing. The field's mere presence routes `calculatePrice` here, so
+  // an unset per-jaw price means no number, not a fall-through to another rule.
+  if (pricing.model_per_jaw_price !== undefined) {
+    const amount = positivePrice(pricing.model_per_jaw_price);
+    return amount === null ? null : { amount, per: 'jaw' };
+  }
+
+  // Crown & bridge, temporary crowns, titanium milling, Evident Smile, Print,
+  // Milling. Every tooth takes one material from the lab's list at that
+  // material's `unit_price` — a bridge's pontic too, there is no separate
+  // pontic or per-unit rate — so the cheapest listed material is exactly what
+  // a one-tooth order costs. Print counts typed units, not teeth; its smallest
+  // order is one unit, so there the same figure is the price of a whole order.
+  if (Array.isArray(pricing.materials)) {
+    const amount = cheapestMaterial(pricing.materials);
+    if (amount === null) return null;
+    return { amount, per: templateCode === TEMPLATE_CODE_PRINT ? 'order' : 'tooth' };
+  }
+
+  // Surgical guide: the protocol's price per implant, plus a fee per guide for
+  // its support type, which the doctor must pick. While some support type is
+  // free the per-implant rate is the honest headline. When the lab charges for
+  // every type, the rate alone would undercut every order it can take, so the
+  // cheapest whole order is shown instead: one implant on the cheapest support.
+  if (
+    pricing.sg_pilot_unit_price !== undefined ||
+    pricing.sg_full_protocol_unit_price !== undefined ||
+    pricing.sg_support_fees !== undefined
+  ) {
+    const rates = [pricing.sg_pilot_unit_price, pricing.sg_full_protocol_unit_price]
+      .map(positivePrice)
+      .filter((p): p is number => p !== null);
+    if (rates.length === 0) return null;
+    const rate = Math.min(...rates);
+    const fee = Math.min(
+      ...SG_SUPPORT_TYPES.map(
+        (type) =>
+          positivePrice(
+            (pricing.sg_support_fees ?? []).find((f) => f.supportType === type)?.extra_fee,
+          ) ?? 0,
+      ),
+    );
+    return fee > 0 ? { amount: rate + fee, per: 'order' } : { amount: rate, per: 'implant' };
+  }
+
+  // Constructions on implants. There is no honest per-implant total: the
+  // abutment is a tree of separately priced parts (type, then material, shape
+  // and retention, or hex and connection) that labs often leave at 0, the
+  // doctor may answer "already in mouth" or "lab decides" — both 0 in the
+  // estimate — and the crown is optional. So the cheapest priced part alone
+  // (a 5 ₾ Ti-base, in real data) would advertise a restoration at the price
+  // of a component, and any bundle would be one we made up. The crown is the
+  // figure that stands on its own: the lab lists it per tooth, exactly like
+  // crown & bridge, and a crown on an abutment already in the mouth costs
+  // exactly that. No crown priced, nothing to show.
+  if (pricing.implant_price_config !== undefined || pricing.implant_crown_materials !== undefined) {
+    const amount = cheapestMaterial(pricing.implant_crown_materials);
+    return amount === null ? null : { amount, per: 'tooth' };
+  }
+
+  // Everything else: one global price per selected tooth.
+  const amount = positivePrice(pricing.unit_price);
+  return amount === null ? null : { amount, per: 'tooth' };
 }

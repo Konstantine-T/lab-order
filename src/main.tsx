@@ -23,6 +23,11 @@ import { queryClient } from '@/lib/queryClient';
 import { AuthProvider } from '@/auth/AuthProvider';
 import { App } from '@/App';
 
+// index.html carries the landing page's long Georgian title for crawlers and
+// link previews. Inside the app the tab says just the product name; the
+// landing sets its own title while mounted and restores this one on leaving.
+document.title = 'Dentallabs.ge';
+
 const container = document.getElementById('root');
 if (!container) throw new Error('Root container missing');
 

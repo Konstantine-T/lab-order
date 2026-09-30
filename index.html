@@ -1,12 +1,66 @@
 <!doctype html>
-<html lang="en">
+<!-- lang is the default (Georgian) audience; src/i18n/index.ts rewrites it at
+     runtime to whichever language the visitor ends up in. -->
+<html lang="ka">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="theme-color" content="#ffffff" />
-    <meta name="description" content="Multi-lab dental order intake and billing platform." />
-    <title>Dental Labs</title>
+    <!-- The light page ground (tokens.ts MIST). ColorModeProvider overwrites it
+         at runtime per colour mode, so keep the two in step. -->
+    <meta name="theme-color" content="#F7F9FF" />
+
+    <!-- Search and link previews. These are static — crawlers and chat apps
+         (WhatsApp, Facebook, Telegram) don't run the SPA — so they carry the
+         Georgian landing copy from src/locales/ka/landing.json (meta.*); keep
+         them in step with it.
+         No hreflang: every page has one URL and the language switches client
+         side, so ka/en/ru alternates would all point at the same address.
+         No og:url / canonical either: this file is served for every route
+         (vercel.json rewrite), and a fixed URL would fold shares of a lab's
+         page into the homepage. -->
+    <title>Dentallabs.ge — სტომატოლოგიური ლაბორატორიების ონლაინ შეკვეთა | Dental Chain</title>
+    <meta
+      name="description"
+      content="აირჩიე ლაბორატორია, მონიშნე კბილები სქემაზე და გაგზავნე შეკვეთა 5 წუთში. დადასტურებული ფასი და ვადა, ინვოისი ერთ ადგილას."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Dentallabs.ge" />
+    <meta
+      property="og:title"
+      content="Dentallabs.ge — სტომატოლოგიური ლაბორატორიების ონლაინ შეკვეთა | Dental Chain"
+    />
+    <meta
+      property="og:description"
+      content="აირჩიე ლაბორატორია, მონიშნე კბილები სქემაზე და გაგზავნე შეკვეთა 5 წუთში. დადასტურებული ფასი და ვადა, ინვოისი ერთ ადგილას."
+    />
+    <meta property="og:image" content="https://lab-order.vercel.app/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="Dentallabs.ge — ლაბორატორიული შეკვეთა 5 წუთში. ზარების გარეშე."
+    />
+    <meta property="og:locale" content="ka_GE" />
+    <meta property="og:locale:alternate" content="en_US" />
+    <meta property="og:locale:alternate" content="ru_RU" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Dentallabs.ge — სტომატოლოგიური ლაბორატორიების ონლაინ შეკვეთა | Dental Chain"
+    />
+    <meta
+      name="twitter:description"
+      content="აირჩიე ლაბორატორია, მონიშნე კბილები სქემაზე და გაგზავნე შეკვეთა 5 წუთში. დადასტურებული ფასი და ვადა, ინვოისი ერთ ადგილას."
+    />
+    <meta name="twitter:image" content="https://lab-order.vercel.app/og-image.png" />
+    <meta
+      name="twitter:image:alt"
+      content="Dentallabs.ge — ლაბორატორიული შეკვეთა 5 წუთში. ზარების გარეშე."
+    />
+
     <!-- Fonts are self-hosted and imported in src/main.tsx (@fontsource +
          material-symbols). Do not re-add a Google Fonts <link> here: it would
          ship both copies and reintroduce the offline/CSP problem. -->
