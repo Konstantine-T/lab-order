@@ -47,7 +47,9 @@ export function ChoicePill({
           gap: 0.875,
           px: md ? 2.25 : 1.875,
           py: md ? 1 : 0.875,
-          borderRadius: `${radii.pill}px`,
+          // A rounded rectangle, not a full pill: the redesign draws every
+          // choice — materials, shades, yes/no, sex — at control radius.
+          borderRadius: `${radii.control}px`,
           border: 1,
           fontFamily: 'inherit',
           fontSize: md ? '0.84375rem' : '0.78125rem',

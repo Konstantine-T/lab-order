@@ -111,11 +111,16 @@ export function isCnbTemplate(code: string | undefined | null): boolean {
 // never reads as "selected by the app", and harmonious with the soft
 // luxury palette overall.
 export const MATERIAL_COLORS: readonly string[] = [
-  '#6366F1', // indigo (sister to brand, slightly bolder)
+  // Aqua first: the redesign draws selected teeth aqua, and a single-material
+  // order — the common case, and the design's own example — only ever uses
+  // the first slot. More materials still get telling-apart colours below.
+  '#44C9F6', // aqua (the redesign's "selected / confirmed")
   '#F59E0B', // amber
   '#10B981', // emerald
   '#EC4899', // pink
-  '#0EA5E9', // sky
+  // Was sky, which sat right next to aqua; periwinkle is the brand and is
+  // clearly distinct from it.
+  '#7987F7', // periwinkle
 ];
 
 export const MAX_MATERIALS = 5;

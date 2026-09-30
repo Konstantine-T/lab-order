@@ -41,13 +41,16 @@ export function NumberedSection({
   return (
     <Stack spacing={1.75}>
       <Stack direction="row" spacing={1.25} alignItems="center" flexWrap="wrap">
+        {/* A rounded square rather than a circle, as the redesign draws it —
+            and one that can widen, since a grouped section is numbered "3–7". */}
         <Box
           sx={{
-            width: 26,
+            minWidth: 26,
             height: 26,
-            borderRadius: '50%',
+            px: 0.75,
+            borderRadius: `${radii.chipSm}px`,
             bgcolor: alpha(brand.main, 0.13),
-            color: 'primary.dark',
+            color: brand.strong,
             display: 'grid',
             placeItems: 'center',
             fontSize: '0.78125rem',

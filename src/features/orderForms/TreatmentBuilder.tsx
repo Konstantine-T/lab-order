@@ -160,24 +160,28 @@ export function TreatmentBuilder({
                   onSelectMaterial(mat.id);
                 }
               }}
+              // Selected is ink, like every other choice in the redesign — not
+              // the material's own colour. The colour survives as the dot,
+              // which is what ties a material to its teeth on the chart when
+              // an order mixes materials.
               sx={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: 1,
-                px: 1.875,
-                py: 1,
-                borderRadius: `${radii.pill}px`,
-                border: 2,
-                borderColor: isSel ? color : 'divider',
-                bgcolor: isSel ? color : 'background.paper',
-                color: isSel ? '#ffffff' : 'text.primary',
+                px: 1.75,
+                py: 0.875,
+                borderRadius: `${radii.control}px`,
+                border: 1,
+                borderColor: isSel ? 'primary.main' : 'divider',
+                bgcolor: isSel ? 'primary.main' : 'background.paper',
+                color: isSel ? 'primary.contrastText' : 'text.primary',
                 fontWeight: 600,
                 fontSize: '0.8125rem',
                 lineHeight: 1.3,
                 cursor: readOnly ? 'default' : 'pointer',
                 userSelect: 'none',
                 transition: `all ${motion.base}`,
-                '&:hover': readOnly ? {} : { borderColor: color },
+                '&:hover': readOnly ? {} : { borderColor: 'primary.main' },
               }}
             >
               <Box

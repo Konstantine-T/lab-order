@@ -1,7 +1,7 @@
-import { alpha, Box, Stack, Typography } from '@mui/material';
+import { alpha, Box, Stack, Typography, useTheme } from '@mui/material';
 import type { ReactNode } from 'react';
 import { Icon } from '@/components/design/Icon';
-import { brand } from '@/theme/tokens';
+import { palette2026, surfaces } from '@/theme/tokens';
 
 export type Step = {
   key: string;
@@ -30,15 +30,19 @@ export function ProgressSteps({
   current: number;
   complete?: boolean;
 }) {
+  const mode = useTheme().palette.mode;
+  // "Not yet" is dashed grey; the current stage's label reads in aqua text.
+  const dashedColor = surfaces[mode].dashed;
+  const activeText = mode === 'light' ? palette2026.aquaText : '#7FDCFB';
   return (
     <Stack
       direction={{ xs: 'column', sm: 'row' }}
       alignItems={{ xs: 'stretch', sm: 'flex-start' }}
       sx={{
         '@keyframes lo-pulse': {
-          '0%': { boxShadow: `0 0 0 0 ${alpha(brand.main, 0.5)}` },
-          '70%': { boxShadow: `0 0 0 7px ${alpha(brand.main, 0)}` },
-          '100%': { boxShadow: `0 0 0 0 ${alpha(brand.main, 0)}` },
+          '0%': { boxShadow: `0 0 0 0 ${alpha(palette2026.aqua, 0.5)}` },
+          '70%': { boxShadow: `0 0 0 7px ${alpha(palette2026.aqua, 0)}` },
+          '100%': { boxShadow: `0 0 0 0 ${alpha(palette2026.aqua, 0)}` },
         },
       }}
     >
@@ -67,8 +71,12 @@ export function ProgressSteps({
                     right: 'calc(50% + 20px)',
                     left: 'calc(-50% + 20px)',
                     top: 15,
-                    height: 2,
-                    bgcolor: done || active ? 'success.main' : 'divider',
+                    // Reached is solid aqua; not-yet is dashed — the redesign's
+                    // "not done" is a dashed line, not a paler solid one.
+                    height: 0,
+                    borderTop: '2px solid',
+                    borderTopStyle: done || active ? 'solid' : 'dashed',
+                    borderColor: done || active ? 'success.main' : dashedColor,
                   }}
                 />
               )}
@@ -82,14 +90,18 @@ export function ProgressSteps({
                   placeItems: 'center',
                   zIndex: 1,
                   ...(done && { bgcolor: 'success.main', color: '#fff' }),
+                  // The current stage is an aqua ring, not a filled bubble:
+                  // filled is reserved for stages that are finished.
                   ...(active && {
-                    bgcolor: 'primary.main',
-                    color: '#fff',
+                    bgcolor: 'background.paper',
+                    border: '2px solid',
+                    borderColor: 'success.main',
+                    color: 'success.main',
                     animation: 'lo-pulse 2s infinite',
                   }),
                   ...(future && {
-                    border: '2px solid',
-                    borderColor: 'divider',
+                    border: '2px dashed',
+                    borderColor: dashedColor,
                     color: 'text.secondary',
                   }),
                 }}
@@ -101,7 +113,7 @@ export function ProgressSteps({
                   sx={{
                     fontSize: '0.71875rem',
                     fontWeight: done || active ? 700 : 600,
-                    color: active ? 'primary.dark' : 'text.primary',
+                    color: active ? activeText : 'text.primary',
                   }}
                 >
                   {step.label}
@@ -117,11 +129,13 @@ export function ProgressSteps({
               <Box
                 sx={{
                   display: { xs: 'block', sm: 'none' },
-                  width: 2,
+                  width: 0,
                   height: 14,
                   ml: '15px',
                   my: 0.5,
-                  bgcolor: done ? 'success.main' : 'divider',
+                  borderLeft: '2px solid',
+                  borderLeftStyle: done ? 'solid' : 'dashed',
+                  borderColor: done ? 'success.main' : dashedColor,
                 }}
               />
             )}
@@ -133,8 +147,9 @@ export function ProgressSteps({
 }
 
 /**
- * The six-segment mini bar under each order row in the doctor's list: green
- * behind, brand for the current stage, grey ahead.
+ * The six-segment mini bar under each order row in the doctor's list: aqua up
+ * to and including the current stage, light grey ahead — as the redesign's
+ * order cards draw it.
  */
 export function ProgressBar({
   total,
@@ -156,12 +171,7 @@ export function ProgressBar({
             flex: 1,
             height: 4,
             borderRadius: '99px',
-            bgcolor:
-              complete || i < current
-                ? 'success.main'
-                : i === current
-                  ? 'primary.main'
-                  : 'divider',
+            bgcolor: complete || i <= current ? 'success.main' : 'divider',
           }}
         />
       ))}

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Box, Stack, useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { MetaChip } from '@/components/design';
+import { palette2026 } from '@/theme/tokens';
 
 // Universal Numbering System (1–32) — adult permanent dentition.
 //   1–16: maxillary (upper), patient's right (1) → patient's left (16)
@@ -128,7 +129,7 @@ export function ToothMap({
   const isLight = theme.palette.mode === 'light';
   const baseStroke = isLight ? 'rgba(15, 23, 42, 0.55)' : 'rgba(229, 231, 240, 0.7)';
   const midlineStroke = isLight ? 'rgba(15, 23, 42, 0.18)' : 'rgba(229, 231, 240, 0.22)';
-  const labelColor = isLight ? '#0F172A' : '#E5E7F0';
+  const labelColor = isLight ? palette2026.ink : '#E5E7F0';
   // The mockups' quiet arch captions — present but never competing with a tooth.
   const axisColor = isLight ? 'rgba(15, 23, 42, 0.26)' : 'rgba(229, 231, 240, 0.3)';
   const sideColor = isLight ? 'rgba(15, 23, 42, 0.35)' : 'rgba(229, 231, 240, 0.4)';
@@ -219,19 +220,22 @@ export function ToothMap({
             const isHov = hovered === t.num;
             const colorOverride = toothColors?.[t.num];
             const isRestricted = restrictToTeeth ? !restrictToTeeth.has(t.num) : false;
+            // Aqua for a selected tooth: the redesign's "selected / confirmed"
+            // colour. Colour only — the TEETH outlines, the viewBox and the
+            // LABELS are frozen and must not change with any design.
             const fill = colorOverride
               ? colorOverride
               : isSel
-                ? theme.palette.primary.main
+                ? palette2026.aqua
                 : isHov && !isRestricted
                   ? theme.palette.action.hover
                   : theme.palette.background.paper;
             const stroke = colorOverride
               ? colorOverride
               : isSel
-                ? theme.palette.primary.dark
+                ? palette2026.aquaText
                 : isHov && !isRestricted
-                  ? theme.palette.primary.light
+                  ? palette2026.peri
                   : baseStroke;
             const sw = isSel || colorOverride ? 1.8 : 1.4;
 
@@ -280,7 +284,7 @@ export function ToothMap({
                   cx={pos.x}
                   cy={pos.y}
                   r={5}
-                  fill={isSel ? theme.palette.primary.contrastText : labelColor}
+                  fill={isSel ? '#FFFFFF' : labelColor}
                   style={{ pointerEvents: 'none' }}
                 />
               );
@@ -299,7 +303,7 @@ export function ToothMap({
                   hasColor
                     ? '#ffffff'
                     : isSel
-                      ? theme.palette.primary.contrastText
+                      ? '#FFFFFF'
                       : labelColor
                 }
                 style={{ pointerEvents: 'none', userSelect: 'none' }}
