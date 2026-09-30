@@ -46,7 +46,7 @@ export function Eyebrow({ children, color }: { children: ReactNode; color?: stri
         lineHeight: 1.5,
         letterSpacing: '0.08em',
         textTransform: 'uppercase',
-        color: color ?? tones.accent,
+        color: color ?? tones.accentText,
       }}
     >
       {children}
@@ -131,9 +131,9 @@ export function ArrowLink({
     alignSelf: 'flex-start',
     fontSize: small ? '0.8125rem' : '0.9375rem',
     fontWeight: 600,
-    color: tones.accent,
+    color: tones.accentText,
     whiteSpace: 'nowrap',
-    '&:hover': { color: brand.strong },
+    '&:hover': { color: tones.accentTextHover },
   } as const;
   const arrow = <Icon name="arrow_forward" size={small ? 15 : 17} />;
   if (isHash(to) || isMail(to) || isWeb(to)) {

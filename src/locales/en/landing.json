@@ -22,7 +22,7 @@
   },
   "hero": {
     "eyebrow": "Digital lab orders",
-    "title": "Lab orders <accent>in 5 minutes</accent>. No phone calls.",
+    "title": "Lab orders <accent>in 5 minutes</accent>. No phone calls.",
     "subtitle": "Pick a lab, mark the teeth on the chart, upload the scan. Price and due date — confirmed in writing.",
     "primaryCta": "Send an order",
     "secondaryCta": "Register your lab",
@@ -65,7 +65,7 @@
       },
       {
         "title": "Fill in the order on the chart",
-        "body": "Teeth, material, shade, scan — in 5 minutes."
+        "body": "Teeth, material, shade, scan — in 5 minutes."
       },
       {
         "title": "Get it confirmed",
@@ -156,7 +156,7 @@
     ]
   },
   "cta": {
-    "title": "Your next order — in 5 minutes",
+    "title": "Your next order — in 5 minutes",
     "body": "No contract, no setup fee.",
     "primary": "Send an order",
     "secondary": "Register your lab"

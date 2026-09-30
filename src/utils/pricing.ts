@@ -559,11 +559,13 @@ function cheapestMaterial(materials: MaterialOption[] | undefined): number | nul
  * order, each answer-dependent test replaced by the config field that branch
  * prices from. The amount is always one the doctor can reproduce on the next
  * click: the smallest order the form accepts, with the cheapest option at
- * every choice. Optional extras (rush, the Evident Smile gingival guide) stay
- * out, as on any "from" price.
+ * every choice — except implants, where it is the cheapest crown on an
+ * abutment already in place (see that branch). Optional extras (rush, the
+ * Evident Smile gingival guide) stay out, as on any "from" price.
  *
- * `templateCode` only matters for Print, whose materials are priced per typed
- * unit rather than per tooth; without it a material list reads as per tooth.
+ * `templateCode` matters for Print, whose materials are priced per typed unit
+ * rather than per tooth, and for lab-built custom forms, which have no teeth
+ * to multiply a unit price by. Without it a material list reads as per tooth.
  */
 export function startingPrice(
   pricing: PricingConfig | null | undefined,
@@ -639,7 +641,11 @@ export function startingPrice(
     return amount === null ? null : { amount, per: 'tooth' };
   }
 
-  // Everything else: one global price per selected tooth.
+  // Everything else: one global price per selected tooth — which needs a
+  // `teeth` answer. A lab-built custom form keys its questions `q_xxxxxxxx`
+  // and has no tooth picker, so every order on it prices at 0: advertising
+  // the unit price there would be a number no doctor can reproduce.
+  if (templateCode === 'OTHER_CUSTOM') return null;
   const amount = positivePrice(pricing.unit_price);
   return amount === null ? null : { amount, per: 'tooth' };
 }

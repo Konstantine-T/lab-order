@@ -1,4 +1,4 @@
-import { useRef, useState, type MouseEvent } from 'react';
+import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import {
   alpha,
   Box,
@@ -52,6 +52,11 @@ export function LandingNav() {
   const tones = useLandingTones();
   const wide = useMediaQuery(theme.breakpoints.up('lg'));
   const [open, setOpen] = useState(false);
+  // Closing only by hiding (`open && !wide`) left `open` true, so a tablet
+  // rotated to landscape and back got the sheet back, unasked.
+  useEffect(() => {
+    if (wide) setOpen(false);
+  }, [wide]);
   // A scroll asked for from inside the sheet runs once the sheet has gone:
   // while it is open the page is scroll-locked, and focus returns to the
   // hamburger on close.
@@ -147,7 +152,7 @@ export function LandingNav() {
               onClick={() => setOpen(true)}
               aria-label={t('nav.menu')}
               aria-expanded={open}
-              aria-controls="landing-menu"
+              aria-controls={open ? 'landing-menu' : undefined}
               sx={{ display: { xs: 'inline-flex', lg: 'none' }, width: 40, height: 40, color: 'text.primary' }}
             >
               <Icon name="menu" size={24} />
@@ -168,7 +173,12 @@ export function LandingNav() {
             run?.();
           },
         }}
-        PaperProps={{ sx: { bgcolor: tones.ground, maxHeight: '100dvh' } }}
+        PaperProps={{
+          role: 'dialog',
+          'aria-modal': true,
+          'aria-label': t('nav.menu'),
+          sx: { bgcolor: tones.ground, maxHeight: '100dvh' },
+        }}
       >
         <Container>
           <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ height: NAV_HEIGHT }}>

@@ -23,6 +23,7 @@ import {
   landingRadii,
   listOf,
   useDocumentMeta,
+  useInitialHashScroll,
   useLandingTones,
 } from '@/features/public/landing/helpers';
 import { palette2026, radii } from '@/theme/tokens';
@@ -57,6 +58,7 @@ export function LandingPage() {
   const { t } = useTranslation('landing');
   const tones = useLandingTones();
   useDocumentMeta(t('meta.title'), t('meta.description'));
+  useInitialHashScroll();
 
   return (
     <Box
@@ -244,7 +246,7 @@ function ChainItem({
       <span>{name}</span>
       <Box
         component="span"
-        sx={{ display: { xs: 'none', sm: 'inline' }, ml: '4px', fontWeight: 500, color: tones.muted }}
+        sx={{ display: { xs: 'none', sm: 'inline' }, ml: '4px', fontWeight: 500, color: 'text.secondary' }}
       >
         {note}
       </Box>
@@ -328,7 +330,7 @@ function HowItWorks() {
                   pt: { xs: '2px', md: 0 },
                   fontSize: '0.8125rem',
                   fontWeight: 700,
-                  color: tones.accent,
+                  color: tones.accentText,
                   fontVariantNumeric: 'tabular-nums',
                 }}
               >
@@ -623,7 +625,7 @@ function FaqSection() {
             <Link
               href={`mailto:${CONTACT_EMAIL}`}
               underline="hover"
-              sx={{ color: tones.accent, fontWeight: 600, overflowWrap: 'anywhere' }}
+              sx={{ color: tones.accentText, fontWeight: 600, overflowWrap: 'anywhere' }}
             >
               {CONTACT_EMAIL}
             </Link>

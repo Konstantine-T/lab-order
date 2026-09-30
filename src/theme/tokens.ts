@@ -23,6 +23,9 @@ const INK_MUTED = '#8A93B8';
 const PERI = '#7987F7';
 const PERI_HOVER = '#6B79EE';
 const PERI_L = '#90A0FD';
+// Periwinkle dark enough for small text on white/mist (5.1:1 / 4.8:1 — AA).
+// #7987F7 itself is 3.2:1: fine for large type, icons and fills, not captions.
+const PERI_TEXT = '#5563D6';
 
 const AQUA = '#44C9F6';
 const AQUA_SOFT = '#E6F7FE';
@@ -198,6 +201,7 @@ export const palette2026 = {
   ink: INK,
   ink2: INK_2,
   peri: PERI,
+  periText: PERI_TEXT,
   aqua: AQUA,
   aquaSoft: AQUA_SOFT,
   aquaText: AQUA_TEXT,

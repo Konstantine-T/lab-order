@@ -32,8 +32,11 @@ export function useLandingTones() {
     chip: s.chip,
     chipText: s.chipText,
     muted: s.textMuted,
-    /** Periwinkle for eyebrows, links and the headline accent; lifted on dark. */
+    /** Periwinkle for the headline accent and other large type; lifted on dark. */
     accent: light ? palette2026.peri : brand.soft,
+    /** Periwinkle for small text — eyebrows, links, step numbers — at AA contrast. */
+    accentText: light ? palette2026.periText : brand.soft,
+    accentTextHover: tone('info', mode).fg,
     /** Aqua is "done / confirmed": the check circles and the icon tiles. */
     done: tone('success', mode),
     // The ink surfaces and the text that sits on them — the same in both themes.
@@ -56,6 +59,9 @@ export const NAV_HEIGHT = { xs: 60, sm: 72 } as const;
 /** Anchored sections land a little below the sticky nav rather than flush under it. */
 export const anchoredSx = {
   scrollMarginTop: { xs: `${NAV_HEIGHT.xs + 12}px`, sm: `${NAV_HEIGHT.sm + 12}px` },
+  // Focused programmatically after a section jump (see `scrollToHash`); a
+  // focus ring around a whole section would only look like a glitch.
+  '&:focus': { outline: 'none' },
 } as const;
 
 export const CONTACT_EMAIL = 'hello@dentallabs.ge';
@@ -76,12 +82,31 @@ export function listOf<T>(value: unknown): T[] {
  * target carries `anchoredSx`, and the hash is replaced rather than pushed, so
  * Back leaves the page instead of walking back through every section visited.
  */
-export function scrollToHash(hash: string) {
+export function scrollToHash(hash: string, behavior: 'smooth' | 'auto' = 'smooth') {
   const el = document.getElementById(hash.replace(/^#/, ''));
   if (!el) return false;
-  el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  el.scrollIntoView({ behavior, block: 'start' });
   window.history.replaceState(null, '', hash.startsWith('#') ? hash : `#${hash}`);
+  // Cancelling the native jump also cancelled its focus move, so the next Tab
+  // went back to the header and the page leapt to the top. Move focus to the
+  // section ourselves; `preventScroll` leaves the smooth scroll alone.
+  if (!el.hasAttribute('tabindex')) el.setAttribute('tabindex', '-1');
+  el.focus({ preventScroll: true });
   return true;
+}
+
+/**
+ * A `/#faq` link — shared, or the page reloaded after a section jump — lands
+ * at the top: the landing mounts after auth resolves, too late for the
+ * browser's own fragment scroll. Do it once the sections exist.
+ */
+export function useInitialHashScroll() {
+  useEffect(() => {
+    const { hash } = window.location;
+    if (!hash) return;
+    const frame = requestAnimationFrame(() => scrollToHash(hash, 'auto'));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 }
 
 /** `onClick` for an `<a href="#section">`. */
