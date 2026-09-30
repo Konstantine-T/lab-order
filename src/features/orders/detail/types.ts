@@ -22,9 +22,11 @@ export type DetailOrder = OrderRow & {
 };
 
 /**
- * The select behind `DetailOrder`. A superset of what the edit page asks for
- * under the same `['order', id]` key, so whichever screen fills that cache
- * first leaves the other everything it reads.
+ * The select behind `DetailOrder`, and the only one `['order', id]` may be
+ * fetched with: the doctor's detail page and the edit page share that key. A
+ * narrower select on either would reach the other too — saving an edit
+ * refetches the key just as the detail page mounts, and the detail page then
+ * keeps that result, lab phone and logo missing.
  */
 export const DETAIL_ORDER_SELECT =
   '*, patients(first_name, last_name, date_of_birth, gender), labs(contact_email, contact_phone, logo_url)';

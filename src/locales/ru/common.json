@@ -344,7 +344,8 @@
     "completedOn": "Завершён {{date}}",
     "cancelledOn": "Отменён {{date}}",
     "editPending": "Правка на проверке",
-    "reply": "Ответить"
+    "reply": "Ответить",
+    "quoted": "«{{text}}»"
   },
   "shadePicker": {
     "family": {

@@ -39,6 +39,8 @@ function stickyChromeHeight(): number {
   let bottom = 0;
   for (const el of document.elementsFromPoint(Math.round(window.innerWidth * 0.35), 1)) {
     if (!(el instanceof HTMLElement)) continue;
+    // An open popover, menu or dialog is fixed and full-window: not chrome.
+    if (el.closest('.MuiModal-root')) continue;
     const pos = getComputedStyle(el).position;
     if (pos === 'sticky' || pos === 'fixed') {
       bottom = Math.max(bottom, el.getBoundingClientRect().bottom);

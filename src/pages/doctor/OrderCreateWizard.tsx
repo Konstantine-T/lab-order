@@ -161,8 +161,14 @@ export function OrderCreateWizard({
   // A duplicate-patient match on screen and not yet answered (inline now, a
   // dialog before): sending waits for the answer, as the dialog made it.
   const [matchPending, setMatchPending] = useState(false);
+  // The continuation was started from the patient card's match line, here —
+  // not arrived at from an order or patient page — so it may be undone.
+  const [continuedInline, setContinuedInline] = useState(false);
   const draftHydratedRef = useRef(!!resumed);
   const continuePatientRef = useRef(false);
+  // The patient as the doctor typed it before continuing inline — what the
+  // undo puts back once the locked row's seed has overwritten it.
+  const typedPatientRef = useRef<WizardState['patient'] | null>(null);
   const queryClient = useQueryClient();
 
   const update = (patch: Partial<WizardState>) => setState((s) => ({ ...s, ...patch }));
@@ -595,12 +601,14 @@ export function OrderCreateWizard({
   // `continues` sent as p_continues_order_id — without leaving the form.
   const continueFrom = useCallback(
     (patientId: string, orderId: string) => {
+      typedPatientRef.current = state.patient;
       // The patient is the matched one from this moment, not only once the
       // locked row has loaded and seeded the card.
       setState((s) => ({
         ...s,
         patient: { ...s.patient, existing_id: patientId, force_new: undefined },
       }));
+      setContinuedInline(true);
       setParams(
         (prev) => {
           const next = new URLSearchParams(prev);
@@ -611,8 +619,34 @@ export function OrderCreateWizard({
         { replace: true },
       );
     },
-    [setParams],
+    [setParams, state.patient],
   );
+
+  // …and back out of it. The link sits one mis-click from "this is the
+  // patient", so what it started can be undone: the lineage goes, the patient
+  // unlocks as the doctor typed it — not with the matched patient's date of
+  // birth and sex, which a "new patient" answer would then quietly keep — and
+  // the match line asks its question again. A continuation begun on an order
+  // or patient page was chosen there, and keeps no such way out.
+  const cancelContinuation = useCallback(() => {
+    const typed = typedPatientRef.current;
+    typedPatientRef.current = null;
+    setContinuedInline(false);
+    continuePatientRef.current = false;
+    setState((s) => ({
+      ...s,
+      patient: { ...(typed ?? s.patient), existing_id: undefined, force_new: undefined },
+    }));
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete('patient');
+        next.delete('continues');
+        return next;
+      },
+      { replace: true },
+    );
+  }, [setParams]);
 
   // ----- Progress -----------------------------------------------------------
   // The navigator's dots and its "required N / M" note run the submit gate's
@@ -897,6 +931,7 @@ export function OrderCreateWizard({
                 matchMode="inline"
                 labId={state.lab_id}
                 onContinueFrom={continueFrom}
+                onCancelContinuation={continuedInline ? cancelContinuation : undefined}
                 onMatchPendingChange={setMatchPending}
               />
 

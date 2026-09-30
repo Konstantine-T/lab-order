@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  alpha,
   Box,
   Button,
   Checkbox,
@@ -19,7 +18,7 @@ import {
 import { DatePicker } from '@mui/x-date-pickers';
 import { useTranslation } from 'react-i18next';
 import { ChoicePill, Icon } from '@/components/design';
-import { brand, motion, radii, surfaces, tone } from '@/theme/tokens';
+import { focusRing, motion, radii, surfaces, tone } from '@/theme/tokens';
 import type { OrderStatus } from '@/types/database';
 import type { FilterOption, QuickFilter } from './orderListModel';
 import type { OrderListFilterState } from './useOrderListFilters';
@@ -94,7 +93,8 @@ function FilterMenu({
           whiteSpace: 'nowrap',
           transition: `border-color ${motion.fast}`,
           '&:hover': { borderColor: 'primary.main' },
-          '&:focus-visible': { outline: 'none', boxShadow: `0 0 0 3px ${alpha(brand.main, 0.28)}` },
+          // The shared ring: border and glow. The glow alone is ~1.3:1 on the mist.
+          '&:focus-visible': { outline: 'none', ...focusRing },
         }}
       >
         <Box component="span" sx={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>

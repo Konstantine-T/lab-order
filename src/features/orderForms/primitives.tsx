@@ -140,12 +140,19 @@ export function SectionCardShell({
   cardRef?: Ref<HTMLElement>;
 }) {
   const theme = useTheme();
+  // Named by its heading when the title is markup, so the card the navigator
+  // focuses is announced by name rather than as an unnamed region.
+  const titleId = id && typeof title !== 'string' ? `${id}-title` : undefined;
   return (
     <Box
       component="section"
       id={id}
       ref={cardRef}
+      // Focusable from script only, so the navigator can move focus to the
+      // card it scrolled to; a card with no id is never such a target.
+      tabIndex={id ? -1 : undefined}
       aria-label={typeof title === 'string' ? title : undefined}
+      aria-labelledby={titleId}
       sx={[
         {
           bgcolor: 'background.paper',
@@ -169,6 +176,7 @@ export function SectionCardShell({
         {badge}
         <Typography
           component="h2"
+          id={titleId}
           sx={{
             fontSize: '0.9375rem',
             fontWeight: 600,

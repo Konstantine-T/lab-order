@@ -15,7 +15,8 @@ import { labNameOf, patientNameOf, serviceNameOf, type DetailOrder } from './typ
  * right.
  *
  * On a phone it collapses to the mockup's compact bar — a back square, the
- * code over "service · patient", the pill — and the actions drop underneath.
+ * code over "service · patient" over the work location, the pill — and the
+ * actions drop underneath.
  *
  * Not `PageHeader`: that band is sticky and translucent, and the redesign's
  * order screen scrolls its header away with the page under a static top bar.
@@ -118,6 +119,14 @@ export function OrderDetailHeader({
             <Typography component="h1" noWrap sx={{ fontSize: '0.9375rem', fontWeight: 600, lineHeight: 1.35 }}>
               {[service, patient].filter(Boolean).join(' · ') || order.order_code}
             </Typography>
+            {/* Where the case goes: the meta line that names it is hidden here,
+                and a doctor with several clinics needs to see it. A line of its
+                own — at the end of the one above, the ellipsis ate all of it. */}
+            {place && (
+              <Typography variant="caption" color="text.secondary" noWrap sx={{ display: 'block' }}>
+                {place}
+              </Typography>
+            )}
           </Box>
           {pill}
         </Stack>

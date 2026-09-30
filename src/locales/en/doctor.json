@@ -76,6 +76,7 @@
       },
       "continuingExisting": "Continuing with existing patient.",
       "lockedForContinuation": "Patient is fixed for this continuation.",
+      "notAContinuation": "Not a continuation",
       "match": {
         "title": "Existing patient found",
         "body": "A patient with this name and date of birth already exists in your records.",

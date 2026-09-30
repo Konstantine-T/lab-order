@@ -68,6 +68,7 @@ export function InkSegmented<T extends string>({
   ariaLabel?: string;
 }) {
   const theme = useTheme();
+  const light = theme.palette.mode === 'light';
   const edge = surfaces[theme.palette.mode].control;
   return (
     <Box
@@ -118,9 +119,17 @@ export function InkSegmented<T extends string>({
               '&:hover': disabled
                 ? {}
                 : { bgcolor: selected ? 'primary.dark' : alpha(brand.main, 0.06) },
+              // Full strength, and the fill's own contrast colour on the chosen
+              // option: periwinkle on ink (or on light periwinkle) barely shows.
               '&:focus-visible': {
                 outline: 'none',
-                boxShadow: `inset 0 0 0 2px ${alpha(brand.main, 0.55)}`,
+                boxShadow: `inset 0 0 0 2px ${
+                  selected
+                    ? theme.palette.primary.contrastText
+                    : light
+                      ? palette2026.periText
+                      : brand.soft
+                }`,
               },
             }}
           >
@@ -168,7 +177,11 @@ export function PeriLink({
           cursor: 'pointer',
           color: light ? palette2026.periText : brand.soft,
           '&:hover': { textDecoration: 'underline' },
-          '&:focus-visible': { outline: `2px solid ${alpha(brand.main, 0.5)}`, outlineOffset: 2 },
+          // The link's own colour, at full strength: a half-alpha ring is ~1.7:1.
+          '&:focus-visible': {
+            outline: `2px solid ${light ? palette2026.periText : brand.soft}`,
+            outlineOffset: 2,
+          },
         },
         ...(Array.isArray(sx) ? sx : [sx]),
       ]}

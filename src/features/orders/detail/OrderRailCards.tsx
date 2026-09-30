@@ -165,6 +165,8 @@ export function PriceDueCard({
               answers={answers}
               rush={rush}
               finalTotal={order.final_total}
+              // The big figure above is written short; so is everything under it.
+              format={formatGELShort}
             />
           </>
         )}

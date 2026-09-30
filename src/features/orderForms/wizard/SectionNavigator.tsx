@@ -95,6 +95,9 @@ export function SectionNavigator({
     clickedRef.current = { id, until: Date.now() + 1200 };
     setActive(id);
     scrollToSection(id);
+    // Focus follows the view, or the next Tab would carry on down this list
+    // and jump the page back. Sections take focus (tabIndex -1) for this.
+    document.getElementById(id)?.focus({ preventScroll: true });
   };
 
   return (

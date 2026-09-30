@@ -112,7 +112,16 @@ export function MobilePriceBar({ pricing, answers, rush }: Props) {
           </IconButton>
         </Stack>
         <Box sx={{ px: 2.5, pb: 3, overflowY: 'auto' }}>
-          <PriceBreakdown explain variant="plain" pricing={pricing} answers={answers} rush={rush} />
+          {/* In the bar's own short format, so "159.5 ₾" does not open onto
+              "GEL 159.50". */}
+          <PriceBreakdown
+            explain
+            variant="plain"
+            pricing={pricing}
+            answers={answers}
+            rush={rush}
+            format={formatGELShort}
+          />
         </Box>
       </Drawer>
     </>

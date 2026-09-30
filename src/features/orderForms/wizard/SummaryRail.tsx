@@ -16,9 +16,9 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { Callout } from '@/components/design';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
-import { calculatePrice, formatGEL, formatGELShort, pricingShape } from '@/utils/pricing';
+import { calculatePrice, formatGELShort, pricingShape } from '@/utils/pricing';
 import type { PriceLineItem } from '@/utils/pricing';
-import { motion, radii, surfaces, tone } from '@/theme/tokens';
+import { focusRing, motion, radii, surfaces, tone } from '@/theme/tokens';
 import type { DoctorWorkLocationRow, LabFormVersionRow, RushType } from '@/types/database';
 import type { WizardState } from '@/features/doctor/orderCreate/types';
 import {
@@ -194,7 +194,7 @@ export function SummaryRail({
               {labRush!.type === 'PERCENTAGE'
                 ? t('orderCreate.filesAndDue.rushSurchargePercent', { value: labRush!.value })
                 : t('orderCreate.filesAndDue.rushSurchargeFixed', {
-                    amount: formatGEL(labRush!.value ?? 0),
+                    amount: formatGELShort(labRush!.value ?? 0),
                   })}
               {labRush!.turnaround_days != null && labRush!.turnaround_days > 0
                 ? ` · ${
@@ -406,7 +406,9 @@ function PriceSummary({
     result && result.rushAmount > 0 && effectiveRush
       ? effectiveRush.type === 'PERCENTAGE'
         ? tc('priceBreakdown.explain.rushPercentage', { value: effectiveRush.value ?? 0 })
-        : tc('priceBreakdown.explain.rushFixed', { value: formatGEL(effectiveRush.value ?? 0) })
+        : tc('priceBreakdown.explain.rushFixed', {
+            value: formatGELShort(effectiveRush.value ?? 0),
+          })
       : null;
   const lineItems = calculated ? result.lineItems : [];
   const isEmpty = calculated && lineItems.length === 0 && result.subtotal === 0;
@@ -423,6 +425,14 @@ function PriceSummary({
         : item.i18nKey
           ? tc(`priceBreakdown.items.${item.i18nKey}`)
           : item.label;
+    // An implant bar is a base fee plus a per-implant charge, so "× 3" beside
+    // the total would read as three equal parts of it. Spell the sum out, as
+    // PriceBreakdown's row does.
+    if (item.baseAmount != null) {
+      return `${base} (${formatGELShort(item.baseAmount)} + ${item.qty ?? 0} × ${formatGELShort(
+        item.unitAmount ?? 0,
+      )})`;
+    }
     return item.qty != null ? `${base} × ${item.qty}` : base;
   };
 
@@ -462,7 +472,13 @@ function PriceSummary({
       </Stack>
 
       {result && !calculated && (
-        <PriceBreakdown variant="plain" pricing={pricing} answers={answers} rush={rush} />
+        <PriceBreakdown
+          variant="plain"
+          pricing={pricing}
+          answers={answers}
+          rush={rush}
+          format={formatGELShort}
+        />
       )}
 
       {calculated && (
@@ -584,18 +600,29 @@ function DueDateField({
   const theme = useTheme();
   const mode = theme.palette.mode;
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  // The calendar's pick until it is a whole date. Choosing a year only moves
+  // the calendar on to that year's days; saving it would quietly move the due
+  // date a year out.
+  const [pending, setPending] = useState<Dayjs | null>(null);
 
   const minDate = useMemo(() => dayjs().startOf('day').add(minDays, 'day'), [minDays]);
   const quick = [0, 1, 2].map((n) => minDate.add(n, 'day').format('YYYY-MM-DD'));
   const other = !!value && !quick.includes(value);
 
   // dayjs, not Intl: Chrome ships no Georgian locale data, so Intl quietly
-  // falls back to English there — for most of this app's readers.
+  // falls back to English there — for most of this app's readers. The year
+  // only when it is not this one: nothing else on the page shows the date,
+  // so "4 Oct" must not stand for a day a year from now.
   const lang = i18n.resolvedLanguage ?? i18n.language;
-  const fmt = (iso: string, month: 'short' | 'long') =>
-    dayjs(iso)
-      .locale(lang)
-      .format(month === 'short' ? 'D MMM' : 'D MMMM');
+  const fmt = (iso: string, month: 'short' | 'long') => {
+    const d = dayjs(iso).locale(lang);
+    const year = d.year() === dayjs().year() ? '' : ' YYYY';
+    return d.format((month === 'short' ? 'D MMM' : 'D MMMM') + year);
+  };
+  const closeCalendar = () => {
+    setAnchor(null);
+    setPending(null);
+  };
 
   const chip = (selected: boolean) => ({
     height: 34,
@@ -612,7 +639,8 @@ function DueDateField({
     cursor: 'pointer',
     transition: `background-color ${motion.fast}, border-color ${motion.fast}`,
     '&:hover': { borderColor: 'primary.main' },
-    '&:focus-visible': { outline: 'none', boxShadow: `0 0 0 3px ${theme.palette.action.focus}` },
+    // The shared ring, border and glow: the glow alone is too faint to find.
+    '&:focus-visible': { outline: 'none', ...focusRing },
   });
 
   return (
@@ -664,19 +692,24 @@ function DueDateField({
       <Popover
         open={!!anchor}
         anchorEl={anchor}
-        onClose={() => setAnchor(null)}
+        onClose={closeCalendar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         slotProps={{ paper: { sx: { mt: 0.75, borderRadius: `${radii.card}px` } } }}
       >
         <DateCalendar
-          value={value ? dayjs(value) : null}
+          value={pending ?? (value ? dayjs(value) : null)}
           minDate={minDate}
           onChange={(d: Dayjs | null, selection) => {
             if (!d || !d.isValid()) return;
+            // Picking a year is a step on the way, not the answer: only a
+            // picked day is saved, and closing before one keeps the old date.
+            if (selection !== 'finish') {
+              setPending(d);
+              return;
+            }
             onChange(d.format('YYYY-MM-DD'));
-            // Picking a year is a step on the way, not the answer.
-            if (selection === 'finish') setAnchor(null);
+            closeCalendar();
           }}
         />
       </Popover>

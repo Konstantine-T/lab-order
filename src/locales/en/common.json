@@ -338,7 +338,8 @@
     "completedOn": "Completed {{date}}",
     "cancelledOn": "Cancelled {{date}}",
     "editPending": "Edit under review",
-    "reply": "Reply"
+    "reply": "Reply",
+    "quoted": "“{{text}}”"
   },
   "shadePicker": {
     "family": {

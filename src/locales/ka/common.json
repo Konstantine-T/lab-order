@@ -338,7 +338,8 @@
     "completedOn": "დასრულდა {{date}}",
     "cancelledOn": "გაუქმდა {{date}}",
     "editPending": "ცვლილება განხილვაშია",
-    "reply": "პასუხის გაცემა"
+    "reply": "პასუხის გაცემა",
+    "quoted": "„{{text}}“"
   },
   "shadePicker": {
     "family": {

@@ -223,7 +223,7 @@ export function OrderCard({
               overflow: 'hidden',
             }}
           >
-            „{question}“
+            {t('orderList.quoted', { text: question })}
           </Box>
         )}
 

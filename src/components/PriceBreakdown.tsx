@@ -25,9 +25,22 @@ type Props = {
    * to them.
    */
   explain?: boolean;
+  /**
+   * How each amount is written. `formatGEL` ("GEL 145.00") unless the surface
+   * around the breakdown already writes money the redesign's short way
+   * ("145 ₾") — then pass `formatGELShort`, so one card never shows the same
+   * amount twice in two formats. The lab's pages keep the default.
+   */
+  format?: (amount: number) => string;
 };
 
-function LineItemRow({ item }: { item: PriceLineItem }) {
+function LineItemRow({
+  item,
+  format,
+}: {
+  item: PriceLineItem;
+  format: (amount: number) => string;
+}) {
   const { t } = useTranslation('common');
   const { t: tLab } = useTranslation('lab');
 
@@ -50,13 +63,13 @@ function LineItemRow({ item }: { item: PriceLineItem }) {
     // Implant bar: a base fee plus a per-implant charge.
     detail = (
       <>
-        ({formatGEL(item.baseAmount)} + {item.qty}×{formatGEL(item.unitAmount ?? 0)})
+        ({format(item.baseAmount)} + {item.qty}×{format(item.unitAmount ?? 0)})
       </>
     );
   } else if (item.unitAmount != null && item.qty != null) {
     detail = (
       <>
-        ({formatGEL(item.unitAmount)} × {item.qty})
+        ({format(item.unitAmount)} × {item.qty})
       </>
     );
   } else if (item.qty != null) {
@@ -94,7 +107,7 @@ function LineItemRow({ item }: { item: PriceLineItem }) {
           )}
         </Box>
       }
-      amount={formatGEL(item.amount)}
+      amount={format(item.amount)}
     />
   );
 }
@@ -123,6 +136,7 @@ export function PriceBreakdown({
   finalTotal,
   variant = 'boxed',
   explain = false,
+  format = formatGEL,
 }: Props) {
   const { t } = useTranslation('common');
   // Collapsed by default — the itemised rows answer "what", and most doctors
@@ -148,7 +162,7 @@ export function PriceBreakdown({
     result.rushAmount > 0 && effectiveRush
       ? effectiveRush.type === 'PERCENTAGE'
         ? t('priceBreakdown.explain.rushPercentage', { value: effectiveRush.value ?? 0 })
-        : t('priceBreakdown.explain.rushFixed', { value: formatGEL(effectiveRush.value ?? 0) })
+        : t('priceBreakdown.explain.rushFixed', { value: format(effectiveRush.value ?? 0) })
       : null;
   const canExplain = explain && !isEmpty && (explainRule != null || explainRush != null);
 
@@ -167,7 +181,7 @@ export function PriceBreakdown({
         <MoneyRow
           strong
           label={t('priceBreakdown.labFinalTotal')}
-          amount={formatGEL(finalTotal)}
+          amount={format(finalTotal)}
           color="success.main"
         />
       )}
@@ -184,7 +198,7 @@ export function PriceBreakdown({
         <MoneyRow
           strong
           label={t('priceBreakdown.labFinalTotal')}
-          amount={formatGEL(finalTotal)}
+          amount={format(finalTotal)}
           color="success.main"
         />
       )}
@@ -197,7 +211,7 @@ export function PriceBreakdown({
         <>
           <FieldLabel sx={{ mb: 0.5 }}>{t('priceBreakdown.priceDetails')}</FieldLabel>
           {result.lineItems.map((item, i) => (
-            <LineItemRow key={i} item={item} />
+            <LineItemRow key={i} item={item} format={format} />
           ))}
         </>
       )}
@@ -207,11 +221,11 @@ export function PriceBreakdown({
           {t('priceBreakdown.emptyHint')}
         </Typography>
       ) : (
-        <MoneyRow label={t('priceBreakdown.subtotal')} amount={formatGEL(result.subtotal)} />
+        <MoneyRow label={t('priceBreakdown.subtotal')} amount={format(result.subtotal)} />
       )}
 
       {result.rushAmount > 0 && (
-        <MoneyRow label={t('priceBreakdown.rushSurcharge')} amount={formatGEL(result.rushAmount)} />
+        <MoneyRow label={t('priceBreakdown.rushSurcharge')} amount={format(result.rushAmount)} />
       )}
 
       <MoneyRow
@@ -225,7 +239,7 @@ export function PriceBreakdown({
               color: discounted ? 'text.secondary' : undefined,
             }}
           >
-            {formatGEL(result.total)}
+            {format(result.total)}
           </Box>
         }
       />
@@ -234,7 +248,7 @@ export function PriceBreakdown({
         <MoneyRow
           strong
           label={t('priceBreakdown.labFinalTotal')}
-          amount={formatGEL(finalTotal)}
+          amount={format(finalTotal)}
           color="success.main"
         />
       )}

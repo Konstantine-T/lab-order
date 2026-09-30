@@ -33,6 +33,7 @@ import { normalizePatientPayload } from '@/features/doctor/orderCreate/patientNa
 import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
 import { LabContactLine } from '@/features/orders/orderFiles/LabContactLine';
 import { ClarificationPanel } from '@/features/orders/clarifications/ClarificationPanel';
+import { DETAIL_ORDER_SELECT } from '@/features/orders/detail/types';
 import type {
   DoctorWorkLocationRow,
   EditReasonCode,
@@ -85,7 +86,10 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('*, patients(first_name, last_name, date_of_birth, gender), labs(contact_email)')
+        // The detail page's select, not a narrower one: both screens share
+        // `['order', id]`, and saving here refetches it just as the detail
+        // page mounts — which then keeps whatever this fetch returns.
+        .select(DETAIL_ORDER_SELECT)
         .eq('id', orderId!)
         .maybeSingle();
       if (error) throw error;

@@ -14,6 +14,10 @@ export function stickyChromeHeight(): number {
   let bottom = 0;
   for (const el of document.elementsFromPoint(Math.round(window.innerWidth * 0.35), 1)) {
     if (!(el instanceof HTMLElement)) continue;
+    // An open popover, menu or dialog is fixed too, and covers the whole
+    // window: counted, it would read as a header as tall as the screen — and
+    // the highest-seen height below would keep that for the rest of the visit.
+    if (el.closest('.MuiModal-root')) continue;
     const pos = getComputedStyle(el).position;
     if (pos === 'sticky' || pos === 'fixed') {
       bottom = Math.max(bottom, el.getBoundingClientRect().bottom);

@@ -62,6 +62,7 @@ export function PatientStep({
   matchMode = 'dialog',
   labId,
   onContinueFrom,
+  onCancelContinuation,
   onMatchPendingChange,
 }: {
   state: WizardState;
@@ -75,6 +76,9 @@ export function PatientStep({
   labId?: string;
   /** Offered only when given: start this order as a continuation of `orderId`. */
   onContinueFrom?: (patientId: string, orderId: string) => void;
+  /** Offered only when given: undo a continuation started from the match
+   *  line, so a mis-click there is not a dead end. */
+  onCancelContinuation?: () => void;
   onMatchPendingChange?: (pending: boolean) => void;
 }) {
   const { t } = useTranslation('doctor');
@@ -240,7 +244,23 @@ export function PatientStep({
         ) : undefined
       }
     >
-      {readOnly && <Callout tone="brand">{t('orderCreate.patient.lockedForContinuation')}</Callout>}
+      {readOnly && (
+        <Callout
+          tone="brand"
+          action={
+            onCancelContinuation && (
+              <PeriLink
+                onClick={onCancelContinuation}
+                sx={{ fontSize: '0.75rem', lineHeight: 1.55 }}
+              >
+                {t('orderCreate.patient.notAContinuation')}
+              </PeriLink>
+            )
+          }
+        >
+          {t('orderCreate.patient.lockedForContinuation')}
+        </Callout>
+      )}
 
       <Box
         sx={{
