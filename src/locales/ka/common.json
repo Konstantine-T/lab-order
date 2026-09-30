@@ -268,7 +268,10 @@
     }
   },
   "nav": {
-    "needsAttention": "{{count}} საჭიროებს თქვენს ყურადღებას"
+    "needsAttention": "{{count}} საჭიროებს თქვენს ყურადღებას",
+    "home": "მთავარი",
+    "main": "მთავარი ნავიგაცია",
+    "accountMenu": "ანგარიშის მენიუ"
   },
   "clarification": {
     "question": "შეკითხვა",

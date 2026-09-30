@@ -25,9 +25,10 @@ import { ColorModeToggle } from '@/components/ColorModeToggle';
 import { FeedbackButton } from '@/components/FeedbackButton';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
 import { Icon } from '@/components/design/Icon';
-import { BrandMark } from '@/components/BrandMark';
+import { BrandWordmark } from '@/components/BrandMark';
 import { useAuth } from '@/auth/AuthProvider';
-import { brand as brandTokens, layout, radii } from '@/theme/tokens';
+import { brand as brandTokens, layout, palette2026, radii, surfaces } from '@/theme/tokens';
+import { UserAvatar } from './AccountMenu';
 
 export type NavEntry = {
   to: string;
@@ -37,21 +38,24 @@ export type NavEntry = {
   end?: boolean;
   /** Optional count pill rendered at the right of the row. */
   badge?: ReactNode;
+  /** Other path prefixes this entry owns, for the top-nav shell's active
+   *  state — e.g. a lab's profile belongs to "Labs". */
+  also?: string[];
 };
 
 const SIDEBAR_WIDTH = layout.sidebarWidth;
 const CONTENT_MAX = layout.contentMax;
 
 /**
- * The application shell from the July 2026 redesign: a fixed white sidebar and
- * a content column. There is no desktop top bar — page titles live inside the
- * content column via `PageHeader`.
+ * The lab and platform-admin shell: a fixed white sidebar and a content
+ * column. There is no desktop top bar — page titles live inside the content
+ * column via `PageHeader`. (Doctors and clinics get `TopNavShell` instead; the
+ * lab's seven sections do not fit a top bar.)
  *
  * Below `md` the sidebar collapses into a temporary drawer and a slim top bar
- * appears to hold its trigger. The mockups are desktop-only; that bar is the
- * extrapolation agreed in the foundation spec, and exists on mobile only.
+ * appears to hold its trigger.
  */
-export function AppShell({ navEntries, brand }: { navEntries: NavEntry[]; brand: string }) {
+export function AppShell({ navEntries }: { navEntries: NavEntry[] }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -63,10 +67,6 @@ export function AppShell({ navEntries, brand }: { navEntries: NavEntry[]; brand:
   // Navigating from inside the temporary drawer must close it, or the new page
   // renders behind a still-open overlay.
   useEffect(() => setMobileOpen(false), [pathname]);
-
-  const initials = user
-    ? `${user.first_name.charAt(0)}${user.last_name.charAt(0)}`.toUpperCase()
-    : '?';
 
   // Lab and clinic admins get an organisation card under the logo, as in the
   // mockups. Doctors and platform admins have no organisation to show.
@@ -88,12 +88,9 @@ export function AppShell({ navEntries, brand }: { navEntries: NavEntry[]; brand:
         spacing={1.25}
         component={RouterLink}
         to="/"
-        sx={{ px: 2.25, pt: 2.25, pb: 1.75, color: 'text.primary', textDecoration: 'none' }}
+        sx={{ px: 2.25, pt: 2.25, pb: 1.75, textDecoration: 'none' }}
       >
-        <BrandMark />
-        <Typography sx={{ fontSize: '1rem', fontWeight: 800, letterSpacing: '-0.02em' }} noWrap>
-          {brand}
-        </Typography>
+        <BrandWordmark />
       </Stack>
 
       {org && (
@@ -107,9 +104,9 @@ export function AppShell({ navEntries, brand }: { navEntries: NavEntry[]; brand:
             px: 1.25,
             py: 1,
             borderRadius: `${radii.control}px`,
-            bgcolor: alpha(brandTokens.main, 0.08),
+            bgcolor: surfaces[theme.palette.mode].subtle,
             border: 1,
-            borderColor: alpha(brandTokens.main, 0.25),
+            borderColor: 'divider',
           }}
         >
           <Box
@@ -117,7 +114,7 @@ export function AppShell({ navEntries, brand }: { navEntries: NavEntry[]; brand:
               width: 26,
               height: 26,
               borderRadius: '8px',
-              background: `linear-gradient(135deg, ${brandTokens.main}, ${brandTokens.link})`,
+              background: `linear-gradient(135deg, ${brandTokens.main}, ${palette2026.aqua})`,
               color: '#fff',
               fontSize: 9,
               fontWeight: 800,
@@ -158,8 +155,8 @@ export function AppShell({ navEntries, brand }: { navEntries: NavEntry[]; brand:
                   '& .MuiListItemText-primary': { fontSize: '0.84375rem', fontWeight: 500 },
                   '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
                   '&.active': {
-                    bgcolor: 'action.selected',
-                    color: 'primary.dark',
+                    bgcolor: surfaces[theme.palette.mode].chip,
+                    color: 'text.primary',
                     '& .MuiListItemText-primary': { fontWeight: 600 },
                     // The FILL axis is how the mockups mark the active item;
                     // there is no separate filled glyph to swap in.
@@ -198,22 +195,7 @@ export function AppShell({ navEntries, brand }: { navEntries: NavEntry[]; brand:
             '&:hover': { bgcolor: 'action.hover' },
           }}
         >
-          <Box
-            sx={{
-              width: 32,
-              height: 32,
-              borderRadius: '50%',
-              bgcolor: 'primary.light',
-              color: '#fff',
-              fontSize: '0.75rem',
-              fontWeight: 700,
-              display: 'grid',
-              placeItems: 'center',
-              flexShrink: 0,
-            }}
-          >
-            {initials}
-          </Box>
+          <UserAvatar size={32} />
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography sx={{ fontSize: '0.78125rem', fontWeight: 700 }} noWrap>
               {user?.first_name} {user?.last_name}
@@ -311,9 +293,13 @@ export function AppShell({ navEntries, brand }: { navEntries: NavEntry[]; brand:
               >
                 <Icon name="menu" size={22} />
               </IconButton>
-              <Typography sx={{ ml: 1, fontSize: '0.9375rem', fontWeight: 800 }} noWrap>
-                {brand}
-              </Typography>
+              <Box
+                component={RouterLink}
+                to="/"
+                sx={{ ml: 1, display: 'flex', textDecoration: 'none' }}
+              >
+                <BrandWordmark size={26} />
+              </Box>
             </Toolbar>
           </AppBar>
         )}

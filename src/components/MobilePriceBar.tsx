@@ -60,7 +60,8 @@ export function MobilePriceBar({ pricing, answers, rush }: Props) {
           position: 'fixed',
           left: 0,
           right: 0,
-          bottom: 0,
+          // On top of the doctor/clinic tab bar where there is one.
+          bottom: 'var(--bottom-nav-height, 0px)',
           height: BAR_HEIGHT,
           alignItems: 'center',
           gap: 1.5,

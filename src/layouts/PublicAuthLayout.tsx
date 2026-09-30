@@ -3,7 +3,7 @@ import type { PropsWithChildren, ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { ColorModeToggle } from '@/components/ColorModeToggle';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { BrandMark } from '@/components/BrandMark';
+import { BrandWordmark } from '@/components/BrandMark';
 import { radii } from '@/theme/tokens';
 
 /**
@@ -72,10 +72,7 @@ export function PublicAuthLayout({
             to="/"
             sx={{ color: 'text.primary', textDecoration: 'none' }}
           >
-            <BrandMark />
-            <Typography sx={{ fontSize: '1.0625rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
-              Dental Labs
-            </Typography>
+            <BrandWordmark />
           </Stack>
           <Stack direction="row" spacing={0.5}>
             <ColorModeToggle />

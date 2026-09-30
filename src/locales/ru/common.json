@@ -270,7 +270,10 @@
     }
   },
   "nav": {
-    "needsAttention": "{{count}} требуют вашего внимания"
+    "needsAttention": "{{count}} требуют вашего внимания",
+    "home": "Главная",
+    "main": "Основная навигация",
+    "accountMenu": "Меню аккаунта"
   },
   "clarification": {
     "question": "Вопрос",

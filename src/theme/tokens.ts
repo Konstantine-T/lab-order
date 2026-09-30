@@ -74,10 +74,17 @@ export const motion = {
 export const layout = {
   sidebarWidth: 224,
   contentMax: 1080,
+  /** The top-nav shells' column (doctor, clinic, public): the mockups' 1200px
+   *  of content plus `gutter` either side at `md`. */
+  wideMax: 1256,
   gutter: { xs: 2, sm: 3, md: 3.5 },
   gutterNeg: { xs: -2, sm: -3, md: -3.5 },
   /** Height of the mobile top bar; sticky elements offset by it below `md`. */
   mobileBar: 56,
+  /** Height of the doctor/clinic bottom tab bar below `md`, before the
+   *  safe-area inset. Anything pinned to the bottom reads
+   *  `--bottom-nav-height` rather than this, since the other shells have none. */
+  tabBar: 64,
   /** What a sticky right rail clears: the page header band. */
   railTop: 76,
   railWidth: 316,
@@ -517,6 +524,17 @@ const tokens = (mode: PaletteMode) => {
             boxShadow: light
               ? '0 4px 16px rgba(15, 23, 42, 0.08), 0 12px 32px rgba(15, 23, 42, 0.06)'
               : '0 8px 24px rgba(0, 0, 0, 0.32)',
+          },
+        },
+      },
+      // A bottom-anchored toast clears the doctor/clinic tab bar on phones.
+      // The variable is set by that shell only, so everywhere else this is
+      // MUI's own 8px / 24px.
+      MuiSnackbar: {
+        styleOverrides: {
+          anchorOriginBottomCenter: {
+            bottom: 'calc(var(--bottom-nav-height, 0px) + 8px)',
+            '@media (min-width: 600px)': { bottom: 'calc(var(--bottom-nav-height, 0px) + 24px)' },
           },
         },
       },

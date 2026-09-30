@@ -1,10 +1,10 @@
-import { alpha, Box, Button, Stack, Typography, useTheme } from '@mui/material';
+import { alpha, Box, Button, Stack, useTheme } from '@mui/material';
 import type { PropsWithChildren } from 'react';
 import { Link as RouterLink, Outlet } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ColorModeToggle } from '@/components/ColorModeToggle';
 import { LanguageSwitcher } from '@/components/LanguageSwitcher';
-import { BrandMark } from '@/components/BrandMark';
+import { BrandWordmark } from '@/components/BrandMark';
 import { PUBLIC_ROUTES } from '@/features/public/publicRoutes';
 import { layout } from '@/theme/tokens';
 
@@ -14,11 +14,11 @@ import { layout } from '@/theme/tokens';
  * chrome — see `features/public/landing`.)
  *
  * Same top bar as `PublicAuthLayout`, then the same content column as
- * `AppShell` — width, gutters, top padding — so the marketplace and the wizard
- * render pixel-for-pixel as they do for a signed-in doctor, just without the
- * sidebar. The bar is static, not sticky: the wizard already pins its page
- * header and its price rail, and a third fixed band would leave a phone with
- * very little form.
+ * `TopNavShell` — width, gutters, top padding — so the marketplace and the
+ * wizard render pixel-for-pixel as they do for a signed-in doctor, just
+ * without the doctor's links. The bar is static, not sticky: the wizard
+ * already pins its page header and its price rail, and a third fixed band
+ * would leave a phone with very little form.
  *
  * `--page-header-top` tells `PageHeader` there is no mobile bar to clear here.
  */
@@ -49,7 +49,7 @@ export function PublicShell({ children }: PropsWithChildren) {
           direction="row"
           alignItems="center"
           justifyContent="space-between"
-          sx={{ maxWidth: 1140, mx: 'auto', height: 64, px: { xs: 2, md: 3 } }}
+          sx={{ maxWidth: layout.wideMax, mx: 'auto', height: 64, px: layout.gutter }}
         >
           <Stack
             direction="row"
@@ -59,10 +59,7 @@ export function PublicShell({ children }: PropsWithChildren) {
             to={PUBLIC_ROUTES.landing}
             sx={{ color: 'text.primary', textDecoration: 'none' }}
           >
-            <BrandMark />
-            <Typography sx={{ fontSize: '1.0625rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
-              Dental Labs
-            </Typography>
+            <BrandWordmark />
           </Stack>
           <Stack direction="row" alignItems="center" spacing={{ xs: 0.25, sm: 0.75 }}>
             <ColorModeToggle />
@@ -92,7 +89,7 @@ export function PublicShell({ children }: PropsWithChildren) {
       <Box component="main" sx={{ position: 'relative', zIndex: 1 }}>
         <Box
           sx={{
-            maxWidth: layout.contentMax,
+            maxWidth: layout.wideMax,
             mx: 'auto',
             px: layout.gutter,
             pt: { xs: 2.5, md: 3.25 },

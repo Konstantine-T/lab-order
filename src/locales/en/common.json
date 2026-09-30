@@ -268,7 +268,10 @@
     }
   },
   "nav": {
-    "needsAttention": "{{count}} needing your attention"
+    "needsAttention": "{{count}} needing your attention",
+    "home": "Home",
+    "main": "Main navigation",
+    "accountMenu": "Account menu"
   },
   "clarification": {
     "question": "Question",
