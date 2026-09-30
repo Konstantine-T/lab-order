@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Chip, Stack, TextField, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { CopyAdornment } from '@/components/design';
-import { NumberedSection, PillGroup, MmInput, ErrorHelper, CustomQuestionSections } from './primitives';
+import { NumberedSection, PillGroup, MmInput, ErrorHelper, CustomQuestionSections, SectionStack } from './primitives';
 import { TreatmentBuilder } from './TreatmentBuilder';
 import { SHADE_SCALES, shadeGroupsForScale, type CnbNotation, type CnbToothAssignment } from './cnbTypes';
 import {
@@ -74,7 +74,7 @@ export function EspForm({
   const next = () => ++counter;
 
   return (
-    <Stack spacing={4}>
+    <SectionStack>
       {/* 1. Tooth chart + materials */}
       {en('esp_treatments') && (
         <NumberedSection
@@ -83,6 +83,9 @@ export function EspForm({
         >
           <TreatmentBuilder
             materials={materials}
+            // Material prices are only what the order costs under per-tooth
+            // pricing; a service moved to fixed/described keeps its old list.
+            pricedPerTooth={pricing?.model === 'UNIT_BASED'}
             toothAssignments={a.toothAssignments as CnbToothAssignment[]}
             notation={a.notation as CnbNotation}
             notes={a.treatmentNotes}
@@ -331,6 +334,6 @@ export function EspForm({
         />
       )}
 
-    </Stack>
+    </SectionStack>
   );
 }

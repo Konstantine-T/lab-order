@@ -180,7 +180,16 @@
       "selectTooth": "Выберите зуб",
       "notesPlaceholder": "например: укажите, на каких зубах должен быть мост",
       "noMaterials": "Для этой услуги не настроены материалы. Лаборатория должна добавить минимум один материал во вкладке Pricing, прежде чем врачи смогут оформлять заказы.",
-      "clear": "Очистить"
+      "clear": "Очистить",
+      "materialPerTooth": "Материал — цена за зуб",
+      "selectedTeeth_one": "Выбрано · {{count}} зуб",
+      "selectedTeeth_few": "Выбрано · {{count}} зуба",
+      "selectedTeeth_many": "Выбрано · {{count}} зубов",
+      "selectedTeeth_other": "Выбрано · {{count}} зуба",
+      "unitsSubtotal_one": "{{count}} единица · {{amount}}",
+      "unitsSubtotal_few": "{{count}} единицы · {{amount}}",
+      "unitsSubtotal_many": "{{count}} единиц · {{amount}}",
+      "unitsSubtotal_other": "{{count}} единицы · {{amount}}"
     },
     "mmPlaceholder": "Желаемая длина (мм)",
     "shadeScales": {
@@ -201,6 +210,13 @@
       "Relief": "Облегчённый",
       "Universal": "Universal",
       "FDI": "FDI"
+    },
+    "clinicalParams": "Клинические параметры",
+    "shadeScale": "Шкала цветов",
+    "nav": {
+      "treatments": "Лечение",
+      "shade": "Цвет",
+      "clinicalParams": "Параметры"
     }
   },
   "services": {

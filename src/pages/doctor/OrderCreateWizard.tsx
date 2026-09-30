@@ -1,48 +1,22 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  MenuItem,
-  Stack,
-  Switch,
-  TextField,
-  Typography,
-} from '@mui/material';
-import { DatePicker, TimePicker } from '@mui/x-date-pickers';
-import dayjs, { type Dayjs } from 'dayjs';
+import { useCallback, useMemo, useRef, useState, useEffect } from 'react';
+import { Alert, Box, Button, Stack, Typography, useTheme } from '@mui/material';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { ActingDoctorChip } from '@/features/clinic/ActingDoctorChip';
 import { supabase } from '@/lib/supabase';
-import { OrderForm } from '@/features/orderForms/OrderForm';
+import { OrderForm, isOrderFormValid } from '@/features/orderForms/OrderForm';
 import {
   collectOrderProblems,
   hasProblem,
   orderProblemMessage,
-  problemFor,
   type OrderProblem,
 } from '@/features/doctor/orderValidation';
-import { dueWindowEnd } from '@/features/orders/orderDates';
-import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { MobilePriceBar } from '@/components/MobilePriceBar';
-import {
-  Callout,
-  FieldLabel,
-  Icon,
-  InitialsAvatar,
-  PageHeader,
-  SectionCard,
-  Segmented,
-  SplitLayout,
-} from '@/components/design';
-import { calculatePrice, formatGEL } from '@/utils/pricing';
+import { Callout, Icon, SplitLayout } from '@/components/design';
+import { calculatePrice } from '@/utils/pricing';
+import { layout, palette2026, radii, surfaces } from '@/theme/tokens';
 import type {
   DoctorWorkLocationRow,
   LabFormVersionRow,
@@ -53,18 +27,12 @@ import type {
   RushType,
 } from '@/types/database';
 import { initialState, type WizardState } from '@/features/doctor/orderCreate/types';
-import {
-  normalizeName,
-  normalizePatientPayload,
-} from '@/features/doctor/orderCreate/patientName';
-import { PendingOrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
-import { LabContactLine } from '@/features/orders/orderFiles/LabContactLine';
+import { normalizePatientPayload } from '@/features/doctor/orderCreate/patientName';
 import { uploadOrderFile } from '@/features/orders/orderFiles/orderFilesApi';
 import { scrollToFirstError } from '@/features/orderForms/scrollToFirstError';
 import {
   loadDraft,
   clearDraft,
-  useDebouncedDraftAutosave,
   type DraftBrokenness,
 } from '@/features/doctor/orderCreate/draftStorage';
 import { WorkLocationDialog } from '@/features/doctor/workLocations/WorkLocationDialog';
@@ -77,6 +45,23 @@ import {
   useGuestDraftAutosave,
 } from '@/features/public/guestDraft';
 import { catalogPaths } from '@/features/public/publicRoutes';
+import { useFocusedShell } from '@/layouts/shellFocus';
+import { useSections, type SectionEntry } from '@/features/orderForms/wizard/sectionRegistry';
+import { SectionRegistryProvider } from '@/features/orderForms/wizard/SectionRegistryProvider';
+import { SectionNavigator } from '@/features/orderForms/wizard/SectionNavigator';
+import { WizardHeader, type DraftStatus } from '@/features/orderForms/wizard/WizardHeader';
+import { PatientStep } from '@/features/orderForms/wizard/PatientCard';
+import { FilesCard } from '@/features/orderForms/wizard/FilesCard';
+import { DUE_SECTION_ID, SummaryRail } from '@/features/orderForms/wizard/SummaryRail';
+import { minTurnaroundDays } from '@/features/orderForms/wizard/dueDate';
+import { useServerDraftAutosave } from '@/features/orderForms/wizard/useServerDraftAutosave';
+import { useStickyChromeHeight } from '@/features/orderForms/wizard/scroll';
+import { joinList, requiredProgress } from '@/features/orderForms/wizard/progress';
+import { SectionBadge, SectionCardShell } from '@/features/orderForms/primitives';
+
+// The patient card moved beside the wizard's other parts; the edit page still
+// imports it from here.
+export { PatientStep };
 
 /** Effective rush surcharge derived from the lab's pricing config + the
  * doctor's rush toggle. Returns undefined → calculatePrice falls back to no
@@ -89,21 +74,6 @@ function effectiveRush(
   const r = pricing?.rush;
   if (!r || r.type === 'NONE') return { type: 'NONE', value: 0 };
   return { type: r.type, value: r.value ?? 0 };
-}
-
-/** Minimum number of days between today and the doctor's requested due date.
- *  - Rush requested → use lab's rush turnaround_days (falls back to 1).
- *  - Otherwise → use service.average_turnaround_days (falls back to 1). */
-function minTurnaroundDays(
-  averageDays: number | null | undefined,
-  pricing: PricingConfig | undefined,
-  rushRequested: boolean,
-): number {
-  if (rushRequested) {
-    const rd = pricing?.rush?.turnaround_days;
-    if (rd && rd > 0) return rd;
-  }
-  return Math.max(1, averageDays ?? 1);
 }
 
 /**
@@ -122,6 +92,11 @@ function minTurnaroundDays(
  * nothing to submit as. The draft lives in this browser instead of
  * `order_drafts`, and Send opens the sign-in dialog; the doctor's wizard then
  * picks the draft up through `?resume=1`.
+ *
+ * The page is the 2026-09 redesign's: its own header in place of the site's
+ * top bar (`useFocusedShell` — the guest keeps the public bar), then three
+ * columns on a desktop — the section navigator, the form, the summary rail —
+ * which stack into one below `lg`.
  */
 export function OrderCreateWizard({
   basePath = '/doctor',
@@ -130,11 +105,11 @@ export function OrderCreateWizard({
   basePath?: string;
   guest?: boolean;
 }) {
-  const { t } = useTranslation('doctor');
+  const { t, i18n } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [params] = useSearchParams();
+  const [params, setParams] = useSearchParams();
 
   const isClinic = !guest && basePath === '/clinic';
   // Who the order is FOR. The clinic admin picks this first; a doctor is
@@ -183,6 +158,9 @@ export function OrderCreateWizard({
   const [dismissedBroken, setDismissedBroken] = useState(false);
   const [guestDialogOpen, setGuestDialogOpen] = useState(false);
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
+  // A duplicate-patient match on screen and not yet answered (inline now, a
+  // dialog before): sending waits for the answer, as the dialog made it.
+  const [matchPending, setMatchPending] = useState(false);
   const draftHydratedRef = useRef(!!resumed);
   const continuePatientRef = useRef(false);
   const queryClient = useQueryClient();
@@ -384,7 +362,7 @@ export function OrderCreateWizard({
   // step is hard-coded to 0 now — the wizard is a single page with no steps,
   // but the draft schema (and OrdersListPage's resume modal) still expect the
   // column, so we keep writing 0 to avoid a migration.
-  useDebouncedDraftAutosave(
+  const serverDraft = useServerDraftAutosave(
     draftLoaded && !submittedOrderId ? doctorId : undefined,
     authorUserId,
     state,
@@ -473,7 +451,14 @@ export function OrderCreateWizard({
   }, [formChanged]);
 
   const handleSubmit = () => {
-    if (!validateAll()) return;
+    const valid = validateAll();
+    if (matchPending) {
+      // The patient card now marks the unanswered match as the error to fix;
+      // when nothing else is wrong, that is where the doctor is taken.
+      if (valid) scrollToFirstError();
+      return;
+    }
+    if (!valid) return;
     if (guest) {
       // A complete order that only lacks an account. The draft is written
       // before the dialog opens — before any sign-in attempt, before any
@@ -598,6 +583,88 @@ export function OrderCreateWizard({
     onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
   });
 
+  // ----- Page chrome --------------------------------------------------------
+  // The site's top bar steps aside for the form's own header — for a doctor or
+  // a clinic; the guest keeps the public bar. Not on the success screen, which
+  // leads back into the app.
+  const headerSlot = useFocusedShell(!guest && !submittedOrderId);
+  const chromeHeight = useStickyChromeHeight(!submittedOrderId);
+
+  // "Continue from that order", from the patient card's match line: the same
+  // lineage the orders list's "continue project" starts — the patient locked,
+  // `continues` sent as p_continues_order_id — without leaving the form.
+  const continueFrom = useCallback(
+    (patientId: string, orderId: string) => {
+      // The patient is the matched one from this moment, not only once the
+      // locked row has loaded and seeded the card.
+      setState((s) => ({
+        ...s,
+        patient: { ...s.patient, existing_id: patientId, force_new: undefined },
+      }));
+      setParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('patient', patientId);
+          next.set('continues', orderId);
+          return next;
+        },
+        { replace: true },
+      );
+    },
+    [setParams],
+  );
+
+  // ----- Progress -----------------------------------------------------------
+  // The navigator's dots and its "required N / M" note run the submit gate's
+  // own checks, live — not only after a failed submit.
+  const configuration = version?.configuration_json;
+  const pricingConfig = version?.pricing_configuration_json;
+  const currentProblems = collectProblems();
+  const formValid = !!configuration && !hasProblem(currentProblems, 'formAnswers');
+  // Whether the form asks for anything at all, judged on empty answers so the
+  // count does not change as the doctor fills it in.
+  const formHasRequired = useMemo(
+    () => !!configuration && !isOrderFormValid(configuration, {}, pricingConfig),
+    [configuration, pricingConfig],
+  );
+  const patientDone =
+    !!state.patient.first_name.trim() && !!state.patient.last_name.trim() && !matchPending;
+  const dueDone = !hasProblem(currentProblems, 'dueDate');
+  const locationDone = !!state.doctor_work_location_id;
+
+  const resolveSection = useCallback(
+    (e: SectionEntry) => {
+      if (e.done !== undefined) return e.done;
+      // A required section whose template does not say: done once the whole
+      // form validates — or, once a submit attempt has put every error on
+      // screen, once this section shows none.
+      if (e.required) return formValid || (submitAttempted && !e.invalid);
+      return !!e.filled;
+    },
+    [formValid, submitAttempted],
+  );
+
+  const lang = i18n.resolvedLanguage ?? i18n.language;
+  const progressText = (sections: SectionEntry[]): string => {
+    const p = requiredProgress({
+      patient: { name: t('orderCreate.progress.patient'), done: patientDone },
+      form:
+        configuration && (formHasRequired || !formValid)
+          ? { name: t('orderCreate.progress.form'), valid: formValid, sections }
+          : undefined,
+      due: { name: t('orderCreate.progress.dueDate'), done: dueDone },
+      // A guest picks a location only after signing in.
+      location: guest
+        ? undefined
+        : { name: t('orderCreate.progress.workLocation'), done: locationDone },
+    });
+    const count = t('orderCreate.progress.count', { done: p.done, total: p.total });
+    if (p.missing.length === 0) return `${count} ${t('orderCreate.progress.ready')}`;
+    const names = p.missing.map((n) => inSentence(n, lang));
+    const list = joinList(names, t('orderCreate.progress.and'));
+    return `${count} ${t('orderCreate.progress.left', { list })}`;
+  };
+
   if (submittedOrderId) {
     return (
       <Stack spacing={2} alignItems="center" sx={{ maxWidth: 520, mx: 'auto', py: 8 }}>
@@ -644,106 +711,53 @@ export function OrderCreateWizard({
 
   const patientName = `${state.patient.first_name} ${state.patient.last_name}`.trim();
 
+  // Nothing before the first write: "saved" before anything was typed would
+  // be a claim about nothing.
+  const draftStatus: DraftStatus = guest
+    ? guestSave.status === 'failed'
+      ? { kind: 'notSavedOnDevice' }
+      : guestSave.status === 'saved'
+        ? { kind: 'savedOnDevice' }
+        : { kind: 'none' }
+    : serverDraft.failed
+      ? { kind: 'failed' }
+      : serverDraft.savedAt
+        ? { kind: 'saved', at: formatClock(serverDraft.savedAt) }
+        : { kind: 'none' };
+
+  const railTop = Math.max(layout.railTop, chromeHeight);
+
   return (
     <>
-      <PageHeader
+      <WizardHeader
+        slot={headerSlot}
         backTo={marketplacePath}
-        title={t('orderCreate.title')}
-        subtitle={`${t('nav.orders')} / ${t('orderCreate.title')}`}
-        chips={
-          <>
-            {isClinic && doctorId && (
-              <ActingDoctorChip
-                doctorId={doctorId}
-                compact
-                // Carry the lab and service, so switching doctor lands straight
-                // back here rather than restarting at the marketplace.
-                changeTo={`${basePath}/orders/new${
-                  labParam && serviceParam ? `?lab=${labParam}&service=${serviceParam}` : ''
-                }`}
-              />
-            )}
-          {lab &&
-          selectedService && (
-            // The lab + service capsule the mockup pins next to the title, with
-            // its own "Change" escape hatch back to the marketplace.
-            <Stack
-              direction="row"
-              alignItems="center"
-              spacing={1.125}
-              sx={{
-                bgcolor: 'background.paper',
-                border: 1,
-                borderColor: 'divider',
-                borderRadius: 999,
-                pl: 0.75,
-                pr: 1,
-                py: 0.75,
-              }}
-            >
-              <InitialsAvatar name={lab.public_name} size={24} shape="circle" variant="brand" />
-              <Typography sx={{ fontSize: '0.78125rem', fontWeight: 600 }}>
-                {lab.public_name}{' '}
-                <Box component="span" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                  · {selectedService.name}
-                </Box>
-                {/* The address the doctor needs while filling the order, in the
-                    one bar that stays on screen the whole way down the form. */}
-                {lab.contact_email && (
-                  <Box
-                    component="a"
-                    href={`mailto:${lab.contact_email}`}
-                    sx={{ ml: 1, color: 'text.secondary', fontWeight: 500 }}
-                  >
-                    {lab.contact_email}
-                  </Box>
-                )}
-              </Typography>
-              <Button
-                size="small"
-                sx={{ p: 0.5, minWidth: 0 }}
-                onClick={() => navigate(marketplacePath)}
-              >
-                {t('orderCreate.changeLabService')}
-              </Button>
-            </Stack>
-          )}
-          </>
+        ordersTo={guest ? undefined : `${basePath}/orders`}
+        lab={
+          lab && selectedService
+            ? { name: lab.public_name, service: selectedService.name }
+            : undefined
         }
-        actions={
-          guest ? (
-            // Where the draft is, and whether it is there at all. Nothing
-            // until the first write: "saved" before anything was typed would
-            // be a claim about nothing.
-            guestSave.status === 'failed' ? (
-              <Stack direction="row" alignItems="center" spacing={0.75}>
-                <Icon name="cloud_off" size={15} sx={{ color: 'warning.main' }} />
-                <Typography variant="body2" color="text.secondary" noWrap>
-                  {t('orderCreate.guest.notSaved')}
-                </Typography>
-              </Stack>
-            ) : guestSave.status === 'saved' ? (
-              <Stack direction="row" alignItems="center" spacing={0.75}>
-                <Icon name="cloud_done" size={15} sx={{ color: 'success.main' }} />
-                <Typography variant="body2" color="text.secondary" noWrap>
-                  {t('orderCreate.guest.savedOnDevice')}
-                </Typography>
-              </Stack>
-            ) : undefined
-          ) : (
-            <Stack direction="row" alignItems="center" spacing={0.75}>
-              <Icon name="cloud_done" size={15} sx={{ color: 'success.main' }} />
-              <Typography variant="body2" color="text.secondary" noWrap>
-                {t('orderCreate.draftSaved')}
-              </Typography>
-            </Stack>
-          )
+        onChangeLabService={() => navigate(marketplacePath)}
+        doctorChip={
+          isClinic && doctorId ? (
+            <ActingDoctorChip
+              doctorId={doctorId}
+              compact
+              // Carry the lab and service, so switching doctor lands straight
+              // back here rather than restarting at the marketplace.
+              changeTo={`${basePath}/orders/new${
+                labParam && serviceParam ? `?lab=${labParam}&service=${serviceParam}` : ''
+              }`}
+            />
+          ) : undefined
         }
+        draft={draftStatus}
       />
 
-      <SplitLayout
-        rail={
-          <>
+      <SectionRegistryProvider resolve={resolveSection}>
+        <SplitLayout
+          rail={
             <SummaryRail
               state={state}
               update={update}
@@ -759,111 +773,167 @@ export function OrderCreateWizard({
               showError={submitAttempted && !!error}
               onSubmit={handleSubmit}
               guest={guest}
+              sendDone={dueDone && (guest || locationDone)}
               onAddLocation={
                 isClinic || guest ? undefined : () => setLocationDialogOpen(true)
               }
             />
-            <Callout tone="brand">{t('orderCreate.railHint')}</Callout>
-          </>
-        }
-      >
-        {/* The doctor just signed in or registered to send this. Say so, and
-            say what is left — checking it over — rather than dropping them on
-            a filled form with no word of where it came from. */}
-        {resumed && !guest && !formChanged && (
-          <Callout tone="brand" icon="how_to_reg">
-            {t('orderCreate.guest.resumed')}
-          </Callout>
-        )}
-        {formChanged && (
-          <Callout tone="warning" title={t('orderCreate.guest.formChangedTitle')}>
-            {t('orderCreate.guest.formChangedBody')}
-          </Callout>
-        )}
+          }
+        >
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: '180px minmax(0, 1fr)' },
+              gap: 2.5,
+              alignItems: 'start',
+            }}
+          >
+            {/* Stretched to the form's height so the pinned card has a track
+                to travel along. */}
+            <Box sx={{ display: { xs: 'none', lg: 'block' }, alignSelf: 'stretch' }}>
+              <SectionNavigator
+                top={railTop}
+                railIds={[DUE_SECTION_ID]}
+                progress={progressText}
+              />
+            </Box>
 
-        {isBroken && (
-          <Callout tone="warning" title={t('orderCreate.brokenDraft.alert')}>
-            <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
-              <Button size="small" onClick={() => setDismissedBroken(true)}>
-                {t('orderCreate.brokenDraft.keepAnswers')}
-              </Button>
-              <Button
-                size="small"
-                color="error"
-                onClick={async () => {
-                  if (doctorId && authorUserId) await clearDraft(doctorId, authorUserId);
-                  setDismissedBroken(false);
-                  setState({ ...initialState, lab_id: labParam, lab_service_id: serviceParam });
-                }}
-              >
-                {t('orderCreate.brokenDraft.discard')}
-              </Button>
+            {/* Gap, not margins: the first child is hidden on a desktop, and a
+                margin-based stack would still indent the column by one step. */}
+            <Stack spacing={1.75} useFlexGap sx={{ minWidth: 0 }}>
+              {/* The navigator's note, for the screens that have no navigator. */}
+              <ProgressLine progress={progressText} />
+
+              {/* The doctor just signed in or registered to send this. Say so,
+                  and say what is left — checking it over — rather than dropping
+                  them on a filled form with no word of where it came from. */}
+              {resumed && !guest && !formChanged && (
+                <Callout tone="brand" icon="how_to_reg">
+                  {t('orderCreate.guest.resumed')}
+                </Callout>
+              )}
+              {formChanged && (
+                <Callout tone="warning" title={t('orderCreate.guest.formChangedTitle')}>
+                  {t('orderCreate.guest.formChangedBody')}
+                </Callout>
+              )}
+
+              {isBroken && (
+                <Callout tone="warning" title={t('orderCreate.brokenDraft.alert')}>
+                  <Stack direction="row" spacing={1} sx={{ mt: 1 }}>
+                    <Button size="small" onClick={() => setDismissedBroken(true)}>
+                      {t('orderCreate.brokenDraft.keepAnswers')}
+                    </Button>
+                    <Button
+                      size="small"
+                      color="error"
+                      onClick={async () => {
+                        if (doctorId && authorUserId) await clearDraft(doctorId, authorUserId);
+                        setDismissedBroken(false);
+                        setState({ ...initialState, lab_id: labParam, lab_service_id: serviceParam });
+                      }}
+                    >
+                      {t('orderCreate.brokenDraft.discard')}
+                    </Button>
+                  </Stack>
+                </Callout>
+              )}
+
+              {error && <Alert severity="error">{error}</Alert>}
+
+              {/* Named, and all of them at once. One line when there is one
+                  thing to fix; a list when there are several, in the order they
+                  appear down the page so it reads as a route through the form. */}
+              {liveProblems.length > 0 && (
+                <Alert severity="error">
+                  {liveProblems.length === 1 ? (
+                    orderProblemMessage(liveProblems[0], t)
+                  ) : (
+                    <>
+                      {t('orderCreate.fixTheseFields')}
+                      <Box component="ul" sx={{ m: 0, mt: 0.75, pl: 2.5 }}>
+                        {liveProblems.map((p, i) => (
+                          <li key={i}>{orderProblemMessage(p, t)}</li>
+                        ))}
+                      </Box>
+                    </>
+                  )}
+                </Alert>
+              )}
+
+              {/* What the doctor picked, in full, before they fill anything in.
+                  The tile they clicked clamps its description to three lines so
+                  the grid stays even; this is where the rest of it lives, and
+                  the only place before the patient form where they can still
+                  read it. */}
+              {selectedService?.short_description && (
+                <SectionCardShell
+                  badge={
+                    <SectionBadge>
+                      <Icon name="category" size={15} />
+                    </SectionBadge>
+                  }
+                  title={selectedService.name}
+                >
+                  <Typography
+                    sx={{
+                      fontSize: '0.8125rem',
+                      color: 'text.secondary',
+                      whiteSpace: 'pre-wrap',
+                      lineHeight: 1.6,
+                    }}
+                  >
+                    {selectedService.short_description}
+                  </Typography>
+                </SectionCardShell>
+              )}
+
+              <PatientStep
+                state={state}
+                update={update}
+                doctorId={doctorId ?? ''}
+                patientAttempted={patientAttempted}
+                readOnly={isContinuation}
+                matchMode="inline"
+                labId={state.lab_id}
+                onContinueFrom={continueFrom}
+                onMatchPendingChange={setMatchPending}
+              />
+
+              {version && (
+                <FormStep
+                  state={state}
+                  update={update}
+                  version={version}
+                  showErrors={submitAttempted}
+                />
+              )}
+
+              <FilesCard
+                labEmail={lab?.contact_email}
+                files={pendingFiles}
+                onChange={setPendingFiles}
+                disabled={submit.isPending}
+                guest={guest}
+                onSignIn={
+                  guest
+                    ? () => {
+                        // Written now, not on the debounce: the sign-in page
+                        // is a navigation away, and the doctor's wizard picks
+                        // the draft up from this browser once they are in.
+                        guestSave.saveNow();
+                        navigate('/login');
+                      }
+                    : undefined
+                }
+              />
             </Stack>
-          </Callout>
-        )}
+          </Box>
+        </SplitLayout>
+      </SectionRegistryProvider>
 
-        {error && <Alert severity="error">{error}</Alert>}
-
-        {/* Named, and all of them at once. One line when there is one thing to
-            fix; a list when there are several, in the order they appear down
-            the page so it reads as a route through the form. */}
-        {liveProblems.length > 0 && (
-          <Alert severity="error">
-            {liveProblems.length === 1 ? (
-              orderProblemMessage(liveProblems[0], t)
-            ) : (
-              <>
-                {t('orderCreate.fixTheseFields')}
-                <Box component="ul" sx={{ m: 0, mt: 0.75, pl: 2.5 }}>
-                  {liveProblems.map((p, i) => (
-                    <li key={i}>{orderProblemMessage(p, t)}</li>
-                  ))}
-                </Box>
-              </>
-            )}
-          </Alert>
-        )}
-
-        {/* What the doctor picked, in full, before they fill anything in.
-            The tile they clicked clamps its description to three lines so the
-            grid stays even; this is where the rest of it lives, and the only
-            place before the patient form where they can still read it. */}
-        {selectedService?.short_description && (
-          <SectionCard icon="category" title={selectedService.name}>
-            <Typography
-              variant="body1"
-              color="text.secondary"
-              sx={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}
-            >
-              {selectedService.short_description}
-            </Typography>
-          </SectionCard>
-        )}
-
-        {/* Single scrolling page: all sections stacked top-to-bottom. */}
-        <PatientStep
-          state={state}
-          update={update}
-          doctorId={doctorId ?? ''}
-          patientAttempted={patientAttempted}
-          readOnly={isContinuation}
-        />
-
-        {version && (
-          <FormStep state={state} update={update} version={version} showErrors={submitAttempted} />
-        )}
-
-        <FilesCard
-          labEmail={lab?.contact_email}
-          files={pendingFiles}
-          onChange={setPendingFiles}
-          disabled={submit.isPending}
-          guest={guest}
-        />
-      </SplitLayout>
-
-      {/* Page level, not inside the rail: on mobile the rail sits at the top,
-          so the running total would scroll away as the doctor fills the form. */}
+      {/* Page level, not inside the rail: below `lg` the rail drops under the
+          form, so the running total would scroll away as the doctor fills it. */}
       <MobilePriceBar
         pricing={version?.pricing_configuration_json}
         answers={state.answers}
@@ -889,303 +959,74 @@ export function OrderCreateWizard({
   );
 }
 
-// ============================================================================
-// Files
-// ============================================================================
+/** "14:32", in the reader's own clock. */
+function formatClock(d: Date): string {
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${hh}:${mm}`;
+}
+
 /**
- * The wizard's Files card: files are picked here and uploaded once the order
- * exists — see the submit mutation.
- *
- * Not offered to a guest. A `File` cannot follow the draft into localStorage,
- * and the bucket's policies need an order to key off, so there is no honest
- * way to hold a guest's attachments across the sign-in redirect. Saying
- * "after you sign in" is better than a dropzone that quietly loses them.
+ * A section name inside a sentence. English and Russian labels are title
+ * case ("Shade") and read wrong mid-sentence; Georgian has no case. An
+ * acronym ("CAD design") is left alone.
  */
-function FilesCard({
-  files,
-  onChange,
-  disabled,
-  labEmail,
-  guest,
-}: {
-  files: File[];
-  onChange: (files: File[]) => void;
-  disabled?: boolean;
-  labEmail?: string | null;
-  guest?: boolean;
-}) {
-  const { t } = useTranslation('doctor');
+function inSentence(name: string, lang: string): string {
+  if (lang.startsWith('ka') || name.length < 2) return name;
+  const [a, b] = name;
+  return b === b.toLowerCase() ? a.toLowerCase() + name.slice(1) : name;
+}
+
+/**
+ * The navigator's progress note on its own, for phones and tablets, where the
+ * navigator is hidden and the form is one column.
+ */
+function ProgressLine({ progress }: { progress: (sections: SectionEntry[]) => string }) {
+  const theme = useTheme();
+  const sections = useSections();
+  const text = progress(sections);
+  if (!text) return null;
   return (
-    <SectionCard
-      icon="upload_file"
-      title={t('orderCreate.filesAndDue.files')}
-      meta={guest ? undefined : t('orderCreate.filesAndDue.uploadHint')}
+    <Stack
+      direction="row"
+      spacing={1}
+      alignItems="flex-start"
+      aria-live="polite"
+      sx={{
+        display: { xs: 'flex', lg: 'none' },
+        px: 1.75,
+        py: 1.25,
+        borderRadius: `${radii.card}px`,
+        border: 1,
+        borderColor: surfaces[theme.palette.mode].borderSolid,
+        bgcolor: 'background.paper',
+        fontSize: '0.75rem',
+        lineHeight: 1.5,
+        color: 'text.secondary',
+      }}
     >
-      {guest ? (
-        <Callout tone="neutral" icon="lock">
-          {t('orderCreate.guest.filesAfterSignIn')}
-        </Callout>
-      ) : (
-        <PendingOrderFilesField files={files} onChange={onChange} disabled={disabled} />
-      )}
-      {/* No order code yet — the order doesn't exist until submit, so the copy
-          asks for the patient's name instead of a number that can't be quoted. */}
-      <LabContactLine email={labEmail} />
-    </SectionCard>
+      <Box
+        component="span"
+        aria-hidden
+        sx={{
+          width: 8,
+          height: 8,
+          mt: '5px',
+          borderRadius: '50%',
+          flexShrink: 0,
+          bgcolor: palette2026.aqua,
+        }}
+      />
+      <span>{text}</span>
+    </Stack>
   );
 }
 
 // ============================================================================
-// Step 1 — Patient
+// The clinical form
 // ============================================================================
-// Exported so the edit page (OrderEditPage) can reuse the exact same patient
-// fields + match dialog without duplicating the UI.
-export function PatientStep({
-  state,
-  update,
-  doctorId,
-  patientAttempted,
-  readOnly,
-}: {
-  state: WizardState;
-  update: (p: Partial<WizardState>) => void;
-  doctorId: string;
-  patientAttempted?: boolean;
-  /** Continue-project: the patient is fixed, so lock the fields + match dialog. */
-  readOnly?: boolean;
-}) {
-  const { t } = useTranslation('doctor');
-  const [match, setMatch] = useState<PatientRow | null>(null);
-  const [matchOpen, setMatchOpen] = useState(false);
-
-  // The one place the lookup happens, so the debounce and the blur handler
-  // can't drift. Names go out normalized — the RPC compares on the same rule,
-  // and sending the raw value would miss a match over a stray space.
-  const lookupMatch = useCallback(() => {
-    if (readOnly) return; // locked patient never needs the match lookup
-    const { first_name, last_name, existing_id, force_new, date_of_birth, gender } = state.patient;
-    if (!first_name.trim() || !last_name.trim() || !doctorId || existing_id) return;
-    // Already answered "create a new one" for this name — asking again on the
-    // next blur would be nagging, and the answer is already recorded.
-    if (force_new) return;
-
-    void supabase
-      .rpc('find_matching_patient', {
-        p_first: normalizeName(first_name),
-        p_last: normalizeName(last_name),
-        p_dob: date_of_birth || null,
-        p_gender: gender || null,
-        // Explicit, not implied by the session (0023): a clinic admin has no
-        // current_doctor_id(), so without this the duplicate warning silently
-        // never fires and the clinic path re-creates patients.
-        p_doctor_id: doctorId,
-      })
-      .then(({ data }) => {
-        if (data && data.length > 0) {
-          setMatch(data[0] as PatientRow);
-          setMatchOpen(true);
-        }
-      });
-  }, [state.patient, doctorId, readOnly]);
-
-  // Trigger match check as soon as first + last name are filled; gender/DOB
-  // are no longer required because the RPC now matches on name only.
-  useEffect(() => {
-    if (readOnly || state.patient.existing_id || state.patient.force_new) return;
-    if (!state.patient.first_name.trim() || !state.patient.last_name.trim()) return;
-
-    // 400ms debounce so we don't hit the RPC on every keystroke while the
-    // doctor is still typing the name.
-    const timer = setTimeout(lookupMatch, 400);
-    return () => clearTimeout(timer);
-    // Deliberately keyed on the names only: re-running on every `lookupMatch`
-    // identity (it closes over the whole patient object) would restart the
-    // debounce when the doctor edits DOB or gender.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    state.patient.first_name,
-    state.patient.last_name,
-    state.patient.existing_id,
-    doctorId,
-    readOnly,
-  ]);
-
-  const complete = !!state.patient.first_name.trim() && !!state.patient.last_name.trim();
-
-  return (
-    <SectionCard
-      icon="person"
-      title={t('orderCreate.patient.header')}
-      done={complete}
-      error={patientAttempted && !complete ? t('orderCreate.required') : undefined}
-    >
-        <Stack spacing={2}>
-          {readOnly && (
-            <Callout tone="brand">{t('orderCreate.patient.lockedForContinuation')}</Callout>
-          )}
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <TextField
-              label={t('orderCreate.patient.firstName')}
-              value={state.patient.first_name}
-              onChange={(e) =>
-                update({
-                  patient: {
-                    ...state.patient,
-                    first_name: e.target.value,
-                    existing_id: undefined,
-                    force_new: undefined,
-                  },
-                })
-              }
-              // Also check on blur: the debounce is keyed on the names, so a
-              // doctor who types the name then tabs straight to DOB would
-              // otherwise never see the match dialog.
-              onBlur={lookupMatch}
-              fullWidth
-              required
-              disabled={readOnly}
-              error={patientAttempted && !state.patient.first_name}
-            />
-            <TextField
-              label={t('orderCreate.patient.lastName')}
-              value={state.patient.last_name}
-              onChange={(e) =>
-                update({
-                  patient: {
-                    ...state.patient,
-                    last_name: e.target.value,
-                    existing_id: undefined,
-                    force_new: undefined,
-                  },
-                })
-              }
-              onBlur={lookupMatch}
-              fullWidth
-              required
-              disabled={readOnly}
-              error={patientAttempted && !state.patient.last_name}
-            />
-          </Stack>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-            <DatePicker
-              label={t('orderCreate.patient.dateOfBirth')}
-              value={state.patient.date_of_birth ? dayjs(state.patient.date_of_birth) : null}
-              onChange={(d: Dayjs | null) =>
-                update({
-                  patient: {
-                    ...state.patient,
-                    date_of_birth: d && d.isValid() ? d.format('YYYY-MM-DD') : '',
-                    existing_id: undefined,
-                  },
-                })
-              }
-              format="YYYY-MM-DD"
-              disableFuture
-              disabled={readOnly}
-              slotProps={{ textField: { fullWidth: true } }}
-            />
-            <TextField
-              select
-              label={t('orderCreate.patient.gender')}
-              value={state.patient.gender}
-              onChange={(e) =>
-                update({ patient: { ...state.patient, gender: e.target.value } })
-              }
-              fullWidth
-              disabled={readOnly}
-              // Float the label into the notch always — keeps it from overlapping
-              // the empty placeholder when no option is picked.
-              InputLabelProps={{ shrink: true }}
-              SelectProps={{
-                displayEmpty: true,
-                renderValue: (selected) => {
-                  const v = (selected ?? '') as string;
-                  if (!v) {
-                    return (
-                      <Typography
-                        component="span"
-                        sx={{ color: 'text.secondary', opacity: 0.7 }}
-                      >
-                        {t('orderCreate.patient.genderPlaceholder')}
-                      </Typography>
-                    );
-                  }
-                  if (v === 'male' || v === 'female' || v === 'other') {
-                    return t(`orderCreate.patient.genderOptions.${v}`);
-                  }
-                  return v;
-                },
-              }}
-            >
-              <MenuItem value="male">{t('orderCreate.patient.genderOptions.male')}</MenuItem>
-              <MenuItem value="female">{t('orderCreate.patient.genderOptions.female')}</MenuItem>
-              <MenuItem value="other">{t('orderCreate.patient.genderOptions.other')}</MenuItem>
-            </TextField>
-          </Stack>
-          {state.patient.existing_id && !readOnly && (
-            <Callout tone="brand" icon="how_to_reg">
-              {t('orderCreate.patient.continuingExisting')}
-            </Callout>
-          )}
-          {state.patient.force_new && !readOnly && (
-            <Callout tone="brand" icon="person_add">
-              {t('orderCreate.patient.creatingNew')}
-            </Callout>
-          )}
-        </Stack>
-      <Dialog open={matchOpen && !state.patient.existing_id && !state.patient.force_new && !readOnly} // Dismissing is not an answer, so it must not silently mean "use the
-        // existing one" — which is what the server does when nothing is
-        // recorded. Backdrop and Escape are disabled; the two buttons are
-        // the only ways out.
-        disableEscapeKeyDown
-        onClose={(_e, reason) => {
-          if (reason === "backdropClick") return;
-          setMatchOpen(false);
-        }}>
-        <DialogTitle>{t('orderCreate.patient.match.title')}</DialogTitle>
-        <DialogContent>
-          <Typography>
-            {t('orderCreate.patient.match.body')}
-          </Typography>
-          {match && (
-            <Typography variant="body2" sx={{ mt: 1, fontWeight: 500 }}>
-              {match.first_name} {match.last_name}
-              {match.date_of_birth ? ` · ${match.date_of_birth}` : ''}
-              {match.gender ? ` · ${match.gender}` : ''}
-            </Typography>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button
-            onClick={() => {
-              // Recording this is the whole fix. Closing the dialog used to be
-              // the entire handler, so the answer never left the component and
-              // the server matched on the name regardless.
-              update({ patient: { ...state.patient, existing_id: undefined, force_new: true } });
-              setMatchOpen(false);
-            }}
-          >
-            {t('orderCreate.patient.match.createNew')}
-          </Button>
-          <Button
-            variant="contained"
-            onClick={() => {
-              if (match) update({ patient: { ...state.patient, existing_id: match.id } });
-              setMatchOpen(false);
-            }}
-          >
-            {t('orderCreate.patient.match.continue')}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </SectionCard>
-  );
-}
-
-// ============================================================================
-// Step 2 — Form
-// ============================================================================
-// Exported for reuse on the edit page — same dental form + live price estimate.
+// Exported for reuse on the edit page — same dental form, one card per
+// numbered section.
 export function FormStep({
   state,
   update,
@@ -1198,11 +1039,31 @@ export function FormStep({
   showErrors?: boolean;
 }) {
   const { t } = useTranslation('doctor');
+  const theme = useTheme();
   // The running total lives in the summary rail, where the mockups put it —
   // this step is purely the clinical form, one card per numbered section.
   return (
-    <Stack spacing={2}>
-      <Callout tone="brand">{t('orderCreate.digitalImpressionsNote')}</Callout>
+    <Stack spacing={1.75}>
+      {/* A standing fact about what the labs accept, not a warning: a quiet
+          line in the redesign's info style rather than a tinted panel. */}
+      <Stack
+        direction="row"
+        spacing={1}
+        alignItems="flex-start"
+        sx={{
+          px: 1.75,
+          py: 1.25,
+          borderRadius: `${radii.card}px`,
+          border: 1,
+          borderColor: surfaces[theme.palette.mode].borderSolid,
+          bgcolor: 'background.paper',
+        }}
+      >
+        <Icon name="info" size={16} sx={{ color: palette2026.peri, mt: '1px' }} />
+        <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', lineHeight: 1.5 }}>
+          {t('orderCreate.digitalImpressionsNote')}
+        </Typography>
+      </Stack>
       <OrderForm
         configuration={version.configuration_json}
         pricing={version.pricing_configuration_json}
@@ -1213,291 +1074,3 @@ export function FormStep({
     </Stack>
   );
 }
-
-// ============================================================================
-// Summary rail
-// ============================================================================
-/**
- * The sticky right rail from the wizard mockup: a live price estimate, then
- * every non-clinical decision — rush, due date, work location, who gets the
- * invoice — and the submit button.
- */
-function SummaryRail({
-  state,
-  update,
-  locations,
-  version,
-  rush,
-  selectedLoc,
-  problems = [],
-  averageTurnaroundDays,
-  patientName,
-  submitting,
-  disabled,
-  showError,
-  onSubmit,
-  onAddLocation,
-  guest,
-}: {
-  state: WizardState;
-  update: (p: Partial<WizardState>) => void;
-  locations: DoctorWorkLocationRow[];
-  version: LabFormVersionRow | null | undefined;
-  rush: { type: RushType; value: number } | undefined;
-  selectedLoc: DoctorWorkLocationRow | undefined;
-  averageTurnaroundDays: number | null;
-  /** Named problems from the last submit attempt, so fields can show theirs. */
-  problems?: OrderProblem[];
-  patientName: string;
-  submitting: boolean;
-  disabled: boolean;
-  showError: boolean;
-  onSubmit: () => void;
-  /** Omitted when the actor can't manage the doctor's locations (clinic path). */
-  onAddLocation?: () => void;
-  /** No session: the location is picked after sign-in, and Send opens the
-   *  sign-in dialog rather than submitting. */
-  guest?: boolean;
-}) {
-  const { t } = useTranslation('doctor');
-  const pricing = version?.pricing_configuration_json;
-
-  const labRush = pricing?.rush;
-  const rushAvailable = !!labRush && labRush.type !== 'NONE';
-  const { t: tc } = useTranslation('common');
-  const minDays = minTurnaroundDays(averageTurnaroundDays, pricing, state.rush_requested);
-  const dueProblem = problemFor(problems, 'dueDate');
-  // Live preview of the window the picked start implies, so the doctor sees
-  // the hour they are actually asking for rather than having to know the rule.
-  const win = state.requested_due_time ? dueWindowEnd(state.requested_due_time) : null;
-  const timeHelper = win
-    ? `${state.requested_due_time}\u2013${win.end}` +
-      (win.nextDay ? ` ${tc('orderCard.dueWindowNextDay')}` : '')
-    : t('orderCreate.filesAndDue.dueTimeOptional');
-  // With no locations at all the callout below already says what to do; a red
-  // field on top of it says the same thing twice.
-  const locationError = hasProblem(problems, 'workLocation') && locations.length > 0;
-  const minDate = useMemo(() => dayjs().startOf('day').add(minDays, 'day'), [minDays]);
-
-  // When the toggle changes, the min due date may move past the current
-  // selection. Clear an out-of-range date so the picker stays consistent.
-  const handleRushToggle = (checked: boolean) => {
-    const nextMinDays = minTurnaroundDays(averageTurnaroundDays, pricing, checked);
-    const nextMin = dayjs().startOf('day').add(nextMinDays, 'day');
-    const next: Partial<WizardState> = { rush_requested: checked };
-    if (state.requested_due_date && dayjs(state.requested_due_date).isBefore(nextMin, 'day')) {
-      next.requested_due_date = '';
-    }
-    update(next);
-  };
-
-  return (
-    <SectionCard dense>
-      <Box sx={{ px: 2.5, pt: 2, pb: 1.75, borderBottom: 1, borderColor: 'divider' }}>
-        <Typography sx={{ fontSize: '0.90625rem', fontWeight: 700 }}>
-          {t('orderCreate.summary')}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" noWrap>
-          {patientName || t('orderCreate.patient.header')}
-        </Typography>
-      </Box>
-
-      {version && (
-        <Box sx={{ px: 2.5, py: 1.75, borderBottom: 1, borderColor: 'divider' }}>
-          <PriceBreakdown
-            explain
-            variant="plain"
-            pricing={version.pricing_configuration_json}
-            answers={state.answers}
-            rush={rush}
-          />
-        </Box>
-      )}
-
-      <Stack spacing={1.75} sx={{ px: 2.5, py: 2 }}>
-        {rushAvailable && (
-          <Stack
-            direction="row"
-            alignItems="center"
-            spacing={1.25}
-            onClick={() => handleRushToggle(!state.rush_requested)}
-            sx={{
-              px: 1.625,
-              py: 1.25,
-              borderRadius: `${11}px`,
-              border: 1,
-              borderColor: 'divider',
-              bgcolor: 'background.default',
-              cursor: 'pointer',
-            }}
-          >
-            <Switch
-              checked={state.rush_requested}
-              onChange={(e) => handleRushToggle(e.target.checked)}
-              onClick={(e) => e.stopPropagation()}
-              size="small"
-            />
-            <Box sx={{ minWidth: 0 }}>
-              <Typography sx={{ fontSize: '0.78125rem', fontWeight: 700 }}>
-                {t('orderCreate.filesAndDue.rush')}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                {labRush!.type === 'PERCENTAGE'
-                  ? t('orderCreate.filesAndDue.rushSurchargePercent', { value: labRush!.value })
-                  : t('orderCreate.filesAndDue.rushSurchargeFixed', {
-                      amount: formatGEL(labRush!.value ?? 0),
-                    })}
-                {labRush!.turnaround_days != null && labRush!.turnaround_days > 0
-                  ? ` · ${
-                      labRush!.turnaround_days === 1
-                        ? t('orderCreate.filesAndDue.rushTurnaroundOne')
-                        : t('orderCreate.filesAndDue.rushTurnaroundOther', {
-                            count: labRush!.turnaround_days,
-                          })
-                    }`
-                  : ''}
-              </Typography>
-            </Box>
-          </Stack>
-        )}
-
-        {/* data-form-error stays: scrollToFirstError queries it. MUI's `error`
-            also emits aria-invalid, which that helper matches as a fallback, so
-            the two are complementary rather than duplicates. */}
-        <Box data-form-error={dueProblem ? 'true' : undefined}>
-          <FieldLabel sx={{ mb: 0.625 }}>{t('orderCreate.filesAndDue.dueDate')} *</FieldLabel>
-          <DatePicker
-            value={state.requested_due_date ? dayjs(state.requested_due_date) : null}
-            onChange={(d: Dayjs | null) =>
-              update({ requested_due_date: d && d.isValid() ? d.format('YYYY-MM-DD') : '' })
-            }
-            format="YYYY-MM-DD"
-            minDate={minDate}
-            slotProps={{
-              textField: {
-                fullWidth: true,
-                size: 'small',
-                error: !!dueProblem,
-                // The hint becomes the error rather than sitting beside it —
-                // two lines of small grey-and-red text under one input is how
-                // the reason gets missed.
-                helperText: dueProblem
-                  ? orderProblemMessage(dueProblem, t)
-                  : t('orderCreate.filesAndDue.dueDateHint', { count: minDays }),
-              },
-            }}
-          />
-        </Box>
-
-        {/* Optional: the doctor names a start, and the window end is derived.
-            There is no end input, because the hour is the rule. */}
-        <Box>
-          <FieldLabel sx={{ mb: 0.625 }}>{t('orderCreate.filesAndDue.dueTime')}</FieldLabel>
-          <TimePicker
-            ampm={false}
-            value={
-              state.requested_due_time
-                ? dayjs(`2000-01-01T${state.requested_due_time}`)
-                : null
-            }
-            onChange={(d: Dayjs | null) =>
-              update({ requested_due_time: d && d.isValid() ? d.format('HH:mm') : '' })
-            }
-            slotProps={{
-              textField: {
-                fullWidth: true,
-                size: 'small',
-                helperText: timeHelper,
-              },
-              field: { clearable: true },
-            }}
-          />
-        </Box>
-
-        <Box data-form-error={locationError ? 'true' : undefined}>
-          <FieldLabel sx={{ mb: 0.625 }}>{t('orderCreate.filesAndDue.workLocation')}</FieldLabel>
-          {guest ? (
-            // Not the "you have none, add one" warning: a guest cannot add
-            // one, and it is not a problem with their order.
-            <Callout tone="neutral" icon="location_on">
-              {t('orderCreate.guest.workLocationAfterSignIn')}
-            </Callout>
-          ) : locations.length === 0 ? (
-            <Callout
-              tone="warning"
-              title={t('orderCreate.filesAndDue.noLocations')}
-              action={
-                onAddLocation && (
-                  <Button size="small" onClick={onAddLocation}>
-                    {t('orderCreate.filesAndDue.addLocation')}
-                  </Button>
-                )
-              }
-            />
-          ) : (
-            <TextField
-              select
-              size="small"
-              value={state.doctor_work_location_id}
-              onChange={(e) => update({ doctor_work_location_id: e.target.value })}
-              error={locationError}
-              helperText={
-                locationError ? t('orderCreate.problems.workLocation') : undefined
-              }
-              fullWidth
-            >
-              {locations.map((l) => (
-                <MenuItem key={l.id} value={l.id}>
-                  {l.clinic_name}
-                  {l.branch_name ? ` · ${l.branch_name}` : ''} — {l.city}
-                </MenuItem>
-              ))}
-            </TextField>
-          )}
-        </Box>
-
-        <Box>
-          <FieldLabel sx={{ mb: 0.75 }}>{t('orderCreate.review.invoiceRecipient')}</FieldLabel>
-          <Segmented
-            value={state.invoice_recipient_type}
-            onChange={(v) => update({ invoice_recipient_type: v })}
-            options={[
-              { value: 'DOCTOR' as const, label: t('orderCreate.review.invoiceDoctor') },
-              { value: 'CLINIC' as const, label: t('orderCreate.review.invoiceClinic') },
-            ]}
-          />
-          {state.invoice_recipient_type === 'CLINIC' &&
-            selectedLoc &&
-            !selectedLoc.clinic_identification_code && (
-              <Callout tone="warning" sx={{ mt: 1 }}>
-                {t('orderCreate.review.clinicCodeWarning')}
-              </Callout>
-            )}
-        </Box>
-
-        {showError && (
-          <Callout tone="danger" title={t('orderCreate.review.missingFields')} />
-        )}
-
-        <Button
-          variant="contained"
-          size="large"
-          fullWidth
-          onClick={onSubmit}
-          disabled={submitting || disabled}
-        >
-          {t('orderCreate.review.submit')}
-        </Button>
-
-        <Stack direction="row" spacing={0.75} alignItems="center" justifyContent="center">
-          <Icon name="lock" size={14} sx={{ color: 'text.secondary' }} />
-          <Typography variant="caption" color="text.secondary">
-            {t('orderCreate.privateToLab')}
-          </Typography>
-        </Stack>
-      </Stack>
-    </SectionCard>
-  );
-}
-
-

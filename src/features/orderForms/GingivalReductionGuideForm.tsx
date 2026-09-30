@@ -1,8 +1,8 @@
-import { Stack, TextField } from '@mui/material';
+import { TextField } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { CopyAdornment } from '@/components/design';
 import { ToothMap } from '@/components/ToothMap';
-import { NumberedSection, PillGroup, ErrorHelper, CustomQuestionSections } from './primitives';
+import { NumberedSection, PillGroup, ErrorHelper, CustomQuestionSections, SectionStack } from './primitives';
 import {
   emptyGrgAnswers,
   coerceGrgAnswers,
@@ -63,7 +63,7 @@ export function GingivalReductionGuideForm({
   const next = () => ++counter;
 
   return (
-    <Stack spacing={4}>
+    <SectionStack>
       {enabled('grg_teeth') && (
         <NumberedSection
           number={next()}
@@ -142,6 +142,6 @@ export function GingivalReductionGuideForm({
         />
       )}
 
-    </Stack>
+    </SectionStack>
   );
 }

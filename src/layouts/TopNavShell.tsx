@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Link as RouterLink, Outlet, matchPath, useLocation } from 'react-router-dom';
 import { Box, Button, ButtonBase, Stack, useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,7 @@ import { BrandWordmark } from '@/components/BrandMark';
 import { layout, motion, surfaces } from '@/theme/tokens';
 import type { NavEntry } from './AppShell';
 import { AccountMenu, UserAvatar, type MenuLink } from './AccountMenu';
+import { ShellFocusContext } from './shellFocus';
 
 /** Whether `entry` owns the current page — its own path, or one of `also`. */
 function isActive(entry: NavEntry, pathname: string) {
@@ -28,6 +29,11 @@ function isActive(entry: NavEntry, pathname: string) {
  * with little page. `--page-header-top` tells `PageHeader` there is nothing to
  * clear above it; `--bottom-nav-height` tells anything pinned to the bottom of
  * a phone (the price bar, toasts) what to sit on.
+ *
+ * In focus mode (`useFocusedShell`) the bar is replaced by an empty header
+ * slot plus the avatar, the tabs go, and `--bottom-nav-height` drops to 0 so
+ * the price bar sits on the bottom edge. That header is sticky from `sm` up:
+ * it is the page's header now, and it holds the back button.
  */
 export function TopNavShell({
   homeTo,
@@ -49,212 +55,249 @@ export function TopNavShell({
   const { t } = useTranslation('common');
   const { pathname } = useLocation();
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [focused, setFocused] = useState(false);
+  const [slot, setSlot] = useState<HTMLElement | null>(null);
+  const focus = useMemo(() => ({ slot, setFocused }), [slot]);
 
   const tabBarHeight = `calc(${layout.tabBar}px + env(safe-area-inset-bottom, 0px))`;
 
-  return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        bgcolor: 'background.default',
-        '--page-header-top': '0px',
-        '--bottom-nav-height': { xs: tabBarHeight, md: '0px' },
-      }}
+  const avatar = (
+    <ButtonBase
+      onClick={(e) => setMenuAnchor(e.currentTarget)}
+      aria-label={t('nav.accountMenu')}
+      aria-haspopup="menu"
+      sx={{ borderRadius: '50%', flexShrink: 0 }}
     >
+      <UserAvatar />
+    </ButtonBase>
+  );
+
+  return (
+    <ShellFocusContext.Provider value={focus}>
       <Box
-        component="header"
         sx={{
-          position: 'relative',
-          zIndex: 2,
-          bgcolor: 'background.paper',
-          borderBottom: 1,
-          borderColor: 'divider',
+          minHeight: '100vh',
+          bgcolor: 'background.default',
+          '--page-header-top': '0px',
+          '--bottom-nav-height': focused ? '0px' : { xs: tabBarHeight, md: '0px' },
         }}
       >
-        <Stack
-          direction="row"
-          alignItems="center"
-          sx={{
-            maxWidth: layout.wideMax,
-            mx: 'auto',
-            px: layout.gutter,
-            height: { xs: layout.mobileBar, md: 64 },
-            gap: { xs: 1.5, md: 3, lg: 4.5 },
-          }}
-        >
+        {focused ? (
           <Box
-            component={RouterLink}
-            to={homeTo}
-            aria-label={t('nav.home')}
-            sx={{ display: 'flex', textDecoration: 'none', flexShrink: 0 }}
-          >
-            <BrandWordmark />
-          </Box>
-
-          <Stack
-            component="nav"
-            aria-label={t('nav.main')}
-            direction="row"
-            alignItems="center"
+            component="header"
             sx={{
-              display: { xs: 'none', md: 'flex' },
-              flex: 1,
-              minWidth: 0,
-              gap: { md: 2.5, lg: 3.25 },
+              position: { xs: 'relative', sm: 'sticky' },
+              top: 0,
+              // Over the page's own sticky rails and bands (PageHeader is 40),
+              // under MUI's app bar layer and everything modal above it.
+              zIndex: 50,
+              bgcolor: 'background.paper',
+              borderBottom: 1,
+              borderColor: 'divider',
             }}
           >
-            {nav.map((entry) => {
-              const active = isActive(entry, pathname);
-              return (
-                <Box
-                  key={entry.to}
+            <Stack
+              direction="row"
+              alignItems={{ xs: 'flex-start', md: 'center' }}
+              sx={{
+                maxWidth: layout.wideMax,
+                mx: 'auto',
+                px: layout.gutter,
+                minHeight: { xs: layout.mobileBar, md: 64 },
+                py: { xs: 1.25, md: 0 },
+                gap: { xs: 1.25, md: 2 },
+              }}
+            >
+              <Box ref={setSlot} sx={{ flex: 1, minWidth: 0 }} />
+              {avatar}
+            </Stack>
+          </Box>
+        ) : (
+          <Box
+            component="header"
+            sx={{
+              position: 'relative',
+              zIndex: 2,
+              bgcolor: 'background.paper',
+              borderBottom: 1,
+              borderColor: 'divider',
+            }}
+          >
+            <Stack
+              direction="row"
+              alignItems="center"
+              sx={{
+                maxWidth: layout.wideMax,
+                mx: 'auto',
+                px: layout.gutter,
+                height: { xs: layout.mobileBar, md: 64 },
+                gap: { xs: 1.5, md: 3, lg: 4.5 },
+              }}
+            >
+              <Box
+                component={RouterLink}
+                to={homeTo}
+                aria-label={t('nav.home')}
+                sx={{ display: 'flex', textDecoration: 'none', flexShrink: 0 }}
+              >
+                <BrandWordmark />
+              </Box>
+
+              <Stack
+                component="nav"
+                aria-label={t('nav.main')}
+                direction="row"
+                alignItems="center"
+                sx={{
+                  display: { xs: 'none', md: 'flex' },
+                  flex: 1,
+                  minWidth: 0,
+                  gap: { md: 2.5, lg: 3.25 },
+                }}
+              >
+                {nav.map((entry) => {
+                  const active = isActive(entry, pathname);
+                  return (
+                    <Box
+                      key={entry.to}
+                      component={RouterLink}
+                      to={entry.to}
+                      aria-current={active ? 'page' : undefined}
+                      sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        whiteSpace: 'nowrap',
+                        textDecoration: 'none',
+                        fontSize: '0.875rem',
+                        fontWeight: active ? 600 : 500,
+                        color: active ? 'text.primary' : 'text.secondary',
+                        transition: `color ${motion.fast}`,
+                        '&:hover': { color: 'text.primary' },
+                      }}
+                    >
+                      {entry.label}
+                      {entry.badge}
+                    </Box>
+                  );
+                })}
+              </Stack>
+
+              <Box sx={{ flex: 1, display: { md: 'none' } }} />
+
+              {newOrder && (
+                <Button
                   component={RouterLink}
-                  to={entry.to}
-                  aria-current={active ? 'page' : undefined}
+                  to={newOrder.to}
+                  variant="contained"
+                  startIcon={<Icon name="add" size={18} />}
                   sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
+                    display: { xs: 'none', md: 'inline-flex' },
+                    height: 38,
+                    flexShrink: 0,
                     whiteSpace: 'nowrap',
-                    textDecoration: 'none',
-                    fontSize: '0.875rem',
-                    fontWeight: active ? 600 : 500,
-                    color: active ? 'text.primary' : 'text.secondary',
-                    transition: `color ${motion.fast}`,
-                    '&:hover': { color: 'text.primary' },
                   }}
                 >
-                  {entry.label}
-                  {entry.badge}
-                </Box>
-              );
-            })}
-          </Stack>
+                  {newOrder.label}
+                </Button>
+              )}
 
-          <Box sx={{ flex: 1, display: { md: 'none' } }} />
+              {avatar}
+            </Stack>
+          </Box>
+        )}
 
-          {newOrder && (
-            <Button
-              component={RouterLink}
-              to={newOrder.to}
-              variant="contained"
-              startIcon={<Icon name="add" size={18} />}
-              sx={{
-                display: { xs: 'none', md: 'inline-flex' },
-                height: 38,
-                flexShrink: 0,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {newOrder.label}
-            </Button>
-          )}
+        <AccountMenu anchorEl={menuAnchor} onClose={() => setMenuAnchor(null)} links={menuLinks} />
 
-          <ButtonBase
-            onClick={(e) => setMenuAnchor(e.currentTarget)}
-            aria-label={t('nav.accountMenu')}
-            aria-haspopup="menu"
-            sx={{ borderRadius: '50%', flexShrink: 0 }}
+        <Box component="main">
+          <Box
+            sx={{
+              maxWidth: layout.wideMax,
+              mx: 'auto',
+              px: layout.gutter,
+              // `PageHeader` cancels this top padding to reach the column's top
+              // edge; pages without one keep it.
+              pt: { xs: 2.5, md: 3.25 },
+              pb: focused ? { xs: 10, md: 10 } : { xs: `calc(80px + ${tabBarHeight})`, md: 10 },
+            }}
           >
-            <UserAvatar />
-          </ButtonBase>
-        </Stack>
-      </Box>
+            <Outlet />
+          </Box>
+        </Box>
 
-      <AccountMenu
-        anchorEl={menuAnchor}
-        onClose={() => setMenuAnchor(null)}
-        links={menuLinks}
-      />
-
-      <Box component="main">
         <Box
+          component="nav"
+          aria-label={t('nav.main')}
           sx={{
-            maxWidth: layout.wideMax,
-            mx: 'auto',
-            px: layout.gutter,
-            // `PageHeader` cancels this top padding to reach the column's top
-            // edge; pages without one keep it.
-            pt: { xs: 2.5, md: 3.25 },
-            pb: { xs: `calc(80px + ${tabBarHeight})`, md: 10 },
+            display: focused ? 'none' : { xs: 'flex', md: 'none' },
+            position: 'fixed',
+            left: 0,
+            right: 0,
+            bottom: 0,
+            // Below MUI's modal layer (1300) so menus and dialogs cover it.
+            zIndex: theme.zIndex.appBar,
+            height: tabBarHeight,
+            pb: 'env(safe-area-inset-bottom, 0px)',
+            px: 0.5,
+            bgcolor: 'background.paper',
+            borderTop: 1,
+            borderColor: 'divider',
           }}
         >
-          <Outlet />
-        </Box>
-      </Box>
-
-      <Box
-        component="nav"
-        aria-label={t('nav.main')}
-        sx={{
-          display: { xs: 'flex', md: 'none' },
-          position: 'fixed',
-          left: 0,
-          right: 0,
-          bottom: 0,
-          // Below MUI's modal layer (1300) so menus and dialogs cover it.
-          zIndex: theme.zIndex.appBar,
-          height: tabBarHeight,
-          pb: 'env(safe-area-inset-bottom, 0px)',
-          px: 0.5,
-          bgcolor: 'background.paper',
-          borderTop: 1,
-          borderColor: 'divider',
-        }}
-      >
-        {tabs.map((entry) => {
-          const active = isActive(entry, pathname);
-          return (
-            <Box
-              key={entry.to}
-              component={RouterLink}
-              to={entry.to}
-              aria-current={active ? 'page' : undefined}
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 0.5,
-                textDecoration: 'none',
-                // "ლაბორატორიები" is the longest label and gets a quarter of
-                // the phone's width.
-                fontSize: 'clamp(9.5px, 2.7vw, 11px)',
-                letterSpacing: '-0.01em',
-                fontWeight: 600,
-                color: active ? 'text.primary' : surfaces[mode].textMuted,
-                '& .material-symbols-rounded': {
-                  fontVariationSettings: active ? "'FILL' 1" : undefined,
-                },
-              }}
-            >
-              <Box sx={{ position: 'relative', display: 'flex' }}>
-                <Icon name={entry.icon} size={22} />
-                {entry.badge && (
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      top: -6,
-                      left: 14,
-                      display: 'flex',
-                      '& > *': { ml: 0 },
-                    }}
-                  >
-                    {entry.badge}
-                  </Box>
-                )}
-              </Box>
-              {/* Never ellipsised: on the narrowest phones the longest label
+          {tabs.map((entry) => {
+            const active = isActive(entry, pathname);
+            return (
+              <Box
+                key={entry.to}
+                component={RouterLink}
+                to={entry.to}
+                aria-current={active ? 'page' : undefined}
+                sx={{
+                  flex: 1,
+                  minWidth: 0,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 0.5,
+                  textDecoration: 'none',
+                  // "ლაბორატორიები" is the longest label and gets a quarter of
+                  // the phone's width.
+                  fontSize: 'clamp(9.5px, 2.7vw, 11px)',
+                  letterSpacing: '-0.01em',
+                  fontWeight: 600,
+                  color: active ? 'text.primary' : surfaces[mode].textMuted,
+                  '& .material-symbols-rounded': {
+                    fontVariationSettings: active ? "'FILL' 1" : undefined,
+                  },
+                }}
+              >
+                <Box sx={{ position: 'relative', display: 'flex' }}>
+                  <Icon name={entry.icon} size={22} />
+                  {entry.badge && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: -6,
+                        left: 14,
+                        display: 'flex',
+                        '& > *': { ml: 0 },
+                      }}
+                    >
+                      {entry.badge}
+                    </Box>
+                  )}
+                </Box>
+                {/* Never ellipsised: on the narrowest phones the longest label
                   is a pixel or two wider than its quarter, and centred text
                   spills that evenly into its neighbours' spare room. */}
-              <Box component="span" sx={{ whiteSpace: 'nowrap' }}>
-                {entry.label}
+                <Box component="span" sx={{ whiteSpace: 'nowrap' }}>
+                  {entry.label}
+                </Box>
               </Box>
-            </Box>
-          );
-        })}
+            );
+          })}
+        </Box>
       </Box>
-    </Box>
+    </ShellFocusContext.Provider>
   );
 }

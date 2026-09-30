@@ -1,7 +1,7 @@
-import { Alert, MenuItem, Stack, TextField } from '@mui/material';
+import { Alert, MenuItem, TextField } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { CopyAdornment } from '@/components/design';
-import { NumberedSection, ErrorHelper, CustomQuestionSections } from './primitives';
+import { NumberedSection, ErrorHelper, CustomQuestionSections, SectionStack } from './primitives';
 import { NumberField } from '@/components/NumberField';
 import { ToothMap } from '@/components/ToothMap';
 import { formatGEL } from '@/utils/pricing';
@@ -88,7 +88,7 @@ export function PrintForm({
   }
 
   return (
-    <Stack spacing={4}>
+    <SectionStack>
       <NumberedSection number={1} label={`${t('fabForm.material')} *`}>
         <MaterialSelect
           materials={materials}
@@ -134,7 +134,7 @@ export function PrintForm({
         />
       )}
 
-    </Stack>
+    </SectionStack>
   );
 }
 
@@ -174,7 +174,7 @@ export function MillingForm({
   }
 
   return (
-    <Stack spacing={4}>
+    <SectionStack>
       <NumberedSection number={1} label={`${t('fabForm.material')} *`}>
         <MaterialSelect
           materials={materials}
@@ -220,6 +220,6 @@ export function MillingForm({
         />
       )}
 
-    </Stack>
+    </SectionStack>
   );
 }

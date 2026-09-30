@@ -3,7 +3,7 @@ import { Box, Drawer, IconButton, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
-import { calculatePrice, formatGEL } from '@/utils/pricing';
+import { calculatePrice, formatGELShort } from '@/utils/pricing';
 import type { PricingConfig, RushType } from '@/types/database';
 
 /** Height of the bar; the spacer below reserves exactly this much so the bar
@@ -84,7 +84,7 @@ export function MobilePriceBar({ pricing, answers, rush }: Props) {
             sx={{ fontSize: described ? '0.8125rem' : '1.0625rem', fontWeight: 700, letterSpacing: '-0.01em' }}
             noWrap
           >
-            {described ? t(noPricing ? 'priceBreakdown.noPricingBar' : 'priceBreakdown.describedBar') : formatGEL(result.total)}
+            {described ? t(noPricing ? 'priceBreakdown.noPricingBar' : 'priceBreakdown.describedBar') : formatGELShort(result.total)}
           </Typography>
         </Box>
         <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'primary.main' }}>

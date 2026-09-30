@@ -290,5 +290,80 @@
     "notSaved": "Не удалось сохранить заказ на этом устройстве (приватный режим или переполнено хранилище). Если вы уйдёте со страницы, заполненное будет потеряно.",
     "or": "или",
     "register": "Создать аккаунт"
+  },
+  "orderList": {
+    "dateFormat": "D MMM",
+    "searchPlaceholder": "Пациент, номер, лаборатория",
+    "doctorName": "Врач: {{name}}",
+    "activeCount_one": "{{count}} активный",
+    "activeCount_few": "{{count}} активных",
+    "activeCount_many": "{{count}} активных",
+    "activeCount_other": "{{count}} активных",
+    "quick": {
+      "all": "Все",
+      "dueThisWeek": "Срок на этой неделе",
+      "needsAnswer": "Нужен ваш ответ",
+      "unpaid": "Не оплачены",
+      "ready": "Готовы к выдаче"
+    },
+    "labFilter": "Лаборатория",
+    "patientFilter": "Пациент",
+    "doctorFilter": "Врач",
+    "groups": {
+      "drafts": "Черновики",
+      "needsYou": "Ждут вашего ответа",
+      "sent": "Отправленные",
+      "inProgress": "В работе",
+      "ready": "Готовы",
+      "delivered": "Переданы в клинику",
+      "completed": "Завершённые",
+      "cancelled": "Отменённые"
+    },
+    "showMore": "Ещё {{count}}",
+    "showLess": "Свернуть",
+    "tag": {
+      "needsChange": "Нужны правки",
+      "readyToClose": "Ждёт подтверждения",
+      "answered": "Ответ отправлен",
+      "ready": "Готов"
+    },
+    "age": {
+      "justNow": "Только что",
+      "minutes": "{{count}} мин назад",
+      "hours": "{{count}} ч назад",
+      "today": "Сегодня",
+      "yesterday": "Вчера"
+    },
+    "due": "Срок {{date}}",
+    "daysLeft_one": "{{count}} день",
+    "daysLeft_few": "{{count}} дня",
+    "daysLeft_many": "{{count}} дней",
+    "daysLeft_other": "{{count}} дня",
+    "dueToday": "сегодня",
+    "overdue": "просрочен",
+    "completedOn": "Завершён {{date}}",
+    "cancelledOn": "Отменён {{date}}",
+    "editPending": "Правка на проверке",
+    "reply": "Ответить"
+  },
+  "shadePicker": {
+    "family": {
+      "A": "красновато-коричневый",
+      "B": "желтоватый",
+      "C": "сероватый",
+      "D": "красновато-серый"
+    },
+    "hue": {
+      "L": "желтоватый",
+      "M": "средний",
+      "R": "красноватый"
+    },
+    "chroma": "Ниже — насыщеннее (chroma)",
+    "lighter": "← Светлее",
+    "valueAxis": "Светлота (value) → темнее",
+    "bleach": "блич",
+    "light": "светлый",
+    "dark": "тёмный",
+    "none": "Цвет ещё не выбран"
   }
 }

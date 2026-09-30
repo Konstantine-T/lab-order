@@ -180,7 +180,12 @@
       "selectTooth": "Select Tooth",
       "notesPlaceholder": "for example: specify which teeth should have bridge in",
       "noMaterials": "No materials configured for this service. The lab must add at least one material in the service's Pricing tab before doctors can place orders.",
-      "clear": "Clear"
+      "clear": "Clear",
+      "materialPerTooth": "Material — price per tooth",
+      "selectedTeeth_one": "Selected · {{count}} tooth",
+      "selectedTeeth_other": "Selected · {{count}} teeth",
+      "unitsSubtotal_one": "{{count}} unit · {{amount}}",
+      "unitsSubtotal_other": "{{count}} units · {{amount}}"
     },
     "mmPlaceholder": "Desired length in mm",
     "shadeScales": {
@@ -201,6 +206,13 @@
       "Relief": "Relief",
       "Universal": "Universal",
       "FDI": "FDI"
+    },
+    "clinicalParams": "Clinical parameters",
+    "shadeScale": "Shade guide",
+    "nav": {
+      "treatments": "Treatment",
+      "shade": "Shade",
+      "clinicalParams": "Parameters"
     }
   },
   "services": {

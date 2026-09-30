@@ -288,5 +288,76 @@
     "notSaved": "შეკვეთის ამ მოწყობილობაზე შენახვა ვერ მოხერხდა (პირადი რეჟიმი ან სავსე მეხსიერება). თუ გვერდს დატოვებთ, შევსებული მონაცემები დაიკარგება.",
     "or": "ან",
     "register": "ანგარიშის შექმნა"
+  },
+  "orderList": {
+    "dateFormat": "D MMM",
+    "searchPlaceholder": "პაციენტი, ნომერი, ლაბორატორია",
+    "doctorName": "ექ. {{name}}",
+    "activeCount_one": "{{count}} აქტიური",
+    "activeCount_other": "{{count}} აქტიური",
+    "quick": {
+      "all": "ყველა",
+      "dueThisWeek": "ვადა ამ კვირაში",
+      "needsAnswer": "საჭიროებს პასუხს",
+      "unpaid": "გადაუხდელი",
+      "ready": "მზადაა ასაღებად"
+    },
+    "labFilter": "ლაბორატორია",
+    "patientFilter": "პაციენტი",
+    "doctorFilter": "ექიმი",
+    "groups": {
+      "drafts": "მონახაზი",
+      "needsYou": "საჭიროებს შენს პასუხს",
+      "sent": "გაგზავნილი",
+      "inProgress": "მიმდინარე",
+      "ready": "მზადაა",
+      "delivered": "ჩაბარებული",
+      "completed": "დასრულებული",
+      "cancelled": "გაუქმებული"
+    },
+    "showMore": "კიდევ {{count}}",
+    "showLess": "ნაკლების ჩვენება",
+    "tag": {
+      "needsChange": "საჭიროებს ცვლილებას",
+      "readyToClose": "ელოდება დადასტურებას",
+      "answered": "პასუხი გაცემულია",
+      "ready": "მზადაა"
+    },
+    "age": {
+      "justNow": "ახლახან",
+      "minutes": "{{count}} წთ წინ",
+      "hours": "{{count}} სთ წინ",
+      "today": "დღეს",
+      "yesterday": "გუშინ"
+    },
+    "due": "ვადა {{date}}",
+    "daysLeft_one": "{{count}} დღე",
+    "daysLeft_other": "{{count}} დღე",
+    "dueToday": "დღეს",
+    "overdue": "ვადაგადაცილებული",
+    "completedOn": "დასრულდა {{date}}",
+    "cancelledOn": "გაუქმდა {{date}}",
+    "editPending": "ცვლილება განხილვაშია",
+    "reply": "პასუხის გაცემა"
+  },
+  "shadePicker": {
+    "family": {
+      "A": "მოწითალო-ყავისფერი",
+      "B": "მოყვითალო",
+      "C": "მონაცრისფრო",
+      "D": "მოწითალო-ნაცრისფერი"
+    },
+    "hue": {
+      "L": "მოყვითალო",
+      "M": "საშუალო",
+      "R": "მოწითალო"
+    },
+    "chroma": "ქვევით — უფრო ინტენსიური (Chroma)",
+    "lighter": "← ღია",
+    "valueAxis": "სიღიავე (Value) → მუქი",
+    "bleach": "ბლიჩ",
+    "light": "ღია",
+    "dark": "მუქი",
+    "none": "ფერი ჯერ არ არის არჩეული"
   }
 }

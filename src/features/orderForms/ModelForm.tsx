@@ -1,7 +1,7 @@
-import { Stack, TextField } from '@mui/material';
+import { TextField } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { CopyAdornment } from '@/components/design';
-import { NumberedSection, PillGroup, ErrorHelper, CustomQuestionSections } from './primitives';
+import { NumberedSection, PillGroup, ErrorHelper, CustomQuestionSections, SectionStack } from './primitives';
 import {
   emptyModelAnswers,
   coerceModelAnswers,
@@ -66,7 +66,7 @@ export function ModelForm({
   const next = () => ++counter;
 
   return (
-    <Stack spacing={4}>
+    <SectionStack>
       {enabled('model_type') && (
         <NumberedSection
           number={next()}
@@ -199,6 +199,6 @@ export function ModelForm({
         />
       )}
 
-    </Stack>
+    </SectionStack>
   );
 }

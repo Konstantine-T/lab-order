@@ -180,7 +180,12 @@
       "selectTooth": "აირჩიეთ კბილი",
       "notesPlaceholder": "მაგალითად: მიუთითეთ რომელ კბილებზე იქნება ხიდი",
       "noMaterials": "ამ სერვისისთვის მასალა არ არის დაკონფიგურირებული. ლაბორატორიამ უნდა დაამატოს მინიმუმ ერთი მასალა სერვისის Pricing ჩანართში, რომ ექიმმა შეძლოს შეკვეთის გაგზავნა.",
-      "clear": "გასუფთავება"
+      "clear": "გასუფთავება",
+      "materialPerTooth": "მასალა — ფასი ერთ კბილზე",
+      "selectedTeeth_one": "არჩეულია · {{count}} კბილი",
+      "selectedTeeth_other": "არჩეულია · {{count}} კბილი",
+      "unitsSubtotal_one": "{{count}} ერთეული · {{amount}}",
+      "unitsSubtotal_other": "{{count}} ერთეული · {{amount}}"
     },
     "mmPlaceholder": "სასურველი სიგრძე (მმ)",
     "shadeScales": {
@@ -201,6 +206,13 @@
       "Relief": "შესუსტებული",
       "Universal": "Universal",
       "FDI": "FDI"
+    },
+    "clinicalParams": "კლინიკური პარამეტრები",
+    "shadeScale": "ფერის სკალა",
+    "nav": {
+      "treatments": "მკურნალობა",
+      "shade": "ფერი",
+      "clinicalParams": "პარამეტრები"
     }
   },
   "services": {

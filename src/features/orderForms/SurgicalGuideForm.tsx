@@ -13,7 +13,7 @@ import {
 import { Icon, CopyAdornment } from '@/components/design';
 import { useTranslation } from 'react-i18next';
 import { ToothMap } from '@/components/ToothMap';
-import { NumberedSection, PillGroup, ErrorHelper, CustomQuestionSections } from './primitives';
+import { NumberedSection, PillGroup, ErrorHelper, CustomQuestionSections, SectionStack } from './primitives';
 import {
   emptySgAnswers,
   coerceSgAnswers,
@@ -94,7 +94,7 @@ export function SurgicalGuideForm({
     a.jaw === 'BOTH' ? `${sg(`jaw.${which}Label`)} — ${label}` : label;
 
   return (
-    <Stack spacing={4}>
+    <SectionStack>
       {/* ── 1. Guide Protocol ─────────────────────────────────────────────── */}
       <NumberedSection number={next()} label={`${sg('guideProtocol.label')} *`}>
         <PillGroup<SgGuideProtocol>
@@ -391,7 +391,7 @@ export function SurgicalGuideForm({
         />
       )}
 
-    </Stack>
+    </SectionStack>
   );
 }
 

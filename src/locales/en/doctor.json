@@ -80,9 +80,17 @@
         "title": "Existing patient found",
         "body": "A patient with this name and date of birth already exists in your records.",
         "continue": "Continue with existing patient",
-        "createNew": "Create as new patient"
+        "createNew": "Create as new patient",
+        "found": "Found: {{name}}",
+        "previousOrder": "previous order {{code}}",
+        "useThis": "This is the patient",
+        "continueFrom": "Continue from that order",
+        "newPatient": "New patient",
+        "choose": "Before sending, say whether this is the same patient or a new one."
       },
-      "creatingNew": "A new patient will be created, separate from the existing one with this name."
+      "creatingNew": "A new patient will be created, separate from the existing one with this name.",
+      "cardTitle": "Patient",
+      "sex": "Sex"
     },
     "labService": {
       "selectLab": "Select a laboratory",
@@ -131,7 +139,9 @@
       },
       "clinicCodeWarning": "This work location does not have a clinic identification code. The invoice cannot be issued to the clinic without one. Either add the code in your work location settings or invoice yourself.",
       "formAnswers": "Order details",
-      "missingFields": "Some required fields are blank — fill the sections marked in red."
+      "missingFields": "Some required fields are blank — fill the sections marked in red.",
+      "invoiceDoctorShort": "Me (doctor)",
+      "invoiceClinicShort": "The clinic"
     },
     "draftSaved": "Draft saved",
     "summary": "Order summary",
@@ -156,8 +166,45 @@
       "notSaved": "Not saved on this device",
       "resumed": "Here is the order you started before signing in. Check it over, pick a work location, and send it.",
       "formChangedTitle": "The lab has updated this form",
-      "formChangedBody": "Some questions may have changed since you filled it in. Please check your answers before sending."
-    }
+      "formChangedBody": "Some questions may have changed since you filled it in. Please check your answers before sending.",
+      "filesDropTitle": "Drop files here · up to {{size}} each",
+      "filesSignIn": "To upload, {{link}} — your draft won't be lost",
+      "signIn": "sign in"
+    },
+    "nav": {
+      "title": "Order sections",
+      "patient": "Patient",
+      "dueAndSend": "Due date & send",
+      "doneA11y": "done"
+    },
+    "progress": {
+      "patient": "patient",
+      "form": "the order form",
+      "dueDate": "due date",
+      "workLocation": "work location",
+      "count": "Required: {{done}} of {{total}} filled in.",
+      "left": "Left: {{list}}.",
+      "ready": "Ready to send.",
+      "and": "and"
+    },
+    "breadcrumbA11y": "Breadcrumb",
+    "change": "Change",
+    "draftSavedAt": "Draft saved {{time}}",
+    "draftNotSaved": "Draft not saved",
+    "summaryRows": {
+      "shade": "Shade",
+      "rush": "Rush",
+      "rushOn": "Requested"
+    },
+    "labConfirms": "The lab confirms it",
+    "due": {
+      "minDays_one": "at least {{count}} day",
+      "minDays_other": "at least {{count}} days",
+      "other": "Other",
+      "earliestNote": "{{date}} is the earliest date this lab can deliver",
+      "timeShort": "Time (optional)"
+    },
+    "sendNote": "Sent only to this lab. The lab confirms the final price and due date."
   },
   "orders": {
     "title": "My orders",
@@ -267,6 +314,45 @@
       "attached": "The lab attached an invoice",
       "changed": "The lab changed the invoice",
       "gotIt": "Got it"
+    },
+    "breadcrumb": "Breadcrumb",
+    "header": {
+      "doctor": "Dr. {{name}}",
+      "created": "created {{date}}",
+      "editWithReason": "Change with a reason"
+    },
+    "summary": {
+      "teethTitle": "Tooth chart · {{notation}}",
+      "title": "Order summary"
+    },
+    "facts": {
+      "units": "Units",
+      "shade": "Shade",
+      "rush": "Rush"
+    },
+    "answersToggle": {
+      "show": "Show full form",
+      "hide": "Hide form"
+    },
+    "price": {
+      "title": "Price and due date",
+      "confirmed": "Confirmed",
+      "final": "Final price",
+      "label": "Price",
+      "due": "Due",
+      "described": "The lab will confirm the price",
+      "requested": "Requested: {{date}}",
+      "paid": "{{amount}} paid",
+      "invoiceToClinic": "Invoiced to the clinic — {{name}}",
+      "invoiceToDoctor": "Invoiced to the doctor — {{name}}"
+    },
+    "labCard": {
+      "team": "Team: {{names}}",
+      "profile": "Profile"
+    },
+    "phoneBar": {
+      "chat": "Chat with the lab",
+      "call": "Call the lab"
     }
   },
   "orderEdit": {

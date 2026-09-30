@@ -288,5 +288,76 @@
     "notSaved": "The order could not be saved on this device (private browsing, or storage is full). If you leave this page, what you've filled in will be lost.",
     "or": "or",
     "register": "Create an account"
+  },
+  "orderList": {
+    "dateFormat": "MMM D",
+    "searchPlaceholder": "Patient, number, lab",
+    "doctorName": "Dr. {{name}}",
+    "activeCount_one": "{{count}} active",
+    "activeCount_other": "{{count}} active",
+    "quick": {
+      "all": "All",
+      "dueThisWeek": "Due this week",
+      "needsAnswer": "Needs your reply",
+      "unpaid": "Unpaid",
+      "ready": "Ready for pickup"
+    },
+    "labFilter": "Lab",
+    "patientFilter": "Patient",
+    "doctorFilter": "Doctor",
+    "groups": {
+      "drafts": "Drafts",
+      "needsYou": "Waiting on you",
+      "sent": "Sent",
+      "inProgress": "In progress",
+      "ready": "Ready",
+      "delivered": "Delivered",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "showMore": "{{count}} more",
+    "showLess": "Show less",
+    "tag": {
+      "needsChange": "Needs a change",
+      "readyToClose": "Awaiting confirmation",
+      "answered": "Answered",
+      "ready": "Ready"
+    },
+    "age": {
+      "justNow": "Just now",
+      "minutes": "{{count}} min ago",
+      "hours": "{{count}} h ago",
+      "today": "Today",
+      "yesterday": "Yesterday"
+    },
+    "due": "Due {{date}}",
+    "daysLeft_one": "{{count}} day left",
+    "daysLeft_other": "{{count}} days left",
+    "dueToday": "today",
+    "overdue": "overdue",
+    "completedOn": "Completed {{date}}",
+    "cancelledOn": "Cancelled {{date}}",
+    "editPending": "Edit under review",
+    "reply": "Reply"
+  },
+  "shadePicker": {
+    "family": {
+      "A": "reddish-brown",
+      "B": "yellowish",
+      "C": "greyish",
+      "D": "reddish-grey"
+    },
+    "hue": {
+      "L": "yellowish",
+      "M": "medium",
+      "R": "reddish"
+    },
+    "chroma": "Further down — more intense (chroma)",
+    "lighter": "← Lighter",
+    "valueAxis": "Value → darker",
+    "bleach": "bleach",
+    "light": "light",
+    "dark": "dark",
+    "none": "No shade chosen yet"
   }
 }
