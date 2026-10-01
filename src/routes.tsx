@@ -1,3 +1,4 @@
+import { useEffect, type ReactNode } from 'react';
 import { Route, Routes } from 'react-router-dom';
 import { ProtectedRoute } from '@/auth/ProtectedRoute';
 import { RoleGuard } from '@/auth/RoleGuard';
@@ -5,6 +6,9 @@ import { RoleAwareRedirect } from '@/auth/RoleAwareRedirect';
 import { GuestRoute } from '@/auth/GuestRoute';
 import { PUBLIC_ROUTES } from '@/features/public/publicRoutes';
 import { doctorOrderNewPath } from '@/features/public/guestDraft';
+import type { UserRole } from '@/types/database';
+import { lazyRoute } from '@/routes/lazyRoute';
+import { LazyBoundary } from '@/routes/LazyBoundary';
 
 import { PublicLayout } from '@/layouts/PublicLayout';
 import { LoginPage } from '@/pages/public/LoginPage';
@@ -15,47 +19,94 @@ import { ForgotPasswordPage } from '@/pages/public/ForgotPasswordPage';
 import { ResetPasswordPage } from '@/pages/public/ResetPasswordPage';
 import { NotFoundPage } from '@/pages/public/NotFoundPage';
 import { ForbiddenPage } from '@/pages/public/ForbiddenPage';
-
-import { DoctorLayout } from '@/layouts/DoctorLayout';
-import { DoctorHomePage } from '@/pages/doctor/DoctorHomePage';
-import { DoctorProfilePage } from '@/pages/doctor/DoctorProfilePage';
-import { WorkLocationsPage } from '@/pages/doctor/WorkLocationsPage';
 import { MarketplacePage } from '@/pages/doctor/MarketplacePage';
 import { LabPublicProfilePage } from '@/pages/doctor/LabPublicProfilePage';
-import { OrderCreateWizard } from '@/pages/doctor/OrderCreateWizard';
-import { OrdersListPage } from '@/pages/doctor/OrdersListPage';
-import { OrderDetailPage } from '@/pages/doctor/OrderDetailPage';
-import { OrderEditPage } from '@/pages/doctor/OrderEditPage';
-import { PatientsPage } from '@/pages/doctor/PatientsPage';
-import { PatientOrdersPage } from '@/pages/doctor/PatientOrdersPage';
-import { UnderDevelopmentPage } from '@/pages/common/UnderDevelopmentPage';
 
-import { LabLayout } from '@/layouts/LabLayout';
-import { LabDashboardPage } from '@/pages/lab/LabDashboardPage';
-import { LabProfilePage } from '@/pages/lab/LabProfilePage';
-import { LabServicesPage } from '@/pages/lab/LabServicesPage';
-import { LabServiceCreatePage } from '@/pages/lab/LabServiceCreatePage';
-import { LabServiceEditPage } from '@/pages/lab/LabServiceEditPage';
-import { LabOrdersDashboardPage } from '@/pages/lab/LabOrdersDashboardPage';
-import { LabEditedOrdersPage } from '@/pages/lab/LabEditedOrdersPage';
-import { LabOrderSheetPage } from '@/pages/lab/LabOrderSheetPage';
-import { LabFinancesPage } from '@/pages/lab/LabFinancesPage';
-import { FinanceLockGate } from '@/features/lab/finances/FinanceLockGate';
-import { LabStaffPage } from '@/pages/lab/LabStaffPage';
+/*
+ * CODE SPLITTING
+ *
+ * The entry chunk holds what a first-time visitor can reach: the landing page
+ * (via RoleAwareRedirect), sign-in and registration, and the public catalogue
+ * — the marketplace and a lab's profile. Those stay eager so none of them
+ * shows a loading spinner.
+ *
+ * Each signed-in area is one lazy chunk — its layout and every page, with the
+ * date pickers — loaded once, the first time someone enters it. Area, not
+ * page: four downloads per session rather than forty. The guest wizard is a
+ * fifth, because it is the only public page that needs the date pickers.
+ * Code the areas share (the wizard, the order forms, the tooth chart) lands in
+ * shared chunks, never in two places.
+ *
+ * The guards stay here, outside the lazy chunks: a signed-out deep link is
+ * redirected to /login — or to the public copy of a catalogue page — without
+ * downloading the area at all.
+ */
+const DoctorArea = lazyRoute(() => import('@/routes/doctorRoutes'));
+const LabArea = lazyRoute(() => import('@/routes/labRoutes'));
+const ClinicArea = lazyRoute(() => import('@/routes/clinicRoutes'));
+const AdminArea = lazyRoute(() => import('@/routes/adminRoutes'));
+const GuestOrderWizard = lazyRoute(() => import('@/routes/guestOrderRoute'));
 
-import { AdminLayout } from '@/layouts/AdminLayout';
-import { AdminHomePage } from '@/pages/admin/AdminHomePage';
-import { LabApprovalQueuePage } from '@/pages/admin/LabApprovalQueuePage';
-import { LabReviewPage } from '@/pages/admin/LabReviewPage';
-import { FeedbacksPage } from '@/pages/admin/FeedbacksPage';
+const AREAS = [
+  { base: '/doctor', area: DoctorArea },
+  { base: '/lab', area: LabArea },
+  { base: '/clinic', area: ClinicArea },
+  { base: '/admin', area: AdminArea },
+] as const;
 
-import { ClinicLayout } from '@/layouts/ClinicLayout';
-import { ClinicHomePage } from '@/pages/clinic/ClinicHomePage';
-import { ClinicDoctorsPage } from '@/pages/clinic/ClinicDoctorsPage';
-import { ClinicOrdersPage } from '@/pages/clinic/ClinicOrdersPage';
-import { ClinicOrderDetailPage } from '@/pages/clinic/ClinicOrderDetailPage';
-import { ClinicOrderCreatePage } from '@/pages/clinic/ClinicOrderCreatePage';
-import { ClinicFinancesPage } from '@/pages/clinic/ClinicFinancesPage';
+/** Supabase keeps the session under `sb-<project>-auth-token`. Only a hint — the guards decide. */
+function hasStoredSession(): boolean {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      if (/^sb-.+-auth-token$/.test(localStorage.key(i) ?? '')) return true;
+    }
+  } catch {
+    /* storage blocked */
+  }
+  return false;
+}
+
+// A cold load straight onto an area — a bookmark, a reload, a link from an
+// email — starts that area's download now, alongside the language bundle and
+// the session check, instead of after both. Only when a session is stored:
+// a signed-out visitor is about to be redirected and never needs it.
+(function preloadForEntryUrl() {
+  if (typeof window === 'undefined') return;
+  const { pathname } = window.location;
+  const signedIn = hasStoredSession();
+  if (pathname === PUBLIC_ROUTES.orderNew) {
+    if (!signedIn) GuestOrderWizard.preload();
+    return;
+  }
+  if (!signedIn) return;
+  AREAS.find(({ base }) => pathname === base || pathname.startsWith(`${base}/`))?.area.preload();
+})();
+
+function whenIdle(run: () => void): () => void {
+  if (typeof window.requestIdleCallback === 'function') {
+    const id = window.requestIdleCallback(run, { timeout: 4000 });
+    return () => window.cancelIdleCallback(id);
+  }
+  const id = setTimeout(run, 1500);
+  return () => clearTimeout(id);
+}
+
+/** A lab's profile is one click from the wizard: fetch the wizard while the guest reads it. */
+function PreloadGuestWizard({ children }: { children: ReactNode }) {
+  useEffect(() => whenIdle(GuestOrderWizard.preload), []);
+  return <>{children}</>;
+}
+
+/** Session check → role check → the area's chunk. */
+function AreaGate({ allow, children }: { allow: UserRole[]; children: ReactNode }) {
+  return (
+    <ProtectedRoute>
+      <RoleGuard allow={allow}>
+        <LazyBoundary>{children}</LazyBoundary>
+      </RoleGuard>
+    </ProtectedRoute>
+  );
+}
 
 export function AppRoutes() {
   return (
@@ -87,7 +138,9 @@ export function AppRoutes() {
             <GuestRoute
               authedTo={({ base, params, search }) => `${base}/labs/${params.labId}${search}`}
             >
-              <LabPublicProfilePage guest />
+              <PreloadGuestWizard>
+                <LabPublicProfilePage guest />
+              </PreloadGuestWizard>
             </GuestRoute>
           }
         />
@@ -102,108 +155,48 @@ export function AppRoutes() {
                 base === '/doctor' ? doctorOrderNewPath(search) : `${base}/orders/new${search}`
               }
             >
-              <OrderCreateWizard guest />
+              <LazyBoundary variant="inline">
+                <GuestOrderWizard />
+              </LazyBoundary>
             </GuestRoute>
           }
         />
       </Route>
 
-      {/* Doctor */}
+      {/* The four signed-in areas. Each chunk holds its layout and its pages
+          (src/routes/<area>Routes.tsx), with paths relative to the base. */}
       <Route
-        path="/doctor"
+        path="/doctor/*"
         element={
-          <ProtectedRoute>
-            <RoleGuard allow={['DOCTOR']}>
-              <DoctorLayout />
-            </RoleGuard>
-          </ProtectedRoute>
+          <AreaGate allow={['DOCTOR']}>
+            <DoctorArea />
+          </AreaGate>
         }
-      >
-        <Route index element={<DoctorHomePage />} />
-        <Route path="profile" element={<DoctorProfilePage />} />
-        <Route path="work-locations" element={<WorkLocationsPage />} />
-        <Route path="marketplace" element={<MarketplacePage />} />
-        <Route path="labs/:labId" element={<LabPublicProfilePage />} />
-        <Route path="orders" element={<OrdersListPage />} />
-        <Route path="orders/new" element={<OrderCreateWizard />} />
-        <Route path="orders/:orderId" element={<OrderDetailPage />} />
-        <Route path="orders/:orderId/edit" element={<OrderEditPage />} />
-        <Route path="patients" element={<PatientsPage />} />
-        <Route path="patients/:patientId" element={<PatientOrdersPage />} />
-        <Route path="invoices" element={<UnderDevelopmentPage featureKey="invoices" />} />
-        <Route path="debts" element={<UnderDevelopmentPage featureKey="debts" />} />
-      </Route>
-
-      {/* Lab */}
+      />
       <Route
-        path="/lab"
+        path="/lab/*"
         element={
-          <ProtectedRoute>
-            <RoleGuard allow={['LAB_MAIN_ADMIN']}>
-              <LabLayout />
-            </RoleGuard>
-          </ProtectedRoute>
+          <AreaGate allow={['LAB_MAIN_ADMIN']}>
+            <LabArea />
+          </AreaGate>
         }
-      >
-        <Route index element={<LabDashboardPage />} />
-        <Route path="profile" element={<LabProfilePage />} />
-        <Route path="services" element={<LabServicesPage />} />
-        <Route path="services/new" element={<LabServiceCreatePage />} />
-        <Route path="services/:serviceId" element={<LabServiceEditPage />} />
-        <Route path="orders" element={<LabOrdersDashboardPage />} />
-        <Route
-          path="finances"
-          element={
-            <FinanceLockGate>
-              <LabFinancesPage />
-            </FinanceLockGate>
-          }
-        />
-        <Route path="edited-orders" element={<LabEditedOrdersPage />} />
-        <Route path="orders/:orderId" element={<LabOrderSheetPage />} />
-        <Route path="staff" element={<LabStaffPage />} />
-      </Route>
-
-      {/* Admin */}
+      />
       <Route
-        path="/admin"
+        path="/admin/*"
         element={
-          <ProtectedRoute>
-            <RoleGuard allow={['PLATFORM_ADMIN']}>
-              <AdminLayout />
-            </RoleGuard>
-          </ProtectedRoute>
+          <AreaGate allow={['PLATFORM_ADMIN']}>
+            <AdminArea />
+          </AreaGate>
         }
-      >
-        <Route index element={<AdminHomePage />} />
-        <Route path="labs" element={<LabApprovalQueuePage />} />
-        <Route path="labs/:labId" element={<LabReviewPage />} />
-        <Route path="feedbacks" element={<FeedbacksPage />} />
-      </Route>
-
-      {/* Clinic */}
+      />
       <Route
-        path="/clinic"
+        path="/clinic/*"
         element={
-          <ProtectedRoute>
-            <RoleGuard allow={['CLINIC_ADMIN']}>
-              <ClinicLayout />
-            </RoleGuard>
-          </ProtectedRoute>
+          <AreaGate allow={['CLINIC_ADMIN']}>
+            <ClinicArea />
+          </AreaGate>
         }
-      >
-        <Route index element={<ClinicHomePage />} />
-        <Route path="doctors" element={<ClinicDoctorsPage />} />
-        {/* The clinic walks the doctor's own ordering path: pick a doctor,
-            then the same marketplace, lab profile and wizard. */}
-        <Route path="marketplace" element={<MarketplacePage basePath="/clinic" />} />
-        <Route path="labs/:labId" element={<LabPublicProfilePage basePath="/clinic" />} />
-        <Route path="orders" element={<ClinicOrdersPage />} />
-        <Route path="finances" element={<ClinicFinancesPage />} />
-        <Route path="orders/new" element={<ClinicOrderCreatePage />} />
-        <Route path="orders/:orderId" element={<ClinicOrderDetailPage />} />
-        <Route path="orders/:orderId/edit" element={<OrderEditPage basePath="/clinic/orders" />} />
-      </Route>
+      />
 
       {/* Root + 404 */}
       <Route path="/" element={<RoleAwareRedirect />} />

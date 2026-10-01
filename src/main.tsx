@@ -10,12 +10,10 @@ import '@fontsource/noto-sans-georgian/700.css';
 // Regenerate with `npm run icons:fetch` after editing scripts/icon-names.txt.
 import '@/assets/fonts/material-symbols.css';
 
-import './i18n';
+import { i18nReady } from './i18n';
 import './lib/zod-i18n';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter } from 'react-router-dom';
 import { ColorModeProvider } from '@/theme/ColorModeProvider';
@@ -31,10 +29,16 @@ document.title = 'Dentallabs.ge';
 const container = document.getElementById('root');
 if (!container) throw new Error('Root container missing');
 
-createRoot(container).render(
-  <StrictMode>
-    <ColorModeProvider>
-      <LocalizationProvider dateAdapter={AdapterDayjs}>
+// The date pickers' LocalizationProvider is no longer mounted here: it sits
+// at the top of each lazy area and of the guest wizard
+// (src/routes/DatePickerProvider.tsx), so the pickers stay out of this chunk.
+//
+// The first render waits for the visitor's language bundle (src/i18n): one
+// small request, and no raw keys on screen while it is in flight.
+void i18nReady.then(() => {
+  createRoot(container).render(
+    <StrictMode>
+      <ColorModeProvider>
         <QueryClientProvider client={queryClient}>
           <BrowserRouter>
             <AuthProvider>
@@ -42,7 +46,7 @@ createRoot(container).render(
             </AuthProvider>
           </BrowserRouter>
         </QueryClientProvider>
-      </LocalizationProvider>
-    </ColorModeProvider>
-  </StrictMode>,
-);
+      </ColorModeProvider>
+    </StrictMode>,
+  );
+});
