@@ -47,7 +47,47 @@
     "servicesCount_other": "{{count}} services",
     "priceList": "Price list",
     "priceListFor": "Price list — {{name}} (opens in a new tab)",
-    "viewServicesFor": "View services — {{name}}"
+    "viewServicesFor": "View services — {{name}}",
+    "heading": "Laboratories",
+    "headingSub": "Prices and turnaround are published by the labs themselves",
+    "filters": {
+      "title": "Filters",
+      "clear": "Clear · {{n}}",
+      "searchPlaceholder": "Name or service",
+      "serviceType": "Service type",
+      "material": "Material",
+      "allMaterials": "All materials · {{n}}",
+      "fewerMaterials": "Show fewer",
+      "city": "City",
+      "turnaround": "Turnaround",
+      "maxDays": "≤ {{days}} days",
+      "anyTime": "Any",
+      "rush": "Offers rush",
+      "rushChip": "Rush",
+      "searchChip": "“{{query}}”",
+      "remove": "Remove filter: {{label}}",
+      "active": "Active filters",
+      "show": "Show results · {{n}}"
+    },
+    "noMatches": "No labs match these filters",
+    "noMatchesHint": "Remove a filter or clear them all.",
+    "ranking": "Sorting: labs that publish more prices come first, then by name.",
+    "per": {
+      "tooth": "/ tooth",
+      "jaw": "/ jaw",
+      "implant": "/ implant"
+    },
+    "card": {
+      "rushNote": "Rush {{surcharge}} · min. {{days}}",
+      "rushNoteDays": "Rush · min. {{days}}",
+      "moreServices": "+{{n}} more",
+      "turnaround": "Turnaround",
+      "rushAvailable": "Rush available",
+      "pricesOnProfile": "Prices on the lab's profile",
+      "orderA11y": "Order {{service}} — {{name}}",
+      "profile": "Profile",
+      "profileA11y": "{{name}} — profile"
+    }
   },
   "labProfile": {
     "back": "Back to labs",
@@ -59,7 +99,36 @@
     "continuingFor": "Continuing a project — pick a service.",
     "newOrderFor": "New order for this patient — pick a service.",
     "priceList": "Price list",
-    "priceListA11y": "Price list (opens in a new tab)"
+    "priceListA11y": "Price list (opens in a new tab)",
+    "servicesAndPrices": "Services & prices",
+    "categoryAll": "All",
+    "table": {
+      "service": "Service",
+      "turnaround": "Turnaround",
+      "rush": "Rush",
+      "price": "Price"
+    },
+    "turnaroundIs": "Turnaround {{value}}",
+    "rushIs": "Rush {{value}}",
+    "rushAvailable": "Rush available",
+    "daysRange": "{{min}}–{{max}} days",
+    "price": {
+      "labConfirms": "Price confirmed by the lab"
+    },
+    "pricesNote": "Prices are indicative and published by the lab — the lab confirms the final price when it reviews your order.",
+    "showAll": "All services ({{n}}) →",
+    "orderServiceA11y": "Order — {{name}}",
+    "orderCard": {
+      "title": "Order from this lab",
+      "body": "Pick a service from the list — the order form follows this lab's requirements.",
+      "cta": "New order"
+    },
+    "contact": {
+      "title": "Contact",
+      "map": "Map",
+      "mapA11y": "Address on the map (opens in a new tab)",
+      "whatsappA11y": "Message on WhatsApp (opens in a new tab)"
+    }
   },
   "orderCreate": {
     "digitalImpressionsNote": "At this stage we work with digital impressions only.",

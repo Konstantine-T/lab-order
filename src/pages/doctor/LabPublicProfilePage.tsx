@@ -1,34 +1,27 @@
-import { Alert, Avatar, Box, Button, CircularProgress, Stack, Typography } from '@mui/material';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useCallback, useRef } from 'react';
+import { Alert, Box, CircularProgress, Link, Stack, useMediaQuery, useTheme } from '@mui/material';
+import { Link as RouterLink, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ActingDoctorChip } from '@/features/clinic/ActingDoctorChip';
 import { catalogPaths } from '@/features/public/publicRoutes';
-import { supabase } from '@/lib/supabase';
-import {
-  Callout,
-  CardGrid,
-  CardStack,
-  EmptyState,
-  Icon,
-  MetaChip,
-  PageHeader,
-  SectionCard,
-} from '@/components/design';
-import { ServiceCard } from '@/components/ServiceCard';
-import { RushChip } from '@/features/lab/services/rushChip';
-import { formatGELShort, startingPrice } from '@/utils/pricing';
-import { whatsappUrl } from '@/features/labs/whatsapp';
+import { Callout, SplitLayout } from '@/components/design';
 import { useLabText } from '@/features/lab/labText';
-import { pickPriceList, priceListUrl } from '@/features/lab/priceList/priceListApi';
-import type { LabRow, LabServiceRow, PricingConfig } from '@/types/database';
-import type { FormStatus } from '@/types/database';
+import { LabHeaderCard } from '@/features/catalog/labProfile/LabHeaderCard';
+import { ServicesPriceCard } from '@/features/catalog/labProfile/ServicesPriceCard';
+import { LabContactCard, LabOrderCard } from '@/features/catalog/labProfile/LabProfileRail';
+import { serviceOrderHref } from '@/features/catalog/labProfile/orderLink';
+import { catalogueQuery } from '@/features/catalog/useCatalogueFilters';
+import {
+  useProfileLab,
+  useProfileServices,
+} from '@/features/catalog/labProfile/useLabProfile';
 
 /**
- * A lab's public profile and its orderable services. Shared by the doctor, by
- * a clinic admin ordering for one of their doctors, and by a guest with no
- * account; `basePath` / `guest` decide where "back" and the order CTA point.
- * Every query here runs under a policy that admits `anon` (0004, 0034).
+ * A lab's public profile and its orderable services (design page 4). Shared by
+ * the doctor, by a clinic admin ordering for one of their doctors, and by a
+ * guest with no account; `basePath` / `guest` decide where the breadcrumb and
+ * every order button point. Every query here runs under a policy that admits
+ * `anon` (0004, 0034, 0039 — the lab columns are the guest-readable ones).
  */
 export function LabPublicProfilePage({
   basePath = '/doctor',
@@ -40,10 +33,12 @@ export function LabPublicProfilePage({
   const { labId } = useParams<{ labId: string }>();
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
-  const { labText, lang } = useLabText();
-  const navigate = useNavigate();
+  const { labText } = useLabText();
   const [searchParams] = useSearchParams();
+  const theme = useTheme();
+  const wide = useMediaQuery(theme.breakpoints.up('lg'));
   const paths = catalogPaths(guest, basePath);
+  const servicesHeading = useRef<HTMLHeadingElement | null>(null);
 
   // Set when the doctor arrived here via "Continue project" — carry them onto
   // the order CTA so the wizard pre-fills + locks the patient and links lineage.
@@ -52,94 +47,26 @@ export function LabPublicProfilePage({
   // Clinic path: the doctor this order is being placed for.
   const doctorParam = searchParams.get('doctor');
 
-  const { data: lab, isLoading: labLoading } = useQuery({
-    queryKey: ['public-lab', labId],
-    enabled: !!labId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('labs')
-        .select(
-          'id, public_name, city, short_description, logo_url, contact_phone, contact_email, working_address, ' +
-            'public_translations, price_lists',
-        )
-        .eq('id', labId!)
-        .eq('approval_status', 'APPROVED_ACTIVE')
-        .eq('is_active', true)
-        .maybeSingle();
-      if (error) throw error;
-      return data as
-        | (Pick<LabRow,
-            'id' | 'public_name' | 'city' | 'short_description' | 'logo_url' |
-            'contact_phone' | 'contact_email' | 'working_address' |
-            'public_translations' | 'price_lists'
-          >)
-        | null;
-    },
-  });
+  const { data: lab, isLoading: labLoading } = useProfileLab(labId);
+  const { data: services = [], isLoading: servicesLoading } = useProfileServices(labId);
 
-  const { data: services = [] } = useQuery({
-    queryKey: ['public-lab-services', labId],
-    enabled: !!labId,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('lab_services')
-        .select('*')
-        .eq('lab_id', labId!)
-        .eq('is_active', true)
-        .order('sort_order')
-        .order('created_at');
-      if (error) throw error;
-      return (data ?? []) as LabServiceRow[];
-    },
-  });
+  const orderHref = useCallback(
+    (serviceId: string) =>
+      serviceOrderHref(paths.orderNew, labId ?? '', serviceId, {
+        doctor: doctorParam,
+        patient: continuePatient,
+        continues: continuesOrder,
+      }),
+    [paths.orderNew, labId, doctorParam, continuePatient, continuesOrder],
+  );
 
-  const linkedFormIds = services
-    .map((s) => s.linked_lab_form_id)
-    .filter((x): x is string => !!x);
-
-  type FormWithTemplate = {
-    id: string;
-    status: FormStatus;
-    current_version_id: string | null;
-    platform_form_templates: { code: string; name: string } | null;
-  };
-
-  const { data: forms = [] } = useQuery({
-    queryKey: ['public-lab-forms', labId, linkedFormIds.join(',')],
-    enabled: linkedFormIds.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('lab_forms')
-        .select('id, status, current_version_id, platform_form_templates(code, name)')
-        .in('id', linkedFormIds);
-      if (error) throw error;
-      return (data ?? []) as unknown as FormWithTemplate[];
-    },
-  });
-
-  const formsById = new Map(forms.map((f) => [f.id, f]));
-
-  // The rush option lives on the published version's pricing, which nothing on
-  // this page needed until the card started advertising it. Fetched by id in
-  // one batch, the same shape as `forms` above — not one query per card.
-  const versionIds = forms
-    .map((f) => f.current_version_id)
-    .filter((x): x is string => !!x);
-
-  const { data: versions = [] } = useQuery({
-    queryKey: ['public-lab-form-pricing', labId, versionIds.join(',')],
-    enabled: versionIds.length > 0,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('lab_form_versions')
-        .select('id, pricing_configuration_json')
-        .in('id', versionIds);
-      if (error) throw error;
-      return (data ?? []) as { id: string; pricing_configuration_json: PricingConfig }[];
-    },
-  });
-
-  const pricingByVersion = new Map(versions.map((v) => [v.id, v.pricing_configuration_json]));
+  const chooseService = useCallback(() => {
+    const el = servicesHeading.current;
+    if (!el) return;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    el.closest('#lab-services')?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    el.focus({ preventScroll: true });
+  }, []);
 
   if (labLoading) {
     return (
@@ -150,160 +77,75 @@ export function LabPublicProfilePage({
   }
   if (!lab) return <Alert severity="error">{tc('errors.notFound')}</Alert>;
 
-  const description = labText(lab, 'short_description');
-  // The file in the reader's language, else whichever exists (ka → en → ru).
-  const priceList = pickPriceList(lab.price_lists, lang);
+  // Back to the list this lab was opened from: the clinic's doctor and the
+  // catalogue's filters ride along on the lab's URL.
+  const marketplaceHref = `${paths.marketplace}${catalogueQuery(searchParams)}`;
+  const anyOrderable = services.some((s) => s.orderable);
 
   return (
-    <>
-      <PageHeader
-        backTo={`${paths.marketplace}${doctorParam ? `?doctor=${doctorParam}` : ''}`}
-        title={labText(lab, 'public_name')}
-        subtitle={lab.city ?? undefined}
-        chips={
-          !guest && doctorParam ? (
-            <ActingDoctorChip doctorId={doctorParam} changeTo={`${basePath}/orders/new`} />
-          ) : undefined
-        }
-        actions={
-          priceList ? (
-            <Button
-              component="a"
-              href={priceListUrl(priceList)}
-              target="_blank"
-              rel="noopener noreferrer"
-              variant="outlined"
-              startIcon={<Icon name="receipt_long" size={17} />}
-              aria-label={t('labProfile.priceListA11y')}
-            >
-              {t('labProfile.priceList')}
-            </Button>
-          ) : undefined
-        }
-      />
-
-      <CardStack>
-        {(continuePatient || continuesOrder) && (
-          // Two ways to land here carrying a patient. Only one is a
-          // continuation: without `continues` this is a plain new order for the
-          // patient, so saying "continuing a project" would be a lie.
-          <Callout tone="brand" icon="link">
-            {continuesOrder ? t('labProfile.continuingFor') : t('labProfile.newOrderFor')}
-          </Callout>
+    <Stack spacing={2.25}>
+      <Stack
+        direction="row"
+        alignItems="center"
+        justifyContent="space-between"
+        sx={{ flexWrap: 'wrap', gap: 1.5, minHeight: 32 }}
+      >
+        <Stack
+          component="nav"
+          aria-label={t('orderDetail.breadcrumb')}
+          direction="row"
+          spacing={1}
+          sx={{ fontSize: '0.8125rem', color: 'text.secondary', minWidth: 0 }}
+        >
+          <Link
+            component={RouterLink}
+            to={marketplaceHref}
+            underline="hover"
+            sx={{ color: 'text.secondary', fontWeight: 500, flexShrink: 0 }}
+          >
+            {t('nav.marketplace')}
+          </Link>
+          <span aria-hidden>›</span>
+          <Box
+            component="span"
+            aria-current="page"
+            sx={{ color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+          >
+            {labText(lab, 'public_name')}
+          </Box>
+        </Stack>
+        {!guest && doctorParam && (
+          <ActingDoctorChip doctorId={doctorParam} changeTo={`${basePath}/orders/new`} />
         )}
+      </Stack>
 
-        <SectionCard>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2.5} alignItems="flex-start">
-            <Avatar
-              src={lab.logo_url ?? undefined}
-              variant="rounded"
-              sx={{ width: 72, height: 72, borderRadius: '16px', bgcolor: 'action.selected' }}
-            >
-              <Icon name="store" size={32} sx={{ color: 'primary.dark' }} />
-            </Avatar>
-            <Stack flex={1} spacing={1} sx={{ minWidth: 0 }}>
-              {description && (
-                <Typography variant="body1" color="text.secondary">
-                  {description}
-                </Typography>
-              )}
-              <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.75 }}>
-                {lab.working_address && (
-                  <MetaChip icon={<Icon name="location_on" size={13} />}>
-                    {lab.working_address}
-                  </MetaChip>
-                )}
-                {lab.contact_phone &&
-                  (whatsappUrl(lab.contact_phone) ? (
-                    // Tapping the number opens the chat rather than only
-                    // offering to dial it — which is how these labs are
-                    // actually reached.
-                    <MetaChip
-                      component="a"
-                      href={whatsappUrl(lab.contact_phone)!}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      icon={<Icon name="call" size={13} />}
-                      sx={{ textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
-                    >
-                      {lab.contact_phone}
-                    </MetaChip>
-                  ) : (
-                    <MetaChip icon={<Icon name="call" size={13} />}>{lab.contact_phone}</MetaChip>
-                  ))}
-                {lab.contact_email && (
-                  <MetaChip icon={<Icon name="mail" size={13} />}>{lab.contact_email}</MetaChip>
-                )}
-              </Stack>
-            </Stack>
-          </Stack>
-        </SectionCard>
+      {(continuePatient || continuesOrder) && (
+        // Two ways to land here carrying a patient. Only one is a
+        // continuation: without `continues` this is a plain new order for the
+        // patient, so saying "continuing a project" would be a lie.
+        <Callout tone="brand" icon="link">
+          {continuesOrder ? t('labProfile.continuingFor') : t('labProfile.newOrderFor')}
+        </Callout>
+      )}
 
-        <Box>
-          <Typography variant="h5" component="h2" sx={{ mb: 1.75 }}>
-            {t('labProfile.services')}
-          </Typography>
-
-          {services.length === 0 ? (
-            <EmptyState icon="category" title={t('labProfile.noServices')} minHeight={180} />
-          ) : (
-            <CardGrid columns={3}>
-              {services.map((s) => {
-                const linked = s.linked_lab_form_id ? formsById.get(s.linked_lab_form_id) : null;
-                const orderable = !!linked && linked.status === 'PUBLISHED';
-                const tplCode = linked?.platform_form_templates?.code;
-                const pricing = linked?.current_version_id
-                  ? pricingByVersion.get(linked.current_version_id)
-                  : undefined;
-                // Only an orderable service advertises a price — the number is
-                // one the doctor can reproduce in the form behind the button.
-                const from = orderable ? startingPrice(pricing, tplCode) : null;
-                const go = () =>
-                  navigate(
-                    `${paths.orderNew}?lab=${lab.id}&service=${s.id}` +
-                      (doctorParam ? `&doctor=${doctorParam}` : '') +
-                      (continuePatient ? `&patient=${continuePatient}` : '') +
-                      (continuesOrder ? `&continues=${continuesOrder}` : ''),
-                  );
-                return (
-                  <ServiceCard
-                    key={s.id}
-                    templateCode={tplCode}
-                    imageUrl={s.cover_image_url}
-                    name={s.name}
-                    description={s.short_description ?? undefined}
-                    disabled={!orderable}
-                    onClick={orderable ? go : undefined}
-                    rush={<RushChip pricing={pricing} t={tc} />}
-                    chips={
-                      from || s.average_turnaround_days || s.average_turnaround_label ? (
-                        <>
-                          {from && (
-                            <MetaChip icon={<Icon name="sell" size={13} />}>
-                              {t('marketplace.fromPrice', { price: formatGELShort(from.amount) })}
-                            </MetaChip>
-                          )}
-                          {(s.average_turnaround_days || s.average_turnaround_label) && (
-                            <MetaChip icon={<Icon name="schedule" size={13} />}>
-                              {s.average_turnaround_label ??
-                                t('labProfile.turnaround', { days: s.average_turnaround_days })}
-                            </MetaChip>
-                          )}
-                        </>
-                      ) : undefined
-                    }
-                    action={
-                      <Button variant="contained" size="small" disabled={!orderable} onClick={go}>
-                        {orderable ? t('labProfile.orderCta') : t('labProfile.orderDisabled')}
-                      </Button>
-                    }
-                  />
-                );
-              })}
-            </CardGrid>
-          )}
-        </Box>
-      </CardStack>
-    </>
+      <SplitLayout
+        rail={
+          <>
+            {/* Two columns only: on a single column the list is the next thing
+                on the page, and each row has its own order button. */}
+            {wide && <LabOrderCard onChooseService={chooseService} disabled={!anyOrderable} />}
+            <LabContactCard lab={lab} />
+          </>
+        }
+      >
+        <LabHeaderCard lab={lab} services={services} />
+        <ServicesPriceCard
+          ref={servicesHeading}
+          services={services}
+          loading={servicesLoading}
+          orderHref={orderHref}
+        />
+      </SplitLayout>
+    </Stack>
   );
 }

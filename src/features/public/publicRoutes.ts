@@ -45,7 +45,7 @@ export function catalogPaths(guest: boolean, basePath: string) {
  * still goes to sign-in.
  */
 export function publicEquivalent(pathname: string, search: string): string | null {
-  if (pathname === '/doctor/marketplace') return PUBLIC_ROUTES.marketplace;
+  if (pathname === '/doctor/marketplace') return PUBLIC_ROUTES.marketplace + search;
   const lab = pathname.match(/^\/doctor\/labs\/([^/]+)$/);
   if (lab) return PUBLIC_ROUTES.lab(lab[1]) + search;
   if (pathname === '/doctor/orders/new') return PUBLIC_ROUTES.orderNew + search;

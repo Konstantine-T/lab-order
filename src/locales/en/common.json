@@ -387,5 +387,17 @@
     "title": "This page didn't load",
     "body": "Your connection may have dropped, or the site was just updated. Reloading the page usually fixes it.",
     "reload": "Reload page"
+  },
+  "catalog": {
+    "category": {
+      "crownBridge": "Crown & bridge",
+      "implant": "Implants",
+      "surgicalGuide": "Surgical guides",
+      "smileDesign": "Smile design",
+      "milling": "Milling",
+      "printing": "Printing",
+      "prosthesis": "Prosthetics",
+      "other": "Other"
+    }
   }
 }

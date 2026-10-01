@@ -127,7 +127,7 @@ export function AppRoutes() {
         <Route
           path={PUBLIC_ROUTES.marketplace}
           element={
-            <GuestRoute authedTo={({ base }) => `${base}/marketplace`}>
+            <GuestRoute authedTo={({ base, search }) => `${base}/marketplace${search}`}>
               <MarketplacePage guest />
             </GuestRoute>
           }
