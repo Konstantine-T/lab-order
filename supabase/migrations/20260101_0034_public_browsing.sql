@@ -29,7 +29,26 @@
 -- table at all. `labs` and `lab_services` already have theirs (0004 §6,
 -- phase4-6 §7) and are repeated here so this file is the one place that says
 -- what anon may see.
-grant select on public.labs                     to anon;
+-- `labs` is COLUMN-level for anon, never table-level: RLS limits which rows a
+-- guest reads, not which columns, and a table-level grant here once handed
+-- every guest each approved lab's IBAN and tax id. Same column list as 0039,
+-- which owns it (keep the two in sync); a column that does not exist yet —
+-- 0037's and 0038's on a fresh replay — is granted by 0039 once it does.
+do $$
+declare v_cols text;
+begin
+  select string_agg(quote_ident(column_name), ', ' order by ordinal_position)
+    into v_cols
+    from information_schema.columns
+   where table_schema = 'public'
+     and table_name   = 'labs'
+     and column_name in (
+       'id', 'public_name', 'short_description', 'logo_url', 'city',
+       'working_address', 'contact_phone', 'contact_email', 'created_at',
+       'public_translations', 'price_lists', 'approval_status', 'is_active'
+     );
+  execute format('grant select (%s) on table public.labs to anon', v_cols);
+end $$;
 grant select on public.lab_services             to anon;
 grant select on public.lab_forms                to anon;
 grant select on public.lab_form_versions        to anon;

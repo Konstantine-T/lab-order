@@ -47,6 +47,7 @@ import {
   orderComparator,
 } from '@/features/orders/orderDates';
 import { useOrderSort } from '@/features/orders/list/useOrderSort';
+import { pastDate, shortDate } from '@/features/orders/list/listFormat';
 import { ClarificationAskDialog } from '@/features/orders/clarifications/ClarificationAskDialog';
 import { formatGEL } from '@/utils/pricing';
 import { radii, tone } from '@/theme/tokens';
@@ -673,8 +674,9 @@ export function LabOrdersDashboardPage() {
 
                   {/* Created sits under the due date rather than in a column of
                       its own: the two dates are read against each other, and a
-                      ninth column would squeeze the rest at 1280px. Same short
-                      format as the due date, so one row has one date style. */}
+                      ninth column would squeeze the rest at 1280px. Both in the
+                      locale's short format, as every other list — and created,
+                      which looks back, with its year when not this one's. */}
                   <Stack spacing={0.375} sx={{ minWidth: 0 }}>
                     <Box
                       sx={(theme) => ({
@@ -688,14 +690,14 @@ export function LabOrdersDashboardPage() {
                       })}
                     >
                       {dueRaw
-                        ? appendDueWindow(dayjs(dueRaw).format('MMM D'), dueTimeOf(row), tc)
+                        ? appendDueWindow(shortDate(dueRaw, tc), dueTimeOf(row), tc)
                         : '—'}
                     </Box>
                     <Typography
                       sx={{ fontSize: '0.625rem', color: 'text.secondary', textAlign: 'center' }}
                       noWrap
                     >
-                      {t('orderSheet.createdOn', { date: dayjs(row.created_at).format('MMM D') })}
+                      {t('orderSheet.createdOn', { date: pastDate(row.created_at, tc) })}
                     </Typography>
                   </Stack>
 

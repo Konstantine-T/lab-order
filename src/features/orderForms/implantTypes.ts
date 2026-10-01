@@ -6,9 +6,9 @@ export const TEMPLATE_CODE_IMPLANT = 'CONSTRUCTIONS_ON_IMPLANTS';
 
 /**
  * Lab-placed abutments ("აბატმენტების ჩაყენება ლაბორატორიულად"): a distinct
- * platform template drawing the implant configuration of Constructions on
- * Implants on its own — brand, positions and each implant's abutment — with no
- * bar and no crown, plus a transfer-check question. Its types live in
+ * platform template drawing Constructions on Implants up to the crowns —
+ * brand, positions, each implant's abutment and the bar — with no crown and no
+ * "Already in mouth", plus a transfer-check question. Its types live in
  * `abutmentTypes.ts`; the code is declared here, beside its parent, so this
  * module can answer `isImplantTemplate` without importing that one back.
  */

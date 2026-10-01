@@ -648,12 +648,21 @@
     "incompleteWarning": "All fields are required before submitting for approval.",
     "approvalNote": "Note from platform admin",
     "lockedAfterApproval": "Your laboratory is approved. Its name, description, legal, contact and bank details are locked — to change them, contact the platform team. You can still add translations, manage price lists and update your own account details.",
+    "errors": {
+      "locked": "Your laboratory's review status changed while this page was open, so its name, legal, contact and bank details can no longer be edited here. The page now shows the details on file — to change them, contact the platform team.",
+      "reload": "This page is out of date. Reload it and try again.",
+      "permission": "You don't have permission to change this laboratory's profile.",
+      "invalid": "Some of the text can't be saved as it is. Check the fields and try again.",
+      "network": "Connection problem. Check your internet and try again.",
+      "generic": "Couldn't save the laboratory profile. Please try again."
+    },
     "translations": {
       "tabBase": "Original",
       "tabsA11y": "Profile language",
       "hint": "Optional: add the name and description in other languages. Where a language is left empty, doctors see the original.",
       "filled": "translated",
       "missing": "not translated yet",
+      "invalid": "needs fixing",
       "save": "Save translations",
       "saved": "Translations saved.",
       "saveFailed": "Couldn't save the translations. Please try again."
@@ -666,11 +675,13 @@
       "open": "Open",
       "none": "No file yet",
       "uploadedOn": "Uploaded {{date}}",
+      "notAllowed": "A rejected or suspended laboratory can't publish price lists. You can still open or remove the files you already have.",
       "errors": {
         "wrongType": "Only PDF, JPG or PNG files can be uploaded.",
         "tooLarge": "This file is larger than 10 MB.",
         "network": "Connection problem. Check your internet and try again.",
         "permission": "You don't have permission to change this laboratory's price lists.",
+        "notAllowed": "A rejected or suspended laboratory can't publish price lists.",
         "generic": "Couldn't save the price list. Please try again."
       }
     },

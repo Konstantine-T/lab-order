@@ -192,8 +192,8 @@
     },
     "IMPLANT_ABUTMENTS": {
       "name": "Lab-placed Abutments",
-      "description": "Implant configuration only — brand, positions and abutments — without the crown.",
-      "help": "Only the implant configuration from Constructions on Implants: the doctor picks the brand, marks the positions and configures each implant's abutment — no bar, no crown — then answers whether a transfer check is needed. In Pricing, add your implant brands and abutment component prices."
+      "description": "Everything up to the crowns — brand, positions, abutments and the bar — without the crown.",
+      "help": "Constructions on Implants up to the crowns: the doctor picks the brand, marks the positions, configures each implant's abutment and, if needed, the bar — no crown — then answers whether a transfer check is needed. In Pricing, add your implant brands, abutment component prices and bar prices."
     },
     "FINAL_CONSTRUCTION": {
       "name": "Final Construction",
@@ -382,5 +382,10 @@
     "created_asc": "Oldest first",
     "due_asc": "Due soonest",
     "due_desc": "Due latest"
+  },
+  "chunkError": {
+    "title": "This page didn't load",
+    "body": "Your connection may have dropped, or the site was just updated. Reloading the page usually fixes it.",
+    "reload": "Reload page"
   }
 }

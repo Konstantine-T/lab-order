@@ -327,7 +327,26 @@ grant select, insert, update, delete on public.users                  to authent
 grant select, insert, update, delete on public.doctor_profiles        to authenticated;
 grant select, insert, update, delete on public.doctor_work_locations  to authenticated;
 grant select, insert, update, delete on public.labs                   to authenticated;
-grant select on public.labs to anon;  -- public marketplace + landing page
+-- public marketplace + landing page. COLUMN-level, never table-level: RLS
+-- limits which rows a guest reads, not which columns, and a table-level grant
+-- here once handed every guest each approved lab's IBAN and tax id. Same
+-- column list as migrations/20260101_0039_anon_lab_columns.sql, which owns it
+-- (keep the two in sync); a column that does not exist yet is granted by 0039.
+do $$
+declare v_cols text;
+begin
+  select string_agg(quote_ident(column_name), ', ' order by ordinal_position)
+    into v_cols
+    from information_schema.columns
+   where table_schema = 'public'
+     and table_name   = 'labs'
+     and column_name in (
+       'id', 'public_name', 'short_description', 'logo_url', 'city',
+       'working_address', 'contact_phone', 'contact_email', 'created_at',
+       'public_translations', 'price_lists', 'approval_status', 'is_active'
+     );
+  execute format('grant select (%s) on table public.labs to anon', v_cols);
+end $$;
 
 grant execute on function public.current_user_role()                  to authenticated;
 grant execute on function public.current_doctor_id()                  to authenticated;

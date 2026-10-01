@@ -36,7 +36,8 @@ export function LabAccountCard() {
   const { t: tc } = useTranslation('common');
   const { user, refreshUser } = useAuth();
 
-  // Survives the re-mount `refreshUser()` causes (see remountNotice).
+  // Kept across a re-mount, should one happen (see remountNotice); the silent
+  // refresh below no longer causes one.
   const [saved, setSaved] = useState(() => readNotice(NOTICE) !== null);
   const [failed, setFailed] = useState(false);
 
@@ -45,14 +46,15 @@ export function LabAccountCard() {
     defaultValues: { first_name: '', last_name: '', phone: '' },
   });
 
+  // Re-seeded when the stored name or phone changes, not whenever the AppUser
+  // object is replaced: the lab profile's own save refreshes it too, and that
+  // must not wipe a half-edited name here.
+  const firstName = user?.first_name ?? '';
+  const lastName = user?.last_name ?? '';
+  const phone = user?.phone ?? '';
   useEffect(() => {
-    if (!user) return;
-    methods.reset({
-      first_name: user.first_name ?? '',
-      last_name: user.last_name ?? '',
-      phone: user.phone ?? '',
-    });
-  }, [user, methods]);
+    methods.reset({ first_name: firstName, last_name: lastName, phone });
+  }, [firstName, lastName, phone, methods]);
 
   if (!user) return null;
 
@@ -74,8 +76,10 @@ export function LabAccountCard() {
     }
     leaveNotice(NOTICE, 'saved');
     setSaved(true);
-    // The sidebar and the account menu read the cached AppUser.
-    await refreshUser();
+    // The sidebar and the account menu read the cached AppUser. Silent: a
+    // spinner would re-mount /lab/profile and throw away whatever the lab was
+    // typing in its profile form above this card.
+    await refreshUser({ silent: true });
   };
 
   return (

@@ -31,7 +31,13 @@ type AuthContextValue = {
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  /**
+   * Reload the AppUser. By default the route guards show their spinner while
+   * it loads, which unmounts the page. `silent` keeps the current user — and
+   * the page — on screen until the new one arrives: for a page that saves one
+   * form while another may hold unsaved input (/lab/profile).
+   */
+  refreshUser: (opts?: { silent?: boolean }) => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -100,7 +106,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
   const lastUserIdRef = useRef<string | null>(null);
 
   const hydrate = useCallback(
-    async (s: Session | null, opts: { force?: boolean } = {}): Promise<void> => {
+    async (s: Session | null, opts: { force?: boolean; silent?: boolean } = {}): Promise<void> => {
       if (!s) {
         setUser(null);
         lastUserIdRef.current = null;
@@ -109,7 +115,10 @@ export function AuthProvider({ children }: PropsWithChildren) {
       // Skip refetch on token refresh / tab refocus — same user, no need.
       if (!opts.force && lastUserIdRef.current === s.user.id) return;
 
-      setHydrating(true);
+      // Silent only when the same user is already loaded: a different (or no)
+      // user must still hold the guards, as on sign-in.
+      const spinner = !(opts.silent && lastUserIdRef.current === s.user.id);
+      if (spinner) setHydrating(true);
       try {
         const u = await loadAppUser(s.user.id);
         if (!u) {
@@ -129,7 +138,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
         setUser(null);
         await supabase.auth.signOut();
       } finally {
-        setHydrating(false);
+        if (spinner) setHydrating(false);
       }
     },
     [],
@@ -197,9 +206,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     await supabase.auth.signOut();
   }, []);
 
-  const refreshUser = useCallback(async () => {
-    if (session) await hydrate(session, { force: true });
-  }, [session, hydrate]);
+  const refreshUser = useCallback(
+    async (opts: { silent?: boolean } = {}) => {
+      if (session) await hydrate(session, { force: true, silent: opts.silent });
+    },
+    [session, hydrate],
+  );
 
   const loading = !initialized || hydrating;
 

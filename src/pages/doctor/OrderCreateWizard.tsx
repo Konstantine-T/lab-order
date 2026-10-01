@@ -319,13 +319,18 @@ export function OrderCreateWizard({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('labs')
-        .select('id, public_name, city, logo_url, contact_email')
+        // public_translations (0037): the header shows the lab's name in the
+        // reader's language from the first paint, not after a second request.
+        .select('id, public_name, city, logo_url, contact_email, public_translations')
         .eq('id', state.lab_id)
         .eq('approval_status', 'APPROVED_ACTIVE')
         .eq('is_active', true)
         .maybeSingle();
       if (error) throw error;
-      return data as Pick<LabRow, 'id' | 'public_name' | 'city' | 'logo_url' | 'contact_email'> | null;
+      return data as Pick<
+        LabRow,
+        'id' | 'public_name' | 'city' | 'logo_url' | 'contact_email' | 'public_translations'
+      > | null;
     },
   });
 
@@ -769,7 +774,11 @@ export function OrderCreateWizard({
         ordersTo={guest ? undefined : `${basePath}/orders`}
         lab={
           lab && selectedService
-            ? { name: lab.public_name, service: selectedService.name }
+            ? {
+                name: lab.public_name,
+                translations: lab.public_translations,
+                service: selectedService.name,
+              }
             : undefined
         }
         onChangeLabService={() => navigate(marketplacePath)}

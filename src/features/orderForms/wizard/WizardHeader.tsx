@@ -1,11 +1,10 @@
 import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { alpha, Box, Stack, Typography, useTheme } from '@mui/material';
-import { Link as RouterLink, useSearchParams } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
 import { useLabText } from '@/features/lab/labText';
-import { useLabPublicTranslations } from '@/features/lab/useLabPublicTranslations';
 import { initialsOf, layout, motion, palette2026, radii, surfaces } from '@/theme/tokens';
 import { PeriLink } from './ui';
 
@@ -41,7 +40,8 @@ export function WizardHeader({
   backTo: string;
   /** The breadcrumb's "Orders" link; plain text when there is no list. */
   ordersTo?: string;
-  lab?: { name: string; service: string };
+  /** `translations` is the lab's `public_translations` (0037), read with it. */
+  lab?: { name: string; translations?: unknown; service: string };
   onChangeLabService: () => void;
   /** The clinic's "ordering for" chip. */
   doctorChip?: ReactNode;
@@ -52,14 +52,11 @@ export function WizardHeader({
   const theme = useTheme();
   const mode = theme.palette.mode;
 
-  // The lab's name in the reader's language (0037). The wizard only ever
-  // works on the lab in `?lab=` — it redirects without one, and a draft only
-  // loads for that lab — so the id comes from there.
-  const [params] = useSearchParams();
-  const translations = useLabPublicTranslations(lab ? params.get('lab') : null);
+  // The lab's name in the reader's language (0037), from the same row as the
+  // base name, so it never shows the base name first and then swaps.
   const { labText } = useLabText();
   const labName = lab
-    ? labText({ public_name: lab.name, public_translations: translations }, 'public_name')
+    ? labText({ public_name: lab.name, public_translations: lab.translations }, 'public_name')
     : '';
 
   const body = (

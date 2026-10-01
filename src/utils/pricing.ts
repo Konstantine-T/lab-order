@@ -249,7 +249,9 @@ export function calculatePrice(
         }
       }
     } else if (shape === 'implant') {
-      // Constructions on Implants
+      // Constructions on Implants, and lab-placed abutments: the same
+      // components and the same bar, with no crowns on the latter (its form
+      // has no crown section, and its coerce drops a stray `cnbAnswers`).
       const cfg = pricing.implant_price_config ?? {};
       const crownMats = pricing.implant_crown_materials ?? [];
       const crownMatById = new Map(crownMats.map((m) => [m.id, m.unit_price ?? 0]));

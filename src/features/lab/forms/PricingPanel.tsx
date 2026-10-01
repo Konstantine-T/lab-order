@@ -66,8 +66,8 @@ export function PricingPanel({
   const isCnb = isCnbTemplate(templateCode);
   const isSg = templateCode === TEMPLATE_CODE_SG;
   const isEsp = templateCode === TEMPLATE_CODE_ESP;
-  // Both implant templates price by the component grid; lab-placed abutments
-  // has no crowns and no bar, so those parts of the grid are left out for it.
+  // Both implant templates price by the component grid and the bar; lab-placed
+  // abutments has no crowns, so the crown materials are left out for it.
   const isImplant = isImplantTemplate(templateCode);
   const abutmentsOnly = templateCode === TEMPLATE_CODE_IMPLANT_ABUTMENTS;
   const isFab = isFabTemplate(templateCode);
@@ -490,9 +490,6 @@ type ImplantPriceGroup = {
   hidePrice?: boolean;
 };
 
-/** The bar's price group — the one the abutments-only template never asks about. */
-const BAR_PRICE_GROUP = 'implantForm.pricing.groups.barMaterial';
-
 const IMPLANT_PRICE_GROUPS: ImplantPriceGroup[] = [
   { titleKey: 'implantForm.pricing.groups.abutmentType',    keys: ['individual', 'multiunit', 'tibase', 'factory'] },
   { titleKey: 'implantForm.pricing.groups.indMaterial',     keys: ['titanium', 'cocr', 'zirconia'] },
@@ -500,7 +497,7 @@ const IMPLANT_PRICE_GROUPS: ImplantPriceGroup[] = [
   { titleKey: 'implantForm.pricing.groups.retention',       keys: ['cement', 'screw'] },
   { titleKey: 'implantForm.pricing.groups.muaHex',          keys: ['hex', 'nonHex'] },
   { titleKey: 'implantForm.pricing.groups.muaUpperConn',    keys: ['cups', 'rosen', 'screwForBar'] },
-  { titleKey: BAR_PRICE_GROUP,                               keys: ['titaniumBar', 'cocrMilled', 'cocrPrinted', 'zirconiaBar', 'peekBar'] },
+  { titleKey: 'implantForm.pricing.groups.barMaterial',     keys: ['titaniumBar', 'cocrMilled', 'cocrPrinted', 'zirconiaBar', 'peekBar'] },
 ];
 
 function ImplantPricingSection({
@@ -513,7 +510,8 @@ function ImplantPricingSection({
   onCrownMaterialsChange,
   t,
 }: {
-  /** Lab-placed abutments: no crown materials and no bar prices to set. */
+  /** Lab-placed abutments: no crown materials to set (its bar is priced as
+   *  on Constructions on Implants). */
   abutmentsOnly?: boolean;
   config: Record<string, ImplantPriceItem>;
   onChange: (next: Record<string, ImplantPriceItem>) => void;
@@ -687,7 +685,7 @@ function ImplantPricingSection({
 
       <Divider />
 
-      {IMPLANT_PRICE_GROUPS.filter((g) => !abutmentsOnly || g.titleKey !== BAR_PRICE_GROUP).map((group) => (
+      {IMPLANT_PRICE_GROUPS.map((group) => (
         <Box key={group.titleKey}>
           <Typography
             variant="overline"

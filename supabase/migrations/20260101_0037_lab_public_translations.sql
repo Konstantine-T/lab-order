@@ -37,10 +37,13 @@
 --   narrowed to pending labs, the RPC keeps translations working for approved
 --   ones.
 --
--- NO RLS OR GRANT CHANGE
---   `labs` is table-level `select` to anon (0034) and `labs_marketplace_read`
---   is row-level, so the new column is readable wherever the row is — the
---   marketplace, the lab page and the order wizard, for guests too.
+-- NO RLS OR GRANT CHANGE HERE
+--   `labs_marketplace_read` is row-level, so for signed-in users the new
+--   column is readable wherever the row is. GUESTS ARE DIFFERENT: since 0039,
+--   `anon` reads `labs` through a column list, not the table-level `select`
+--   0034 granted when this file was written, and sees this column only because
+--   0039 lists it. Apply 0039 after this file, or the guest marketplace, lab
+--   page and order wizard fail with 42501 on this column.
 --
 -- SIDE EFFECT
 --   Orders snapshot the whole lab row (`to_jsonb(v_lab)`), so new orders carry

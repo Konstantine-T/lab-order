@@ -2,17 +2,23 @@
 -- Lab-placed Abutments platform template.
 -- Georgian: აბატმენტების ჩაყენება ლაბორატორიულად
 --
--- Only the implant configuration of Constructions on Implants — implant brand,
--- positions, and each implant's abutment status / type / options — with no bar
--- and no crown section, plus one question of its own: "transfer check needed?"
--- (yes / no, not priced). The frontend renders <ImplantRestorationForm
--- variant="abutments"> for this code (see TEMPLATE_CODE_IMPLANT_ABUTMENTS and
--- isImplantTemplate() in src/features/orderForms/implantTypes.ts), and prices it
--- with the implant component grid, without crown materials.
+-- Constructions on Implants up to the crowns — implant brand, positions, each
+-- implant's abutment status / type / options, and the bar — with no crown
+-- section, plus one question of its own: "transfer check needed?" (yes / no,
+-- not priced). "Already in mouth" is not offered as an abutment status: the
+-- abutment is what this order is for. The frontend renders
+-- <ImplantRestorationForm variant="abutments"> for this code (see
+-- TEMPLATE_CODE_IMPLANT_ABUTMENTS and isImplantTemplate() in
+-- src/features/orderForms/implantTypes.ts, and abutmentTypes.ts), and prices it
+-- with the implant component grid and the bar prices, without crown materials.
 --
 -- The one seeded field is the transfer-check question, so the lab can switch it
 -- off or make it required in the Fields tab. Its field_code is also its answer
--- key (`abTransferCheck`).
+-- key (`abTransferCheck`). The bar needs no field: it is part of the structured
+-- form, as on Constructions on Implants (whose seed has none for it either).
+--
+-- Re-running updates the name and description of an already-seeded template
+-- (on conflict do update) and leaves an existing field row as it is.
 --
 -- Run in the Supabase SQL Editor. Idempotent — safe to re-run.
 -- ============================================================================
@@ -26,7 +32,7 @@ begin
   values (
     'IMPLANT_ABUTMENTS',
     'Lab-placed Abutments',
-    'Abutments placed by the lab — the implant configuration of Constructions on Implants (brand, positions, abutment per implant), without the crown.'
+    'Abutments placed by the lab — Constructions on Implants up to the crowns (brand, positions, abutment per implant, bar), without the crown.'
   )
   on conflict (code) do update
     set name        = excluded.name,

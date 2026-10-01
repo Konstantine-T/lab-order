@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Box, Button, Stack, Tab, Tabs, Typography } from '@mui/material';
-import { FormProvider, useForm } from 'react-hook-form';
+import { FormProvider, useForm, type FieldErrors } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useTranslation } from 'react-i18next';
@@ -14,6 +14,7 @@ import { LabApprovalBanner } from '@/features/lab/LabApprovalBanner';
 import { LabAccountCard } from '@/features/lab/LabAccountCard';
 import { LabPriceListCard } from '@/features/lab/priceList/LabPriceListCard';
 import { clearNotice, leaveNotice, readNotice } from '@/features/lab/remountNotice';
+import { classifyLabProfileError } from '@/features/lab/labProfileErrors';
 import {
   LAB_TEXT_LANGS,
   LAB_TEXT_MAX,
@@ -116,6 +117,17 @@ const fromLab = (lab: LabRow): PageInput => ({
 
 type TextTab = 'base' | LabTextLang;
 
+/** The inputs each tab draws, in order — what to focus when it holds an error. */
+const tabFields = (tab: TextTab) =>
+  tab === 'base'
+    ? (['public_name', 'short_description'] as const)
+    : ([`public_translations.${tab}.public_name`, `public_translations.${tab}.short_description`] as const);
+
+const tabHasError = (errors: FieldErrors<PageInput>, tab: TextTab): boolean =>
+  tab === 'base'
+    ? !!(errors.public_name || errors.short_description)
+    : !!errors.public_translations?.[tab];
+
 const NOTICE = 'lab-profile-saved';
 
 const langLabel = (lang: LabTextLang) => LANGUAGES.find((l) => l.code === lang)?.label ?? lang;
@@ -127,12 +139,14 @@ export function LabProfilePage() {
   const queryClient = useQueryClient();
   const lab = user?.lab;
 
-  // Saving refreshes the AppUser, which re-mounts this page; the confirmation
-  // is carried across that (see remountNotice).
+  // Saving refreshes the AppUser silently, so the page stays mounted; the
+  // confirmation is still left in remountNotice should a re-mount happen.
   const [success, setSuccess] = useState<string | null>(() => readNotice(NOTICE));
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<TextTab>('base');
   const [savingTranslations, setSavingTranslations] = useState(false);
+  // An input to focus once its tab has rendered (see revealError).
+  const [focusField, setFocusField] = useState<string | null>(null);
 
   const methods = useForm<PageInput>({
     resolver: zodResolver(pageSchema),
@@ -140,10 +154,37 @@ export function LabProfilePage() {
     mode: 'onChange',
   });
 
+  // Re-seed the form when the stored profile — or the lab's review status —
+  // changes, compared as text. Not whenever the AppUser object is replaced:
+  // the account card's save refreshes it with the very same lab, and a reset
+  // then would wipe whatever the lab is typing here.
+  const stored = useMemo(() => (lab ? fromLab(lab) : null), [lab]);
+  const storedKey = lab && stored ? JSON.stringify([lab.approval_status, stored]) : '';
+  const seeded = useRef<PageInput | null>(null);
   useEffect(() => {
-    if (!lab) return;
-    methods.reset(fromLab(lab));
-  }, [lab, methods]);
+    if (!storedKey) return;
+    const [, next] = JSON.parse(storedKey) as [string, PageInput];
+    const prev = seeded.current;
+    seeded.current = next;
+    // Translation slots the lab typed survive a re-seed that did not change
+    // the stored ones — the status moving under an open page (see onWriteError):
+    // an approved lab can still save them, and they are not the locked part.
+    const keepTyped =
+      !!prev && JSON.stringify(prev.public_translations) === JSON.stringify(next.public_translations);
+    methods.reset(
+      keepTyped ? { ...next, public_translations: methods.getValues('public_translations') } : next,
+    );
+  }, [storedKey, methods]);
+
+  // A field on a tab that was not showing gets focus once its tab is drawn:
+  // `revealError` sets both in one render, so the input exists by now.
+  useEffect(() => {
+    if (!focusField) return;
+    document.querySelector<HTMLElement>(`[name="${focusField}"]`)?.focus();
+    setFocusField(null);
+  }, [focusField]);
+
+  const { errors } = methods.formState;
 
   if (!lab) return null;
 
@@ -167,12 +208,28 @@ export function LabProfilePage() {
     for (const key of [
       ['marketplace-labs'],
       ['public-lab', lab.id],
-      ['lab-public-translations', lab.id],
+      ['orderable-lab', lab.id],
       ['landing-labs'],
     ]) {
       void queryClient.invalidateQueries({ queryKey: key });
     }
-    await refreshUser();
+    // Silent: a spinner would re-mount the page, and with it the account card
+    // below, throwing away anything typed there.
+    await refreshUser({ silent: true });
+  };
+
+  /**
+   * A refused write, as a sentence the lab can act on — never the raw
+   * Postgres message, which is English-only and names triggers at the user.
+   * `fallback` is the message for an unrecognised failure.
+   */
+  const onWriteError = async (e: unknown, fallback: string) => {
+    const kind = classifyLabProfileError(e);
+    setError(kind === 'generic' ? fallback : t(`profile.errors.${kind}`));
+    // The page was opened before an admin decided on the lab. Reload the lab
+    // so the page shows its real status — locked fields back to what is on
+    // file; typed translations kept (see the re-seed above).
+    if (kind === 'locked') await refreshUser({ silent: true });
   };
 
   const saveTranslations = async (slots: TranslationSlots): Promise<boolean> => {
@@ -181,11 +238,26 @@ export function LabProfilePage() {
       p_translations: fromSlots(slots),
     });
     if (e) {
-      // Never the raw message: English-only, and it names SQL at the user.
-      setError(t('profile.translations.saveFailed'));
+      await onWriteError(e, t('profile.translations.saveFailed'));
       return false;
     }
     return true;
+  };
+
+  /**
+   * Validation failed somewhere the lab may not be looking: the public name
+   * and description are split across tabs, and a field on a hidden tab can
+   * neither show its error nor take focus. Switch to the first tab that holds
+   * one — the current tab if it does — and focus its first invalid input.
+   * Fields outside the tabs are always drawn and show their own errors.
+   */
+  const revealError = (errs: FieldErrors<PageInput>) => {
+    const order: TextTab[] = [tab, 'base', ...LAB_TEXT_LANGS];
+    const target = order.find((x) => tabHasError(errs, x));
+    if (!target) return;
+    setTab(target);
+    const field = tabFields(target).find((name) => methods.getFieldState(name).invalid);
+    if (field) setFocusField(field);
   };
 
   /** The whole profile: only while the lab is still in review. */
@@ -212,7 +284,7 @@ export function LabProfilePage() {
       })
       .eq('id', lab.id);
     if (e) {
-      setError(e.message);
+      await onWriteError(e, t('profile.errors.generic'));
       return false;
     }
     // A lab that never touched the tabs makes no second write.
@@ -236,7 +308,10 @@ export function LabProfilePage() {
     // Validate only the translation slots: a locked field the lab cannot
     // change must not block the part it can.
     const valid = await methods.trigger('public_translations');
-    if (!valid) return;
+    if (!valid) {
+      revealError(methods.formState.errors);
+      return;
+    }
     setSavingTranslations(true);
     try {
       if (await saveTranslations(methods.getValues('public_translations'))) {
@@ -253,7 +328,7 @@ export function LabProfilePage() {
       .update({ approval_status: 'PENDING_APPROVAL', approval_note: null })
       .eq('id', lab.id);
     if (e) {
-      setError(e.message);
+      await onWriteError(e, t('profile.errors.generic'));
       return false;
     }
     return true;
@@ -283,7 +358,7 @@ export function LabProfilePage() {
       {error && <Alert severity="error">{error}</Alert>}
 
       <FormProvider {...methods}>
-        <form onSubmit={methods.handleSubmit(handleSave)} noValidate>
+        <form onSubmit={methods.handleSubmit(handleSave, revealError)} noValidate>
           <Stack
             spacing={3}
             // Locked fields are still the lab's reference copy of its own IBAN
@@ -307,21 +382,36 @@ export function LabProfilePage() {
                       allowScrollButtonsMobile
                       aria-label={t('profile.translations.tabsA11y')}
                     >
-                      <Tab value="base" label={t('profile.translations.tabBase')} />
-                      {LAB_TEXT_LANGS.map((l) => (
-                        <Tab
-                          key={l}
-                          value={l}
-                          label={
-                            <TabLabel
-                              text={langLabel(l)}
-                              filled={hasText(slots?.[l])}
-                              filledText={t('profile.translations.filled')}
-                              missingText={t('profile.translations.missing')}
-                            />
-                          }
-                        />
-                      ))}
+                      <Tab
+                        value="base"
+                        label={
+                          <TabLabel
+                            text={t('profile.translations.tabBase')}
+                            state={tabHasError(errors, 'base') ? 'invalid' : null}
+                            stateText={t('profile.translations.invalid')}
+                          />
+                        }
+                      />
+                      {LAB_TEXT_LANGS.map((l) => {
+                        const state = tabHasError(errors, l)
+                          ? 'invalid'
+                          : hasText(slots?.[l])
+                            ? 'filled'
+                            : 'missing';
+                        return (
+                          <Tab
+                            key={l}
+                            value={l}
+                            label={
+                              <TabLabel
+                                text={langLabel(l)}
+                                state={state}
+                                stateText={t(`profile.translations.${state}`)}
+                              />
+                            }
+                          />
+                        );
+                      })}
                     </Tabs>
                   </Box>
 
@@ -390,7 +480,7 @@ export function LabProfilePage() {
                 </Stack>
             </SectionCard>
 
-            <LabPriceListCard labId={lab.id} />
+            <LabPriceListCard labId={lab.id} canPublish={editable || approved} />
 
             <SectionCard icon="description" title={t('profile.sections.legal')}>
                 <Stack spacing={2}>
@@ -502,7 +592,7 @@ export function LabProfilePage() {
                   <Button
                     variant="contained"
                     disabled={!isComplete || methods.formState.isSubmitting}
-                    onClick={() => void methods.handleSubmit(handleResubmit)()}
+                    onClick={() => void methods.handleSubmit(handleResubmit, revealError)()}
                   >
                     {t('profile.submitForApproval')}
                   </Button>
@@ -525,37 +615,45 @@ export function LabProfilePage() {
   );
 }
 
-/** A language tab: its name and a dot saying whether it has any text yet. */
+/**
+ * A tab's name and a dot: for a language, whether it has any text yet; for
+ * any tab, red while one of its fields is invalid — the error itself shows
+ * only on the tab, so the dot is what says where it is.
+ */
 function TabLabel({
   text,
-  filled,
-  filledText,
-  missingText,
+  state,
+  stateText,
 }: {
   text: string;
-  filled: boolean;
-  filledText: string;
-  missingText: string;
+  state: 'filled' | 'missing' | 'invalid' | null;
+  stateText: string;
 }) {
+  const color =
+    state === 'invalid' ? 'error.main' : state === 'filled' ? 'success.main' : 'text.disabled';
   return (
     <Stack direction="row" alignItems="center" spacing={0.875} component="span">
       <span>{text}</span>
-      <Box
-        component="span"
-        aria-hidden
-        sx={{
-          width: 7,
-          height: 7,
-          borderRadius: '50%',
-          flexShrink: 0,
-          border: 1.5,
-          borderColor: filled ? 'success.main' : 'text.disabled',
-          bgcolor: filled ? 'success.main' : 'transparent',
-        }}
-      />
-      <Box component="span" sx={visuallyHidden}>
-        {filled ? filledText : missingText}
-      </Box>
+      {state && (
+        <>
+          <Box
+            component="span"
+            aria-hidden
+            sx={{
+              width: 7,
+              height: 7,
+              borderRadius: '50%',
+              flexShrink: 0,
+              border: 1.5,
+              borderColor: color,
+              bgcolor: state === 'missing' ? 'transparent' : color,
+            }}
+          />
+          <Box component="span" sx={visuallyHidden}>
+            {stateText}
+          </Box>
+        </>
+      )}
     </Stack>
   );
 }

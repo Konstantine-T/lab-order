@@ -42,9 +42,9 @@ export function buildDefaultConfig(
   const isSg = templateCode === 'SURGICAL_GUIDE';
   const isEsp = templateCode === 'EVIDENT_SMILE';
   // Constructions on Implants and lab-placed abutments share the implant
-  // component grid. Only the former has crowns, so only it gets a crown
-  // material list — whose absence is also what keeps an abutments-only
-  // service from advertising a crown's "from" price.
+  // component grid, bar prices included. Only the former has crowns, so only
+  // it gets a crown material list — whose absence is also what keeps an
+  // abutments-only service from advertising a crown's "from" price.
   const isImplant = isImplantTemplate(templateCode);
   const hasImplantCrowns = templateCode === TEMPLATE_CODE_IMPLANT;
   const isFab = isFabTemplate(templateCode);

@@ -1,4 +1,11 @@
-import { coerceCnbAnswers, isCnbTemplate, materialColor, type ShadeScale } from '@/features/orderForms/cnbTypes';
+import {
+  coerceCnbAnswers,
+  isCnbTemplate,
+  materialColor,
+  TEMPLATE_CODE_FINAL_CONSTRUCTION,
+  type ShadeScale,
+} from '@/features/orderForms/cnbTypes';
+import { coerceFcDesign, isFcDesignEnabled } from '@/features/orderForms/fcTypes';
 import { coerceEspAnswers, TEMPLATE_CODE_ESP } from '@/features/orderForms/espTypes';
 import { coerceGrgAnswers, TEMPLATE_CODE_GRG } from '@/features/orderForms/grgTypes';
 import {
@@ -8,7 +15,7 @@ import {
   TEMPLATE_CODE_PRINT,
 } from '@/features/orderForms/fabTypes';
 import { coerceModelAnswers, isModelTemplateCode } from '@/features/orderForms/modelTypes';
-import { coerceImplantAnswers, TEMPLATE_CODE_IMPLANT } from '@/features/orderForms/implantTypes';
+import { coerceImplantAnswers, isImplantTemplate } from '@/features/orderForms/implantTypes';
 import { coerceSgAnswers, TEMPLATE_CODE_SG } from '@/features/orderForms/sgTypes';
 import type { FormConfiguration, MaterialOption, PricingConfig } from '@/types/database';
 
@@ -96,12 +103,19 @@ export function orderFacts(
 
   if (isCnbTemplate(code)) {
     const a = coerceCnbAnswers(values, pricing?.materials);
+    // Final Construction is this form plus a design section, whose note is the
+    // point of the order — the design wanted this time. Only while the form
+    // shows the section, as the form itself decides.
+    const designNotes =
+      code === TEMPLATE_CODE_FINAL_CONSTRUCTION && isFcDesignEnabled(configuration)
+        ? coerceFcDesign(values).fcDesignNotes
+        : '';
     return {
       ...EMPTY,
       ...fromAssignments(a.toothAssignments, materials),
       notation: a.notation,
       shade: a.shade ? { value: a.shade, scale: a.shadeScale, notes: a.shadeNotes.trim() } : null,
-      notes: filled(a.notes, a.rxNotes),
+      notes: filled(a.notes, designNotes, a.rxNotes),
     };
   }
 
@@ -138,7 +152,10 @@ export function orderFacts(
     return { ...EMPTY, materials: name ? [name] : [], units: a.units, notes: filled(a.notes) };
   }
 
-  if (code === TEMPLATE_CODE_IMPLANT) {
+  // Constructions on Implants and lab-placed abutments: the same positions,
+  // read the same way (the abutments' own coerce only drops the crown). The
+  // bar, on either, stays in the full form below, as it always has.
+  if (isImplantTemplate(code)) {
     const a = coerceImplantAnswers(values);
     return { ...EMPTY, teeth: validTeeth(a.implantPositions), notation: a.notation };
   }

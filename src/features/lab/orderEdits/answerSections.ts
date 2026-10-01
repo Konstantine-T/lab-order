@@ -1,9 +1,13 @@
-import { isCnbTemplate } from '@/features/orderForms/cnbTypes';
+import { isCnbTemplate, TEMPLATE_CODE_FINAL_CONSTRUCTION } from '@/features/orderForms/cnbTypes';
 import { TEMPLATE_CODE_SG } from '@/features/orderForms/sgTypes';
 import { TEMPLATE_CODE_ESP } from '@/features/orderForms/espTypes';
 import { TEMPLATE_CODE_GRG } from '@/features/orderForms/grgTypes';
 import { isModelTemplateCode } from '@/features/orderForms/modelTypes';
-import { TEMPLATE_CODE_IMPLANT } from '@/features/orderForms/implantTypes';
+import {
+  TEMPLATE_CODE_IMPLANT,
+  TEMPLATE_CODE_IMPLANT_ABUTMENTS,
+} from '@/features/orderForms/implantTypes';
+import { AB_TRANSFER_CHECK } from '@/features/orderForms/abutmentTypes';
 import { TEMPLATE_CODE_PRINT, TEMPLATE_CODE_MILLING } from '@/features/orderForms/fabTypes';
 import { valuesEqual } from './diff';
 import type { FormConfiguration } from '@/types/database';
@@ -42,6 +46,16 @@ const CNB: Section[] = [
   { keys: ['checkDesign'], labelKey: 'cnbForm.sections.checkDesign' },
   { keys: ['occlusalContact'], labelKey: 'cnbForm.sections.occlusalContact' },
   { keys: ['rxNotes'], labelKey: 'cnbForm.sections.rxNotes' },
+];
+
+/**
+ * Final Construction: the Crown & Bridge sections, with the design section the
+ * form draws straight after the treatments.
+ */
+const FINAL_CONSTRUCTION: Section[] = [
+  CNB[0],
+  { keys: ['fcToothShape', 'fcDesignNotes'], labelKey: 'cnbForm.sections.design' },
+  ...CNB.slice(1),
 ];
 
 const ESP: Section[] = [
@@ -124,15 +138,31 @@ const SG: Section[] = [
   },
 ];
 
-const IMPLANT: Section[] = [
+/** The implant configuration both implant templates open with. */
+const IMPLANT_CONFIGURATION: Section[] = [
   { keys: ['brand', 'brandCustom'], labelKey: 'implantForm.sections.brand' },
   { keys: ['implantPositions', 'notation'], labelKey: 'implantForm.sections.positions' },
   {
     keys: ['configsByPosition', 'submittedPositions'],
     labelKey: 'implantForm.sections.configure',
   },
+];
+
+const IMPLANT: Section[] = [
+  ...IMPLANT_CONFIGURATION,
   { keys: ['bar'], labelKey: 'implantForm.sections.bar' },
   { keys: ['cnbAnswers'], labelKey: 'implantForm.sections.crownRestoration' },
+];
+
+/**
+ * Lab-placed abutments: everything up to the crowns — the configuration and
+ * the bar — then its transfer check. The form never draws a crown here, so it
+ * gets no section.
+ */
+const IMPLANT_ABUTMENTS: Section[] = [
+  ...IMPLANT_CONFIGURATION,
+  { keys: ['bar'], labelKey: 'implantForm.sections.bar' },
+  { keys: [AB_TRANSFER_CHECK], labelKey: 'implantForm.sections.transferCheck' },
 ];
 
 const PRINT: Section[] = [
@@ -154,12 +184,15 @@ const MILLING: Section[] = [
  */
 export function sectionsForTemplate(templateCode: string | undefined): Section[] | null {
   if (!templateCode) return null;
+  // Before the Crown & Bridge check, which also matches it.
+  if (templateCode === TEMPLATE_CODE_FINAL_CONSTRUCTION) return FINAL_CONSTRUCTION;
   if (isCnbTemplate(templateCode)) return CNB;
   if (isModelTemplateCode(templateCode)) return MODEL;
   if (templateCode === TEMPLATE_CODE_ESP) return ESP;
   if (templateCode === TEMPLATE_CODE_GRG) return GRG;
   if (templateCode === TEMPLATE_CODE_SG) return SG;
   if (templateCode === TEMPLATE_CODE_IMPLANT) return IMPLANT;
+  if (templateCode === TEMPLATE_CODE_IMPLANT_ABUTMENTS) return IMPLANT_ABUTMENTS;
   if (templateCode === TEMPLATE_CODE_PRINT) return PRINT;
   if (templateCode === TEMPLATE_CODE_MILLING) return MILLING;
   return null;

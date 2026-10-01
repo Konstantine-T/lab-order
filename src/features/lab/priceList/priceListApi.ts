@@ -36,7 +36,13 @@ export const PRICE_LIST_ACCEPT = 'application/pdf,image/jpeg,image/png,.pdf,.jpg
 
 /** Why an upload or removal failed, in terms the UI can translate. Never show
  *  the raw Supabase message — it is English-only and mentions RLS at the user. */
-export type PriceListErrorKind = 'wrongType' | 'tooLarge' | 'network' | 'permission' | 'generic';
+export type PriceListErrorKind =
+  | 'wrongType'
+  | 'tooLarge'
+  | 'network'
+  | 'permission'
+  | 'notAllowed'
+  | 'generic';
 
 export class PriceListError extends Error {
   kind: PriceListErrorKind;
@@ -56,6 +62,10 @@ function classify(err: unknown): PriceListErrorKind {
   const msg = String((err as { message?: string })?.message ?? '').toLowerCase();
 
   if (msg.includes('not_your_lab')) return 'permission';
+  // 0038: a rejected or suspended lab may not publish one. Its storage upload
+  // is refused first, by policy, and reads as 'permission' below — the card
+  // does not offer the upload to such a lab, so only a stale page gets there.
+  if (msg.includes('price_list_not_allowed')) return 'notAllowed';
   if (msg.includes('invalid_price_list_type') || msg.includes('mime type')) return 'wrongType';
   if (
     String(status) === '413' ||
@@ -80,8 +90,8 @@ function classify(err: unknown): PriceListErrorKind {
 }
 
 /** The content type to store a picked file under, or null when not allowed.
- *  Some systems hand back an empty `file.type` for a PDF; the extension is the
- *  fallback. */
+ *  Some systems hand back an empty `file.type` for a PDF, or a non-standard
+ *  one (`application/x-pdf`, `image/pjpeg`); the extension is the fallback. */
 function contentTypeOf(file: File): string | null {
   if (EXT_BY_TYPE[file.type]) return file.type;
   const ext = file.name.includes('.') ? file.name.split('.').pop()!.toLowerCase() : '';
@@ -181,9 +191,14 @@ export async function uploadPriceList(
     throw new PriceListError(classify(e), e);
   }))[lang]?.path;
 
+  // The body must carry the resolved type itself. For a File / Blob body
+  // storage-js ignores the `contentType` option and the upload goes out as a
+  // multipart part typed by the file — `application/octet-stream` for an empty
+  // `file.type` — which the bucket's allow-list refuses.
+  const body = file.type === contentType ? file : new File([file], file.name, { type: contentType });
   const { error: upErr } = await supabase.storage
     .from(PRICE_LIST_BUCKET)
-    .upload(path, file, { contentType, upsert: true, cacheControl: '3600' });
+    .upload(path, body, { contentType, upsert: true, cacheControl: '3600' });
   if (upErr) throw new PriceListError(classify(upErr), upErr);
 
   let result: RpcResult;

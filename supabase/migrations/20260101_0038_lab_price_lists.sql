@@ -34,6 +34,21 @@
 --   APPROVED lab manages them without a new admin review. The write path is
 --   `set_lab_price_list`, a SECURITY DEFINER RPC that checks ownership, the
 --   language and the path shape, and touches only this column.
+--
+--   Owner decision (review of this file): only a lab that is in review or
+--   approved — PENDING_APPROVAL, CHANGES_REQUESTED, APPROVED_ACTIVE — may
+--   PUBLISH a price list. A REJECTED or SUSPENDED lab may not upload one to
+--   this public bucket nor point its row at one: the storage INSERT / UPDATE
+--   policies and the RPC's set branch both check the status, as an allow-list
+--   so a NULL or a future status refuses. Removing one stays open to every
+--   status (the DELETE policy and the RPC's clear branch), so a lab can always
+--   take its own file down.
+--   NOT COVERED: there is no admin moderation path. No storage policy lets a
+--   PLATFORM_ADMIN delete from this bucket, the RPC admits only the owner, and
+--   the guard trigger below refuses every client role. A file a lab uploaded
+--   before it was rejected or suspended stays at its public URL (the button
+--   is gone with the lab's catalogue row) until it is removed from the
+--   dashboard or the SQL editor.
 --   `labs_owner_update` (0004) is column-blind, so a trigger
 --   (labs_price_lists_via_rpc, below) refuses a direct client write to this
 --   column, as 0037 does for translations. The CHECK constraint below also
@@ -42,8 +57,10 @@
 --   file. (That policy's wider gap — approved labs can directly edit their
 --   locked fields — is described in 0037 and not changed here.)
 --
--- NO RLS OR GRANT CHANGE ON labs — see 0037; the column is readable wherever
--- the row is, which is what lets guests see the button.
+-- NO RLS OR GRANT CHANGE ON labs HERE — the column is readable wherever the
+-- row is for signed-in users. Guests see it only because 0039's column grant
+-- lists it (anon no longer has 0034's table-level `select`); without 0039 the
+-- guest marketplace and lab page fail with 42501 on this column. See 0037.
 --
 -- ⚠️ Apply BEFORE shipping the client that selects this column (marketplace,
 --    lab public page, lab profile), for the same reason as 0037.
@@ -133,7 +150,8 @@ on conflict (id) do update
 -- EXISTS rather than `= (select l.id …)` because owner_user_id is not unique,
 -- and a scalar subquery returning two rows raises.
 
--- Insert: only <own lab id>/<ka|en|ru>.<pdf|jpg|jpeg|png>, nothing deeper.
+-- Insert: only <own lab id>/<ka|en|ru>.<pdf|jpg|jpeg|png>, nothing deeper,
+-- and only while the lab is in review or approved (see WHO MAY WRITE IT).
 drop policy if exists "lab-price-lists: owner insert" on storage.objects;
 create policy "lab-price-lists: owner insert" on storage.objects
   for insert to authenticated
@@ -145,10 +163,12 @@ create policy "lab-price-lists: owner insert" on storage.objects
       select 1 from public.labs l
       where l.owner_user_id = auth.uid()
         and l.id::text = (storage.foldername(name))[1]
+        and l.approval_status in ('PENDING_APPROVAL', 'CHANGES_REQUESTED', 'APPROVED_ACTIVE')
     )
   );
 
--- Update: re-uploading over an existing key (upsert). Same shape both sides.
+-- Update: re-uploading over an existing key (upsert). Same shape both sides;
+-- the new object, like an inserted one, only while the lab may publish.
 drop policy if exists "lab-price-lists: owner update" on storage.objects;
 create policy "lab-price-lists: owner update" on storage.objects
   for update to authenticated
@@ -168,6 +188,7 @@ create policy "lab-price-lists: owner update" on storage.objects
       select 1 from public.labs l
       where l.owner_user_id = auth.uid()
         and l.id::text = (storage.foldername(name))[1]
+        and l.approval_status in ('PENDING_APPROVAL', 'CHANGES_REQUESTED', 'APPROVED_ACTIVE')
     )
   );
 
@@ -209,6 +230,8 @@ create policy "lab-price-lists: owner select" on storage.objects
 -- upload. What the check would add is small — the path is already confined to
 -- the caller's own folder, so the worst a hand-made call can do is break the
 -- caller's own button.
+-- Setting needs a lab in review or approved (see WHO MAY WRITE IT) and raises
+-- `price_list_not_allowed` otherwise; clearing works in every status.
 -- Returns the stored column and the path it replaced, so the client can
 -- best-effort remove an old object stored under a different extension.
 create or replace function public.set_lab_price_list(
@@ -223,10 +246,11 @@ security definer
 set search_path = public
 as $$
 declare
-  v_lists jsonb;
-  v_prev  text;
-  v_path  text := nullif(btrim(coalesce(p_path, '')), '');
-  v_name  text;
+  v_lists  jsonb;
+  v_status public.lab_approval_status;
+  v_prev   text;
+  v_path   text := nullif(btrim(coalesce(p_path, '')), '');
+  v_name   text;
 begin
   if auth.uid() is null then
     raise exception 'not_authenticated' using errcode = '42501';
@@ -239,7 +263,7 @@ begin
     raise exception 'invalid_price_list_lang' using errcode = '22023';
   end if;
 
-  select coalesce(price_lists, '{}'::jsonb) into v_lists
+  select coalesce(price_lists, '{}'::jsonb), approval_status into v_lists, v_status
     from public.labs where id = p_lab_id
     for update;
   v_prev := v_lists -> p_lang ->> 'path';
@@ -247,6 +271,12 @@ begin
   if v_path is null then
     v_lists := v_lists - p_lang;
   else
+    -- An allow-list, coalesced: a NULL or any future status refuses.
+    if not coalesce(
+      v_status in ('PENDING_APPROVAL', 'CHANGES_REQUESTED', 'APPROVED_ACTIVE'), false
+    ) then
+      raise exception 'price_list_not_allowed' using errcode = '42501';
+    end if;
     if v_path !~ ('^' || p_lab_id::text || '/' || p_lang || '\.(pdf|jpg|jpeg|png)$') then
       raise exception 'invalid_price_list_type' using errcode = '22023';
     end if;
@@ -342,6 +372,11 @@ create trigger labs_price_lists_via_rpc
 --   --      -- raises invalid_price_list_type (path is not this language's key)
 --   --      select public.set_lab_price_list('<another lab>', 'ka', null, null); -- raises not_your_lab
 --   --      select public.set_lab_price_list('<their lab>', 'de', null, null);   -- raises invalid_price_list_lang
+--   --    As the owner of a REJECTED or SUSPENDED lab:
+--   --      select public.set_lab_price_list('<their lab>', 'ka', '<their lab>/ka.pdf', 'x.pdf');
+--   --      -- raises price_list_not_allowed
+--   --      select public.set_lab_price_list('<their lab>', 'ka', null, null);   -- ok (clearing)
+--   --    and an upload to <their lab>/ka.pdf is refused by the insert policy.
 --   --      update public.labs set price_lists = '{}' where id = '<their lab>';
 --   --      -- raises price_lists_rpc_only once the lab has a price list
 --

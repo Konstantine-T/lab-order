@@ -1,9 +1,17 @@
+/**
+ * Default cover image per template code. A template that reuses another's form
+ * (Temporary Crown and Final Construction the Crown & Bridge form, lab-placed
+ * abutments the implant form) shows that template's image: the bucket has none
+ * of its own for them.
+ */
 const TEMPLATE_IMAGE_FILES: Record<string, string> = {
   CROWN_AND_BRIDGE:          'crown-and-bridge.jpeg',
   TEMPORARY_CROWN:           'crown-and-bridge.jpeg',
+  FINAL_CONSTRUCTION:        'crown-and-bridge.jpeg',
   SURGICAL_GUIDE:            'surgical-guide.jpeg',
   EVIDENT_SMILE:             'evident-smile.jpeg',
   CONSTRUCTIONS_ON_IMPLANTS: 'constructions-on-implants.jpeg',
+  IMPLANT_ABUTMENTS:         'constructions-on-implants.jpeg',
   GINGIVAL_REDUCTION_GUIDE:  'gingival-reduction-guide.jpeg',
   MODEL:                     'model.jpeg',
   ZIRCONIA_CROWN:            'zirconia-crown.jpeg',
@@ -16,9 +24,11 @@ const TEMPLATE_IMAGE_FILES: Record<string, string> = {
 const TEMPLATE_LOOK: Record<string, { icon: string; color: string }> = {
   CROWN_AND_BRIDGE: { icon: 'dentistry', color: '#6366F1' },
   TEMPORARY_CROWN: { icon: 'dentistry', color: '#6366F1' },
+  FINAL_CONSTRUCTION: { icon: 'dentistry', color: '#6366F1' },
   ZIRCONIA_CROWN: { icon: 'diamond', color: '#0284C7' },
   SURGICAL_GUIDE: { icon: 'biotech', color: '#0EA5E9' },
   CONSTRUCTIONS_ON_IMPLANTS: { icon: 'construction', color: '#10B981' },
+  IMPLANT_ABUTMENTS: { icon: 'construction', color: '#10B981' },
   MODEL: { icon: 'deployed_code', color: '#F59E0B' },
   EVIDENT_SMILE: { icon: 'auto_awesome', color: '#EC4899' },
   GINGIVAL_REDUCTION_GUIDE: { icon: 'content_cut', color: '#8A5CF6' },

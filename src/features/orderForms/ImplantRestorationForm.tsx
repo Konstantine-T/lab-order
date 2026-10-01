@@ -44,6 +44,8 @@ import {
 } from './implantTypes';
 import {
   AB_TRANSFER_CHECK,
+  ABUTMENTS_STATUS_OPTIONS,
+  isAbutmentConfigComplete,
   isAbutmentFieldEnabled,
   isAbutmentFieldRequired,
   validateAbutments,
@@ -87,9 +89,10 @@ type Props = {
   onChange: (next: ImplantAbutmentAnswers) => void;
   /**
    * `full` is Constructions on Implants. `abutments` is the lab-placed
-   * abutments template: the same brand, positions and per-implant abutment
-   * configuration, then a transfer-check question in place of the bar and
-   * crown sections.
+   * abutments template: everything up to the crowns — the same brand,
+   * positions, per-implant abutment configuration and bar — then a
+   * transfer-check question in place of the crown section. Its abutment status
+   * has no "Already in mouth": the abutment is what the order is for.
    */
   variant?: 'full' | 'abutments';
   readOnly?: boolean;
@@ -127,6 +130,8 @@ export function ImplantRestorationForm({
       ? validateAbutments(a, configuration)
       : validateImplantRestoration(a)
     : {};
+  const statusOptions = abutmentsOnly ? ABUTMENTS_STATUS_OPTIONS : ABUTMENT_STATUS_OPTIONS;
+  const isConfigComplete = abutmentsOnly ? isAbutmentConfigComplete : isImplantConfigComplete;
 
   const labBrands = pricing?.implant_brands ?? [];
 
@@ -295,7 +300,7 @@ export function ImplantRestorationForm({
   // questions start from an inflated total and the doctor sees 1, 2, 6.
   const hasPositions = a.implantPositions.length > 0;
   const configureSn = hasPositions ? ns() : 0;
-  const barSn = hasPositions && !abutmentsOnly ? ns() : 0;
+  const barSn = hasPositions ? ns() : 0;
   const finalSn = hasPositions && !abutmentsOnly ? ns() : 0;
   // The abutments variant's own question. It does not depend on the positions,
   // so it is there from the start, numbered after whatever precedes it.
@@ -439,6 +444,7 @@ export function ImplantRestorationForm({
               labBrands={labBrands}
               brandColorById={brandColorById}
               globalBrand={a.brand}
+              isComplete={isConfigComplete}
               t={t}
             />
           ) : (
@@ -497,7 +503,7 @@ export function ImplantRestorationForm({
                         </Typography>
                         <PillGroup
                           value={representativeCfg.abutmentStatus ?? ''}
-                          options={ABUTMENT_STATUS_OPTIONS.map((o) => o.key) as readonly AbutmentStatus[]}
+                          options={statusOptions.map((o) => o.key) as readonly AbutmentStatus[]}
                           getLabel={(k) => t(`implantForm.configure.abutmentStatus.${k}`)}
                           onChange={(v) => setAbutmentStatus(v as AbutmentStatus)}
                           readOnly={readOnly}
@@ -658,7 +664,7 @@ export function ImplantRestorationForm({
                           variant="contained"
                           size="small"
                           onClick={handleSubmitGroup}
-                          disabled={!editGroup.every((p) => isImplantConfigComplete(a.configsByPosition[String(p)] ?? {}))}
+                          disabled={!editGroup.every((p) => isConfigComplete(a.configsByPosition[String(p)] ?? {}))}
                         >
                           {t('implantForm.configure.submit')}
                         </Button>
@@ -694,8 +700,8 @@ export function ImplantRestorationForm({
         </NumberedSection>
       )}
 
-      {/* 4. Bar restoration */}
-      {a.implantPositions.length > 0 && !abutmentsOnly && (
+      {/* 4. Bar restoration — on both variants: the bar sits on the abutments */}
+      {a.implantPositions.length > 0 && (
         <NumberedSection number={barSn} label={t('implantForm.sections.bar')}>
           <Stack spacing={2}>
             <Stack spacing={1}>
@@ -1025,6 +1031,7 @@ function PositionDetailList({
   labBrands,
   brandColorById,
   globalBrand,
+  isComplete,
   t,
 }: {
   positions: number[];
@@ -1033,6 +1040,8 @@ function PositionDetailList({
   labBrands: Array<{ id: string; name: string }>;
   brandColorById: Record<string, string>;
   globalBrand?: string;
+  /** The variant's own completeness rule (see `isAbutmentConfigComplete`). */
+  isComplete: (cfg: ImplantConfig) => boolean;
   t: ReturnType<typeof import('react-i18next').useTranslation>['t'];
 }) {
   return (
@@ -1040,7 +1049,7 @@ function PositionDetailList({
       {positions.map((pos) => {
         const cfg: ImplantConfig = configsByPosition[String(pos)] ?? {};
         const label = posLabel(pos, notation);
-        const complete = isImplantConfigComplete(cfg);
+        const complete = isComplete(cfg);
         const effectiveBrand = cfg.brand ?? globalBrand;
         const brandColor = effectiveBrand ? brandColorById[effectiveBrand] : undefined;
 

@@ -23,14 +23,17 @@ const langLabel = (lang: LabTextLang) => LANGUAGES.find((l) => l.code === lang)?
  * on the spot rather than on the profile's Save — like the service cover
  * image, the row can only point at a file that is already stored.
  *
- * Available in every approval state: a price list is operational content, not
- * identity, so an approved lab manages it without a new review (0038).
+ * A price list is operational content, not identity, so an approved lab
+ * manages it without a new review (0038). Publishing one needs a lab that is
+ * in review or approved: a rejected or suspended lab (`canPublish` false) can
+ * only open and remove the files it already has — the database refuses the
+ * rest, so the card does not offer it.
  *
  * Reads its own query instead of `user.lab`: refreshing the AuthProvider user
  * re-mounts the whole page, which would throw away whatever the lab was
  * typing in the profile form around this card.
  */
-export function LabPriceListCard({ labId }: { labId: string }) {
+export function LabPriceListCard({ labId, canPublish }: { labId: string; canPublish: boolean }) {
   const { t } = useTranslation('lab');
   const { t: tc } = useTranslation('common');
   const queryClient = useQueryClient();
@@ -94,6 +97,7 @@ export function LabPriceListCard({ labId }: { labId: string }) {
         <Typography variant="body2" color="text.secondary">
           {t('profile.priceLists.hint')}
         </Typography>
+        {!canPublish && <Alert severity="info">{t('profile.priceLists.notAllowed')}</Alert>}
 
         <input
           ref={inputRef}
@@ -165,16 +169,18 @@ export function LabPriceListCard({ labId }: { labId: string }) {
                         >
                           {t('profile.priceLists.open')}
                         </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
-                          startIcon={<Icon name="upload" size={15} />}
-                          onClick={() => pick(lang)}
-                          disabled={busy}
-                          aria-label={`${t('profile.priceLists.replace')} — ${label}`}
-                        >
-                          {t('profile.priceLists.replace')}
-                        </Button>
+                        {canPublish && (
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<Icon name="upload" size={15} />}
+                            onClick={() => pick(lang)}
+                            disabled={busy}
+                            aria-label={`${t('profile.priceLists.replace')} — ${label}`}
+                          >
+                            {t('profile.priceLists.replace')}
+                          </Button>
+                        )}
                         <Button
                           size="small"
                           color="inherit"
@@ -185,7 +191,7 @@ export function LabPriceListCard({ labId }: { labId: string }) {
                           {t('profile.priceLists.remove')}
                         </Button>
                       </>
-                    ) : (
+                    ) : canPublish ? (
                       <Button
                         size="small"
                         variant="outlined"
@@ -196,7 +202,7 @@ export function LabPriceListCard({ labId }: { labId: string }) {
                       >
                         {t('profile.priceLists.upload')}
                       </Button>
-                    )}
+                    ) : null}
                   </Stack>
                 </Stack>
               );
