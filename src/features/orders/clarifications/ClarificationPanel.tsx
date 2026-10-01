@@ -60,8 +60,10 @@ export function ClarificationPanel({
       setError(null);
       qc.invalidateQueries({ queryKey: clarificationsKey(orderId) });
       // The answer changes what both sides' badges and lists say about this
-      // order, so refresh the lab's copy of it too — not just our own.
+      // order, so refresh every role's copy of it — the doctor's, the clinic
+      // admin's (ClinicOrderDetailPage keys its own) and the lab's.
       qc.invalidateQueries({ queryKey: ['order', orderId] });
+      qc.invalidateQueries({ queryKey: ['clinic-order', orderId] });
       qc.invalidateQueries({ queryKey: ['lab-order', orderId] });
       qc.invalidateQueries({ queryKey: ['nav-alerts'] });
       // The "needs action" highlight on both sides keys off the clarification

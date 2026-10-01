@@ -64,8 +64,10 @@ export function ClinicOrderDetailPage() {
     },
   });
 
-  // The RPCs gate on participants; a clinic admin the RPC does not count as
-  // one gets empty rows, and the staff line and chat simply do not appear.
+  // The same doctor-safe views the doctor reads (names only, invite link
+  // only). Both RPCs admit the clinic admin via can_act_for_doctor (0041);
+  // with no staff assigned or no chat created yet they return empty rows, and
+  // the staff line and chat button simply do not appear.
   const { staff, chatLink } = useOrderContacts(orderId);
 
   const { data: version } = useQuery({
