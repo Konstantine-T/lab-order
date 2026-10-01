@@ -1,4 +1,4 @@
-import { alpha, Box, Button, Card, Stack, Tooltip, Typography, useTheme } from '@mui/material';
+import { alpha, Box, Button, Card, Stack, Typography, useTheme } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design/Icon';
@@ -141,20 +141,22 @@ export function LabCard({
   // Raised above the stretched profile link, so these win clicks in their area.
   const above = { position: 'relative', zIndex: 1 } as const;
 
+  // Labelled, not an icon alone: the card has to say "price list" (XNhSe8D6),
+  // and a tooltip never shows on touch. A text button on its own row keeps it
+  // lighter than the two actions above it.
   const priceListButton = priceList && (
-    <Tooltip title={t('marketplace.priceList')}>
-      <Button
-        component="a"
-        href={priceListUrl(priceList)}
-        target="_blank"
-        rel="noopener noreferrer"
-        variant="outlined"
-        aria-label={t('marketplace.priceListFor', { name })}
-        sx={{ ...above, minWidth: 40, width: 40, px: 0, flexShrink: 0 }}
-      >
-        <Icon name="receipt_long" size={18} />
-      </Button>
-    </Tooltip>
+    <Button
+      component="a"
+      href={priceListUrl(priceList)}
+      target="_blank"
+      rel="noopener noreferrer"
+      size="small"
+      startIcon={<Icon name="receipt_long" size={16} />}
+      aria-label={t('marketplace.priceListFor', { name })}
+      sx={{ ...above, flex: '1 1 100%', [WIDE]: { flex: 'none' } }}
+    >
+      {t('marketplace.priceList')}
+    </Button>
   );
 
   return (
@@ -436,35 +438,34 @@ export function LabCard({
                 {t('labProfile.orderCta')}
               </Button>
             )}
-            <Stack direction="row" spacing={1} sx={{ flex: { xs: '1 1 160px' }, [WIDE]: { flex: 'none' } }}>
-              <Button
-                component={RouterLink}
-                to={profileTo}
-                variant={featured ? 'outlined' : 'contained'}
-                aria-label={t('marketplace.card.profileA11y', { name })}
-                // No ripple: with the button unpositioned (below), the ripple
-                // layer would spread over the whole card.
-                disableRipple
-                sx={{
-                  flex: 1,
-                  minWidth: 0,
-                  // Static, so the ::after below is placed against the card,
-                  // not against the button (ButtonBase is position: relative).
-                  position: 'static',
-                  // Stretched over the whole card: a click anywhere opens the
-                  // lab, and it stays a real link for ctrl/middle-click.
-                  '&::after': {
-                    content: '""',
-                    position: 'absolute',
-                    inset: 0,
-                    borderRadius: `${radii.card}px`,
-                  },
-                }}
-              >
-                {t('marketplace.card.profile')}
-              </Button>
-              {priceListButton}
-            </Stack>
+            <Button
+              component={RouterLink}
+              to={profileTo}
+              variant={featured ? 'outlined' : 'contained'}
+              aria-label={t('marketplace.card.profileA11y', { name })}
+              // No ripple: with the button unpositioned (below), the ripple
+              // layer would spread over the whole card.
+              disableRipple
+              sx={{
+                flex: { xs: '1 1 160px' },
+                [WIDE]: { flex: 'none' },
+                minWidth: 0,
+                // Static, so the ::after below is placed against the card,
+                // not against the button (ButtonBase is position: relative).
+                position: 'static',
+                // Stretched over the whole card: a click anywhere opens the
+                // lab, and it stays a real link for ctrl/middle-click.
+                '&::after': {
+                  content: '""',
+                  position: 'absolute',
+                  inset: 0,
+                  borderRadius: `${radii.card}px`,
+                },
+              }}
+            >
+              {t('marketplace.card.profile')}
+            </Button>
+            {priceListButton}
           </Box>
         </Stack>
       </Box>
