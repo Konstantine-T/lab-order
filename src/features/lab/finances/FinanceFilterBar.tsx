@@ -99,15 +99,17 @@ export function FinanceFilterBar({
         </FormControl>
 
         <FormControl size="small" sx={{ minWidth: 160 }}>
-          <InputLabel>{t('finances.filters.sort')}</InputLabel>
+          <InputLabel>{tc('orderSort.label')}</InputLabel>
           <Select
             value={sort}
             onChange={(e) => onSortChange(e.target.value as ReceivableSort)}
-            input={<OutlinedInput label={t('finances.filters.sort')} />}
+            input={<OutlinedInput label={tc('orderSort.label')} />}
           >
             {RECEIVABLE_SORTS.map((s) => (
               <MenuItem key={s} value={s}>
-                {t(`finances.sort.${s}`)}
+                {/* The date sorts share the order lists' labels; only the
+                    by-amount ones are finance-specific. */}
+                {s.startsWith('outstanding') ? t(`finances.sort.${s}`) : tc(`orderSort.${s}`)}
               </MenuItem>
             ))}
           </Select>

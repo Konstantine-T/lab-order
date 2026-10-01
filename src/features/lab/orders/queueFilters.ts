@@ -136,18 +136,31 @@ export function destinationLabelOf(row: DestinationColumns): { clinic: string; d
   };
 }
 
-/** One entry per destination, labelled with its most recent order's spelling. */
+/** Whether a spelling carries any capital letter. Georgian Mkhedruli has no
+ *  case, so a Georgian name never does and falls through to plain recency. */
+const hasCaps = (s: string): boolean => /\p{Lu}/u.test(s);
+
+/**
+ * One entry per destination, labelled with the prettiest recent spelling: a
+ * capitalised one ("Dental Plus") beats a caseless or all-lowercase one
+ * ("dental plus"), and among equals the most recent order wins. The key is
+ * lower-cased, so whichever doctor typed it last should not decide how the
+ * clinic's name reads in the list.
+ */
 export function destinationOptionsFrom(
   rows: readonly (DestinationColumns & { created_at: string })[],
 ): QueueFilterOption[] {
   const groups = new Map<string, QueueFilterOption>();
+  // When the current label was taken, so the choice does not depend on the
+  // order the rows arrive in.
+  const labelledAt = new Map<string, string>();
 
   for (const row of rows) {
     const key = destinationKeyOf(row);
     if (!key) continue;
+    const { clinic, detail } = destinationLabelOf(row);
     const group = groups.get(key);
     if (!group) {
-      const { clinic, detail } = destinationLabelOf(row);
       groups.set(key, {
         key,
         label: clinic,
@@ -155,14 +168,20 @@ export function destinationOptionsFrom(
         count: 1,
         latestAt: row.created_at,
       });
+      labelledAt.set(key, row.created_at);
       continue;
     }
     group.count += 1;
-    if (row.created_at > group.latestAt) {
-      group.latestAt = row.created_at;
-      const { clinic, detail } = destinationLabelOf(row);
+    if (row.created_at > group.latestAt) group.latestAt = row.created_at;
+    const rowCaps = hasCaps(clinic);
+    const labelCaps = hasCaps(group.label);
+    const prettier =
+      (rowCaps && !labelCaps) ||
+      (rowCaps === labelCaps && row.created_at > (labelledAt.get(key) ?? ''));
+    if (prettier) {
       group.label = clinic;
       group.detail = detail || undefined;
+      labelledAt.set(key, row.created_at);
     }
   }
 

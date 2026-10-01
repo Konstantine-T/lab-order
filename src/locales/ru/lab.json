@@ -58,7 +58,6 @@
       "doctor": "Врач",
       "clinic": "Клиника",
       "status": "Статус оплаты",
-      "sort": "Сортировка",
       "from": "С",
       "to": "По",
       "minAmount": "Мин. сумма",
@@ -68,12 +67,8 @@
       "noResults": "Нет записей, соответствующих фильтрам."
     },
     "sort": {
-      "created_desc": "Сначала новые",
-      "created_asc": "Сначала старые",
       "outstanding_desc": "Больше долг",
-      "outstanding_asc": "Меньше долг",
-      "due_asc": "Срок раньше",
-      "due_desc": "Срок позже"
+      "outstanding_asc": "Меньше долг"
     },
     "customers": {
       "title": "По клиентам",
@@ -482,7 +477,8 @@
       "created": "Создан"
     },
     "answeredBadge": "Есть ответ",
-    "invoiceAttached": "Счёт прикреплён"
+    "invoiceAttached": "Счёт",
+    "invoiceAttachedHint": "Счёт прикреплён"
   },
   "editedOrders": {
     "title": "Изменённые заказы",

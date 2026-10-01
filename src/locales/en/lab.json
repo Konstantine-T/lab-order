@@ -58,7 +58,6 @@
       "doctor": "Doctor",
       "clinic": "Clinic",
       "status": "Payment status",
-      "sort": "Sort",
       "from": "From",
       "to": "To",
       "minAmount": "Min owed",
@@ -68,12 +67,8 @@
       "noResults": "No receivables match your filters."
     },
     "sort": {
-      "created_desc": "Newest first",
-      "created_asc": "Oldest first",
       "outstanding_desc": "Most owed",
-      "outstanding_asc": "Least owed",
-      "due_asc": "Due soonest",
-      "due_desc": "Due latest"
+      "outstanding_asc": "Least owed"
     },
     "customers": {
       "title": "By customer",
@@ -472,7 +467,8 @@
       "completed": "Completed"
     },
     "answeredBadge": "Answered",
-    "invoiceAttached": "Invoice attached"
+    "invoiceAttached": "Invoice",
+    "invoiceAttachedHint": "Invoice attached"
   },
   "editedOrders": {
     "title": "Edited orders",

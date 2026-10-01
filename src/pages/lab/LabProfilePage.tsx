@@ -357,6 +357,11 @@ export function LabProfilePage() {
       {success && <Alert severity="success">{success}</Alert>}
       {error && <Alert severity="error">{error}</Alert>}
 
+      {/* Directly above the public-profile card, but outside the lab form on
+          purpose: it has its own <form> (a nested one would submit the lab's),
+          its own table, and no approval lock — see LabAccountCard. */}
+      <LabAccountCard />
+
       <FormProvider {...methods}>
         <form onSubmit={methods.handleSubmit(handleSave, revealError)} noValidate>
           <Stack
@@ -606,10 +611,6 @@ export function LabProfilePage() {
           </Stack>
         </form>
       </FormProvider>
-
-      {/* Outside the lab form on purpose: its own <form>, its own table, and no
-          approval lock — see LabAccountCard. */}
-      <LabAccountCard />
       </CardStack>
     </>
   );

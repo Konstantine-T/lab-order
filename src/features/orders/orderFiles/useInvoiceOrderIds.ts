@@ -4,18 +4,27 @@ import { supabase } from '@/lib/supabase';
 const EMPTY: ReadonlySet<string> = new Set<string>();
 
 /**
- * The ids of orders that carry an invoice, for one list page.
- *
- * The general form of `useUnacknowledgedInvoices`, whose comment explains the
- * shape: one query per page rather than per row or an embed in the list query,
- * `order_files!inner` to narrow to orders that have an invoice at all, and the
- * acknowledgement test done in JS because PostgREST cannot compare two columns.
+ * The ids of orders that carry an invoice, for one list page. The one query
+ * behind both the lab's "invoice" mark and the doctor's and clinic's "new
+ * invoice" badge (`useUnacknowledgedInvoices` is a thin wrapper over it).
  *
  * - Lab (`labId`, `unacknowledgedOnly: false`): every order it has invoiced.
  *   A permanent, neutral fact — the lab attached the thing, so there is
  *   nothing for it to acknowledge.
  * - Doctor / clinic (`unacknowledgedOnly: true`): only the invoices they have
  *   not seen yet, including ones replaced since they last looked.
+ *
+ * One query per page, not per row. The alternative — embedding `order_files`
+ * in the list query — either drags every attachment of every order across the
+ * wire, or relies on PostgREST's embedded-filter join semantics, which differ
+ * between `!inner` and `!left` and between versions. This asks the narrow
+ * question directly and returns only ids.
+ *
+ * The acknowledgement test is done here in JS, not as a filter: PostgREST
+ * cannot compare two columns, and a replace deliberately leaves the old
+ * acknowledgement in place (that is what tells "changed" from "attached"), so
+ * a plain `is null` filter would miss every replaced invoice. The rows fetched
+ * are only the orders that have an invoice at all, which is a small set.
  */
 export function useInvoiceOrderIds(scope: {
   doctorId?: string;
@@ -42,6 +51,7 @@ export function useInvoiceOrderIds(scope: {
     queryFn: async () => {
       let q = supabase
         .from('orders')
+        // `!inner` narrows to orders that have an invoice.
         .select('id, invoice_acknowledged_at, order_files!inner(created_at)')
         .eq('order_files.file_source', 'INVOICE');
       if (labId) q = q.eq('lab_id', labId);

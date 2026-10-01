@@ -58,7 +58,6 @@
       "doctor": "ექიმი",
       "clinic": "კლინიკა",
       "status": "გადახდის სტატუსი",
-      "sort": "დახარისხება",
       "from": "დან",
       "to": "მდე",
       "minAmount": "მინ. თანხა",
@@ -68,12 +67,8 @@
       "noResults": "ფილტრებს არცერთი ჩანაწერი არ ემთხვევა."
     },
     "sort": {
-      "created_desc": "ახლიდან ძველისკენ",
-      "created_asc": "ძველიდან ახლისკენ",
       "outstanding_desc": "მეტი დავალიანება",
-      "outstanding_asc": "ნაკლები დავალიანება",
-      "due_asc": "ვადა ჯერ",
-      "due_desc": "ვადა ბოლოს"
+      "outstanding_asc": "ნაკლები დავალიანება"
     },
     "customers": {
       "title": "კლიენტების მიხედვით",
@@ -472,7 +467,8 @@
       "created": "შექმნილია"
     },
     "answeredBadge": "პასუხი გაცემულია",
-    "invoiceAttached": "ინვოისი მიმაგრებულია"
+    "invoiceAttached": "ინვოისი",
+    "invoiceAttachedHint": "ინვოისი მიმაგრებულია"
   },
   "editedOrders": {
     "title": "შეცვლილი შეკვეთები",
