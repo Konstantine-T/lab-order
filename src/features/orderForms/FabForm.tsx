@@ -4,6 +4,8 @@ import { CopyAdornment } from '@/components/design';
 import { NumberedSection, ErrorHelper, CustomQuestionSections, SectionStack } from './primitives';
 import { NumberField } from '@/components/NumberField';
 import { ToothMap } from '@/components/ToothMap';
+import { ChangedTeethNote } from './changeHighlight';
+import { useChangedTeeth } from './changeMarks';
 import { formatGEL } from '@/utils/pricing';
 import { localizeMaterials, useUiLang } from '@/features/lab/labText';
 import type { FormConfiguration, MaterialOption, PricingConfig } from '@/types/database';
@@ -167,6 +169,7 @@ export function MillingForm({
   const errors = showErrors ? validateMilling(value) : {};
   const materials = pricing?.materials ?? [];
   const set = (patch: Partial<MillingAnswers>) => onChange({ ...value, ...patch });
+  const changedTeeth = useChangedTeeth('teeth');
   // Sections 1-3 below are fixed, so the lab's questions carry on from 4.
   // The other templates gate their sections on the lab's config and count them
   // as they render; this form has nothing to count.
@@ -198,7 +201,9 @@ export function MillingForm({
           value={value.teeth}
           onChange={readOnly ? undefined : (teeth) => set({ teeth })}
           readOnly={readOnly}
+          changedTeeth={changedTeeth}
         />
+        <ChangedTeethNote teeth={changedTeeth} />
         <ErrorHelper>{errors.teeth}</ErrorHelper>
       </NumberedSection>
       <NumberedSection number={3} label={t('fabForm.notes')}>

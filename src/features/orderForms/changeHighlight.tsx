@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { alpha, Box, useTheme, type SxProps, type Theme } from '@mui/material';
+import { alpha, Box, Stack, Typography, useTheme, type SxProps, type Theme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { StatusPill } from '@/components/design';
-import { layout, radii, tone } from '@/theme/tokens';
+import { toDisplayLabel } from '@/components/ToothMap';
+import { changedToothRing, layout, radii, tone } from '@/theme/tokens';
 
 /**
  * The cue a changed section gets: a bar down its left edge and a faint wash in
@@ -71,5 +72,45 @@ export function ChangedPill({ id }: { id?: string }) {
     <StatusPill tone="warning" sx={{ flexShrink: 0 }}>
       <span id={id}>{t('orderSheet.diff.changed')}</span>
     </StatusPill>
+  );
+}
+
+/**
+ * The line under a tooth chart naming the teeth the edit changed, in the
+ * chart's own notation ("Changed: 14, 15"), so the ring on the chart is not
+ * the only cue. It lists removed teeth too, which the chart no longer draws as
+ * selected. Renders nothing when no tooth changed.
+ */
+export function ChangedTeethNote({
+  teeth,
+  notation = 'FDI',
+  sx,
+}: {
+  /** Universal numbers, as `useChangedTeeth` returns them. */
+  teeth: readonly number[] | undefined;
+  /** What the chart is labelled in; ToothMap's own default is FDI. */
+  notation?: 'Universal' | 'FDI';
+  sx?: SxProps<Theme>;
+}) {
+  const { t } = useTranslation('lab');
+  const mode = useTheme().palette.mode;
+  if (!teeth || teeth.length === 0) return null;
+  const ring = changedToothRing(mode);
+  return (
+    <Stack
+      direction="row"
+      alignItems="center"
+      spacing={0.75}
+      data-changed-teeth={teeth.join(',')}
+      sx={[{ minWidth: 0 }, ...(Array.isArray(sx) ? sx : [sx])]}
+    >
+      <Box component="svg" viewBox="0 0 14 14" aria-hidden sx={{ width: 14, height: 14, flexShrink: 0 }}>
+        <circle cx={7} cy={7} r={5} fill="none" stroke={ring.band} strokeWidth={3.5} />
+        <circle cx={7} cy={7} r={5} fill="none" stroke={ring.line} strokeWidth={1.4} />
+      </Box>
+      <Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: tone('warning', mode).fg }}>
+        {t('orderSheet.diff.changed')}: {teeth.map((n) => toDisplayLabel(n, notation)).join(', ')}
+      </Typography>
+    </Stack>
   );
 }

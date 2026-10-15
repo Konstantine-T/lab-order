@@ -14,7 +14,8 @@ import { Icon, CopyAdornment } from '@/components/design';
 import { useTranslation } from 'react-i18next';
 import { ToothMap } from '@/components/ToothMap';
 import { NumberedSection, PillGroup, ErrorHelper, CustomQuestionSections, SectionStack } from './primitives';
-import { JawContext } from './changeMarks';
+import { JawContext, useChangedTeeth } from './changeMarks';
+import { ChangedTeethNote } from './changeHighlight';
 import {
   emptySgAnswers,
   coerceSgAnswers,
@@ -76,6 +77,9 @@ export function SurgicalGuideForm({
   const { t } = useTranslation('lab');
   const a = value;
   const errors: SgErrors = showErrors ? validateSg(a) : {};
+  // The temporary crowns' teeth the lab's edit review marks (outside either
+  // jaw's block; each jaw's positions chart asks inside its own).
+  const changedTempTeeth = useChangedTeeth('tempTeeth');
 
   const set = (patch: Partial<SgAnswers>) => onChange({ ...a, ...patch });
   const setJaw = (which: 'upper' | 'lower', patch: Partial<SgJawData>) =>
@@ -355,7 +359,9 @@ export function SurgicalGuideForm({
                   value={a.tempTeeth}
                   onChange={(teeth) => { if (!readOnly) set({ tempTeeth: teeth }); }}
                   readOnly={readOnly}
+                  changedTeeth={changedTempTeeth}
                 />
+                <ChangedTeethNote teeth={changedTempTeeth} />
                 {a.tempTeeth.length > 0 && (
                   <Typography variant="caption" color="primary" fontWeight={600}>
                     {t('sgForm.restoration.tempCount', { count: a.tempTeeth.length })}
@@ -442,6 +448,8 @@ function ImplantPositionsSection({
   };
 
   const implantCount = jawData.implantPositions.length;
+  // This jaw's, through the jaw's `JawContext`.
+  const changedTeeth = useChangedTeeth('implantPositions');
 
   return (
     <Stack spacing={2}>
@@ -477,7 +485,9 @@ function ImplantPositionsSection({
         onChange={handleToothMapChange}
         readOnly={readOnly}
         restrictToTeeth={teethSet}
+        changedTeeth={changedTeeth}
       />
+      <ChangedTeethNote teeth={changedTeeth} />
 
       {/* Summary */}
       {implantCount > 0 && (

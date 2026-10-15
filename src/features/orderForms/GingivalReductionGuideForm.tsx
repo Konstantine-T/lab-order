@@ -2,6 +2,8 @@ import { TextField } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { CopyAdornment } from '@/components/design';
 import { ToothMap } from '@/components/ToothMap';
+import { ChangedTeethNote } from './changeHighlight';
+import { useChangedTeeth } from './changeMarks';
 import { NumberedSection, PillGroup, ErrorHelper, CustomQuestionSections, SectionStack } from './primitives';
 import {
   emptyGrgAnswers,
@@ -48,6 +50,7 @@ export function GingivalReductionGuideForm({
 }: Props) {
   const { t } = useTranslation('lab');
   const a = value;
+  const changedTeeth = useChangedTeeth('teeth');
   const errors: GrgErrors = showErrors ? validateGrg(a, configuration) : {};
 
   const set = (patch: Partial<GrgAnswers>) => onChange({ ...a, ...patch });
@@ -73,7 +76,9 @@ export function GingivalReductionGuideForm({
             value={a.teeth}
             onChange={readOnly ? undefined : (v) => set({ teeth: v })}
             readOnly={readOnly}
+            changedTeeth={changedTeeth}
           />
+          <ChangedTeethNote teeth={changedTeeth} />
           <ErrorHelper>{errors.teeth}</ErrorHelper>
         </NumberedSection>
       )}

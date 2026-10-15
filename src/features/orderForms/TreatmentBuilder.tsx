@@ -5,8 +5,10 @@ import { ToothMap, toDisplayLabel } from '@/components/ToothMap';
 import { Icon, CopyAdornment } from '@/components/design';
 import { calculatePrice, formatGELShort } from '@/utils/pricing';
 import { localizeMaterials, useUiLang } from '@/features/lab/labText';
-import { brand, motion, palette2026, radii, surfaces, tone } from '@/theme/tokens';
+import { brand, changedToothRing, motion, palette2026, radii, surfaces, tone } from '@/theme/tokens';
 import { ErrorHelper } from './primitives';
+import { ChangedTeethNote } from './changeHighlight';
+import { useChangedTeeth } from './changeMarks';
 import {
   materialColor,
   type CnbNotation,
@@ -69,6 +71,9 @@ export function TreatmentBuilder({
   const theme = useTheme();
   const mode = theme.palette.mode;
   const aqua = tone('success', mode);
+  // The teeth the lab's edit review marks on this chart; none anywhere else.
+  const changedTeeth = useChangedTeeth('toothAssignments');
+  const changedRing = changedToothRing(mode);
 
   // The lab's material names in the reader's language (display only: ids and
   // prices are untouched, so the pills select and price exactly as before).
@@ -269,8 +274,10 @@ export function TreatmentBuilder({
           readOnly={readOnly}
           notation={notation}
           markedTeeth={markedTeeth}
+          changedTeeth={changedTeeth}
         />
       </Box>
+      <ChangedTeethNote teeth={changedTeeth} notation={notation} />
 
       {/* What's on the chart, tooth by tooth. Empty, it is the dashed
           "not yet" chip that tells the doctor what to do. */}
@@ -305,12 +312,16 @@ export function TreatmentBuilder({
             {teeth.map((x) => {
               const label = toDisplayLabel(x.tooth, notation);
               const price = x.price !== null ? formatGELShort(x.price) : null;
+              const changed = changedTeeth?.includes(x.tooth) ?? false;
               return (
                 <Box
                   key={x.tooth}
                   component="span"
                   title={[label, x.name, price].filter(Boolean).join(' · ')}
+                  data-changed-chip={changed ? x.tooth : undefined}
                   sx={{
+                    // The chart's ring, on the chip of a changed tooth.
+                    ...(changed && { boxShadow: `inset 0 0 0 2px ${changedRing.line}` }),
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 0.625,

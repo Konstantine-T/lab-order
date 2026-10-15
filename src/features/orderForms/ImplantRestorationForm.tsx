@@ -16,7 +16,10 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
 import { ToothMap } from '@/components/ToothMap';
+import { changedToothRing } from '@/theme/tokens';
 import { NumberedSection, PillGroup, ErrorHelper, CustomQuestionSections } from './primitives';
+import { ChangedPill, ChangedTeethNote } from './changeHighlight';
+import { AnswerScopeContext, useChangedTeeth } from './changeMarks';
 import { CrownAndBridgeForm, coerceCnbAnswers } from './CrownAndBridgeForm';
 import type { FormConfiguration, PricingConfig } from '@/types/database';
 import {
@@ -134,6 +137,12 @@ export function ImplantRestorationForm({
   const isConfigComplete = abutmentsOnly ? isAbutmentConfigComplete : isImplantConfigComplete;
 
   const labBrands = pricing?.implant_brands ?? [];
+
+  // The lab's edit review: implant positions whose configuration changed (or
+  // that were added or removed), and positions moved on or off the bar.
+  const changedPositions = useChangedTeeth('implantPositions');
+  const changedBarTeeth = useChangedTeeth('bar.barTeeth');
+  const changedRing = changedToothRing(useTheme().palette.mode);
 
   // Active edit group (positions being configured together)
   const [editGroup, setEditGroup] = useState<number[]>([]);
@@ -404,7 +413,9 @@ export function ImplantRestorationForm({
             onChange={readOnly ? undefined : handlePositionsChange}
             readOnly={readOnly}
             notation={a.notation}
+            changedTeeth={changedPositions}
           />
+          <ChangedTeethNote teeth={changedPositions} notation={a.notation} />
 
           {/* Brand legend — shows which color = which brand for assigned positions */}
           {labBrands.length > 0 && (() => {
@@ -445,6 +456,7 @@ export function ImplantRestorationForm({
               brandColorById={brandColorById}
               globalBrand={a.brand}
               isComplete={isConfigComplete}
+              changedPositions={changedPositions}
               t={t}
             />
           ) : (
@@ -770,12 +782,15 @@ export function ImplantRestorationForm({
                   <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                     {a.implantPositions.map((pos) => {
                       const inBar = a.bar.barTeeth.includes(pos);
+                      const changed = changedBarTeeth?.includes(pos) ?? false;
                       return (
                         <Chip
                           key={pos}
                           label={`#${posLabel(pos, a.notation)}`}
                           variant={inBar ? 'filled' : 'outlined'}
                           color={inBar ? 'primary' : 'default'}
+                          data-changed-chip={changed ? pos : undefined}
+                          sx={changed ? { boxShadow: `0 0 0 2px ${changedRing.line}` } : undefined}
                           size="small"
                           onClick={readOnly ? undefined : () => {
                             const newTeeth = inBar
@@ -787,6 +802,7 @@ export function ImplantRestorationForm({
                       );
                     })}
                   </Stack>
+                  <ChangedTeethNote teeth={changedBarTeeth} notation={a.notation} />
                   <ErrorHelper>{errors.barTeeth}</ErrorHelper>
                 </Stack>
               </>
@@ -798,15 +814,18 @@ export function ImplantRestorationForm({
       {/* 5. Crown & Bridge restoration */}
       {a.implantPositions.length > 0 && !abutmentsOnly && (
         <NumberedSection number={finalSn} label={t('implantForm.sections.crownRestoration')}>
-          <CrownAndBridgeForm
-            configuration={configuration}
-            pricing={{ ...pricing, materials: pricing?.implant_crown_materials ?? [] } as PricingConfig}
-            value={coerceCnbAnswers(a.cnbAnswers ?? {}, pricing?.implant_crown_materials)}
-            onChange={(cnb) => set({ cnbAnswers: cnb as unknown as Record<string, unknown> })}
-            readOnly={readOnly}
-            showErrors={showErrors}
-            markedTeeth={a.implantPositions}
-          />
+          {/* Its answers live under `cnbAnswers`, and so do its chart's marks. */}
+          <AnswerScopeContext.Provider value="cnbAnswers">
+            <CrownAndBridgeForm
+              configuration={configuration}
+              pricing={{ ...pricing, materials: pricing?.implant_crown_materials ?? [] } as PricingConfig}
+              value={coerceCnbAnswers(a.cnbAnswers ?? {}, pricing?.implant_crown_materials)}
+              onChange={(cnb) => set({ cnbAnswers: cnb as unknown as Record<string, unknown> })}
+              readOnly={readOnly}
+              showErrors={showErrors}
+              markedTeeth={a.implantPositions}
+            />
+          </AnswerScopeContext.Provider>
         </NumberedSection>
       )}
 
@@ -1032,6 +1051,7 @@ function PositionDetailList({
   brandColorById,
   globalBrand,
   isComplete,
+  changedPositions,
   t,
 }: {
   positions: number[];
@@ -1042,6 +1062,8 @@ function PositionDetailList({
   globalBrand?: string;
   /** The variant's own completeness rule (see `isAbutmentConfigComplete`). */
   isComplete: (cfg: ImplantConfig) => boolean;
+  /** Positions the lab's edit review marks as changed. */
+  changedPositions?: readonly number[];
   t: ReturnType<typeof import('react-i18next').useTranslation>['t'];
 }) {
   return (
@@ -1105,15 +1127,24 @@ function PositionDetailList({
           }
         }
 
+        const changed = changedPositions?.includes(pos) ?? false;
+
         return (
           <Box
             key={pos}
+            data-changed-position={changed ? pos : undefined}
             sx={{
               borderRadius: '14px',
               border: 1,
               overflow: 'hidden',
               borderColor: brandColor ?? 'divider',
               bgcolor: 'background.paper',
+              // The chart's ring, round the card of a changed position.
+              ...(changed && {
+                outline: '2px solid',
+                outlineColor: (theme) => changedToothRing(theme.palette.mode).line,
+                outlineOffset: 2,
+              }),
             }}
           >
             <Stack
@@ -1130,6 +1161,7 @@ function PositionDetailList({
                 <Box sx={{ width: 12, height: 12, borderRadius: '50%', bgcolor: brandColor, flexShrink: 0 }} />
               )}
               <Typography variant="subtitle2" fontWeight={700}>#{label}</Typography>
+              {changed && <ChangedPill />}
               <Box sx={{ flex: 1 }} />
               <Typography
                 variant="caption"

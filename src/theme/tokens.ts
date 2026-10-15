@@ -165,6 +165,17 @@ const DARK_TONES: Record<Tone, ToneStyle> = {
 export const tone = (name: Tone, mode: PaletteMode): ToneStyle =>
   (mode === 'light' ? LIGHT_TONES : DARK_TONES)[name];
 
+/**
+ * The mark a changed tooth gets on a chart in the lab's edit review: a wide,
+ * soft halo in the warning colour round the tooth, a darker line on its
+ * outline and a dot of that line colour, so it reads on white, on the dark
+ * paper and on every material fill. The legend under the chart uses the same.
+ */
+export const changedToothRing = (mode: PaletteMode): { band: string; line: string } => {
+  const warn = tone('warning', mode);
+  return { band: alpha(warn.dot, mode === 'dark' ? 0.6 : 0.65), line: warn.fg };
+};
+
 /** Surfaces and text that MUI's palette has no slot for. */
 export const surfaces = {
   light: {

@@ -199,7 +199,7 @@ export function sectionsForTemplate(templateCode: string | undefined): Section[]
 }
 
 /** `upper.condition` → `answers.upper.condition`, tolerating a missing parent. */
-function readPath(values: Record<string, unknown>, path: string): unknown {
+export function readPath(values: Record<string, unknown>, path: string): unknown {
   return path.split('.').reduce<unknown>((acc, part) => {
     if (acc === null || typeof acc !== 'object') return undefined;
     return (acc as Record<string, unknown>)[part];

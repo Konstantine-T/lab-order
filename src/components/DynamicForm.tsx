@@ -62,6 +62,7 @@ export function FieldRenderer({
   readOnly,
   hideLabel,
   baseText,
+  changedTeeth,
 }: {
   field: FieldConfig;
   value: unknown;
@@ -80,6 +81,8 @@ export function FieldRenderer({
    * lab is typing.
    */
   baseText?: boolean;
+  /** A tooth question's teeth to ring as changed (the lab's edit review). */
+  changedTeeth?: readonly number[];
 }) {
   // A lab-authored question's text in the reader's language, else the lab's
   // own (`field.translations`). Options are translated for display only: the
@@ -225,6 +228,7 @@ export function FieldRenderer({
             value={(value as number[]) ?? []}
             onChange={readOnly ? undefined : onChange}
             readOnly={readOnly}
+            changedTeeth={changedTeeth}
           />
           {helper && (
             <Typography variant="caption" color={error ? 'error' : 'text.secondary'}>

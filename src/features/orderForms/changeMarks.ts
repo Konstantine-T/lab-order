@@ -18,6 +18,13 @@ export type ChangeMarks = {
   codes: ReadonlySet<string>;
   /** Answers before the edit, to show under a changed custom question. */
   before?: Record<string, unknown>;
+  /**
+   * The teeth the edit changed on each tooth chart, Universal, keyed by the
+   * answer path of the list the chart draws (`toothAssignments`,
+   * `upper.implantPositions`); see `changedTeethByChart`. Removed teeth are
+   * included, so a chart can name them although it no longer draws them.
+   */
+  teeth?: ReadonlyMap<string, readonly number[]>;
   /** Called with a section's mark id once it has drawn a mark. */
   onMatched?: (markId: string) => void;
 };
@@ -34,6 +41,29 @@ export const ChangeMarksContext = createContext<ChangeMarks | null>(null);
  * key does not depend on which jaws the answers happen to cover.
  */
 export const JawContext = createContext<{ jaw: 'upper' | 'lower'; prefix: string } | null>(null);
+
+/**
+ * Set around a form drawn inside another form's answers (the crown restoration
+ * of Constructions on Implants keeps its Crown & Bridge answers under
+ * `cnbAnswers`), so its charts look up their marks under that path.
+ */
+export const AnswerScopeContext = createContext<string>('');
+
+/**
+ * The teeth the lab's edit review marks on the chart that draws the answer at
+ * `path` (relative to the form's own answers), or `undefined` when there are
+ * none, which is always the case outside the review.
+ *
+ * Inside a surgical guide's `JawContext` the path is that jaw's
+ * (`implantPositions` there is `upper.implantPositions`).
+ */
+export function useChangedTeeth(path: string): readonly number[] | undefined {
+  const marks = useContext(ChangeMarksContext);
+  const jaw = useContext(JawContext);
+  const scope = useContext(AnswerScopeContext);
+  const teeth = marks?.teeth?.get([scope, jaw?.jaw, path].filter(Boolean).join('.'));
+  return teeth && teeth.length > 0 ? teeth : undefined;
+}
 
 /** The id a marked template section carries in `data-changed-section`. */
 export function sectionMarkId(label: string, jaw?: 'upper' | 'lower'): string {

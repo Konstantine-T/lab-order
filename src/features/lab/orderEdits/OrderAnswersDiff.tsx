@@ -13,7 +13,11 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
 import { FieldRenderer } from '@/components/DynamicForm';
 import { OrderForm } from '@/features/orderForms/OrderForm';
-import { ChangedFrame, ChangedPill } from '@/features/orderForms/changeHighlight';
+import {
+  ChangedFrame,
+  ChangedPill,
+  ChangedTeethNote,
+} from '@/features/orderForms/changeHighlight';
 import {
   ChangeMarksContext,
   questionMarkId,
@@ -21,6 +25,7 @@ import {
   type ChangeMarks,
 } from '@/features/orderForms/changeMarks';
 import { valuesEqual } from '@/features/lab/orderEdits/diff';
+import { changedTeethByChart, changedTeethIn } from '@/features/lab/orderEdits/toothChanges';
 import {
   changedItems,
   sectionsForTemplate,
@@ -182,14 +187,24 @@ function DiffBody({
     return { labels, codes };
   }, [items, t]);
 
+  // The teeth that changed on each of the template's tooth charts, marked on
+  // the chart itself in both copies.
+  const teeth = useMemo(
+    () => changedTeethByChart(configuration._templateCode, before, after),
+    [configuration._templateCode, before, after],
+  );
+
   const currentMarks = useMemo<ChangeMarks>(
-    () => ({ labels, codes, before, onMatched }),
-    [labels, codes, before, onMatched],
+    () => ({ labels, codes, before, teeth, onMatched }),
+    [labels, codes, before, teeth, onMatched],
   );
   // The same sections marked in the old copy, without reporting (that copy is
   // not where a change has to be visible) and without an old value under the
   // old value.
-  const previousMarks = useMemo<ChangeMarks>(() => ({ labels, codes }), [labels, codes]);
+  const previousMarks = useMemo<ChangeMarks>(
+    () => ({ labels, codes, teeth }),
+    [labels, codes, teeth],
+  );
 
   // Template forms: marks no section drew. `null` until the first check.
   const [unmatched, setUnmatched] = useState<string[] | null>(null);
@@ -348,6 +363,9 @@ function PlainQuestion({
   if (valuesEqual(before, after)) {
     return <FieldRenderer field={field} value={after} onChange={noop} readOnly />;
   }
+  // A tooth question rings the teeth that changed, in both answers.
+  const changedTeeth =
+    field.type === 'tooth_selection' ? changedTeethIn(before, after) : undefined;
   return (
     <ChangedFrame
       markId={questionMarkId(field.code)}
@@ -357,13 +375,27 @@ function PlainQuestion({
         <Box>
           <ChangedPill />
         </Box>
-        <FieldRenderer field={field} value={after} onChange={noop} readOnly />
+        <FieldRenderer
+          field={field}
+          value={after}
+          onChange={noop}
+          readOnly
+          changedTeeth={changedTeeth}
+        />
+        <ChangedTeethNote teeth={changedTeeth} />
         <Box>
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
             {t('orderSheet.diff.before')}
           </Typography>
           <Box sx={{ opacity: 0.6 }}>
-            <FieldRenderer field={field} value={before} onChange={noop} readOnly hideLabel />
+            <FieldRenderer
+              field={field}
+              value={before}
+              onChange={noop}
+              readOnly
+              hideLabel
+              changedTeeth={changedTeeth}
+            />
           </Box>
         </Box>
       </Stack>

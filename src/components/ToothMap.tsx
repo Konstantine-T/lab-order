@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Box, Stack, useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { MetaChip } from '@/components/design';
-import { palette2026 } from '@/theme/tokens';
+import { changedToothRing, palette2026 } from '@/theme/tokens';
 
 // Universal Numbering System (1–32) — adult permanent dentition.
 //   1–16: maxillary (upper), patient's right (1) → patient's left (16)
@@ -90,6 +90,13 @@ type Props = {
   restrictToTeeth?: Set<number>;
   /** Teeth to show with a filled dot instead of the number label (e.g. implant positions). */
   markedTeeth?: number[];
+  /**
+   * Teeth to mark as changed (the lab's edit review), whether or not they are
+   * selected now: a removed tooth is marked on its blank outline. The mark is
+   * a halo round the tooth, a line on its outline and a dot on its outer edge;
+   * the tooth's own fill and number stay as they are.
+   */
+  changedTeeth?: readonly number[];
 };
 
 export function ToothMap({
@@ -101,6 +108,7 @@ export function ToothMap({
   notation = 'FDI',
   restrictToTeeth,
   markedTeeth,
+  changedTeeth,
 }: Props) {
   const theme = useTheme();
   const { t } = useTranslation('common');
@@ -133,6 +141,27 @@ export function ToothMap({
   // The mockups' quiet arch captions — present but never competing with a tooth.
   const axisColor = isLight ? 'rgba(15, 23, 42, 0.26)' : 'rgba(229, 231, 240, 0.3)';
   const sideColor = isLight ? 'rgba(15, 23, 42, 0.35)' : 'rgba(229, 231, 240, 0.4)';
+  const changed = new Set(changedTeeth ?? []);
+  const ring = changedToothRing(theme.palette.mode);
+  const changedRing = (layer: 'band' | 'line') =>
+    changed.size > 0 && (
+      <g aria-hidden style={{ pointerEvents: 'none' }}>
+        {TEETH.filter((t) => changed.has(t.num)).map((t) => {
+          const props = {
+            'data-changed-tooth': layer === 'line' ? t.num : undefined,
+            fill: 'none',
+            stroke: layer === 'band' ? ring.band : ring.line,
+            strokeWidth: layer === 'band' ? 10 : 2.2,
+            strokeLinejoin: 'round' as const,
+          };
+          return t.kind === 'polygon' ? (
+            <polygon key={t.num} {...props} points={t.points} />
+          ) : (
+            <path key={t.num} {...props} d={t.d} />
+          );
+        })}
+      </g>
+    );
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -215,6 +244,11 @@ export function ToothMap({
             {t('toothMap.left')}
           </text>
 
+          {/* Changed teeth, the band: a wide stroke under the teeth, so only
+              its outer half shows, as a halo round the tooth that every fill
+              stays clear of. */}
+          {changedRing('band')}
+
           {TEETH.map((t) => {
             const isSel = selected.has(t.num);
             const isHov = hovered === t.num;
@@ -268,6 +302,38 @@ export function ToothMap({
               </path>
             );
           })}
+
+          {/* Changed teeth, the line: over each one's own outline, under the
+              labels. Like the band above, it reuses the TEETH shapes as they
+              are; nothing about the geometry changes. */}
+          {changedRing('line')}
+
+          {/* And a dot on each changed tooth's outer edge, out from its label
+              away from the middle of the chart, so the mark is a shape as
+              well as a colour (a warm material fill sits close to it). */}
+          {changed.size > 0 && (
+            <g aria-hidden style={{ pointerEvents: 'none' }}>
+              {TEETH.filter((t) => changed.has(t.num) && LABELS[t.num]).map((t) => {
+                const pos = LABELS[t.num];
+                // Away from where the midlines above cross.
+                const dx = pos.x - 219;
+                const dy = pos.y - 355;
+                const len = Math.hypot(dx, dy) || 1;
+                return (
+                  <circle
+                    key={t.num}
+                    data-changed-dot={t.num}
+                    cx={pos.x + (dx / len) * 25}
+                    cy={pos.y + (dy / len) * 25}
+                    r={5.5}
+                    fill={ring.line}
+                    stroke={theme.palette.background.paper}
+                    strokeWidth={1.6}
+                  />
+                );
+              })}
+            </g>
+          )}
 
           {/* Tooth number labels (or implant marker dot) */}
           {TEETH.map((t) => {
