@@ -320,6 +320,7 @@
       },
       "progress": "{{done}} of {{total}} translated",
       "base": "Original",
+      "placeholder": "{{lang}} translation",
       "saved": "Translations saved.",
       "saveFailed": "Couldn't save the translations. Please try again.",
       "nameTooShort": "A translated name needs at least 2 characters."

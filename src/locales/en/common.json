@@ -423,40 +423,40 @@
     "kinds": {
       "lab_question": {
         "title": "The lab has a question",
-        "body": "Order #{{code}}. Your answer is needed"
+        "body": "Order {{code}}. Your answer is needed"
       },
       "lab_needs_change": {
         "title": "The lab needs a change",
-        "body": "Order #{{code}}. Please update the order"
+        "body": "Order {{code}}. Please update the order"
       },
       "order_ready": {
         "title": "Order is ready",
-        "body": "Order #{{code}} is ready for delivery"
+        "body": "Order {{code}} is ready for delivery"
       },
       "order_sent": {
         "title": "Order sent",
-        "body": "Order #{{code}} has been sent to the clinic"
+        "body": "Order {{code}} has been sent to the clinic"
       },
       "order_cancelled_by_lab": {
         "title": "Order cancelled",
-        "body": "The lab cancelled order #{{code}}"
+        "body": "The lab cancelled order {{code}}"
       },
       "price_set": {
         "title": "The lab set the price",
-        "body": "Order #{{code}}. Price: {{amount}}"
+        "body": "Order {{code}}. Price: {{amount}}"
       },
       "due_confirmed": {
         "title": "The lab confirmed the due date",
-        "body": "Order #{{code}}. Due: {{date}}, {{time}}",
-        "bodyDateOnly": "Order #{{code}}. Due: {{date}}"
+        "body": "Order {{code}}. Due: {{date}}, {{time}}",
+        "bodyDateOnly": "Order {{code}}. Due: {{date}}"
       },
       "invoice_attached": {
         "title": "Invoice added",
-        "body": "Order #{{code}}. The lab uploaded an invoice"
+        "body": "Order {{code}}. The lab uploaded an invoice"
       },
       "invoice_replaced": {
         "title": "Invoice replaced",
-        "body": "Order #{{code}}. The lab replaced the invoice"
+        "body": "Order {{code}}. The lab replaced the invoice"
       },
       "clinic_invite": {
         "title": "Clinic invitation",
@@ -464,31 +464,31 @@
       },
       "new_order": {
         "title": "New order",
-        "body": "Order #{{code}}, doctor: {{doctor}}"
+        "body": "Order {{code}}, doctor: {{doctor}}"
       },
       "order_edited": {
         "title": "The doctor edited the order",
-        "body": "Order #{{code}}. Review the changes"
+        "body": "Order {{code}}. Review the changes"
       },
       "doctor_answered": {
         "title": "The doctor answered the question",
-        "body": "Order #{{code}}. Read the answer"
+        "body": "Order {{code}}. Read the answer"
       },
       "invoice_seen": {
         "title": "The doctor viewed the invoice",
-        "body": "Order #{{code}}"
+        "body": "Order {{code}}"
       },
       "order_completed": {
         "title": "Order completed",
-        "body": "The doctor closed order #{{code}}"
+        "body": "The doctor closed order {{code}}"
       },
       "order_reopened": {
         "title": "Order reopened",
-        "body": "The doctor reopened order #{{code}}"
+        "body": "The doctor reopened order {{code}}"
       },
       "order_cancelled_by_doctor": {
         "title": "The doctor cancelled the order",
-        "body": "Order #{{code}}"
+        "body": "Order {{code}}"
       },
       "lab_approved": {
         "title": "Lab approved",
@@ -504,11 +504,11 @@
       },
       "clinic_order_placed": {
         "title": "A doctor placed an order",
-        "body": "{{doctor}}. Order #{{code}}, lab: {{lab}}"
+        "body": "{{doctor}}. Order {{code}}, lab: {{lab}}"
       },
       "clinic_order_completed": {
         "title": "Order completed",
-        "body": "{{doctor}} closed order #{{code}}"
+        "body": "{{doctor}} closed order {{code}}"
       },
       "doctor_left": {
         "title": "A doctor left the team",

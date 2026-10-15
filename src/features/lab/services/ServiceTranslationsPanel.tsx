@@ -175,6 +175,9 @@ function TranslationRow({
             size="small"
             fullWidth
             label={wide ? undefined : langName(lang)}
+            // Wide rows have no label (the column heading names the language),
+            // so an empty box needs a placeholder to read as a field at all.
+            placeholder={wide ? t('services.translations.placeholder', { lang: langName(lang) }) : undefined}
             value={readTranslation(draft, row.target, lang)}
             onChange={(e) => onChange(writeTranslation(draft, row.target, lang, e.target.value))}
             multiline={row.multiline}
