@@ -29,6 +29,8 @@ import { BrandWordmark } from '@/components/BrandMark';
 import { useAuth } from '@/auth/AuthProvider';
 import { brand as brandTokens, layout, palette2026, radii, surfaces } from '@/theme/tokens';
 import { UserAvatar } from './AccountMenu';
+import { RealtimeProvider } from '@/features/notifications/RealtimeProvider';
+import { NotificationBell } from '@/features/notifications/NotificationBell';
 
 export type NavEntry = {
   to: string;
@@ -56,6 +58,16 @@ const CONTENT_MAX = layout.contentMax;
  * appears to hold its trigger.
  */
 export function AppShell({ navEntries }: { navEntries: NavEntry[] }) {
+  // Live updates and the bell, for the signed-in areas only (this shell is
+  // imported by the lazy lab and admin chunks, never by a public page).
+  return (
+    <RealtimeProvider>
+      <SidebarShell navEntries={navEntries} />
+    </RealtimeProvider>
+  );
+}
+
+function SidebarShell({ navEntries }: { navEntries: NavEntry[] }) {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -82,15 +94,21 @@ export function AppShell({ navEntries }: { navEntries: NavEntry[] }) {
 
   const sidebar = (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <Stack
-        direction="row"
-        alignItems="center"
-        spacing={1.25}
-        component={RouterLink}
-        to="/"
-        sx={{ px: 2.25, pt: 2.25, pb: 1.75, textDecoration: 'none' }}
-      >
-        <BrandWordmark />
+      <Stack direction="row" alignItems="center" sx={{ pl: 2.25, pr: 1, pt: 2.25, pb: 1.75 }}>
+        <Stack
+          direction="row"
+          alignItems="center"
+          spacing={1.25}
+          component={RouterLink}
+          to="/"
+          sx={{ textDecoration: 'none', flex: 1, minWidth: 0 }}
+        >
+          <BrandWordmark />
+        </Stack>
+        {/* The shell has no desktop top bar, so the bell sits in the sidebar's
+            header, beside the wordmark. On a phone it is in the slim top bar
+            instead, never inside the drawer. */}
+        {!isMobile && <NotificationBell align="left" size={21} />}
       </Stack>
 
       {org && (
@@ -300,6 +318,8 @@ export function AppShell({ navEntries }: { navEntries: NavEntry[] }) {
               >
                 <BrandWordmark size={26} />
               </Box>
+              <Box sx={{ flex: 1 }} />
+              <NotificationBell />
             </Toolbar>
           </AppBar>
         )}

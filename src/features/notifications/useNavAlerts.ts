@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { OrderStatus } from '@/types/database';
+import { useRealtimeConnected } from './realtimeStatus';
 
 /**
  * The red counts on the sidebar.
@@ -14,10 +15,22 @@ import type { OrderStatus } from '@/types/database';
  * They are counted with `head: true`, so no rows cross the wire, and refreshed
  * on an interval as well as on window focus: coming back to a tab that has been
  * open all afternoon should not show yesterday's numbers.
+ *
+ * With the realtime socket up, the row events invalidate these keys the moment
+ * something changes (liveQueries.ts), so the poll drops to a slow safety net.
+ * When the socket is down the old 60-second poll is what keeps them honest.
  */
-const REFRESH_MS = 60_000;
+const LIVE_REFRESH_MS = 300_000;
+const POLL_REFRESH_MS = 60_000;
 
-const shared = { staleTime: 30_000, refetchInterval: REFRESH_MS, refetchOnWindowFocus: true };
+function useShared() {
+  const connected = useRealtimeConnected();
+  return {
+    staleTime: 30_000,
+    refetchInterval: connected ? LIVE_REFRESH_MS : POLL_REFRESH_MS,
+    refetchOnWindowFocus: true,
+  };
+}
 
 /** Statuses where the ball is in the doctor's court. */
 const AWAITING_DOCTOR: OrderStatus[] = [
@@ -104,6 +117,7 @@ async function unacknowledgedInvoiceCount(
 
 /** Lab: new arrivals, unreviewed edits, and answers waiting to be read. */
 export function useLabNavAlerts(labId: string | undefined) {
+  const shared = useShared();
   const { data } = useQuery({
     queryKey: ['nav-alerts', 'lab', labId],
     enabled: !!labId,
@@ -126,6 +140,7 @@ export function useLabNavAlerts(labId: string | undefined) {
 
 /** Doctor: their own orders that are waiting on them. */
 export function useDoctorNavAlerts(doctorId: string | undefined) {
+  const shared = useShared();
   const { data } = useQuery({
     queryKey: ['nav-alerts', 'doctor', doctorId],
     enabled: !!doctorId,
@@ -157,6 +172,7 @@ export function useDoctorNavAlerts(doctorId: string | undefined) {
  * clinic. RLS already limits the read to those doctors, so there is no filter.
  */
 export function useClinicNavAlerts(clinicId: string | undefined) {
+  const shared = useShared();
   const { data } = useQuery({
     queryKey: ['nav-alerts', 'clinic', clinicId],
     enabled: !!clinicId,
@@ -178,6 +194,7 @@ export function useClinicNavAlerts(clinicId: string | undefined) {
 
 /** Platform admin: labs sitting in the approval queue. */
 export function useAdminNavAlerts() {
+  const shared = useShared();
   const { data } = useQuery({
     queryKey: ['nav-alerts', 'admin'],
     ...shared,

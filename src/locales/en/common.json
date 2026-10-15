@@ -399,5 +399,137 @@
       "prosthesis": "Prosthetics",
       "other": "Other"
     }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "empty": "No notifications in the last 30 days",
+    "markAllRead": "Mark all as read",
+    "mute": "Mute sound",
+    "unmute": "Turn sound on",
+    "loadMore": "Load more",
+    "unread": "Unread",
+    "unknown": "New notification",
+    "openUnread": "Notifications, unread: {{n}}",
+    "time": {
+      "now": "Just now",
+      "minutes": "{{n}} min ago",
+      "hours": "{{n}} h ago",
+      "days": "{{n}} d ago"
+    },
+    "banner": {
+      "updated": "This order was updated. Reload to see the changes",
+      "reload": "Reload"
+    },
+    "kinds": {
+      "lab_question": {
+        "title": "The lab has a question",
+        "body": "Order #{{code}}. Your answer is needed"
+      },
+      "lab_needs_change": {
+        "title": "The lab needs a change",
+        "body": "Order #{{code}}. Please update the order"
+      },
+      "order_ready": {
+        "title": "Order is ready",
+        "body": "Order #{{code}} is ready for delivery"
+      },
+      "order_sent": {
+        "title": "Order sent",
+        "body": "Order #{{code}} has been sent to the clinic"
+      },
+      "order_cancelled_by_lab": {
+        "title": "Order cancelled",
+        "body": "The lab cancelled order #{{code}}"
+      },
+      "price_set": {
+        "title": "The lab set the price",
+        "body": "Order #{{code}}. Price: {{amount}}"
+      },
+      "due_confirmed": {
+        "title": "The lab confirmed the due date",
+        "body": "Order #{{code}}. Due: {{date}}, {{time}}",
+        "bodyDateOnly": "Order #{{code}}. Due: {{date}}"
+      },
+      "invoice_attached": {
+        "title": "Invoice added",
+        "body": "Order #{{code}}. The lab uploaded an invoice"
+      },
+      "invoice_replaced": {
+        "title": "Invoice replaced",
+        "body": "Order #{{code}}. The lab replaced the invoice"
+      },
+      "clinic_invite": {
+        "title": "Clinic invitation",
+        "body": "{{clinic}} invites you to join their team"
+      },
+      "new_order": {
+        "title": "New order",
+        "body": "Order #{{code}}, doctor: {{doctor}}"
+      },
+      "order_edited": {
+        "title": "The doctor edited the order",
+        "body": "Order #{{code}}. Review the changes"
+      },
+      "doctor_answered": {
+        "title": "The doctor answered the question",
+        "body": "Order #{{code}}. Read the answer"
+      },
+      "invoice_seen": {
+        "title": "The doctor viewed the invoice",
+        "body": "Order #{{code}}"
+      },
+      "order_completed": {
+        "title": "Order completed",
+        "body": "The doctor closed order #{{code}}"
+      },
+      "order_reopened": {
+        "title": "Order reopened",
+        "body": "The doctor reopened order #{{code}}"
+      },
+      "order_cancelled_by_doctor": {
+        "title": "The doctor cancelled the order",
+        "body": "Order #{{code}}"
+      },
+      "lab_approved": {
+        "title": "Lab approved",
+        "body": "You can now receive orders"
+      },
+      "lab_suspended": {
+        "title": "Lab suspended",
+        "body": "Contact the administration for details"
+      },
+      "lab_changes_requested": {
+        "title": "Changes needed",
+        "body": "The administration asked for changes to your profile"
+      },
+      "clinic_order_placed": {
+        "title": "A doctor placed an order",
+        "body": "{{doctor}}. Order #{{code}}, lab: {{lab}}"
+      },
+      "clinic_order_completed": {
+        "title": "Order completed",
+        "body": "{{doctor}} closed order #{{code}}"
+      },
+      "doctor_left": {
+        "title": "A doctor left the team",
+        "body": "{{doctor}} is no longer in your clinic"
+      },
+      "payment_recorded": {
+        "title": "Payment recorded",
+        "body": "{{lab}}. Amount: {{amount}}"
+      },
+      "new_payable": {
+        "title": "New payable",
+        "body": "{{lab}}. Amount: {{amount}}"
+      },
+      "admin_new_lab": {
+        "title": "New lab",
+        "body": "{{lab}} is awaiting approval"
+      },
+      "admin_new_feedback": {
+        "title": "New feedback",
+        "body": "{{sender}} sent you a message"
+      }
+    }
   }
 }

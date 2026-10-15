@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Alert, Box, Button, CircularProgress, MenuItem, Stack, TextField } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -34,6 +34,8 @@ import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
 import { LabContactLine } from '@/features/orders/orderFiles/LabContactLine';
 import { ClarificationPanel } from '@/features/orders/clarifications/ClarificationPanel';
 import { DETAIL_ORDER_SELECT } from '@/features/orders/detail/types';
+import { LiveUpdateBanner } from '@/features/notifications/LiveSurfaces';
+import { useLiveFormSync } from '@/features/notifications/liveContext';
 import type {
   DoctorWorkLocationRow,
   EditReasonCode,
@@ -74,7 +76,6 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
   const [state, setState] = useState<WizardState>(initialState);
   const [reason, setReason] = useState<EditReasonCode | ''>('');
   const [comment, setComment] = useState('');
-  const [hydrated, setHydrated] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -143,18 +144,19 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
     },
   });
 
-  // Pre-fill the form from the order's current values, once. We wait for the
-  // answers query too (not just the order) — otherwise we'd hydrate with an
-  // empty answers map while that separate request is still in flight, and the
-  // `hydrated` guard would never let it refill. We seed existing_id with the
-  // order's patient so an unchanged patient stays the exact same row —
-  // PatientStep clears it the moment the doctor edits a name.
-  useEffect(() => {
-    if (hydrated || !order || !answersLoaded) return;
+  // Pre-fill the form from the order's current values, and keep it in step
+  // with the order afterwards without touching anything the doctor has typed
+  // (useLiveFormSync): the lab can change the order while this page is open.
+  // We wait for the answers query too (not just the order), otherwise we'd
+  // seed an empty answers map while that separate request is still in flight.
+  // existing_id is seeded with the order's patient so an unchanged patient
+  // stays the exact same row; PatientStep clears it the moment the doctor
+  // edits a name.
+  const seeded = useMemo(() => {
+    if (!order || !answersLoaded) return null;
     const answersMap: Record<string, unknown> = {};
     for (const a of answers) answersMap[a.field_code] = a.answer_json;
-    setState({
-      ...initialState,
+    return {
       lab_id: order.lab_id,
       lab_service_id: order.lab_service_id,
       patient: {
@@ -163,14 +165,29 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
         date_of_birth: order.patients?.date_of_birth ?? '',
         gender: order.patients?.gender ?? '',
         existing_id: order.patient_id,
-      },
+      } as WizardState['patient'],
       answers: answersMap,
       doctor_work_location_id: order.doctor_work_location_id,
       requested_due_date: order.requested_due_date ?? '',
-      invoice_recipient_type: order.invoice_recipient_type,
-    });
-    setHydrated(true);
-  }, [hydrated, order, answersLoaded, answers]);
+      invoice_recipient_type: order.invoice_recipient_type as WizardState['invoice_recipient_type'],
+    };
+  }, [order, answersLoaded, answers]);
+  const live = useLiveFormSync({
+    identity: seeded ? orderId : undefined,
+    // Anything else the lab changes (status, price, a question) also counts as
+    // "the order was updated" while the doctor has unsaved changes.
+    incoming: seeded && order ? { fields: seeded, context: order.updated_at } : null,
+    values: {
+      lab_id: state.lab_id,
+      lab_service_id: state.lab_service_id,
+      patient: state.patient,
+      answers: state.answers,
+      doctor_work_location_id: state.doctor_work_location_id,
+      requested_due_date: state.requested_due_date,
+      invoice_recipient_type: state.invoice_recipient_type,
+    },
+    apply: (fields) => setState((s) => ({ ...s, ...fields })),
+  });
 
   // Rush is locked on edit, so derive the surcharge straight from the order.
   const rush = useMemo(
@@ -317,6 +334,9 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
         title={t('orderEdit.title')}
         subtitle={order.order_code}
       />
+
+      {/* The lab changed the order while the doctor had unsaved edits. */}
+      {live.stale && <LiveUpdateBanner onReload={live.reload} />}
 
       <SplitLayout
         rail={

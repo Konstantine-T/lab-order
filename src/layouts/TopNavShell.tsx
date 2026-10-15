@@ -8,12 +8,24 @@ import { layout, motion, surfaces } from '@/theme/tokens';
 import type { NavEntry } from './AppShell';
 import { AccountMenu, UserAvatar, type MenuLink } from './AccountMenu';
 import { ShellFocusContext } from './shellFocus';
+import { RealtimeProvider } from '@/features/notifications/RealtimeProvider';
+import { NotificationBell } from '@/features/notifications/NotificationBell';
 
 /** Whether `entry` owns the current page — its own path, or one of `also`. */
 function isActive(entry: NavEntry, pathname: string) {
   if (matchPath({ path: entry.to, end: entry.end ?? false }, pathname)) return true;
   return (entry.also ?? []).some((p) => matchPath({ path: p, end: false }, pathname));
 }
+
+type TopNavShellProps = {
+  homeTo: string;
+  /** The text links in the desktop bar. */
+  nav: NavEntry[];
+  /** The phone's bottom tabs. */
+  tabs: NavEntry[];
+  menuLinks?: MenuLink[];
+  newOrder?: { to: string; label: string };
+};
 
 /**
  * The doctor and clinic shell from the 2026-09 redesign: a white top bar with
@@ -35,21 +47,17 @@ function isActive(entry: NavEntry, pathname: string) {
  * the price bar sits on the bottom edge. That header is sticky from `sm` up:
  * it is the page's header now, and it holds the back button.
  */
-export function TopNavShell({
-  homeTo,
-  nav,
-  tabs,
-  menuLinks,
-  newOrder,
-}: {
-  homeTo: string;
-  /** The text links in the desktop bar. */
-  nav: NavEntry[];
-  /** The phone's bottom tabs. */
-  tabs: NavEntry[];
-  menuLinks?: MenuLink[];
-  newOrder?: { to: string; label: string };
-}) {
+export function TopNavShell(props: TopNavShellProps) {
+  // Live updates and the bell, for the signed-in areas only (this shell is
+  // imported by the lazy doctor and clinic chunks, never by a public page).
+  return (
+    <RealtimeProvider>
+      <TopNavFrame {...props} />
+    </RealtimeProvider>
+  );
+}
+
+function TopNavFrame({ homeTo, nav, tabs, menuLinks, newOrder }: TopNavShellProps) {
   const theme = useTheme();
   const mode = theme.palette.mode;
   const { t } = useTranslation('common');
@@ -109,6 +117,7 @@ export function TopNavShell({
               }}
             >
               <Box ref={setSlot} sx={{ flex: 1, minWidth: 0 }} />
+              <NotificationBell />
               {avatar}
             </Stack>
           </Box>
@@ -201,7 +210,11 @@ export function TopNavShell({
                 </Button>
               )}
 
-              {avatar}
+              {/* Together, not spread by the bar's wide gap. */}
+              <Stack direction="row" alignItems="center" spacing={0.5} sx={{ flexShrink: 0 }}>
+                <NotificationBell />
+                {avatar}
+              </Stack>
             </Stack>
           </Box>
         )}

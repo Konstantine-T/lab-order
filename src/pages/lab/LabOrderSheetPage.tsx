@@ -78,11 +78,26 @@ import type {
   OrderStatus,
 } from '@/types/database';
 import { LAB_SELECTABLE_STATUSES } from '@/types/database';
+import { LiveUpdateBanner } from '@/features/notifications/LiveSurfaces';
+import { useLiveFormSync } from '@/features/notifications/liveContext';
 
 // The patient is embedded so the sheet can show who the case is for; the lab
 // reads it under patients_lab_via_order (0009), the same grant its order lists
 // already use.
 type DetailRow = OrderRow & { patients: LivePatientEmbed | null };
+
+/**
+ * Read a money field the way a person types one.
+ *
+ * Georgian and Russian keyboards produce a decimal comma, and Number('656,50')
+ * is NaN — which used to travel all the way to Postgres as final_total: NaN.
+ * Returns null for anything that isn't a finite number, so the caller can
+ * refuse it instead of posting it.
+ */
+const parseAmount = (raw: string): number | null => {
+  const n = Number(raw.replace(',', '.').trim());
+  return Number.isFinite(n) ? n : null;
+};
 
 export function LabOrderSheetPage() {
   const { orderId } = useParams<{ orderId: string }>();
@@ -179,27 +194,54 @@ export function LabOrderSheetPage() {
     },
   });
 
-  // Seed the editable fields once per order, not on every fetch. The effect
-  // used to depend on the whole `order` object, so any refetch of ['lab-order']
-  // handed it a fresh reference and reset all four fields to the stored values
-  // — wiping whatever the lab was halfway through typing. markReviewed fires
-  // exactly that refetch on mount for any order with unreviewed edits, so on
-  // those orders a price would vanish as it was being entered. Same ref-guard
-  // shape as clearedRef below, for the same reason.
-  const hydratedRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!order || hydratedRef.current === order.id) return;
-    hydratedRef.current = order.id;
-    setFinalPrice(order.final_total?.toString() ?? '');
-    setPaidAmount(order.paid_total?.toString() ?? '0');
-    // Pre-filled with the doctor's request until the lab confirms its own, so
-    // agreeing is one click. The confirm button's dirty check below is what
-    // stops the pre-fill from passing for a saved confirmation.
-    const due = initialDueFields(order);
-    setConfirmedDue(due.date);
-    setConfirmedTime(due.time);
-    setPendingStatus(order.status);
-  }, [order]);
+  // The editable fields follow the order without ever wiping what the lab is
+  // typing. Seeding once per order (the old fix for a refetch that reset a
+  // half-typed price) left the fields stale under live updates; now a field
+  // the lab has not touched takes the new value in place, one it has typed
+  // into is kept, and the banner offers a reload (useLiveFormSync).
+  //
+  // Money is compared as a number ("250,50" typed, 250.5 stored), and an
+  // empty status pill means "follow the server", as the pills read it.
+  const money = (raw: string, empty: string) => {
+    if (raw.trim() === '') return empty;
+    const n = parseAmount(raw);
+    return n === null ? raw : String(n);
+  };
+  // Pre-filled with the doctor's request until the lab confirms its own, so
+  // agreeing is one click. The confirm button's dirty check below is what
+  // stops the pre-fill from passing for a saved confirmation.
+  const seededDue = order ? initialDueFields(order) : null;
+  const live = useLiveFormSync({
+    identity: order?.id,
+    incoming: order && seededDue
+      ? {
+          fields: {
+            finalPrice: order.final_total?.toString() ?? '',
+            paidAmount: order.paid_total?.toString() ?? '0',
+            confirmedDue: seededDue.date,
+            confirmedTime: seededDue.time,
+            pendingStatus: order.status as string,
+          },
+          // The doctor's edits change no field here, but they change what
+          // the lab is pricing.
+          context: order.edit_count,
+        }
+      : null,
+    values: {
+      finalPrice: money(finalPrice, ''),
+      paidAmount: money(paidAmount, '0'),
+      confirmedDue,
+      confirmedTime,
+      pendingStatus: pendingStatus || undefined,
+    },
+    apply: (f) => {
+      if (f.finalPrice !== undefined) setFinalPrice(f.finalPrice);
+      if (f.paidAmount !== undefined) setPaidAmount(f.paidAmount);
+      if (f.confirmedDue !== undefined) setConfirmedDue(f.confirmedDue);
+      if (f.confirmedTime !== undefined) setConfirmedTime(f.confirmedTime);
+      if (f.pendingStatus !== undefined) setPendingStatus(f.pendingStatus as OrderStatus);
+    },
+  });
 
   const update = useMutation({
     mutationFn: async (patch: Partial<OrderRow>) => {
@@ -273,19 +315,6 @@ export function LabOrderSheetPage() {
 
   // Fire the clear once per loaded order. Guard with a ref because the success
   // handler refetches ['lab-order'], which would otherwise re-trigger this.
-  /**
-   * Read a money field the way a person types one.
-   *
-   * Georgian and Russian keyboards produce a decimal comma, and Number('656,50')
-   * is NaN — which used to travel all the way to Postgres as final_total: NaN.
-   * Returns null for anything that isn't a finite number, so the caller can
-   * refuse it instead of posting it.
-   */
-  const parseAmount = (raw: string): number | null => {
-    const n = Number(raw.replace(',', '.').trim());
-    return Number.isFinite(n) ? n : null;
-  };
-
   const clearedRef = useRef<string | null>(null);
   useEffect(() => {
     if (!orderId || !order?.has_unreviewed_edits) return;
@@ -368,6 +397,9 @@ export function LabOrderSheetPage() {
           </>
         }
       />
+
+      {/* The order moved while the lab had unsaved input: keep the input. */}
+      {live.stale && <LiveUpdateBanner onReload={live.reload} />}
 
       <SplitLayout
         rail={

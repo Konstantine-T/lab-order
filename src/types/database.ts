@@ -495,6 +495,9 @@ export interface OrderRow {
   last_edited_at: string | null;
   /** Parent order this one continues from (same lab + same doctor), or null. */
   continues_order_id: string | null;
+  /** Who submitted it: the doctor, or the clinic admin acting for them. Stamped
+   *  by trigger, never written by the client (0043); null before 0043. */
+  placed_by_user_id: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -684,4 +687,64 @@ export interface AdminFeedbackListRow {
   role: UserRole;
   org_name: string | null;
   image_paths: string[];
+}
+
+// ===== In-site notifications (0043) =========================================
+/** Every kind the 0043 triggers write (its CHECK constraint). The client
+ *  renders text from the kind and `params` at display time, so a language
+ *  switch re-renders old rows. Type-only: this file is in the entry chunk. */
+export type NotificationKind =
+  | 'lab_question'
+  | 'lab_needs_change'
+  | 'order_ready'
+  | 'order_sent'
+  | 'order_cancelled_by_lab'
+  | 'price_set'
+  | 'due_confirmed'
+  | 'invoice_attached'
+  | 'invoice_replaced'
+  | 'clinic_invite'
+  | 'new_order'
+  | 'order_edited'
+  | 'doctor_answered'
+  | 'invoice_seen'
+  | 'order_completed'
+  | 'order_reopened'
+  | 'order_cancelled_by_doctor'
+  | 'lab_approved'
+  | 'lab_suspended'
+  | 'lab_changes_requested'
+  | 'clinic_order_placed'
+  | 'clinic_order_completed'
+  | 'doctor_left'
+  | 'payment_recorded'
+  | 'new_payable'
+  | 'admin_new_lab'
+  | 'admin_new_feedback';
+
+/** Raw values captured by the trigger; never a patient's name. */
+export type NotificationParams = {
+  code?: string;
+  lab?: string;
+  lab_id?: string;
+  doctor?: string;
+  clinic?: string;
+  sender?: string;
+  amount?: number;
+  /** YYYY-MM-DD */
+  date?: string;
+  /** HH:mm */
+  time?: string;
+};
+
+export interface NotificationRow {
+  id: string;
+  user_id: string;
+  /** A string, not `NotificationKind`: a newer database may send a kind this
+   *  build does not know yet. */
+  kind: string;
+  order_id: string | null;
+  params: NotificationParams;
+  created_at: string;
+  read_at: string | null;
 }
