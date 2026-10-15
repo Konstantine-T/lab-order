@@ -1,11 +1,33 @@
-import { Box, Chip, Divider, Stack, Typography } from '@mui/material';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  Accordion,
+  AccordionDetails,
+  AccordionSummary,
+  Box,
+  Chip,
+  Stack,
+  Typography,
+  useTheme,
+} from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
 import { FieldRenderer } from '@/components/DynamicForm';
 import { OrderForm } from '@/features/orderForms/OrderForm';
+import { ChangedFrame, ChangedPill } from '@/features/orderForms/changeHighlight';
+import {
+  ChangeMarksContext,
+  questionMarkId,
+  sectionMarkId,
+  type ChangeMarks,
+} from '@/features/orderForms/changeMarks';
 import { valuesEqual } from '@/features/lab/orderEdits/diff';
-import { changedItems, type ChangedItem } from '@/features/lab/orderEdits/answerSections';
-import type { FormConfiguration, PricingConfig } from '@/types/database';
+import {
+  changedItems,
+  sectionsForTemplate,
+  type ChangedItem,
+} from '@/features/lab/orderEdits/answerSections';
+import { radii, surfaces } from '@/theme/tokens';
+import type { FieldConfig, FormConfiguration, PricingConfig } from '@/types/database';
 
 const noop = () => {};
 
@@ -16,25 +38,28 @@ type Props = {
   after: Record<string, unknown>;
 };
 
+/** What a chip reads, and the mark it jumps to (none for "other answers"). */
+type SummaryItem = { label: string; markId: string | null };
+
 /**
- * The questions this edit touched, named.
+ * The questions this edit touched, named. Each chip that has a marked section
+ * on the page is a button that scrolls to it.
  *
  * Without it the lab got a "changed × 2" badge and two full copies of the form
  * and had to find the difference by eye — on a Crown & Bridge sheet that is
  * eight sections and a 32-tooth chart, twice.
  */
-function ChangedSummary({ items }: { items: ChangedItem[] }) {
+function ChangedSummary({
+  items,
+  isNavigable,
+  onJump,
+}: {
+  items: SummaryItem[];
+  isNavigable: (markId: string) => boolean;
+  onJump: (markId: string) => void;
+}) {
   const { t } = useTranslation('lab');
   if (items.length === 0) return null;
-
-  const labelOf = (item: ChangedItem) => {
-    if (item.kind === 'question') return item.label;
-    if (item.kind === 'other') return t('orderSheet.diff.otherAnswers');
-    const label = t(item.labelKey);
-    // The surgical guide asks the same five questions of each jaw, so the
-    // section name alone would be ambiguous on a both-jaws case.
-    return item.jaw ? `${t(`sgForm.jaw.${item.jaw}Label`)} — ${label}` : label;
-  };
 
   return (
     <Box sx={{ border: 1, borderColor: 'warning.main', borderRadius: 1, p: 2 }}>
@@ -43,154 +68,291 @@ function ChangedSummary({ items }: { items: ChangedItem[] }) {
         <Typography variant="subtitle2">{t('orderSheet.diff.whatChanged')}</Typography>
       </Stack>
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-        {items.map((item, i) => (
-          <Chip
-            key={i}
-            label={labelOf(item)}
-            size="small"
-            color="warning"
-            variant="outlined"
-            sx={{ maxWidth: '100%', height: 'auto', py: 0.5, '& .MuiChip-label': { whiteSpace: 'normal' } }}
-          />
-        ))}
+        {items.map((item, i) => {
+          const target = item.markId && isNavigable(item.markId) ? item.markId : null;
+          return (
+            <Chip
+              key={i}
+              label={item.label}
+              size="small"
+              color="warning"
+              variant="outlined"
+              {...(target && {
+                onClick: () => onJump(target),
+                'aria-label': t('orderSheet.diff.jumpTo', { section: item.label }),
+              })}
+              sx={{
+                maxWidth: '100%',
+                height: 'auto',
+                py: 0.5,
+                '& .MuiChip-label': { whiteSpace: 'normal' },
+              }}
+            />
+          );
+        })}
       </Stack>
     </Box>
   );
 }
 
-// Renders the order answers once (the "after"/current state), highlighting only
-// the questions that changed and showing each one's previous value inline. The
-// structured template part (tooth maps etc.) can't be diffed per-question, so it
-// falls back to a whole-block before/after — but only that sub-block, and only
-// when it actually changed.
-export function OrderAnswersDiff({ configuration, pricing, before, after }: Props) {
+/**
+ * The order's answers as they are now, with the sections this edit changed
+ * marked in place (a bar, a tint and a "Changed" pill) and named in a summary
+ * above.
+ *
+ * A clinical template is rendered once, through the same `OrderForm` as an
+ * unedited order, with the marks handed down in `ChangeMarksContext`; the
+ * previous version sits in a collapsed accordion beneath it. A plain builder
+ * form is drawn question by question, each changed one with its old answer.
+ */
+export function OrderAnswersDiff(props: Props) {
+  const { configuration, before, after } = props;
+  const items = useMemo(
+    () => changedItems(configuration, before, after),
+    [configuration, before, after],
+  );
+  // A fresh body, and so a fresh record of which marks were drawn and whether
+  // the previous version is open, whenever the set of changes is a new one.
+  return <DiffBody key={JSON.stringify(items)} {...props} items={items} />;
+}
+
+function DiffBody({
+  configuration,
+  pricing,
+  before,
+  after,
+  items,
+}: Props & { items: ChangedItem[] }) {
   const { t } = useTranslation('lab');
-  const hasStructured = !!configuration._templateCode;
+  // A clinical template, drawn by its own form. Not "has a template code": an
+  // OTHER_CUSTOM builder form carries one too, and is drawn question by
+  // question below, the way `changedItems` reads it.
+  const hasStructured = sectionsForTemplate(configuration._templateCode) !== null;
+  const currentRef = useRef<HTMLDivElement | null>(null);
 
-  // Fields we can highlight per-question: custom questions on a template form,
-  // or every visible field on a plain dynamic form.
-  const questionFields = hasStructured
-    ? configuration.fields.filter((f) => f.type === 'custom_question' && f.enabled)
-    : configuration.fields.filter((f) => f.enabled && f.visible_to_doctor !== false);
+  const summary = useMemo<SummaryItem[]>(
+    () =>
+      items.map((item) => {
+        if (item.kind === 'question') {
+          return { label: item.label, markId: questionMarkId(item.code) };
+        }
+        if (item.kind === 'other') return { label: t('orderSheet.diff.otherAnswers'), markId: null };
+        const label = t(item.labelKey);
+        return {
+          // The surgical guide asks the same five questions of each jaw, so the
+          // section name alone would be ambiguous on a both-jaws case.
+          label: item.jaw ? `${t(`sgForm.jaw.${item.jaw}Label`)} — ${label}` : label,
+          markId: sectionMarkId(label, item.jaw),
+        };
+      }),
+    [items, t],
+  );
 
-  const questionCodes = new Set(questionFields.map((f) => f.code));
+  // Which marks a section actually drew. Written from the sections' effects,
+  // which run before this component's own, so it is complete when read below.
+  const matched = useRef(new Set<string>());
+  const onMatched = useCallback((markId: string) => {
+    matched.current.add(markId);
+  }, []);
 
-  // Structured part changed = any answer key NOT owned by a per-question field differs.
-  const structuredChanged =
-    hasStructured &&
-    [...new Set([...Object.keys(before), ...Object.keys(after)])]
-      .filter((k) => !questionCodes.has(k))
-      .some((k) => !valuesEqual(before[k], after[k]));
+  const { labels, codes } = useMemo(() => {
+    const labels = new Set<string>();
+    const codes = new Set<string>();
+    for (const item of items) {
+      if (item.kind === 'section') {
+        const label = t(item.labelKey);
+        labels.add(item.jaw ? `${item.jaw}|${label}` : label);
+      } else if (item.kind === 'question') {
+        codes.add(item.code);
+      }
+    }
+    return { labels, codes };
+  }, [items, t]);
 
-  // Strip custom questions so OrderForm renders ONLY the structured block.
-  const structuredConfig = {
-    ...configuration,
-    fields: configuration.fields.filter((f) => f.type !== 'custom_question'),
+  const currentMarks = useMemo<ChangeMarks>(
+    () => ({ labels, codes, before, onMatched }),
+    [labels, codes, before, onMatched],
+  );
+  // The same sections marked in the old copy, without reporting (that copy is
+  // not where a change has to be visible) and without an old value under the
+  // old value.
+  const previousMarks = useMemo<ChangeMarks>(() => ({ labels, codes }), [labels, codes]);
+
+  // Template forms: marks no section drew. `null` until the first check.
+  const [unmatched, setUnmatched] = useState<string[] | null>(null);
+  const [previousOpen, setPreviousOpen] = useState(false);
+  // Opened and warned about once: a refetch re-runs the check below, and must
+  // not reopen an accordion the lab has since closed.
+  const reported = useRef(false);
+
+  useEffect(() => {
+    if (!hasStructured) return;
+    const missing = summary
+      .filter((s) => s.markId === null || !matched.current.has(s.markId))
+      .map((s) => s.label);
+    setUnmatched(missing);
+    if (missing.length > 0 && !reported.current) {
+      reported.current = true;
+      // A change highlighted nowhere would leave the lab to find it by eye, or
+      // not at all. Open the old copy so the difference can still be read.
+      setPreviousOpen(true);
+      if (import.meta.env.DEV) {
+        console.warn(
+          '[OrderAnswersDiff] changes no section marked (answerSections.ts may have drifted from the form):',
+          missing,
+          configuration._templateCode,
+        );
+      }
+    }
+  }, [hasStructured, summary, currentMarks, configuration._templateCode]);
+
+  const isNavigable = (markId: string) => {
+    if (!hasStructured) return true; // drawn below by this component
+    return unmatched !== null && matched.current.has(markId);
   };
+
+  const jumpTo = (markId: string) => {
+    // The current form only, not the previous version beneath it.
+    const el = [
+      ...(currentRef.current?.querySelectorAll<HTMLElement>('[data-changed-section]') ?? []),
+    ].find((node) => node.getAttribute('data-changed-section') === markId);
+    if (!el) return;
+    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    el.focus({ preventScroll: true });
+  };
+
+  // The previous version, when something in the template's own part changed
+  // (a custom question shows its old answer under itself), and whenever a
+  // change was drawn nowhere, so it can at least be read there.
+  const showPrevious =
+    items.some((i) => i.kind === 'section' || i.kind === 'other') ||
+    (unmatched !== null && unmatched.length > 0);
 
   return (
     <Stack spacing={3}>
-      <ChangedSummary items={changedItems(configuration, before, after)} />
+      <ChangedSummary items={summary} isNavigable={isNavigable} onJump={jumpTo} />
 
-      {hasStructured &&
-        (structuredChanged ? (
-          <Box sx={{ border: 1, borderColor: 'warning.main', borderRadius: 1, p: 2 }}>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              {t('orderSheet.diff.changed')}
-            </Typography>
-            <Stack spacing={2}>
-              <Box>
-                {/* current values — what the order is now */}
-                <Typography variant="caption" color="text.secondary">
-                  {t('orderSheet.diff.after')}
-                </Typography>
+      {hasStructured ? (
+        <>
+          <Box ref={currentRef}>
+            <ChangeMarksContext.Provider value={currentMarks}>
+              <OrderForm
+                configuration={configuration}
+                pricing={pricing}
+                values={after}
+                onChange={noop}
+                readOnly
+              />
+            </ChangeMarksContext.Provider>
+          </Box>
+
+          {showPrevious && (
+            <PreviousVersion open={previousOpen} onToggle={setPreviousOpen}>
+              <ChangeMarksContext.Provider value={previousMarks}>
                 <OrderForm
-                  configuration={structuredConfig}
-                  pricing={pricing}
-                  values={after}
-                  onChange={noop}
-                  readOnly
-                />
-              </Box>
-
-              {/* Loud separator so it's unmistakable the block below is the OLD
-                  version, not a continuation of the form above. */}
-              <Divider
-                textAlign="center"
-                sx={{ my: 2, '&::before, &::after': { borderColor: 'warning.main' } }}
-              >
-                <Chip
-                  icon={<Icon name="history" size={16} />}
-                  label={t('orderSheet.diff.previousVersion')}
-                  size="small"
-                  color="warning"
-                  variant="outlined"
-                />
-              </Divider>
-
-              <Box sx={{ opacity: 0.6 }}>
-                <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                  {t('orderSheet.diff.previousVersion')}
-                </Typography>
-                <OrderForm
-                  configuration={structuredConfig}
+                  configuration={configuration}
                   pricing={pricing}
                   values={before}
                   onChange={noop}
                   readOnly
                 />
-              </Box>
-            </Stack>
-          </Box>
-        ) : (
-          <OrderForm
-            configuration={structuredConfig}
-            pricing={pricing}
-            values={after}
-            onChange={noop}
-            readOnly
-          />
-        ))}
-
-      {questionFields.map((field) => {
-        const changed = !valuesEqual(before[field.code], after[field.code]);
-        if (!changed) {
-          return (
-            <FieldRenderer
-              key={field.code}
-              field={field}
-              value={after[field.code]}
-              onChange={noop}
-              readOnly
-            />
-          );
-        }
-        // Changed question: yellow border, current value on top, previous value
-        // rendered inline below (muted) so the lab sees what it was.
-        return (
-          <Box
-            key={field.code}
-            sx={{ border: 1, borderColor: 'warning.main', borderRadius: 1, p: 1.5 }}
-          >
-            <FieldRenderer field={field} value={after[field.code]} onChange={noop} readOnly />
-            <Typography
-              variant="caption"
-              color="text.secondary"
-              sx={{ display: 'block', mt: 1 }}
-            >
-              {t('orderSheet.diff.before')}
-            </Typography>
-            <Box sx={{ opacity: 0.6 }}>
-              <FieldRenderer
+              </ChangeMarksContext.Provider>
+            </PreviousVersion>
+          )}
+        </>
+      ) : (
+        <Stack spacing={3} ref={currentRef}>
+          {configuration.fields
+            .filter((f) => f.enabled && f.visible_to_doctor !== false)
+            .map((field) => (
+              <PlainQuestion
+                key={field.code}
                 field={field}
-                value={before[field.code]}
-                onChange={noop}
-                readOnly
+                before={before[field.code]}
+                after={after[field.code]}
               />
-            </Box>
-          </Box>
-        );
-      })}
+            ))}
+        </Stack>
+      )}
     </Stack>
+  );
+}
+
+/** The answers before this edit, collapsed until asked for. */
+function PreviousVersion({
+  open,
+  onToggle,
+  children,
+}: {
+  open: boolean;
+  onToggle: (open: boolean) => void;
+  children: ReactNode;
+}) {
+  const { t } = useTranslation('lab');
+  const theme = useTheme();
+  return (
+    <Accordion
+      expanded={open}
+      onChange={(_, next) => onToggle(next)}
+      disableGutters
+      elevation={0}
+      TransitionProps={{ unmountOnExit: true }}
+      sx={{
+        border: 1,
+        borderColor: surfaces[theme.palette.mode].borderSolid,
+        borderRadius: `${radii.card}px !important`,
+        bgcolor: 'transparent',
+        '&::before': { display: 'none' },
+      }}
+    >
+      <AccordionSummary expandIcon={<Icon name="expand_more" />}>
+        <Stack direction="row" spacing={1} alignItems="center">
+          <Icon name="history" size={18} />
+          <Typography variant="subtitle2">{t('orderSheet.diff.previousVersion')}</Typography>
+        </Stack>
+      </AccordionSummary>
+      <AccordionDetails sx={{ px: { xs: 2, sm: 3 }, pb: 2.75 }}>{children}</AccordionDetails>
+    </Accordion>
+  );
+}
+
+/**
+ * One question of a plain builder form. A changed one gets the same bar, tint
+ * and pill as a template section, and its previous answer underneath.
+ */
+function PlainQuestion({
+  field,
+  before,
+  after,
+}: {
+  field: FieldConfig;
+  before: unknown;
+  after: unknown;
+}) {
+  const { t } = useTranslation('lab');
+  if (valuesEqual(before, after)) {
+    return <FieldRenderer field={field} value={after} onChange={noop} readOnly />;
+  }
+  return (
+    <ChangedFrame
+      markId={questionMarkId(field.code)}
+      ariaLabel={`${field.label}: ${t('orderSheet.diff.changed')}`}
+    >
+      <Stack spacing={1.25}>
+        <Box>
+          <ChangedPill />
+        </Box>
+        <FieldRenderer field={field} value={after} onChange={noop} readOnly />
+        <Box>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+            {t('orderSheet.diff.before')}
+          </Typography>
+          <Box sx={{ opacity: 0.6 }}>
+            <FieldRenderer field={field} value={before} onChange={noop} readOnly hideLabel />
+          </Box>
+        </Box>
+      </Stack>
+    </ChangedFrame>
   );
 }

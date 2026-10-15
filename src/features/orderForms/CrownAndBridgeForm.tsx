@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { ReactNode } from 'react';
 import { alpha, Box, Stack, TextField, Typography, type SxProps, type Theme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
@@ -13,6 +13,8 @@ import {
   RequiredMark,
   SectionStack,
 } from './primitives';
+import { ChangedFrame, ChangedPill } from './changeHighlight';
+import { useChangeMark } from './changeMarks';
 import { NotationToggle, TreatmentBuilder } from './TreatmentBuilder';
 import {
   CNB_SECTION_CODES,
@@ -532,7 +534,11 @@ function ParamRow({
   mm?: ReactNode;
   error?: string;
 }) {
-  return (
+  // The clinical questions share one card, so the edit review marks the row
+  // that changed rather than the whole card.
+  const mark = useChangeMark(label);
+  const id = `cnb-param-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
+  const row = (
     <Box>
       <Box
         sx={{
@@ -552,8 +558,14 @@ function ParamRow({
             {number}
           </Box>
           {' · '}
-          {label}
+          <span id={mark.changed ? `${id}-title` : undefined}>{label}</span>
           {required && <RequiredMark />}
+          {mark.changed && (
+            <>
+              {' '}
+              <ChangedPill id={`${id}-changed`} />
+            </>
+          )}
         </Typography>
         {/* Right-aligned even when it drops under the label, so the answers
             keep to one edge of the column. */}
@@ -579,6 +591,13 @@ function ParamRow({
         </Box>
       )}
     </Box>
+  );
+
+  if (!mark.changed) return row;
+  return (
+    <ChangedFrame markId={mark.markId} labelledBy={`${id}-title ${id}-changed`} sx={{ py: 1 }}>
+      {row}
+    </ChangedFrame>
   );
 }
 

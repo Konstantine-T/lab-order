@@ -29,6 +29,8 @@ import {
   useRegisterSection,
   useSectionDone,
 } from './wizard/sectionRegistry';
+import { ChangedFrame, ChangedPill } from './changeHighlight';
+import { ChangeMarksContext, useChangeMark } from './changeMarks';
 
 /**
  * How a form's numbered sections should be chrome'd.
@@ -236,6 +238,7 @@ export function NumberedSection({
   required,
   navLabel,
   actions,
+  changeKey,
 }: {
   /** A number, or a range string such as "3–7" for a grouped card. */
   number: number | string;
@@ -247,6 +250,11 @@ export function NumberedSection({
   navLabel?: string;
   /** Controls at the right of the header row — a notation or scale toggle. */
   actions?: ReactNode;
+  /**
+   * A custom question's field code: the edit review then marks this section
+   * by that code alone, never by its heading. See `useChangeMark`.
+   */
+  changeKey?: string;
 }) {
   const chrome = useContext(SectionChromeContext);
   const isCard = chrome === 'card';
@@ -258,6 +266,7 @@ export function NumberedSection({
   const plainLabel = label.replace(REQUIRED_MARK, '');
   const isRequired = required ?? REQUIRED_MARK.test(label);
   const name = navLabel ?? plainLabel;
+  const mark = useChangeMark(plainLabel, changeKey, !isCard);
 
   // After every render: the section's answers live in the template's state,
   // so each change re-renders this and the probe re-reads the DOM. No deps on
@@ -307,7 +316,7 @@ export function NumberedSection({
     );
   }
 
-  return (
+  const body = (
     <Stack spacing={1.75}>
       <Stack direction="row" spacing={1.25} alignItems="center" flexWrap="wrap">
         {/* A rounded square rather than a circle, as the redesign draws it —
@@ -330,10 +339,12 @@ export function NumberedSection({
           {number}
         </Box>
         <Typography
+          id={mark.changed ? `${id}-title` : undefined}
           sx={{ fontSize: '0.96875rem', fontWeight: 700, letterSpacing: '-0.01em' }}
         >
           {label}
         </Typography>
+        {mark.changed && <ChangedPill id={`${id}-changed`} />}
         {hint && (
           <Typography variant="caption" color="text.secondary" sx={{ ml: 'auto' }}>
             {hint}
@@ -342,6 +353,14 @@ export function NumberedSection({
       </Stack>
       {children}
     </Stack>
+  );
+
+  // Unchanged sections render exactly as they always have.
+  if (!mark.changed) return body;
+  return (
+    <ChangedFrame markId={mark.markId} labelledBy={`${id}-title ${id}-changed`}>
+      {body}
+    </ChangedFrame>
   );
 }
 
@@ -589,24 +608,72 @@ export function CustomQuestionSections({
   return (
     <>
       {custom.map((f, i) => (
-        <NumberedSection
+        <CustomQuestionSection
           key={f.code}
+          field={f}
           number={startNumber + i + 1}
-          label={`${f.label}${f.required ? ' *' : ''}`}
-          // Exact, and the same emptiness rule `validateFormAnswers` applies.
-          done={isAnswered(values[f.code])}
-        >
-          <FieldRenderer
-            field={f}
-            value={values[f.code]}
-            onChange={(v) => onChange({ ...values, [f.code]: v })}
-            error={errors?.[f.code]}
-            readOnly={readOnly}
-            // The question is the heading now.
-            hideLabel
-          />
-        </NumberedSection>
+          values={values}
+          onChange={onChange}
+          readOnly={readOnly}
+          error={errors?.[f.code]}
+        />
       ))}
     </>
+  );
+}
+
+/**
+ * One appended question. Marked by its field code in the edit review, where a
+ * changed one also shows the answer it had before, muted, under the current one.
+ */
+function CustomQuestionSection({
+  field: f,
+  number,
+  values,
+  onChange,
+  readOnly,
+  error,
+}: {
+  field: FieldConfig;
+  number: number;
+  values: Record<string, unknown>;
+  onChange: (next: Record<string, unknown>) => void;
+  readOnly?: boolean;
+  error?: string;
+}) {
+  const { t } = useTranslation('lab');
+  const marks = useContext(ChangeMarksContext);
+  const chrome = useContext(SectionChromeContext);
+  const before =
+    chrome === 'plain' && marks?.before && marks.codes.has(f.code) ? marks.before : null;
+
+  return (
+    <NumberedSection
+      number={number}
+      label={`${f.label}${f.required ? ' *' : ''}`}
+      // Exact, and the same emptiness rule `validateFormAnswers` applies.
+      done={isAnswered(values[f.code])}
+      changeKey={f.code}
+    >
+      <FieldRenderer
+        field={f}
+        value={values[f.code]}
+        onChange={(v) => onChange({ ...values, [f.code]: v })}
+        error={error}
+        readOnly={readOnly}
+        // The question is the heading now.
+        hideLabel
+      />
+      {before && (
+        <Box>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+            {t('orderSheet.diff.before')}
+          </Typography>
+          <Box sx={{ opacity: 0.6 }}>
+            <FieldRenderer field={f} value={before[f.code]} onChange={() => {}} readOnly hideLabel />
+          </Box>
+        </Box>
+      )}
+    </NumberedSection>
   );
 }

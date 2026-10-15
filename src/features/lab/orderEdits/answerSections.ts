@@ -211,7 +211,7 @@ export type ChangedItem =
   /** A section of the clinical template; translate `labelKey` in `lab`. */
   | { kind: 'section'; labelKey: string; jaw?: 'upper' | 'lower' }
   /** A question the lab appended; `label` is the lab's own wording. */
-  | { kind: 'question'; label: string }
+  | { kind: 'question'; label: string; code: string }
   /**
    * Something changed that no section claims. Shown rather than swallowed:
    * this table is hand-maintained, and a template that gains an answer key
@@ -248,7 +248,7 @@ export function changedItems(
   for (const f of questions) {
     claimed.add(f.code);
     if (!valuesEqual(before[f.code], after[f.code])) {
-      items.push({ kind: 'question', label: f.label });
+      items.push({ kind: 'question', label: f.label, code: f.code });
     }
   }
 

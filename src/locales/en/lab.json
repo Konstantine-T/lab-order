@@ -523,7 +523,8 @@
       },
       "whatChanged": "What the doctor changed",
       "otherAnswers": "Other answers",
-      "patientRecordChanged": "Same name and date of birth, but a different patient record."
+      "patientRecordChanged": "Same name and date of birth, but a different patient record.",
+      "jumpTo": "Go to {{section}}"
     },
     "history": {
       "label": "Edit history",

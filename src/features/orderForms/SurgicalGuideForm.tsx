@@ -14,6 +14,7 @@ import { Icon, CopyAdornment } from '@/components/design';
 import { useTranslation } from 'react-i18next';
 import { ToothMap } from '@/components/ToothMap';
 import { NumberedSection, PillGroup, ErrorHelper, CustomQuestionSections, SectionStack } from './primitives';
+import { JawContext } from './changeMarks';
 import {
   emptySgAnswers,
   coerceSgAnswers,
@@ -90,8 +91,12 @@ export function SurgicalGuideForm({
   let counter = 0;
   const next = () => ++counter;
 
-  const jawPrefix = (which: 'upper' | 'lower', label: string) =>
-    a.jaw === 'BOTH' ? `${sg(`jaw.${which}Label`)} — ${label}` : label;
+  // The text before each per-jaw heading on a both-jaws case. Also handed to
+  // the jaw's `JawContext`, so the lab's edit review can match the heading
+  // without it and mark only the jaw that changed.
+  const prefixOf = (which: 'upper' | 'lower') =>
+    a.jaw === 'BOTH' ? `${sg(`jaw.${which}Label`)} — ` : '';
+  const jawPrefix = (which: 'upper' | 'lower', label: string) => `${prefixOf(which)}${label}`;
 
   return (
     <SectionStack>
@@ -120,154 +125,156 @@ export function SurgicalGuideForm({
       </NumberedSection>
 
       {/* ════════════════ UPPER JAW SECTIONS ════════════════ */}
+      <JawContext.Provider value={{ jaw: 'upper', prefix: prefixOf('upper') }}>
+        {hasUpper && (
+          <NumberedSection
+            number={next()}
+            label={`${jawPrefix('upper', sg('jawCondition.label'))} *`}
+          >
+            <PillGroup<SgJawCondition>
+              value={a.upper.condition}
+              options={['HAS_TEETH', 'PARTIALLY_EDENTULOUS', 'FULLY_EDENTULOUS']}
+              getLabel={(o) => opt('jawCondition', o)}
+              onChange={(v) => setJaw('upper', { condition: v })}
+              readOnly={readOnly}
+            />
+            <ErrorHelper>{errors.upperCondition}</ErrorHelper>
+          </NumberedSection>
+        )}
 
-      {hasUpper && (
-        <NumberedSection
-          number={next()}
-          label={`${jawPrefix('upper', sg('jawCondition.label'))} *`}
-        >
-          <PillGroup<SgJawCondition>
-            value={a.upper.condition}
-            options={['HAS_TEETH', 'PARTIALLY_EDENTULOUS', 'FULLY_EDENTULOUS']}
-            getLabel={(o) => opt('jawCondition', o)}
-            onChange={(v) => setJaw('upper', { condition: v })}
-            readOnly={readOnly}
-          />
-          <ErrorHelper>{errors.upperCondition}</ErrorHelper>
-        </NumberedSection>
-      )}
+        {hasUpper && (
+          <NumberedSection
+            number={next()}
+            label={`${jawPrefix('upper', sg('implantPositions.label'))} *`}
+          >
+            <ImplantPositionsSection
+              jawData={a.upper}
+              teethSet={UPPER_TEETH_SET}
+              onChange={(patch) => setJaw('upper', patch)}
+              readOnly={readOnly}
+              error={errors.upperPositions}
+            />
+          </NumberedSection>
+        )}
 
-      {hasUpper && (
-        <NumberedSection
-          number={next()}
-          label={`${jawPrefix('upper', sg('implantPositions.label'))} *`}
-        >
-          <ImplantPositionsSection
-            jawData={a.upper}
-            teethSet={UPPER_TEETH_SET}
-            onChange={(patch) => setJaw('upper', patch)}
-            readOnly={readOnly}
-            error={errors.upperPositions}
-          />
-        </NumberedSection>
-      )}
+        {hasUpper && (
+          <NumberedSection
+            number={next()}
+            label={`${jawPrefix('upper', sg('guideSupport.label'))} *`}
+          >
+            <PillGroup<SgGuideSupport>
+              value={a.upper.guideSupport}
+              options={['TOOTH_SUPPORTED', 'MUCOSA_SUPPORTED', 'BONE_SUPPORTED', 'STACKABLE', 'CUSTOM']}
+              getLabel={(o) => opt('guideSupport', o)}
+              onChange={(v) => setJaw('upper', { guideSupport: v })}
+              readOnly={readOnly}
+            />
+            <ErrorHelper>{errors.upperGuideSupport}</ErrorHelper>
+          </NumberedSection>
+        )}
 
-      {hasUpper && (
-        <NumberedSection
-          number={next()}
-          label={`${jawPrefix('upper', sg('guideSupport.label'))} *`}
-        >
-          <PillGroup<SgGuideSupport>
-            value={a.upper.guideSupport}
-            options={['TOOTH_SUPPORTED', 'MUCOSA_SUPPORTED', 'BONE_SUPPORTED', 'STACKABLE', 'CUSTOM']}
-            getLabel={(o) => opt('guideSupport', o)}
-            onChange={(v) => setJaw('upper', { guideSupport: v })}
-            readOnly={readOnly}
-          />
-          <ErrorHelper>{errors.upperGuideSupport}</ErrorHelper>
-        </NumberedSection>
-      )}
+        {hasUpper && a.upper.implantPositions.length > 0 && (
+          <NumberedSection
+            number={next()}
+            label={jawPrefix('upper', sg('implantSystem.label'))}
+          >
+            <ImplantSystemSection
+              jawData={a.upper}
+              onChange={(patch) => setJaw('upper', patch)}
+              readOnly={readOnly}
+            />
+          </NumberedSection>
+        )}
 
-      {hasUpper && a.upper.implantPositions.length > 0 && (
-        <NumberedSection
-          number={next()}
-          label={jawPrefix('upper', sg('implantSystem.label'))}
-        >
-          <ImplantSystemSection
-            jawData={a.upper}
-            onChange={(patch) => setJaw('upper', patch)}
-            readOnly={readOnly}
-          />
-        </NumberedSection>
-      )}
-
-      {hasUpper && a.upper.condition === 'FULLY_EDENTULOUS' && (
-        <NumberedSection
-          number={next()}
-          label={jawPrefix('upper', sg('edentulous.sectionLabel'))}
-        >
-          <EdentulousSubSection
-            jawData={a.upper}
-            onChange={(patch) => setJaw('upper', patch)}
-            readOnly={readOnly}
-          />
-        </NumberedSection>
-      )}
+        {hasUpper && a.upper.condition === 'FULLY_EDENTULOUS' && (
+          <NumberedSection
+            number={next()}
+            label={jawPrefix('upper', sg('edentulous.sectionLabel'))}
+          >
+            <EdentulousSubSection
+              jawData={a.upper}
+              onChange={(patch) => setJaw('upper', patch)}
+              readOnly={readOnly}
+            />
+          </NumberedSection>
+        )}
+      </JawContext.Provider>
 
       {/* ════════════════ LOWER JAW SECTIONS ════════════════ */}
+      <JawContext.Provider value={{ jaw: 'lower', prefix: prefixOf('lower') }}>
+        {hasLower && (
+          <NumberedSection
+            number={next()}
+            label={`${jawPrefix('lower', sg('jawCondition.label'))} *`}
+          >
+            <PillGroup<SgJawCondition>
+              value={a.lower.condition}
+              options={['HAS_TEETH', 'PARTIALLY_EDENTULOUS', 'FULLY_EDENTULOUS']}
+              getLabel={(o) => opt('jawCondition', o)}
+              onChange={(v) => setJaw('lower', { condition: v })}
+              readOnly={readOnly}
+            />
+            <ErrorHelper>{errors.lowerCondition}</ErrorHelper>
+          </NumberedSection>
+        )}
 
-      {hasLower && (
-        <NumberedSection
-          number={next()}
-          label={`${jawPrefix('lower', sg('jawCondition.label'))} *`}
-        >
-          <PillGroup<SgJawCondition>
-            value={a.lower.condition}
-            options={['HAS_TEETH', 'PARTIALLY_EDENTULOUS', 'FULLY_EDENTULOUS']}
-            getLabel={(o) => opt('jawCondition', o)}
-            onChange={(v) => setJaw('lower', { condition: v })}
-            readOnly={readOnly}
-          />
-          <ErrorHelper>{errors.lowerCondition}</ErrorHelper>
-        </NumberedSection>
-      )}
+        {hasLower && (
+          <NumberedSection
+            number={next()}
+            label={`${jawPrefix('lower', sg('implantPositions.label'))} *`}
+          >
+            <ImplantPositionsSection
+              jawData={a.lower}
+              teethSet={LOWER_TEETH_SET}
+              onChange={(patch) => setJaw('lower', patch)}
+              readOnly={readOnly}
+              error={errors.lowerPositions}
+            />
+          </NumberedSection>
+        )}
 
-      {hasLower && (
-        <NumberedSection
-          number={next()}
-          label={`${jawPrefix('lower', sg('implantPositions.label'))} *`}
-        >
-          <ImplantPositionsSection
-            jawData={a.lower}
-            teethSet={LOWER_TEETH_SET}
-            onChange={(patch) => setJaw('lower', patch)}
-            readOnly={readOnly}
-            error={errors.lowerPositions}
-          />
-        </NumberedSection>
-      )}
+        {hasLower && (
+          <NumberedSection
+            number={next()}
+            label={`${jawPrefix('lower', sg('guideSupport.label'))} *`}
+          >
+            <PillGroup<SgGuideSupport>
+              value={a.lower.guideSupport}
+              options={['TOOTH_SUPPORTED', 'MUCOSA_SUPPORTED', 'BONE_SUPPORTED', 'STACKABLE', 'CUSTOM']}
+              getLabel={(o) => opt('guideSupport', o)}
+              onChange={(v) => setJaw('lower', { guideSupport: v })}
+              readOnly={readOnly}
+            />
+            <ErrorHelper>{errors.lowerGuideSupport}</ErrorHelper>
+          </NumberedSection>
+        )}
 
-      {hasLower && (
-        <NumberedSection
-          number={next()}
-          label={`${jawPrefix('lower', sg('guideSupport.label'))} *`}
-        >
-          <PillGroup<SgGuideSupport>
-            value={a.lower.guideSupport}
-            options={['TOOTH_SUPPORTED', 'MUCOSA_SUPPORTED', 'BONE_SUPPORTED', 'STACKABLE', 'CUSTOM']}
-            getLabel={(o) => opt('guideSupport', o)}
-            onChange={(v) => setJaw('lower', { guideSupport: v })}
-            readOnly={readOnly}
-          />
-          <ErrorHelper>{errors.lowerGuideSupport}</ErrorHelper>
-        </NumberedSection>
-      )}
+        {hasLower && a.lower.implantPositions.length > 0 && (
+          <NumberedSection
+            number={next()}
+            label={jawPrefix('lower', sg('implantSystem.label'))}
+          >
+            <ImplantSystemSection
+              jawData={a.lower}
+              onChange={(patch) => setJaw('lower', patch)}
+              readOnly={readOnly}
+            />
+          </NumberedSection>
+        )}
 
-      {hasLower && a.lower.implantPositions.length > 0 && (
-        <NumberedSection
-          number={next()}
-          label={jawPrefix('lower', sg('implantSystem.label'))}
-        >
-          <ImplantSystemSection
-            jawData={a.lower}
-            onChange={(patch) => setJaw('lower', patch)}
-            readOnly={readOnly}
-          />
-        </NumberedSection>
-      )}
-
-      {hasLower && a.lower.condition === 'FULLY_EDENTULOUS' && (
-        <NumberedSection
-          number={next()}
-          label={jawPrefix('lower', sg('edentulous.sectionLabel'))}
-        >
-          <EdentulousSubSection
-            jawData={a.lower}
-            onChange={(patch) => setJaw('lower', patch)}
-            readOnly={readOnly}
-          />
-        </NumberedSection>
-      )}
+        {hasLower && a.lower.condition === 'FULLY_EDENTULOUS' && (
+          <NumberedSection
+            number={next()}
+            label={jawPrefix('lower', sg('edentulous.sectionLabel'))}
+          >
+            <EdentulousSubSection
+              jawData={a.lower}
+              onChange={(patch) => setJaw('lower', patch)}
+              readOnly={readOnly}
+            />
+          </NumberedSection>
+        )}
+      </JawContext.Provider>
 
       {/* ── Abutment Type ─────────────────────────────────────────────────── */}
       {a.jaw && (
