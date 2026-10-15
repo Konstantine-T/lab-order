@@ -21,6 +21,13 @@ export type CenterValue = {
   setMuted: (muted: boolean) => void;
   /** Mark read and go to the row's page. */
   openNotification: (row: NotificationRow) => void;
+  /**
+   * Keeps toasts off the screen until the returned release is called: the
+   * phone bell sheet holds them while it is open (owner decision). Toasts
+   * already queued are dropped and new ones are never queued, since the open
+   * sheet lists every one of those rows already.
+   */
+  holdToasts: () => () => void;
 };
 
 export const CenterContext = createContext<CenterValue | null>(null);

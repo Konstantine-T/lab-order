@@ -714,6 +714,7 @@ export type NotificationKind =
   | 'lab_approved'
   | 'lab_suspended'
   | 'lab_changes_requested'
+  | 'lab_rejected'
   | 'clinic_order_placed'
   | 'clinic_order_completed'
   | 'doctor_left'

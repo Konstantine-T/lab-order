@@ -26,6 +26,7 @@ const KINDS: Record<NotificationKind, true> = {
   lab_approved: true,
   lab_suspended: true,
   lab_changes_requested: true,
+  lab_rejected: true,
   clinic_order_placed: true,
   clinic_order_completed: true,
   doctor_left: true,
@@ -116,6 +117,7 @@ export function notificationTarget(
     case 'lab_approved':
     case 'lab_suspended':
     case 'lab_changes_requested':
+    case 'lab_rejected':
       return '/lab/profile';
     case 'admin_new_lab':
       return row.params?.lab_id ? `/admin/labs/${row.params.lab_id}` : '/admin/labs';

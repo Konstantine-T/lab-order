@@ -66,8 +66,11 @@
 --
 --   5. labs.approval_status (0001): PENDING_APPROVAL, CHANGES_REQUESTED,
 --      APPROVED_ACTIVE, REJECTED, SUSPENDED. "Approved" = APPROVED_ACTIVE,
---      "suspended" = SUSPENDED. REJECTED has no row in the ticket and stays
---      silent. A lab row is inserted by handle_new_user at signup with the
+--      "suspended" = SUSPENDED. REJECTED has no row in the ticket; the owner
+--      added one (2026-10-15): lab_rejected → the lab owner, with the same
+--      rules as lab_suspended. A rejected lab can still sign in and reach /lab
+--      (RoleGuard checks the role only, labs_owner_select reads the lab in any
+--      status), so the bell is there to show it. A lab row is inserted by handle_new_user at signup with the
 --      default PENDING_APPROVAL; that insert and the owner's resubmission
 --      (CHANGES_REQUESTED → PENDING_APPROVAL, tg_labs_protect_admin_columns)
 --      are both row 26.
@@ -129,7 +132,7 @@ alter table public.notifications add constraint notifications_kind_check check (
   -- lab
   'new_order', 'order_edited', 'doctor_answered', 'invoice_seen',
   'order_completed', 'order_reopened', 'order_cancelled_by_doctor',
-  'lab_approved', 'lab_suspended', 'lab_changes_requested',
+  'lab_approved', 'lab_suspended', 'lab_changes_requested', 'lab_rejected',
   -- clinic admin
   'clinic_order_placed', 'clinic_order_completed', 'doctor_left',
   'payment_recorded', 'new_payable',
@@ -830,7 +833,8 @@ create trigger doctor_profiles_notify_left
 
 -- ── 9. Triggers: labs and feedback ───────────────────────────────────────
 
--- Rows 23 to 26: the approval lifecycle.
+-- Rows 23 to 26, and lab_rejected (owner decision, no ticket row): the
+-- approval lifecycle.
 create or replace function public.tg_notify_lab_status()
 returns trigger
 language plpgsql
@@ -845,11 +849,13 @@ begin
   begin
     v_params := jsonb_strip_nulls(jsonb_build_object('lab', new.public_name, 'lab_id', new.id));
 
-    -- 23, 24, 25. → the lab owner.
+    -- 23, 24, 25, lab_rejected. → the lab owner (the admin acting is skipped
+    -- by notify() as the actor).
     v_kind := case new.approval_status
                 when 'APPROVED_ACTIVE'   then 'lab_approved'
                 when 'SUSPENDED'         then 'lab_suspended'
                 when 'CHANGES_REQUESTED' then 'lab_changes_requested'
+                when 'REJECTED'          then 'lab_rejected'
               end;
     if v_kind is not null then
       begin
@@ -1029,6 +1035,9 @@ end $$;
 --       'labs_notify_insert', 'labs_notify_status');
 --   -- (feedback_notify makes 18 with the line below)
 --   select count(*) = 1 from pg_trigger where tgname = 'feedback_notify';
+--   -- the kind list includes the owner-added lab_rejected (28 kinds):
+--   select pg_get_constraintdef(oid) like '%''lab_rejected''%' from pg_constraint
+--     where conname = 'notifications_kind_check' and conrelid = 'public.notifications'::regclass;
 --   select count(*) = 9 from pg_publication_tables
 --     where pubname = 'supabase_realtime' and schemaname = 'public'
 --       and tablename in ('notifications', 'orders', 'order_clarifications', 'order_files',

@@ -529,6 +529,10 @@
       "admin_new_feedback": {
         "title": "New feedback",
         "body": "{{sender}} sent you a message"
+      },
+      "lab_rejected": {
+        "title": "Lab not approved",
+        "body": "Contact the administration for details"
       }
     }
   }

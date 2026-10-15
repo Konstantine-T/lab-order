@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Badge,
   Box,
@@ -46,6 +46,13 @@ export function NotificationBell({
   const { t } = useTranslation('common');
   const [anchor, setAnchor] = useState<HTMLElement | null>(null);
   const open = !!anchor;
+
+  // On a phone the sheet covers the page and lists every new row at the top,
+  // so toasts stay away while it is open (owner decision). The desktop
+  // popover leaves them alone.
+  const holdToasts = center?.holdToasts;
+  const sheetOpen = open && isPhone;
+  useEffect(() => (sheetOpen && holdToasts ? holdToasts() : undefined), [sheetOpen, holdToasts]);
 
   if (!center) return null;
   const { unread } = center;

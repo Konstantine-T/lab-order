@@ -108,7 +108,12 @@ function listenersFor(
   }
 }
 
-const LAB_STATUS_KINDS = new Set(['lab_approved', 'lab_suspended', 'lab_changes_requested']);
+const LAB_STATUS_KINDS = new Set([
+  'lab_approved',
+  'lab_suspended',
+  'lab_changes_requested',
+  'lab_rejected',
+]);
 
 export function RealtimeProvider({ children }: { children: ReactNode }) {
   const { user, refreshUser } = useAuth();
@@ -133,6 +138,9 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   i18nRef.current = i18n;
   const refreshUserRef = useRef(refreshUser);
   refreshUserRef.current = refreshUser;
+  // How many surfaces hold toasts back (the phone bell sheet; a count, since
+  // a shell can mount more than one bell).
+  const toastHoldsRef = useRef(0);
 
   const setMuted = useCallback((next: boolean) => {
     setMutedState(next);
@@ -169,9 +177,13 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       // A kind this build cannot word stays in the bell as "New notification"
       // and does not interrupt anyone.
       if (!isKnownKind(row.kind, i18nRef.current)) return;
-      setToasts((list) =>
-        list.some((t) => t.id === row.id) ? list : [...list, { id: row.id, row }],
-      );
+      // The phone sheet is open and already shows this row at the top: no
+      // toast now, and none queued for when it closes.
+      if (toastHoldsRef.current === 0) {
+        setToasts((list) =>
+          list.some((t) => t.id === row.id) ? list : [...list, { id: row.id, row }],
+        );
+      }
       playChime(mutedRef.current);
     };
 
@@ -279,9 +291,27 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     setToasts((list) => list.filter((t) => t.id !== id));
   }, []);
 
+  /*
+   * Phone bell sheet open → no toasts (owner decision). Dropped rather than
+   * held: every row a toast would carry is already in the open sheet's list,
+   * where the person is looking, and replaying them on close would dump a
+   * burst of toasts for things they have just seen. The toasts showing when
+   * the sheet opens go too: they are the newest rows in it.
+   */
+  const holdToasts = useCallback(() => {
+    toastHoldsRef.current += 1;
+    setToasts([]);
+    let released = false;
+    return () => {
+      if (released) return;
+      released = true;
+      toastHoldsRef.current -= 1;
+    };
+  }, []);
+
   const value = useMemo<CenterValue>(
-    () => ({ userId, role, connected, unread, muted, setMuted, openNotification }),
-    [userId, role, connected, unread, muted, setMuted, openNotification],
+    () => ({ userId, role, connected, unread, muted, setMuted, openNotification, holdToasts }),
+    [userId, role, connected, unread, muted, setMuted, openNotification, holdToasts],
   );
 
   return (
