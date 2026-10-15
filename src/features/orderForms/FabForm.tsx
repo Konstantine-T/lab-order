@@ -5,6 +5,7 @@ import { NumberedSection, ErrorHelper, CustomQuestionSections, SectionStack } fr
 import { NumberField } from '@/components/NumberField';
 import { ToothMap } from '@/components/ToothMap';
 import { formatGEL } from '@/utils/pricing';
+import { localizeMaterials, useUiLang } from '@/features/lab/labText';
 import type { FormConfiguration, MaterialOption, PricingConfig } from '@/types/database';
 import {
   validatePrint,
@@ -30,6 +31,8 @@ function MaterialSelect({
   label: string;
   unitLabel: string;
 }) {
+  // The lab's material names in the reader's language; the value is the id.
+  const lang = useUiLang();
   return (
     <TextField
       select
@@ -42,7 +45,7 @@ function MaterialSelect({
       sx={{ maxWidth: 440 }}
       fullWidth
     >
-      {materials.map((m) => (
+      {localizeMaterials(materials, lang).map((m) => (
         <MenuItem key={m.id} value={m.id}>
           {m.name}
           {m.unit_price ? ` — ${formatGEL(m.unit_price)}/${unitLabel}` : ''}

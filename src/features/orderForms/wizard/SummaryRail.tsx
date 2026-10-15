@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { Callout } from '@/components/design';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { calculatePrice, formatGELShort, pricingShape } from '@/utils/pricing';
+import { useUiLang } from '@/features/lab/labText';
 import type { PriceLineItem } from '@/utils/pricing';
 import { focusRing, motion, radii, surfaces, tone } from '@/theme/tokens';
 import type { DoctorWorkLocationRow, LabFormVersionRow, RushType } from '@/types/database';
@@ -381,9 +382,11 @@ function PriceSummary({
   const pricing = version?.pricing_configuration_json;
   const answers = state.answers;
 
+  // `lang`: the lab's material names in the reader's language (labels only).
+  const lang = useUiLang();
   const result = useMemo(
-    () => (version ? calculatePrice(pricing, answers, rush) : null),
-    [version, pricing, answers, rush],
+    () => (version ? calculatePrice(pricing, answers, rush, lang) : null),
+    [version, pricing, answers, rush, lang],
   );
   const calculated = result?.kind === 'CALCULATED';
 

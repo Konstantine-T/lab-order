@@ -79,6 +79,9 @@ export type MaterialOption = {
    *  pricing math; `isPricingComplete` rejects an unset/zero price for
    *  publishable forms. */
   unit_price?: number;
+  /** Optional display names in other languages (lab-authored). Display only:
+   *  `id` stays the pricing key. Read through `localizeMaterials()`. */
+  translations?: Partial<Record<LabTextLang, { name?: string }>>;
 };
 /** `INVOICE` (0035) is the lab's billing document: at most one per order,
  *  enforced by a partial unique index, and excluded from the attachments list
@@ -275,6 +278,15 @@ export interface ClinicDoctorRow {
   specialty: string | null;
 }
 
+/** The service columns with per-language display text (0042). */
+export type LabServiceTextField = 'name' | 'short_description' | 'average_turnaround_label';
+
+/** `lab_services.translations` (0042): the same shape and rules as
+ *  `labs.public_translations`. Written only by `set_lab_service_translations`. */
+export type LabServiceTranslations = Partial<
+  Record<LabTextLang, Partial<Record<LabServiceTextField, string>>>
+>;
+
 export interface LabServiceRow {
   id: string;
   lab_id: string;
@@ -282,6 +294,8 @@ export interface LabServiceRow {
   short_description: string | null;
   average_turnaround_days: number | null;
   average_turnaround_label: string | null;
+  /** Optional per-language name / description / turnaround label (0042). */
+  translations: LabServiceTranslations;
   cover_image_url: string | null;
   linked_lab_form_id: string | null;
   service_phase_type: ServicePhaseType;
@@ -333,6 +347,14 @@ export type FieldConfig = {
   affects_price?: boolean;
   visible_to_doctor?: boolean;
   options?: string[];
+  /**
+   * Optional display text in other languages for a lab-authored question.
+   * `options` is matched to the base `options` by index (null = untranslated)
+   * and is display only: the stored answer is always the base option.
+   */
+  translations?: Partial<
+    Record<LabTextLang, { label?: string; helper_text?: string; options?: (string | null)[] }>
+  >;
 };
 
 export type FormConfiguration = {
@@ -369,6 +391,8 @@ export type PricingConfig = {
   unit_price?: number;
   /** LAB_DESCRIBED: the lab's own prose price list, shown to the doctor as-is. */
   price_description?: string;
+  /** Optional `price_description` in other languages (lab-authored). */
+  translations?: Partial<Record<LabTextLang, { price_description?: string }>>;
   fixed_price?: number;
   /** CnB UNIT_BASED: lab-defined materials. */
   materials?: MaterialOption[];

@@ -17,6 +17,7 @@ import {
 import { coerceModelAnswers, isModelTemplateCode } from '@/features/orderForms/modelTypes';
 import { coerceImplantAnswers, isImplantTemplate } from '@/features/orderForms/implantTypes';
 import { coerceSgAnswers, TEMPLATE_CODE_SG } from '@/features/orderForms/sgTypes';
+import { localizeMaterials } from '@/features/lab/labText';
 import type { FormConfiguration, MaterialOption, PricingConfig } from '@/types/database';
 
 /** One legend line under the chart: a material, its colour and its teeth. */
@@ -94,11 +95,18 @@ const materialName = (materials: MaterialOption[] | undefined, id: string) =>
  */
 export function orderFacts(
   configuration: FormConfiguration | undefined,
-  pricing: PricingConfig | undefined,
+  rawPricing: PricingConfig | undefined,
   values: Record<string, unknown>,
+  /** The reader's language: material names are shown in it where the lab
+   *  translated them. Display only — answers still match by material id. */
+  lang = '',
 ): OrderFacts {
   if (!configuration) return EMPTY;
   const code = configuration._templateCode;
+  const pricing: PricingConfig | undefined = rawPricing && {
+    ...rawPricing,
+    materials: rawPricing.materials && localizeMaterials(rawPricing.materials, lang),
+  };
   const materials = pricing?.materials ?? [];
 
   if (isCnbTemplate(code)) {

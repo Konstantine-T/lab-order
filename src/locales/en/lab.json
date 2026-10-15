@@ -305,6 +305,24 @@
         "wrong-type": "Use a PNG, JPEG or WebP image.",
         "failed": "The upload failed. Try again."
       }
+    },
+    "translations": {
+      "tab": "Translations",
+      "hint": "Optional: add your service, its questions and its prices in English and Russian. Where a field is left empty, doctors see your original text. Changes are saved with the Save button below.",
+      "columns": {
+        "en": "English",
+        "ru": "Russian"
+      },
+      "groups": {
+        "service": "Service",
+        "questions": "Questions",
+        "pricing": "Pricing"
+      },
+      "progress": "{{done}} of {{total}} translated",
+      "base": "Original",
+      "saved": "Translations saved.",
+      "saveFailed": "Couldn't save the translations. Please try again.",
+      "nameTooShort": "A translated name needs at least 2 characters."
     }
   },
   "forms": {

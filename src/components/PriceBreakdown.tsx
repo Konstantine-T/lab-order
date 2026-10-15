@@ -4,6 +4,7 @@ import { Box, ButtonBase, Collapse, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { FieldLabel, Icon, MoneyRow } from '@/components/design';
 import { calculatePrice, formatGEL, pricingShape } from '@/utils/pricing';
+import { useUiLang } from '@/features/lab/labText';
 import type { PriceLineItem, PricingShape } from '@/utils/pricing';
 import { radii } from '@/theme/tokens';
 import type { PricingConfig, RushType } from '@/types/database';
@@ -139,11 +140,13 @@ export function PriceBreakdown({
   format = formatGEL,
 }: Props) {
   const { t } = useTranslation('common');
+  const lang = useUiLang();
   // Collapsed by default — the itemised rows answer "what", and most doctors
   // only need "why" the first few times they order from a lab.
   const [showExplain, setShowExplain] = useState(false);
 
-  const result = calculatePrice(pricing, answers, rush);
+  // `lang`: material names and a described price in the reader's language.
+  const result = calculatePrice(pricing, answers, rush, lang);
   const described = result.kind === 'DESCRIBED' ? result : null;
   // The lab publishes no price for this service at all. Falling through to the
   // normal body would parade an "estimated total 0.00" the lab never promised.

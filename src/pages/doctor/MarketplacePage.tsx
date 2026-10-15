@@ -117,7 +117,7 @@ export function MarketplacePage({
   const { data: labs = [], isLoading, error } = useCatalogueLabs();
   const loaded = !isLoading && !error;
 
-  const materials = useMemo(() => buildMaterials(labs), [labs]);
+  const materials = useMemo(() => buildMaterials(labs, lang), [labs, lang]);
   const materialLabels = useMemo(
     () => new Map(materials.map((m) => [m.key, m.label])),
     [materials],

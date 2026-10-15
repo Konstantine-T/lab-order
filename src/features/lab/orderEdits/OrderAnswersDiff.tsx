@@ -26,6 +26,7 @@ import {
   sectionsForTemplate,
   type ChangedItem,
 } from '@/features/lab/orderEdits/answerSections';
+import { fieldText, useUiLang } from '@/features/lab/labText';
 import { radii, surfaces } from '@/theme/tokens';
 import type { FieldConfig, FormConfiguration, PricingConfig } from '@/types/database';
 
@@ -107,9 +108,21 @@ function ChangedSummary({
  */
 export function OrderAnswersDiff(props: Props) {
   const { configuration, before, after } = props;
+  const lang = useUiLang();
   const items = useMemo(
-    () => changedItems(configuration, before, after),
-    [configuration, before, after],
+    () =>
+      changedItems(
+        // The lab's own questions named in the reader's language, where it
+        // translated them (labels only; the answers are compared as stored,
+        // and questions are marked by code, never by label).
+        {
+          ...configuration,
+          fields: configuration.fields.map((f) => ({ ...f, label: fieldText(f, 'label', lang) })),
+        },
+        before,
+        after,
+      ),
+    [configuration, before, after, lang],
   );
   // A fresh body, and so a fresh record of which marks were drawn and whether
   // the previous version is open, whenever the set of changes is a new one.
@@ -331,13 +344,14 @@ function PlainQuestion({
   after: unknown;
 }) {
   const { t } = useTranslation('lab');
+  const lang = useUiLang();
   if (valuesEqual(before, after)) {
     return <FieldRenderer field={field} value={after} onChange={noop} readOnly />;
   }
   return (
     <ChangedFrame
       markId={questionMarkId(field.code)}
-      ariaLabel={`${field.label}: ${t('orderSheet.diff.changed')}`}
+      ariaLabel={`${fieldText(field, 'label', lang)}: ${t('orderSheet.diff.changed')}`}
     >
       <Stack spacing={1.25}>
         <Box>

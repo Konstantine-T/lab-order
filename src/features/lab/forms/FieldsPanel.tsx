@@ -444,6 +444,8 @@ function FieldPreview({ field }: { field: FieldConfig }) {
           value={undefined}
           onChange={() => {}}
           readOnly
+          // The lab is editing the base wording right above this preview.
+          baseText
         />
       );
   }

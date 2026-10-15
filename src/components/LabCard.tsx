@@ -3,7 +3,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design/Icon';
 import { StatusPill } from '@/components/design/StatusPill';
-import { useLabText } from '@/features/lab/labText';
+import { pickText, useLabText } from '@/features/lab/labText';
 import { pickPriceList, priceListUrl } from '@/features/lab/priceList/priceListApi';
 import {
   featuredService,
@@ -104,7 +104,9 @@ export function LabCard({
   const name = labText(lab, 'public_name');
   const description = labText(lab, 'short_description');
   const priceList = pickPriceList(lab.price_lists, lang);
-  const featured = featuredService(lab, isHighlighted, materials);
+  // A service's name in the reader's language (0042), else the lab's own.
+  const serviceName = (x: CatalogueService) => pickText(x.name, x.translations, 'name', lang);
+  const featured = featuredService(lab, isHighlighted, materials, lang);
   const featuredPrice = featured ? priceLabel(featured.price, t) : null;
   // The order button opens the lab's services to pick from, never the
   // featured one: that price is information, not a pre-chosen order.
@@ -229,7 +231,7 @@ export function LabCard({
           {chips.length > 0 && (
             <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.75, minWidth: 0 }}>
               {chips.map((x) => {
-                const price = priceLabel(shownPrice(x, materials), t);
+                const price = priceLabel(shownPrice(x, materials, lang), t);
                 return (
                   <Box
                     key={x.id}
@@ -255,7 +257,7 @@ export function LabCard({
                       component="span"
                       sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                     >
-                      {x.name}
+                      {serviceName(x)}
                     </Box>
                     {price && (
                       <Box
@@ -363,7 +365,7 @@ export function LabCard({
                     overflow: 'hidden',
                   }}
                 >
-                  {featured.service.name}
+                  {serviceName(featured.service)}
                 </Typography>
                 {/* Its own line, so a long service name can never clip it. */}
                 {featured.price.material && (

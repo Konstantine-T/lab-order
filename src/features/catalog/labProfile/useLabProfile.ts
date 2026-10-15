@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { SERVICE_PRICE_EMBED, type ServicePriceEmbed } from '@/features/catalog/servicePrice';
 import { serviceCategory, type ServiceCategory } from '@/features/catalog/serviceCategory';
+import { pickText } from '@/features/lab/labText';
 import type { LabRow } from '@/types/database';
 import { priceDisplay, rushOffer, type PriceDisplay, type RushOffer } from './priceDisplay';
 
@@ -28,13 +29,19 @@ export type ProfileLab = Pick<
   | 'price_lists'
 >;
 
-/** One row of the services table. */
+/**
+ * One row of the services table. `name` / `description` / `turnaroundLabel`
+ * are the base text here; `localizeProfileServices` swaps in the reader's
+ * language (0042) before the page renders them.
+ */
 export type ProfileService = {
   id: string;
   name: string;
   description: string | null;
   turnaroundDays: number | null;
   turnaroundLabel: string | null;
+  /** `lab_services.translations` (0042). */
+  translations: unknown;
   templateCode: string | null;
   category: ServiceCategory;
   /** The linked form is published: the order button works. */
@@ -49,6 +56,7 @@ type ServiceQueryRow = ServicePriceEmbed & {
   short_description: string | null;
   average_turnaround_days: number | null;
   average_turnaround_label: string | null;
+  translations?: unknown;
 };
 
 function toProfileService(row: ServiceQueryRow): ProfileService {
@@ -64,6 +72,7 @@ function toProfileService(row: ServiceQueryRow): ProfileService {
         ? row.average_turnaround_days
         : null,
     turnaroundLabel: row.average_turnaround_label?.trim() || null,
+    translations: row.translations ?? null,
     templateCode,
     category: serviceCategory(templateCode),
     orderable,
@@ -72,6 +81,31 @@ function toProfileService(row: ServiceQueryRow): ProfileService {
     // published version is the one the order form will price from.
     rush: orderable ? rushOffer(pricing) : null,
   };
+}
+
+/**
+ * The services with their text in `lang`: the lab's translation where it wrote
+ * one, else the base (`pickText`'s rule), so nothing ever renders blank.
+ */
+export function localizeProfileServices(
+  services: ProfileService[],
+  lang: string,
+): ProfileService[] {
+  return services.map((s) => ({
+    ...s,
+    name: pickText(s.name, s.translations, 'name', lang),
+    description: pickText(s.description, s.translations, 'short_description', lang) || null,
+    turnaroundLabel:
+      pickText(s.turnaroundLabel, s.translations, 'average_turnaround_label', lang) || null,
+    // A described price is the lab's prose too (the version's pricing JSON).
+    price:
+      s.price.kind === 'described'
+        ? {
+            ...s.price,
+            text: pickText(s.price.text, s.price.translations, 'price_description', lang).trim(),
+          }
+        : s.price,
+  }));
 }
 
 /** The approved, live lab — null when it isn't (or doesn't exist). */
@@ -107,7 +141,7 @@ export function useProfileServices(labId: string | undefined) {
         .from('lab_services')
         .select(
           `id, name, short_description, average_turnaround_days, average_turnaround_label,
-           ${SERVICE_PRICE_EMBED}`,
+           translations, ${SERVICE_PRICE_EMBED}`,
         )
         .eq('lab_id', labId!)
         .eq('is_active', true)

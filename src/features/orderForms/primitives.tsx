@@ -22,6 +22,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
 import { FieldRenderer } from '@/components/DynamicForm';
+import { fieldText, useUiLang } from '@/features/lab/labText';
 import type { FieldConfig } from '@/types/database';
 import { brand, motion, palette2026, radii, surfaces, tone } from '@/theme/tokens';
 import {
@@ -642,6 +643,7 @@ function CustomQuestionSection({
   error?: string;
 }) {
   const { t } = useTranslation('lab');
+  const lang = useUiLang();
   const marks = useContext(ChangeMarksContext);
   const chrome = useContext(SectionChromeContext);
   const before =
@@ -650,7 +652,7 @@ function CustomQuestionSection({
   return (
     <NumberedSection
       number={number}
-      label={`${f.label}${f.required ? ' *' : ''}`}
+      label={`${fieldText(f, 'label', lang)}${f.required ? ' *' : ''}`}
       // Exact, and the same emptiness rule `validateFormAnswers` applies.
       done={isAnswered(values[f.code])}
       changeKey={f.code}

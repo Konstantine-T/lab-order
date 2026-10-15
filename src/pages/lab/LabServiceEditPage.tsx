@@ -35,6 +35,14 @@ import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { templateName } from '@/features/lab/forms/templateLabels';
 import { isPricingComplete, pricingIssues } from '@/utils/pricing';
 import { pricingIssueMessage } from '@/features/lab/forms/pricingIssueMessages';
+import { ServiceTranslationsPanel } from '@/features/lab/services/ServiceTranslationsPanel';
+import {
+  cleanConfigTranslations,
+  cleanPricingTranslations,
+  cleanServiceTranslations,
+  serviceNameTooShort,
+} from '@/features/lab/services/serviceTranslationsModel';
+import { classifyLabProfileError } from '@/features/lab/labProfileErrors';
 import {
   customQuestionIssues,
   customQuestionIssueMessage,
@@ -44,11 +52,12 @@ import type {
   LabFormRow,
   LabFormVersionRow,
   LabServiceRow,
+  LabServiceTranslations,
   PlatformFormTemplateRow,
   PricingConfig,
 } from '@/types/database';
 
-type CustomizeTab = 'fields' | 'pricing' | 'preview';
+type CustomizeTab = 'fields' | 'pricing' | 'preview' | 'translations';
 
 function parsePositiveInt(s: string | undefined | null): number | undefined {
   if (!s) return undefined;
@@ -73,6 +82,9 @@ export function LabServiceEditPage() {
 
   const [config, setConfig] = useState<FormConfiguration | null>(null);
   const [pricing, setPricing] = useState<PricingConfig | null>(null);
+  // The service's own translations (0042), edited on the Translations tab and
+  // written by the same Save as everything else.
+  const [serviceTr, setServiceTr] = useState<LabServiceTranslations>({});
   const [tab, setTab] = useState<CustomizeTab>('fields');
   const [previewValues, setPreviewValues] = useState<Record<string, unknown>>({});
   const [success, setSuccess] = useState<string | null>(null);
@@ -147,6 +159,7 @@ export function LabServiceEditPage() {
       cover_image_url: service.cover_image_url ?? '',
       is_active: service.is_active,
     });
+    setServiceTr(cleanServiceTranslations(service.translations ?? {}));
   }, [service, methods]);
 
   useEffect(() => {
@@ -160,13 +173,42 @@ export function LabServiceEditPage() {
       if (!service || !form || !config || !pricing) throw new Error('Not loaded');
       const valid = await methods.trigger();
       if (!valid) throw new Error('Fix errors in the service basics');
+      if (serviceNameTooShort(serviceTr).length > 0) {
+        setTab('translations');
+        throw new Error(t('services.translations.nameTooShort'));
+      }
       const basics = methods.getValues();
+      // Blank translations are dropped, so an untouched language stores
+      // nothing and an untranslated service saves exactly what it did before.
+      const configToSave = cleanConfigTranslations(config);
+      const pricingToSave = cleanPricingTranslations(pricing);
 
       const { error: e1 } = await supabase
         .from('lab_services')
         .update(basicsToRow(basics))
         .eq('id', service.id);
       if (e1) throw e1;
+
+      // Only through its RPC (a trigger refuses a direct write), and only when
+      // the lab changed it.
+      const nextTr = cleanServiceTranslations(serviceTr);
+      if (
+        JSON.stringify(nextTr) !==
+        JSON.stringify(cleanServiceTranslations(service.translations ?? {}))
+      ) {
+        const { error: eTr } = await supabase.rpc('set_lab_service_translations', {
+          p_service_id: service.id,
+          p_translations: nextTr,
+        });
+        if (eTr) {
+          const kind = classifyLabProfileError(eTr);
+          throw new Error(
+            kind === 'invalid' || kind === 'network' || kind === 'reload'
+              ? t(`profile.errors.${kind}`)
+              : t('services.translations.saveFailed'),
+          );
+        }
+      }
 
       const targetStatus = publish === true
         ? 'PUBLISHED'
@@ -177,8 +219,8 @@ export function LabServiceEditPage() {
       if (targetStatus === 'PUBLISHED') {
         const { error: e2 } = await supabase.rpc('publish_lab_form', {
           p_form_id: form.id,
-          p_configuration: config,
-          p_pricing: pricing,
+          p_configuration: configToSave,
+          p_pricing: pricingToSave,
         });
         if (e2) throw e2;
       } else {
@@ -196,8 +238,8 @@ export function LabServiceEditPage() {
           .insert({
             lab_form_id: form.id,
             version_number: nextVersion,
-            configuration_json: config,
-            pricing_configuration_json: pricing,
+            configuration_json: configToSave,
+            pricing_configuration_json: pricingToSave,
             status: 'DRAFT',
           })
           .select()
@@ -211,7 +253,9 @@ export function LabServiceEditPage() {
       }
     },
     onSuccess: () => {
-      setSuccess(t('services.edit.saveSuccess'));
+      setSuccess(
+        tab === 'translations' ? t('services.translations.saved') : t('services.edit.saveSuccess'),
+      );
       qc.invalidateQueries({ queryKey: ['lab-service', serviceId] });
       qc.invalidateQueries({ queryKey: ['lab-form-by-service'] });
       qc.invalidateQueries({ queryKey: ['lab-form-version'] });
@@ -294,10 +338,18 @@ export function LabServiceEditPage() {
       {canShowCustomize && config && pricing && (
         <SectionCard icon="tune" title={t('services.edit.customize')}>
             <Stack spacing={2}>
-              <Tabs value={tab} onChange={(_, v: CustomizeTab) => setTab(v)}>
+              {/* Scrollable: four tabs do not fit a phone in every language. */}
+              <Tabs
+                value={tab}
+                onChange={(_, v: CustomizeTab) => setTab(v)}
+                variant="scrollable"
+                scrollButtons="auto"
+                allowScrollButtonsMobile
+              >
                 <Tab value="fields" label={t('forms.editor.tabs.fields')} />
                 <Tab value="pricing" label={t('forms.editor.tabs.pricing')} />
                 <Tab value="preview" label={t('forms.editor.tabs.preview')} />
+                <Tab value="translations" label={t('services.translations.tab')} />
               </Tabs>
               {tab === 'fields' && <FieldsPanel config={config} onChange={setConfig} />}
               {tab === 'pricing' && (
@@ -321,6 +373,22 @@ export function LabServiceEditPage() {
                   />
                   <PriceBreakdown pricing={pricing} answers={previewValues} />
                 </Stack>
+              )}
+              {tab === 'translations' && (
+                <ServiceTranslationsPanel
+                  base={{
+                    name: methods.watch('name') ?? '',
+                    short_description: methods.watch('short_description') ?? '',
+                    // Not edited from the UI any more, but still shown where set.
+                    average_turnaround_label: service.average_turnaround_label ?? '',
+                  }}
+                  draft={{ service: serviceTr, config, pricing }}
+                  onChange={(next) => {
+                    setServiceTr(next.service);
+                    setConfig(next.config);
+                    setPricing(next.pricing);
+                  }}
+                />
               )}
             </Stack>
         </SectionCard>

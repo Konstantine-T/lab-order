@@ -3,6 +3,7 @@ import { isModelTemplateCode } from '@/features/orderForms/modelTypes';
 import { SG_SUPPORT_TYPES } from '@/features/orderForms/sgTypes';
 import { TEMPLATE_CODE_PRINT } from '@/features/orderForms/fabTypes';
 import { isImplantTemplate } from '@/features/orderForms/implantTypes';
+import { localizeMaterials, priceDescription } from '@/features/lab/labText';
 
 export type PriceLineItem = {
   label: string;
@@ -109,6 +110,13 @@ export function calculatePrice(
   pricing: PricingConfig | undefined,
   answers: Record<string, unknown>,
   rushOverride?: { type: RushType; value: number },
+  /**
+   * The reader's language, for the lab-authored text in the result: material
+   * names on line items and a LAB_DESCRIBED description (their `translations`,
+   * else the lab's own wording). Labels only — every price is still looked up
+   * by material id, so the numbers are the same in every language.
+   */
+  lang = '',
 ): PriceResult {
   if (!pricing) return { kind: 'CALCULATED', subtotal: 0, rushAmount: 0, total: 0, lineItems: [] };
 
@@ -121,7 +129,7 @@ export function calculatePrice(
   if (pricing.model === 'LAB_DESCRIBED') {
     return {
       kind: 'DESCRIBED',
-      description: pricing.price_description?.trim() ?? '',
+      description: priceDescription(pricing, lang).trim(),
       subtotal: 0,
       rushAmount: 0,
       total: 0,
@@ -164,8 +172,9 @@ export function calculatePrice(
       const priceById = new Map<string, number>(
         materials.map((m) => [m.id, m.unit_price ?? 0]),
       );
+      // Display names only; `priceById` above is what the sum reads.
       const nameById = new Map<string, string>(
-        materials.map((m) => [m.id, m.name]),
+        localizeMaterials(materials, lang).map((m) => [m.id, m.name]),
       );
       // Aggregate by material id
       const matCount = new Map<string, number>();
@@ -204,7 +213,8 @@ export function calculatePrice(
           : 0;
       subtotal = unitPrice * qty;
       if (subtotal > 0 && mat) {
-        lineItems.push({ label: mat.name, qty, unitAmount: unitPrice, amount: subtotal });
+        const [shown] = localizeMaterials([mat], lang);
+        lineItems.push({ label: shown.name, qty, unitAmount: unitPrice, amount: subtotal });
       }
     } else if (shape === 'surgicalGuide') {
       // Surgical Guide: protocol unit price × implant count + support type fees.
@@ -255,7 +265,7 @@ export function calculatePrice(
       const cfg = pricing.implant_price_config ?? {};
       const crownMats = pricing.implant_crown_materials ?? [];
       const crownMatById = new Map(crownMats.map((m) => [m.id, m.unit_price ?? 0]));
-      const crownNameById = new Map(crownMats.map((m) => [m.id, m.name]));
+      const crownNameById = new Map(localizeMaterials(crownMats, lang).map((m) => [m.id, m.name]));
 
       const a = answers as {
         implantPositions?: number[];

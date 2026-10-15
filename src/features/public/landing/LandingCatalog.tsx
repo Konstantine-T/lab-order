@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { PUBLIC_ROUTES } from '@/features/public/publicRoutes';
 import { initialsOf, lift, motion, palette2026, radii } from '@/theme/tokens';
 import { formatGELShort } from '@/utils/pricing';
-import { useLabText } from '@/features/lab/labText';
+import { pickText, useLabText } from '@/features/lab/labText';
 import { useLandingLabs, type LandingLab } from './useLandingLabs';
 import { ArrowLink, Container, SectionHead } from './primitives';
 import { landingRadii, useLandingTones } from './helpers';
@@ -107,7 +107,7 @@ function LabCard({ lab }: { lab: LandingLab }) {
   const { t: td } = useTranslation('doctor');
   const tones = useLandingTones();
   // The lab's own translation of its name, when it has one (0037).
-  const { labText } = useLabText();
+  const { labText, lang } = useLabText();
   const name = labText(lab, 'public_name');
 
   // The same "2–5 days" the marketplace's own cards print.
@@ -181,7 +181,7 @@ function LabCard({ lab }: { lab: LandingLab }) {
                 component="span"
                 sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
               >
-                {s.name}
+                {pickText(s.name, s.translations, 'name', lang)}
               </Box>
               {/* Always "from": it is the lowest price the service lists,
                   whatever it is per (tooth, jaw, implant or order). */}

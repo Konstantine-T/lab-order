@@ -16,6 +16,7 @@ import {
 import { MobilePriceBar } from '@/components/MobilePriceBar';
 import { Callout, Icon, SplitLayout } from '@/components/design';
 import { calculatePrice } from '@/utils/pricing';
+import { pickText } from '@/features/lab/labText';
 import { layout, palette2026, radii, surfaces } from '@/theme/tokens';
 import type {
   DoctorWorkLocationRow,
@@ -777,7 +778,8 @@ export function OrderCreateWizard({
             ? {
                 name: lab.public_name,
                 translations: lab.public_translations,
-                service: selectedService.name,
+                // The lab's own wording in the reader's language (0042).
+                service: pickText(selectedService.name, selectedService.translations, 'name', lang),
               }
             : undefined
         }
@@ -916,7 +918,7 @@ export function OrderCreateWizard({
                       <Icon name="category" size={15} />
                     </SectionBadge>
                   }
-                  title={selectedService.name}
+                  title={pickText(selectedService.name, selectedService.translations, 'name', lang)}
                 >
                   <Typography
                     sx={{
@@ -926,7 +928,12 @@ export function OrderCreateWizard({
                       lineHeight: 1.6,
                     }}
                   >
-                    {selectedService.short_description}
+                    {pickText(
+                      selectedService.short_description,
+                      selectedService.translations,
+                      'short_description',
+                      lang,
+                    )}
                   </Typography>
                 </SectionCardShell>
               )}

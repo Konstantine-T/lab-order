@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ToothMap, toDisplayLabel } from '@/components/ToothMap';
 import { Icon, CopyAdornment } from '@/components/design';
 import { calculatePrice, formatGELShort } from '@/utils/pricing';
+import { localizeMaterials, useUiLang } from '@/features/lab/labText';
 import { brand, motion, palette2026, radii, surfaces, tone } from '@/theme/tokens';
 import { ErrorHelper } from './primitives';
 import {
@@ -49,7 +50,7 @@ const NOTATIONS: readonly CnbNotation[] = ['Universal', 'FDI'];
 const NO_TEETH: number[] = [];
 
 export function TreatmentBuilder({
-  materials,
+  materials: baseMaterials,
   toothAssignments,
   notation,
   notes,
@@ -68,6 +69,11 @@ export function TreatmentBuilder({
   const theme = useTheme();
   const mode = theme.palette.mode;
   const aqua = tone('success', mode);
+
+  // The lab's material names in the reader's language (display only: ids and
+  // prices are untouched, so the pills select and price exactly as before).
+  const lang = useUiLang();
+  const materials = useMemo(() => localizeMaterials(baseMaterials, lang), [baseMaterials, lang]);
 
   const materialById = useMemo(
     () => new Map(materials.map((m, i) => [m.id, { ...m, color: materialColor(i) }])),

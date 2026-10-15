@@ -16,6 +16,7 @@ import { ShadePicker } from './ShadePicker';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import { CopyAdornment } from './design';
 import dayjs from 'dayjs';
+import { fieldText, optionLabels, useUiLang } from '@/features/lab/labText';
 import type { FieldConfig, FormConfiguration } from '@/types/database';
 
 const MATERIAL_OPTIONS = ['Standard zirconia', 'Premium zirconia', 'PMMA', 'E.max', 'Other'];
@@ -60,6 +61,7 @@ export function FieldRenderer({
   error,
   readOnly,
   hideLabel,
+  baseText,
 }: {
   field: FieldConfig;
   value: unknown;
@@ -72,8 +74,21 @@ export function FieldRenderer({
    * helper_text stays: that really is secondary.
    */
   hideLabel?: boolean;
+  /**
+   * Show the lab's own wording, not its translation for the reader's
+   * language. For the editor's per-question preview, beside the base text the
+   * lab is typing.
+   */
+  baseText?: boolean;
 }) {
-  const helper = error ?? field.helper_text;
+  // A lab-authored question's text in the reader's language, else the lab's
+  // own (`field.translations`). Options are translated for display only: the
+  // value picked and stored is always the base option.
+  const lang = useUiLang();
+  const textLang = baseText ? '' : lang;
+  const fieldLabel = fieldText(field, 'label', textLang);
+  const shownOptions = optionLabels(field, textLang);
+  const helper = error ?? (fieldText(field, 'helper_text', textLang) || undefined);
   // One place to decide, so a new branch can't quietly keep its label.
   const labelOf = (text: string) => (hideLabel ? undefined : text);
   // Free-text answers are the ones worth copying out of a read-only order.
@@ -84,7 +99,7 @@ export function FieldRenderer({
     case 'text':
       return (
         <TextField
-          label={labelOf(`${field.label}${field.required ? ' *' : ''}`)}
+          label={labelOf(`${fieldLabel}${field.required ? ' *' : ''}`)}
           value={(value as string) ?? ''}
           onChange={(e) => onChange(e.target.value)}
           helperText={helper}
@@ -97,7 +112,7 @@ export function FieldRenderer({
     case 'textarea':
       return (
         <TextField
-          label={labelOf(`${field.label}${field.required ? ' *' : ''}`)}
+          label={labelOf(`${fieldLabel}${field.required ? ' *' : ''}`)}
           value={(value as string) ?? ''}
           onChange={(e) => onChange(e.target.value)}
           helperText={helper}
@@ -111,7 +126,7 @@ export function FieldRenderer({
     case 'number':
       return (
         <TextField
-          label={labelOf(`${field.label}${field.required ? ' *' : ''}`)}
+          label={labelOf(`${fieldLabel}${field.required ? ' *' : ''}`)}
           type="number"
           value={(value as number) ?? ''}
           onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
@@ -123,7 +138,7 @@ export function FieldRenderer({
       );
     case 'select': {
       const options = field.options ?? [];
-      const label = `${field.label}${field.required ? ' *' : ''}`;
+      const label = `${fieldLabel}${field.required ? ' *' : ''}`;
       return (
         <FormControl fullWidth error={!!error}>
           {!hideLabel && <InputLabel>{label}</InputLabel>}
@@ -136,9 +151,9 @@ export function FieldRenderer({
             <MenuItem value="">
               <em>—</em>
             </MenuItem>
-            {options.map((opt) => (
+            {options.map((opt, i) => (
               <MenuItem key={opt} value={opt}>
-                {opt}
+                {shownOptions[i] ?? opt}
               </MenuItem>
             ))}
           </Select>
@@ -153,7 +168,7 @@ export function FieldRenderer({
           <Stack direction="row" alignItems="baseline" spacing={1}>
             {!hideLabel && (
               <Typography variant="subtitle2">
-                {field.label}
+                {fieldLabel}
                 {field.required ? ' *' : ''}
               </Typography>
             )}
@@ -174,7 +189,7 @@ export function FieldRenderer({
         </Stack>
       );
     case 'material_select': {
-      const label = `${field.label}${field.required ? ' *' : ''}`;
+      const label = `${fieldLabel}${field.required ? ' *' : ''}`;
       return (
         <FormControl fullWidth error={!!error}>
           {!hideLabel && <InputLabel>{label}</InputLabel>}
@@ -202,7 +217,7 @@ export function FieldRenderer({
         <Stack spacing={1}>
           {!hideLabel && (
             <Typography variant="subtitle2">
-              {field.label}
+              {fieldLabel}
               {field.required ? ' *' : ''}
             </Typography>
           )}
@@ -231,17 +246,17 @@ export function FieldRenderer({
         <Stack spacing={1}>
           {!hideLabel && (
             <Typography variant="subtitle2">
-              {field.label}
+              {fieldLabel}
               {field.required ? ' *' : ''}
             </Typography>
           )}
           <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
-            {options.map((opt) => {
+            {options.map((opt, i) => {
               const isSel = selected.includes(opt);
               return (
                 <Chip
                   key={opt}
-                  label={opt}
+                  label={shownOptions[i] ?? opt}
                   color={isSel ? 'primary' : 'default'}
                   variant={isSel ? 'filled' : 'outlined'}
                   onClick={readOnly ? undefined : () => toggle(opt)}
@@ -269,13 +284,13 @@ export function FieldRenderer({
               disabled={readOnly}
             />
           }
-          label={labelOf(field.label)}
+          label={labelOf(fieldLabel)}
         />
       );
     case 'date':
       return (
         <DatePicker
-          label={labelOf(`${field.label}${field.required ? ' *' : ''}`)}
+          label={labelOf(`${fieldLabel}${field.required ? ' *' : ''}`)}
           value={value ? dayjs(value as string) : null}
           onChange={(d) => onChange(d ? d.format('YYYY-MM-DD') : null)}
           readOnly={!!readOnly}
@@ -287,7 +302,7 @@ export function FieldRenderer({
     default:
       return (
         <TextField
-          label={labelOf(`${field.label}${field.required ? ' *' : ''}`)}
+          label={labelOf(`${fieldLabel}${field.required ? ' *' : ''}`)}
           value={(value as string) ?? ''}
           onChange={(e) => onChange(e.target.value)}
           helperText={helper}

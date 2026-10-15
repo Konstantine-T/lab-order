@@ -11,7 +11,9 @@ import type { PricingConfig, RushType } from '@/types/database';
  *                 the figure is the cheapest of several (materials, implant
  *                 rates, print units…), so "145 ₾ / tooth" is only printed
  *                 when every one-tooth order really costs 145 ₾.
- *   described   — LAB_DESCRIBED: the lab's own prose, shown as written.
+ *   described   — LAB_DESCRIBED: the lab's own prose, shown as written
+ *                 (`translations` carries its other languages; see
+ *                 `localizeProfileServices`).
  *   noPricing   — NO_PRICING: the lab publishes no price at all.
  *   labConfirms — a structured model that still has no number to show (an
  *                 implant form without crown prices, a custom form).
@@ -20,7 +22,7 @@ import type { PricingConfig, RushType } from '@/types/database';
  */
 export type PriceDisplay =
   | { kind: 'amount'; amount: number; per: StartingPrice['per']; from: boolean }
-  | { kind: 'described'; text: string }
+  | { kind: 'described'; text: string; translations?: unknown }
   | { kind: 'noPricing' }
   | { kind: 'labConfirms' }
   | { kind: 'unavailable' };
@@ -41,7 +43,9 @@ export function priceDisplay(
   }
   if (pricing.model === 'LAB_DESCRIBED') {
     const text = pricing.price_description?.trim();
-    return text ? { kind: 'described', text } : { kind: 'labConfirms' };
+    return text
+      ? { kind: 'described', text, translations: pricing.translations }
+      : { kind: 'labConfirms' };
   }
   if (pricing.model === 'NO_PRICING') return { kind: 'noPricing' };
   return { kind: 'labConfirms' };

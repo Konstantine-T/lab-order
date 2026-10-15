@@ -1,5 +1,5 @@
 import type { MaterialOption, PricingConfig } from '@/types/database';
-import { labNames } from '@/features/lab/labText';
+import { labNames, pickText, serviceNames } from '@/features/lab/labText';
 import { TEMPLATE_CODE_PRINT } from '@/features/orderForms/fabTypes';
 import {
   SERVICE_PRICE_EMBED,
@@ -26,7 +26,7 @@ export const CATALOGUE_SELECT = `
   id, public_name, city, working_address, short_description, logo_url, created_at,
   public_translations, price_lists,
   lab_services (
-    id, name, is_active, sort_order, created_at, average_turnaround_days,
+    id, name, translations, is_active, sort_order, created_at, average_turnaround_days,
     ${SERVICE_PRICE_EMBED}
   )
 `;
@@ -34,6 +34,8 @@ export const CATALOGUE_SELECT = `
 type ServiceRow = ServicePriceEmbed & {
   id: string;
   name: string;
+  /** `lab_services.translations` (0042); read through `pickText`. */
+  translations?: unknown;
   is_active: boolean;
   sort_order: number | null;
   created_at: string | null;
@@ -64,7 +66,9 @@ export type CatalogueRush = {
 
 export type CatalogueService = {
   id: string;
+  /** The base name; show it through `pickText(name, translations, 'name', lang)`. */
   name: string;
+  translations: unknown;
   category: ServiceCategory;
   /** Its form is published: the doctor can order it right now. */
   orderable: boolean;
@@ -77,6 +81,8 @@ export type CatalogueService = {
   rush: CatalogueRush | null;
   /** Material names as the lab spelled them (trimmed, single-spaced). */
   materialNames: string[];
+  /** Each one's `translations`, by the same index — see `materialLabel`. */
+  materialTranslations: unknown[];
   /** The same materials as `materialKey`s, for the filter. */
   materials: string[];
   /**
@@ -161,26 +167,36 @@ export function materialKey(name: string): string {
 function materialNamesOf(
   pricing: PricingConfig | null | undefined,
   templateCode: string | null | undefined,
-): string[] {
-  if (!pricing) return [];
-  const raw: unknown[] = [];
+): { names: string[]; translations: unknown[] } {
+  const out = { names: [] as string[], translations: [] as unknown[] };
+  if (!pricing) return out;
+  const raw: (MaterialOption | undefined)[] = [];
   if (templateCode && MATERIAL_FILTER_CODES.has(templateCode) && Array.isArray(pricing.materials)) {
-    raw.push(...pricing.materials.map((m) => m?.name));
+    raw.push(...pricing.materials);
   }
   if (Array.isArray(pricing.implant_crown_materials)) {
-    raw.push(...pricing.implant_crown_materials.map((m) => m?.name));
+    raw.push(...pricing.implant_crown_materials);
   }
   const seen = new Set<string>();
-  const out: string[] = [];
-  for (const r of raw) {
-    if (typeof r !== 'string') continue;
-    const name = tidy(r);
+  for (const m of raw) {
+    if (typeof m?.name !== 'string') continue;
+    const name = tidy(m.name);
     const key = materialKey(name);
     if (!key || seen.has(key)) continue;
     seen.add(key);
-    out.push(name);
+    out.names.push(name);
+    out.translations.push(m.translations);
   }
   return out;
+}
+
+/**
+ * A material of `s` as the reader sees it: the lab's translation, else its
+ * own spelling. Display only — the filter keys (`materials`) stay the base
+ * names', so a link or a selection means the same material in every language.
+ */
+export function materialLabel(s: CatalogueService, i: number, lang: string): string {
+  return pickText(s.materialNames[i], s.materialTranslations[i], 'name', lang);
 }
 
 /**
@@ -257,10 +273,14 @@ function toService(row: ServiceRow): CatalogueService {
   // material — the same "published form" test as the profile's order button.
   const pricing = orderable ? row.form?.version?.pricing_configuration_json : null;
   const from = servicePrice(row);
-  const materialNames = materialNamesOf(pricing, code);
+  const { names: materialNames, translations: materialTranslations } = materialNamesOf(
+    pricing,
+    code,
+  );
   return {
     id: row.id,
     name: row.name.trim(),
+    translations: row.translations ?? null,
     category: serviceCategory(code),
     orderable,
     turnaroundDays: positive(row.average_turnaround_days),
@@ -268,6 +288,7 @@ function toService(row: ServiceRow): CatalogueService {
     exact: from !== null && priceIsExact(pricing, code),
     rush: rushOf(pricing),
     materialNames,
+    materialTranslations,
     materials: materialNames.map(materialKey),
     materialPrices: materialPricesOf(pricing, code),
   };
@@ -346,15 +367,21 @@ function pickLabel(variants: Variant[]): string {
   )[0].label;
 }
 
-/** Every material the labs' published forms list, merged, most-offered first. */
-export function buildMaterials(labs: CatalogueLab[]): MaterialChoice[] {
+/**
+ * Every material the labs' published forms list, merged, most-offered first.
+ * Merged by the base names' key; each chip is labelled in `lang` (the labs'
+ * translations, else their own spellings), so the same key reads in the
+ * reader's language while a selection survives a language switch.
+ */
+export function buildMaterials(labs: CatalogueLab[], lang = ''): MaterialChoice[] {
   const byKey = new Map<string, Map<string, Variant>>();
   const labsByKey = new Map<string, Set<string>>();
   for (const lab of labs) {
     for (const s of lab.services) {
       if (!s.orderable) continue;
-      s.materialNames.forEach((label, i) => {
+      s.materialNames.forEach((_, i) => {
         const key = s.materials[i];
+        const label = materialLabel(s, i, lang);
         const variants = byKey.get(key) ?? new Map<string, Variant>();
         byKey.set(key, variants);
         const v = variants.get(label) ?? { label, labs: new Set<string>(), services: 0 };
@@ -468,7 +495,7 @@ export function searchMatches(lab: CatalogueLab, query: string): boolean {
     labNames(lab).some((n) => n.toLocaleLowerCase().includes(q)) ||
     (lab.city ?? '').toLocaleLowerCase().includes(q) ||
     (lab.working_address ?? '').toLocaleLowerCase().includes(q) ||
-    lab.services.some((s) => s.name.toLocaleLowerCase().includes(q))
+    lab.services.some((s) => serviceNames(s).some((n) => n.toLocaleLowerCase().includes(q)))
   );
 }
 
@@ -552,7 +579,7 @@ export function rankLabs(
 /** A price as the card shows it, and — when it is one material's — which. */
 export type ShownPrice = StartingPrice & {
   exact: boolean;
-  /** The material as this lab spells it; null for the service's own "from". */
+  /** The material as this lab names it in `lang`; null for the service's own "from". */
   material: string | null;
 };
 
@@ -566,6 +593,7 @@ export type ShownPrice = StartingPrice & {
 export function shownPrice(
   s: CatalogueService,
   materials: readonly string[] = [],
+  lang = '',
 ): ShownPrice | null {
   const selected = s.materialPrices ? materials.filter((m) => s.materials.includes(m)) : [];
   if (selected.length) {
@@ -573,7 +601,8 @@ export function shownPrice(
     for (const key of selected) {
       const p = s.materialPrices?.[key];
       if (p && (!best || p.amount < best.amount)) {
-        best = { ...p, material: s.materialNames[s.materials.indexOf(key)] ?? null };
+        const i = s.materials.indexOf(key);
+        best = { ...p, material: i < 0 ? null : materialLabel(s, i, lang) };
       }
     }
     return best;
@@ -599,10 +628,11 @@ export function featuredService(
   lab: CatalogueLab,
   matches?: (s: CatalogueService) => boolean,
   materials: readonly string[] = [],
+  lang = '',
 ): FeaturedPrice | null {
   const priced = (list: CatalogueService[]) =>
     list.flatMap((service) => {
-      const price = shownPrice(service, materials);
+      const price = shownPrice(service, materials, lang);
       return price ? [{ service, price }] : [];
     });
   const cheapest = (list: FeaturedPrice[]) =>

@@ -14,6 +14,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
+import { dropOptionTranslation } from '@/features/lab/services/serviceTranslationsModel';
 import type { FieldConfig, FormConfiguration } from '@/types/database';
 
 /** Input types a lab can pick for a custom-form question. Each value maps 1:1
@@ -148,8 +149,12 @@ function QuestionCard({
   const setOption = (i: number, val: string) =>
     onUpdate({ options: options.map((o, idx) => (idx === i ? val : o)) });
   const addOption = () => onUpdate({ options: [...options, ''] });
+  // Option translations are matched by index, so they shift with the option.
   const removeOption = (i: number) =>
-    onUpdate({ options: options.filter((_, idx) => idx !== i) });
+    onUpdate({
+      options: options.filter((_, idx) => idx !== i),
+      translations: dropOptionTranslation(field.translations, i),
+    });
 
   return (
     <Box

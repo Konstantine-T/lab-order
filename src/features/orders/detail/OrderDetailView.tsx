@@ -3,6 +3,7 @@ import { Alert, AlertTitle, Box, Button } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useUiLang } from '@/features/lab/labText';
 import { Icon, SectionCard } from '@/components/design';
 import { OrderLineage } from '@/features/orders/OrderLineage';
 import { ClarificationPanel } from '@/features/orders/clarifications/ClarificationPanel';
@@ -174,6 +175,7 @@ export function OrderDetailView({
   children,
 }: OrderDetailViewProps) {
   const { t } = useTranslation('doctor');
+  const lang = useUiLang();
 
   const ordersTo = `${basePath}/orders`;
   const editTo = `${ordersTo}/${order.id}/edit`;
@@ -182,9 +184,9 @@ export function OrderDetailView({
   const facts = useMemo(
     () =>
       version
-        ? orderFacts(version.configuration_json, version.pricing_configuration_json, answers)
+        ? orderFacts(version.configuration_json, version.pricing_configuration_json, answers, lang)
         : null,
-    [version, answers],
+    [version, answers, lang],
   );
 
   return (

@@ -20,7 +20,7 @@ export type LandingLab = {
   /** From active services' `average_turnaround_days` (> 0); null when none says. */
   turnaround: { min: number; max: number } | null;
   /** Up to three active services that publish a number, in the lab's own order. */
-  services: { id: string; name: string; from: StartingPrice }[];
+  services: { id: string; name: string; translations: unknown; from: StartingPrice }[];
 };
 
 /** How many priced services a landing card lists. */
@@ -35,7 +35,7 @@ const SERVICES_PER_CARD = 3;
 const SELECT = `
   id, public_name, public_translations, city, logo_url,
   lab_services (
-    id, name, is_active, sort_order, created_at, average_turnaround_days,
+    id, name, translations, is_active, sort_order, created_at, average_turnaround_days,
     ${SERVICE_PRICE_EMBED}
   )
 `;
@@ -43,6 +43,8 @@ const SELECT = `
 type ServiceRow = ServicePriceEmbed & {
   id: string;
   name: string;
+  /** `lab_services.translations` (0042); shown through `pickText`. */
+  translations?: unknown;
   is_active: boolean;
   sort_order: number | null;
   created_at: string | null;
@@ -77,7 +79,9 @@ function toLandingLab(row: LabQueryRow): { lab: LandingLab; pricedCount: number 
   // Only a service a doctor can order right now advertises a price.
   const priced = active.flatMap((s) => {
     const from = servicePrice(s);
-    return from ? [{ id: s.id, name: s.name.trim(), from }] : [];
+    return from
+      ? [{ id: s.id, name: s.name.trim(), translations: s.translations ?? null, from }]
+      : [];
   });
 
   return {

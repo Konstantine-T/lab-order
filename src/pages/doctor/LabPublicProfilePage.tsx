@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Alert, Box, CircularProgress, Link, Stack, useMediaQuery, useTheme } from '@mui/material';
 import { Link as RouterLink, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -12,6 +12,7 @@ import { LabContactCard, LabOrderCard } from '@/features/catalog/labProfile/LabP
 import { serviceOrderHref } from '@/features/catalog/labProfile/orderLink';
 import { catalogueQuery } from '@/features/catalog/useCatalogueFilters';
 import {
+  localizeProfileServices,
   useProfileLab,
   useProfileServices,
 } from '@/features/catalog/labProfile/useLabProfile';
@@ -33,7 +34,7 @@ export function LabPublicProfilePage({
   const { labId } = useParams<{ labId: string }>();
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
-  const { labText } = useLabText();
+  const { labText, lang } = useLabText();
   const [searchParams] = useSearchParams();
   const { hash, key: locationKey } = useLocation();
   const theme = useTheme();
@@ -49,7 +50,12 @@ export function LabPublicProfilePage({
   const doctorParam = searchParams.get('doctor');
 
   const { data: lab, isLoading: labLoading } = useProfileLab(labId);
-  const { data: services = [], isLoading: servicesLoading } = useProfileServices(labId);
+  const { data: baseServices, isLoading: servicesLoading } = useProfileServices(labId);
+  // Every card below reads the services in the reader's language (0042).
+  const services = useMemo(
+    () => localizeProfileServices(baseServices ?? [], lang),
+    [baseServices, lang],
+  );
 
   const orderHref = useCallback(
     (serviceId: string) =>
