@@ -11,12 +11,13 @@
 | Build/host | Vite + `@vitejs/plugin-react`, TypeScript strict, deployed as static SPA on Vercel (`vercel.json` rewrites all paths → `/index.html`) |
 | UI | React 18 + MUI v5 (`@mui/material`, `@mui/x-date-pickers`). `@mui/x-data-grid` was removed (2026-10, unused); tables are the design system's `DataTable` |
 | Server state | TanStack React Query (single shared client in `src/lib/queryClient.ts`) |
+| Live updates | Supabase Realtime (2026-10, 0043): signed-in shells only; row events on published tables invalidate React Query keys (`src/features/notifications/liveQueries.ts`), plus a trigger-written `notifications` table behind the bell and toasts |
 | Backend | Supabase — Postgres, Auth, Storage, RLS; reached via `@supabase/supabase-js` singleton in `src/lib/supabase.ts` |
 | Forms | react-hook-form + zod (auth/profile/service-config only) — **not** the order forms |
 | i18n | react-i18next + i18next-browser-languagedetector, 8 namespaces × 3 langs, one lazily loaded bundle per language (`src/i18n/bundles/`), zod errors bridged via `src/lib/zod-i18n.ts` |
 | Dates | dayjs (locale-synced to i18n) |
 
-Only two runtime env vars exist, both `VITE_`-prefixed and client-exposed: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (`.env.example`). There is **no server/API layer** — the browser calls Postgres directly under the anon key; correctness and authorization depend entirely on RLS + RPCs. No test framework, no CI (`.github/` absent) despite docs referencing Vitest/Playwright.
+Only two runtime env vars exist, both `VITE_`-prefixed and client-exposed: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (`.env.example`). There is **no server/API layer** — the browser calls Postgres directly under the anon key (plus one Realtime WebSocket per signed-in tab, used only as a refetch signal and for the user's own notification rows); correctness and authorization depend entirely on RLS + RPCs. No test framework, no CI (`.github/` absent) despite docs referencing Vitest/Playwright.
 
 **Path alias:** `@/*` → `src/*` (mirrored in `tsconfig.app.json` and `vite.config.ts`).
 
@@ -46,7 +47,7 @@ Identity is rooted in Supabase `auth.users`; a `handle_new_user()` trigger fans 
 - `users` 1:1→ `doctor_profiles` 1:N→ `doctor_work_locations` (one default via partial unique index) and 1:N→ `patients` 1:N→ `patient_cases`.
 - `users` 1:N→ `labs` (approval lifecycle: `PENDING_APPROVAL` → `CHANGES_REQUESTED` / `APPROVED_ACTIVE` / `REJECTED` / `SUSPENDED`; marketplace-visible only when `APPROVED_ACTIVE && is_active`).
 - `labs` 1:N→ `lab_services` 1:N linked to `lab_forms` 1:N→ `lab_form_versions` (immutable, versioned; hold `configuration_json: FieldConfig[]` + `pricing_configuration_json: PricingConfig`). Forms seeded from `platform_form_templates`/`platform_template_fields`.
-- **`orders`** is the hub, referencing doctor, lab, work-location, patient, (optional) case, service, and form-version. Two self-refs: `parent_order_id` and `continues_order_id` (project lineage). Children: `order_answers` (EAV: one row per `(order_id, field_code)` with `answer_json`), `order_files` (`order-files` storage bucket, path `<lab_id>/<order_id>/<file>`), `order_edits` (audit log with pre-edit `snapshot_json`). `order_drafts` is one wizard draft per doctor.
+- **`orders`** is the hub, referencing doctor, lab, work-location, patient, (optional) case, service, and form-version. Two self-refs: `parent_order_id` and `continues_order_id` (project lineage). `orders.placed_by_user_id` (0043, trigger-stamped from `auth.uid()`) records who placed an order, so a clinic-placed order can be told from a doctor-placed one. Children: `order_answers` (EAV: one row per `(order_id, field_code)` with `answer_json`), `order_files` (`order-files` storage bucket, path `<lab_id>/<order_id>/<file>`), `order_edits` (audit log with pre-edit `snapshot_json`). `order_drafts` is one wizard draft per doctor.
 - Orders carry **denormalized JSONB snapshots** (`work_location_snapshot`, `lab_snapshot`, `service_snapshot`, `invoice_recipient_snapshot`, `doctor_snapshot`) captured at submit time, plus edit counters (`edit_count`, `has_unreviewed_edits`, `last_edited_at`). 10-value `order_status`; `COMPLETED`/`CANCELLED` are terminal.
 
 **RLS model:** helper fns `current_user_role()`, `current_doctor_id()`, `current_user_owns_lab()` keep policies one-line. Anon/authenticated read the marketplace (approved labs + active services + published forms). Doctors read/write their own rows and their own orders (non-terminal only). Lab owners read/write their catalog and read+update orders on their `lab_id` (non-terminal), plus read the patient and doctor-user rows their orders reference. `PLATFORM_ADMIN` has full read/update. **All order/answer/edit writes go through RPCs** (`submit_order`, `edit_order`, `find_matching_patient`, `publish_lab_form`) — there is no direct INSERT policy on orders. `CLINIC_ADMIN` exists in the enum but has **no policies and no provisioning** (dead).
@@ -82,6 +83,8 @@ Identity is rooted in Supabase `auth.users`; a `handle_new_user()` trigger fans 
 - **i18n**: every user string is a key. Namespaces are per-area: `common` (default), `auth`, `doctor`, `lab`, `admin`, `landing`, `errors` (zod). Keys must exist in all three locales — `npm run i18n:check` (`scripts/check-i18n-parity.mjs`) gates parity (but see §8).
 - **Theming**: consume tokens via MUI `sx`/theme, never ad-hoc hex; all tokens live in `src/theme/tokens.ts`.
 - **React Query**: array query keys scoped by id (`['lab-order', orderId]`, `['admin-labs', filter]`); direct `supabase.from()`/`.rpc()` in `queryFn`/`mutationFn`; `invalidateQueries` in `onSuccess`. Cross-side invalidation matters — `edit_order` success invalidates `lab-*` keys so lab dashboards refresh.
+- **Live data**: a new page's query key goes in `liveQueries.ts` (table → keys) so other users' changes reach it; never write a realtime payload into the cache. A form seeded from live data uses `useLiveFormSync` + `LiveUpdateBanner` so a refetch keeps what the user typed. Notifications are written only by triggers (`notify()`, 0043); the client only reads its own rows and calls `mark_notifications_read`.
+- **Lab copy in the reader's language**: `labs.public_translations` (0037) and `lab_services.translations` (0042, RPC `set_lab_service_translations` only) plus `translations` keys inside form-version JSON; read through `src/features/lab/labText.ts` (`pickText` etc.), base text as fallback, options translated by index for display only.
 - **Order integrity**: read historical data from `*_snapshot` JSON (coalescing live join name → snapshot fallback); write orders only via RPCs. Immutable form versions — edit a form by publishing a new version, never UPDATE.
 - **File layout**: pages in `src/pages/<role>/`, cross-cutting feature logic in `src/features/`, shared presentational components in `src/components/`, hand-written DB types in `src/types/database.ts`.
 
@@ -118,6 +121,7 @@ Identity is rooted in Supabase `auth.users`; a `handle_new_user()` trigger fans 
 | Doctor order-create feature | `src/features/doctor/orderCreate/` |
 | Shared order components | `src/features/orders/` |
 | Lab feature logic | `src/features/lab/` (`forms/`, `services/`, `orderEdits/`) |
+| Realtime, bell, toasts, dirty-form banner | `src/features/notifications/` (`RealtimeProvider`, `liveQueries.ts`, `NotificationBell`, `LiveSurfaces`) |
 | Dynamic order-forms engine | `src/features/orderForms/` (+ `src/components/DynamicForm.tsx`, `ToothMap.tsx`) |
 | Pricing | `src/utils/pricing.ts`, `src/components/PriceBreakdown.tsx` |
 | Supabase client | `src/lib/supabase.ts` |
