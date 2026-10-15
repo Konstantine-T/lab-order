@@ -1,6 +1,6 @@
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { Alert, Box, CircularProgress, Link, Stack, useMediaQuery, useTheme } from '@mui/material';
-import { Link as RouterLink, useParams, useSearchParams } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ActingDoctorChip } from '@/features/clinic/ActingDoctorChip';
 import { catalogPaths } from '@/features/public/publicRoutes';
@@ -35,6 +35,7 @@ export function LabPublicProfilePage({
   const { t: tc } = useTranslation('common');
   const { labText } = useLabText();
   const [searchParams] = useSearchParams();
+  const { hash, key: locationKey } = useLocation();
   const theme = useTheme();
   const wide = useMediaQuery(theme.breakpoints.up('lg'));
   const paths = catalogPaths(guest, basePath);
@@ -67,6 +68,18 @@ export function LabPublicProfilePage({
     el.closest('#lab-services')?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
     el.focus({ preventScroll: true });
   }, []);
+
+  // A catalogue card's order button lands here on `#lab-services`; React
+  // Router never scrolls to a hash, so do it once the list has rendered (the
+  // heading's ref is null behind the spinner). Once per arrival: keyed to the
+  // navigation, so a later refetch never yanks the page back.
+  const scrolledFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (hash !== '#lab-services' || labLoading || servicesLoading) return;
+    if (scrolledFor.current === locationKey) return;
+    scrolledFor.current = locationKey;
+    chooseService();
+  }, [hash, locationKey, labLoading, servicesLoading, chooseService]);
 
   if (labLoading) {
     return (

@@ -83,18 +83,12 @@ function LabTile({ lab, name }: { lab: CatalogueLab; name: string }) {
 export function LabCard({
   lab,
   profileTo,
-  orderHrefFor,
-  onOrderIntent,
   isHighlighted,
   materials = NO_MATERIALS,
 }: {
   lab: CatalogueLab;
   /** The lab's page, with whatever the URL must carry (the clinic's doctor). */
   profileTo: string;
-  /** The order form for one of the lab's services. */
-  orderHrefFor: (serviceId: string) => string;
-  /** Hover / focus / touch on the order button — the guest wizard warms up. */
-  onOrderIntent?: () => void;
   /** Services matching the active filters, listed first among the chips. */
   isHighlighted?: (s: CatalogueService) => boolean;
   /** The material filter's keys: prices are then the selected material's. */
@@ -112,11 +106,9 @@ export function LabCard({
   const priceList = pickPriceList(lab.price_lists, lang);
   const featured = featuredService(lab, isHighlighted, materials);
   const featuredPrice = featured ? priceLabel(featured.price, t) : null;
-  // "Crown · Zirconia" (for the order button's label) when the price is one
-  // material's, as the lab spells it.
-  const featuredName = featured
-    ? [featured.service.name, featured.price.material].filter(Boolean).join(' · ')
-    : null;
+  // The order button opens the lab's services to pick from, never the
+  // featured one: that price is information, not a pre-chosen order.
+  const orderable = lab.services.some((x) => x.orderable);
 
   const isNew =
     !!lab.created_at &&
@@ -424,15 +416,12 @@ export function LabCard({
               [WIDE]: { flexDirection: 'column', flexWrap: 'nowrap' },
             }}
           >
-            {featured && (
+            {orderable && (
               <Button
                 component={RouterLink}
-                to={orderHrefFor(featured.service.id)}
+                to={`${profileTo}#lab-services`}
                 variant="contained"
-                aria-label={t('marketplace.card.orderA11y', { service: featuredName, name })}
-                onPointerEnter={onOrderIntent}
-                onFocus={onOrderIntent}
-                onTouchStart={onOrderIntent}
+                aria-label={t('marketplace.card.orderA11y', { name })}
                 sx={{ ...above, flex: { xs: '1 1 140px' }, [WIDE]: { flex: 'none' } }}
               >
                 {t('labProfile.orderCta')}
@@ -441,7 +430,7 @@ export function LabCard({
             <Button
               component={RouterLink}
               to={profileTo}
-              variant={featured ? 'outlined' : 'contained'}
+              variant={orderable ? 'outlined' : 'contained'}
               aria-label={t('marketplace.card.profileA11y', { name })}
               // No ripple: with the button unpositioned (below), the ripple
               // layer would spread over the whole card.

@@ -84,7 +84,7 @@
       "turnaround": "ვადა",
       "rushAvailable": "სასწრაფო შესაძლებელია",
       "pricesOnProfile": "ფასები — ლაბორატორიის პროფილზე",
-      "orderA11y": "შეკვეთა — {{service}}, {{name}}",
+      "orderA11y": "სერვისის არჩევა: {{name}}",
       "profile": "პროფილი",
       "profileA11y": "{{name}} — პროფილი"
     }

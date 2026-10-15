@@ -7,7 +7,6 @@ import {
   servicePrice,
   type ServicePriceEmbed,
 } from './servicePrice';
-import { serviceOrderHref } from './labProfile/orderLink';
 import { CATEGORY_ORDER, serviceCategory, type ServiceCategory } from './serviceCategory';
 import type { StartingPrice } from '@/utils/pricing';
 
@@ -619,17 +618,4 @@ export function featuredService(
     );
   };
   return (matches ? pick(lab.services.filter(matches)) : null) ?? pick(lab.services);
-}
-
-/**
- * The order form for one service — the lab profile's own link builder, with
- * the clinic's acting doctor carried along.
- */
-export function orderHref(
-  orderNew: string,
-  labId: string,
-  serviceId: string,
-  doctor?: string | null,
-): string {
-  return serviceOrderHref(orderNew, labId, serviceId, { doctor });
 }

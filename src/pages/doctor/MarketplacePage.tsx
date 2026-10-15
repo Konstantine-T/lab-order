@@ -26,7 +26,6 @@ import {
   facetCounts,
   hasServiceFilters,
   labMatches,
-  orderHref,
   rankLabs,
   serviceMatches,
   type CatalogueFilters,
@@ -37,7 +36,6 @@ import { useCatalogueLabs } from '@/features/catalog/useCatalogueLabs';
 import { catalogueQuery, useCatalogueFilters } from '@/features/catalog/useCatalogueFilters';
 import { CatalogueFilterPanel, PanelLink } from '@/features/catalog/CatalogueFilterPanel';
 import { ActiveFilterChips } from '@/features/catalog/ActiveFilterChips';
-import { warmGuestWizard } from '@/features/catalog/warmGuestWizard';
 
 /** Where the pinned filter column sits: just under the page header band. */
 const SIDEBAR_TOP = layout.railTop + 8;
@@ -291,10 +289,6 @@ export function MarketplacePage({
                   key={lab.id}
                   lab={lab}
                   profileTo={`${paths.lab(lab.id)}${labQuery}`}
-                  orderHrefFor={(serviceId) =>
-                    orderHref(paths.orderNew, lab.id, serviceId, doctorParam || null)
-                  }
-                  onOrderIntent={guest ? warmGuestWizard : undefined}
                   isHighlighted={highlight}
                   materials={effective.materials}
                 />

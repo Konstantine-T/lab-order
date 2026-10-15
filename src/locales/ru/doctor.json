@@ -88,7 +88,7 @@
       "turnaround": "Срок",
       "rushAvailable": "Есть срочное",
       "pricesOnProfile": "Цены — в профиле лаборатории",
-      "orderA11y": "Заказать «{{service}}» — {{name}}",
+      "orderA11y": "Выбрать услугу: {{name}}",
       "profile": "Профиль",
       "profileA11y": "{{name}} — профиль"
     }

@@ -84,7 +84,7 @@
       "turnaround": "Turnaround",
       "rushAvailable": "Rush available",
       "pricesOnProfile": "Prices on the lab's profile",
-      "orderA11y": "Order {{service}} — {{name}}",
+      "orderA11y": "Choose a service from {{name}}",
       "profile": "Profile",
       "profileA11y": "{{name}} — profile"
     }
