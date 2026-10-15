@@ -177,6 +177,14 @@ begin
     -- Never trust a client-supplied value: who is signed in is the placer.
     new.placed_by_user_id := auth.uid();
   else
+    -- The FK's ON DELETE SET NULL arrives here as an ordinary UPDATE once the
+    -- placer's users row is already gone: let exactly that through, or the
+    -- freeze would put back an id that no longer exists and leave a dangling
+    -- reference (later double-updates of the row then fail with 23503).
+    if new.placed_by_user_id is null
+       and not exists (select 1 from public.users u where u.id = old.placed_by_user_id) then
+      return new;
+    end if;
     new.placed_by_user_id := old.placed_by_user_id;
   end if;
   return new;
@@ -1025,6 +1033,10 @@ end $$;
 --     where pubname = 'supabase_realtime' and schemaname = 'public'
 --       and tablename in ('notifications', 'orders', 'order_clarifications', 'order_files',
 --                         'labs', 'lab_services', 'lab_forms', 'clinic_doctor_invites', 'feedback');
+--   -- the placed_by freeze still lets ON DELETE SET NULL through (no dangling ids):
+--   select not exists (select 1 from public.orders o
+--                       where o.placed_by_user_id is not null
+--                         and not exists (select 1 from public.users u where u.id = o.placed_by_user_id));
 --
 --   -- A notification bug never rolls back the write (run in a transaction):
 --   --   begin;

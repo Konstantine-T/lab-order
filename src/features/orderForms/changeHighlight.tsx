@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { alpha, Box, useTheme, type SxProps, type Theme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { StatusPill } from '@/components/design';
-import { radii, tone } from '@/theme/tokens';
+import { layout, radii, tone } from '@/theme/tokens';
 
 /**
  * The cue a changed section gets: a bar down its left edge and a faint wash in
@@ -44,8 +44,15 @@ export function ChangedFrame({
           mx: -1.5,
           px: 1.5,
           py: 1.5,
-          // A chip's scroll lands here; keep it clear of a sticky header.
-          scrollMarginTop: 96,
+          // A chip's scroll lands here; keep it clear of the sticky chrome
+          // (AppShell, the lab sheet's shell). Below sm only the mobile bar
+          // sticks; from sm to md the PageHeader band (~72px) sticks under
+          // that bar; from md up the band alone sticks, at the top.
+          scrollMarginTop: {
+            xs: layout.mobileBar + 16,
+            sm: layout.mobileBar + 88,
+            md: 96,
+          },
           '&:focus': { outline: 'none' },
           '&:focus-visible': { outline: `2px solid ${warn.dot}`, outlineOffset: 2 },
         },

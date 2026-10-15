@@ -129,6 +129,9 @@ export function useLiveFormSync<F extends Fields>({
       valuesRef.current,
     );
     if (conflict || (unsaved && context !== prev.context)) setStale(true);
+    // Nothing in the form differs from the latest data any more (typically
+    // the person's own save came back): the warning has nothing left to say.
+    else if (!unsaved) setStale(false);
     seen.current = { identity, fields: next.fields, context };
     if (Object.keys(patch).length) applyRef.current(patch);
   }, [identity, signature]);

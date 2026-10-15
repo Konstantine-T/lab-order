@@ -191,7 +191,11 @@ export function LabServiceEditPage() {
 
       // Only through its RPC (a trigger refuses a direct write), and only when
       // the lab changed it.
-      const nextTr = cleanServiceTranslations(serviceTr);
+      const nextTr = cleanServiceTranslations(serviceTr, {
+        name: basics.name,
+        short_description: basics.short_description ?? '',
+        average_turnaround_label: service.average_turnaround_label ?? '',
+      });
       if (
         JSON.stringify(nextTr) !==
         JSON.stringify(cleanServiceTranslations(service.translations ?? {}))

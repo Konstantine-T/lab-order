@@ -93,10 +93,15 @@ type DetailRow = OrderRow & { patients: LivePatientEmbed | null };
  * is NaN — which used to travel all the way to Postgres as final_total: NaN.
  * Returns null for anything that isn't a finite number, so the caller can
  * refuse it instead of posting it.
+ *
+ * Rounded to the tetri: final_total and paid_total are numeric(12,2), so
+ * "250.555" would come back as 250.56 and read as somebody else's change
+ * (useLiveFormSync). Sending the rounded value keeps the two in step.
  */
 const parseAmount = (raw: string): number | null => {
   const n = Number(raw.replace(',', '.').trim());
-  return Number.isFinite(n) ? n : null;
+  if (!Number.isFinite(n)) return null;
+  return n < 0 ? n : Math.round((n + Number.EPSILON) * 100) / 100;
 };
 
 export function LabOrderSheetPage() {
@@ -211,6 +216,12 @@ export function LabOrderSheetPage() {
   // agreeing is one click. The confirm button's dirty check below is what
   // stops the pre-fill from passing for a saved confirmation.
   const seededDue = order ? initialDueFields(order) : null;
+  // The due fields count as the lab's input only while they differ from what
+  // is saved. Once the lab removes its confirmation the pre-fill falls back to
+  // the doctor's request, and empty fields would otherwise read as a clash
+  // with that, and as unsaved for good.
+  const dueFollowsServer =
+    !!order && !isDueDirty({ date: confirmedDue, time: confirmedTime }, order);
   const live = useLiveFormSync({
     identity: order?.id,
     incoming: order && seededDue
@@ -230,8 +241,8 @@ export function LabOrderSheetPage() {
     values: {
       finalPrice: money(finalPrice, ''),
       paidAmount: money(paidAmount, '0'),
-      confirmedDue,
-      confirmedTime,
+      confirmedDue: dueFollowsServer ? undefined : confirmedDue,
+      confirmedTime: dueFollowsServer ? undefined : confirmedTime,
       pendingStatus: pendingStatus || undefined,
     },
     apply: (f) => {
@@ -284,6 +295,8 @@ export function LabOrderSheetPage() {
     onSuccess: () => {
       setCancelOpen(false);
       setCancelReason('');
+      // A pill picked but never saved is moot once the order is cancelled.
+      setPendingStatus('');
       setSuccess(t('orderSheet.cancelModal.success'));
       qc.invalidateQueries({ queryKey: ['lab-order', orderId] });
       qc.invalidateQueries({ queryKey: ['lab-orders'] });

@@ -1,6 +1,7 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { useRealtimeConnected } from './realtimeStatus';
 import type { NotificationRow } from '@/types/database';
 
 /**
@@ -10,7 +11,9 @@ import type { NotificationRow } from '@/types/database';
  * RLS (0043) limits both to the signed-in user's own rows; the user id in the
  * key only keeps one account's cache from serving the next one in this tab.
  * A live INSERT is added to the cache by `addLiveNotification` instead of a
- * refetch; a reconnect refetches both.
+ * refetch; a reconnect refetches both. The count also polls (every minute
+ * while the socket is down, every five while it is up) and refetches on
+ * focus, the way the sidebar badges do, so the bell is right without Realtime.
  */
 export const PAGE_SIZE = 30;
 const RETENTION_DAYS = 30;
@@ -43,6 +46,11 @@ async function fetchRange(from: number, count: number): Promise<NotificationRow[
 export function useNotificationList(userId: string | undefined, enabled: boolean) {
   const qc = useQueryClient();
   const key = notificationsKey(userId);
+  // Opening the bell refetches the count too, so the badge and the list it
+  // opens cannot disagree.
+  useEffect(() => {
+    if (enabled && userId) void qc.invalidateQueries({ queryKey: unreadKey(userId) });
+  }, [qc, userId, enabled]);
   const query = useQuery({
     queryKey: key,
     enabled: !!userId && enabled,
@@ -86,10 +94,16 @@ export function useNotificationList(userId: string | undefined, enabled: boolean
   };
 }
 
+const LIVE_REFRESH_MS = 300_000;
+const POLL_REFRESH_MS = 60_000;
+
 export function useUnreadCount(userId: string | undefined) {
+  const connected = useRealtimeConnected();
   const { data } = useQuery({
     queryKey: unreadKey(userId),
     enabled: !!userId,
+    refetchInterval: connected ? LIVE_REFRESH_MS : POLL_REFRESH_MS,
+    refetchOnWindowFocus: true,
     queryFn: async () => {
       const { count, error } = await supabase
         .from('notifications')
@@ -148,7 +162,9 @@ export function useMarkRead(userId: string | undefined) {
       if (error) throw error;
       return typeof data === 'number' ? data : 0;
     },
-    onMutate: (ids) => {
+    onMutate: async (ids) => {
+      // A count fetched before the RPC lands would undo the optimistic change.
+      await qc.cancelQueries({ queryKey: unreadKey(userId) });
       if (userId) markInCache(qc, userId, ids);
     },
     onSuccess: (changed, ids) => {

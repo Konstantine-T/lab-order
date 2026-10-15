@@ -194,10 +194,17 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       if (status === 'SUBSCRIBED') {
         setConnected(true);
         setRealtimeConnected(true);
-        if (everSubscribed && dropped) {
-          // Catch up on whatever happened while the socket was down. The bell
-          // simply shows the missed rows with the right count; no toasts.
+        if (dropped) {
+          // Catch up on whatever happened while the socket was down, including
+          // a first join that failed before it succeeded. The bell simply
+          // shows the missed rows with the right count; no toasts.
           invalidator.invalidate(ALL_LIVE_KEYS);
+          void qc.invalidateQueries({ queryKey: notificationsKey(userId) });
+          void qc.invalidateQueries({ queryKey: unreadKey(userId) });
+        } else if (!everSubscribed) {
+          // A clean first join: the pages fetched just before it, but a row
+          // inserted between that fetch and the join reached nobody. The bell
+          // has no other way to hear of it, so it alone re-reads.
           void qc.invalidateQueries({ queryKey: notificationsKey(userId) });
           void qc.invalidateQueries({ queryKey: unreadKey(userId) });
         }

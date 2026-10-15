@@ -47,6 +47,8 @@ const ORDER_LISTS: QueryKey[] = [
   ['doctor-orders'],
   ['doctor-home-orders'],
   ['doctor-patient-orders'],
+  // the patient list counts orders and gains a patient with a clinic-placed one
+  ['doctor-patients'],
   // clinic
   ['clinic-orders'],
   ['clinic-order-count'],

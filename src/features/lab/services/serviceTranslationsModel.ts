@@ -292,10 +292,16 @@ const clean = (v: unknown): string | null =>
  * `{lang: {key: text}}` with only non-blank strings, trimmed; null when
  * nothing is left. `keys` lists the string fields kept; an `options` array is
  * kept by index (null for an untranslated option), trailing gaps dropped.
+ *
+ * `base` is the object being translated: a translation whose base text is
+ * blank is dropped too. The editor hides those rows, so without this a
+ * translation would outlive the text it translates, with no way to remove it,
+ * and keep showing to EN/RU readers (pickText lets a translation win).
  */
 function cleanBlob(
   raw: unknown,
   keys: readonly string[],
+  base: Record<string, unknown>,
   withOptions = false,
 ): Record<string, Record<string, unknown>> | null {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
@@ -306,11 +312,12 @@ function cleanBlob(
     const own: Record<string, unknown> = {};
     for (const k of keys) {
       const v = clean((body as Record<string, unknown>)[k]);
-      if (v) own[k] = v;
+      if (v && clean(base[k])) own[k] = v;
     }
     const options = (body as Record<string, unknown>).options;
     if (withOptions && Array.isArray(options)) {
-      const list = options.map(clean);
+      const baseOptions = Array.isArray(base.options) ? base.options : [];
+      const list = options.map((o, i) => (clean(baseOptions[i]) ? clean(o) : null));
       while (list.length && list[list.length - 1] === null) list.pop();
       if (list.length) own.options = list;
     }
@@ -328,25 +335,42 @@ function withTranslations<T extends { translations?: unknown }>(obj: T, tr: unkn
   return rest;
 }
 
-export function cleanServiceTranslations(raw: LabServiceTranslations): LabServiceTranslations {
-  return coerceServiceTranslations(raw);
+/**
+ * The service's translations as stored: blanks dropped and, given the base
+ * text, any field whose base is blank (see `cleanBlob`).
+ */
+export function cleanServiceTranslations(
+  raw: LabServiceTranslations,
+  base?: Partial<ServiceBase>,
+): LabServiceTranslations {
+  const out = coerceServiceTranslations(raw);
+  if (!base) return out;
+  for (const lang of Object.keys(out) as (keyof LabServiceTranslations)[]) {
+    const own = { ...out[lang] };
+    for (const field of Object.keys(own) as LabServiceTextField[]) {
+      if (!has(base[field])) delete own[field];
+    }
+    if (Object.keys(own).length) out[lang] = own;
+    else delete out[lang];
+  }
+  return out;
 }
 
 export function cleanConfigTranslations(config: FormConfiguration): FormConfiguration {
   return {
     ...config,
     fields: config.fields.map((f) =>
-      withTranslations(f, cleanBlob(f.translations, ['label', 'helper_text'], true)),
+      withTranslations(f, cleanBlob(f.translations, ['label', 'helper_text'], f, true)),
     ),
   };
 }
 
 export function cleanPricingTranslations(pricing: PricingConfig): PricingConfig {
   const materials = (list: MaterialOption[] | undefined) =>
-    list?.map((m) => withTranslations(m, cleanBlob(m.translations, ['name'])));
+    list?.map((m) => withTranslations(m, cleanBlob(m.translations, ['name'], m)));
   let out: PricingConfig = withTranslations(
     pricing,
-    cleanBlob(pricing.translations, ['price_description']),
+    cleanBlob(pricing.translations, ['price_description'], pricing),
   );
   if (pricing.materials) out = { ...out, materials: materials(pricing.materials) };
   if (pricing.implant_crown_materials) {
