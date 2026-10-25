@@ -1,20 +1,9 @@
-import { useState } from 'react';
-import {
-  Alert,
-  Box,
-  Button,
-  CircularProgress,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  TextField,
-} from '@mui/material';
+import { Alert, Box, CircularProgress } from '@mui/material';
 import { useParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
+import { CancelOrderAction } from '@/features/orders/cancel/CancelOrderAction';
 import { OrderCompletionActions } from '@/features/orders/completion/OrderCompletionActions';
 import { OrderDetailView } from '@/features/orders/detail/OrderDetailView';
 import { useOrderContacts } from '@/features/orders/detail/useOrderContacts';
@@ -85,24 +74,6 @@ export function ClinicOrderDetailPage() {
   });
 
   const qc = useQueryClient();
-  const [cancelOpen, setCancelOpen] = useState(false);
-  const [reason, setReason] = useState('');
-  const cancelMut = useMutation({
-    mutationFn: async () => {
-      // Allowed by the orders_clinic_update RLS policy (0014) — the clinic can
-      // cancel a linked doctor's non-terminal order.
-      const { error } = await supabase
-        .from('orders')
-        .update({ status: 'CANCELLED', cancellation_reason: reason.trim() || null })
-        .eq('id', orderId!);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      setCancelOpen(false);
-      qc.invalidateQueries({ queryKey: ['clinic-order', orderId] });
-      qc.invalidateQueries({ queryKey: ['clinic-orders'] });
-    },
-  });
 
   if (isLoading) {
     return (
@@ -130,40 +101,18 @@ export function ClinicOrderDetailPage() {
       // Ungated by status: a completed case still needs its "reopen" escape
       // hatch.
       actions={<OrderCompletionActions orderId={order.id} status={order.status} size="medium" />}
+      // Only while the lab has not accepted the order (SUBMITTED); kept
+      // mounted for the rest of the non-terminal life of the order so the
+      // "already accepted" note survives the refetch that hides the button.
       railFooter={
         !isTerminal(order) ? (
-          <Button color="error" variant="outlined" fullWidth onClick={() => setCancelOpen(true)}>
-            {t('orderDetail.cancelOrder')}
-          </Button>
+          <CancelOrderAction
+            orderId={order.id}
+            status={order.status}
+            orderKey={['clinic-order', orderId]}
+          />
         ) : undefined
       }
-    >
-      <Dialog open={cancelOpen} onClose={() => setCancelOpen(false)} maxWidth="xs" fullWidth>
-        <DialogTitle>{t('orderDetail.cancel.title')}</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ mb: 2 }}>{t('orderDetail.cancel.body')}</DialogContentText>
-          <TextField
-            label={t('orderDetail.cancel.reasonLabel')}
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            multiline
-            minRows={2}
-            fullWidth
-            autoFocus
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setCancelOpen(false)}>{tc('actions.close')}</Button>
-          <Button
-            color="error"
-            variant="contained"
-            onClick={() => cancelMut.mutate()}
-            disabled={cancelMut.isPending}
-          >
-            {t('orderDetail.cancel.confirm')}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </OrderDetailView>
+    />
   );
 }

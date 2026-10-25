@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase';
 import { OrderCompletionActions } from '@/features/orders/completion/OrderCompletionActions';
 import { Callout, Icon } from '@/components/design';
 import { useContinueProject } from '@/features/doctor/orderCreate/useContinueProject';
+import { CancelOrderAction } from '@/features/orders/cancel/CancelOrderAction';
 import { OrderDetailView } from '@/features/orders/detail/OrderDetailView';
 import { useOrderContacts } from '@/features/orders/detail/useOrderContacts';
 import {
@@ -121,6 +122,7 @@ export function OrderDetailPage() {
             {t('orders.addAnotherService')}
           </Button>
           {editable && <Callout tone="brand">{t('orderDetail.editHint')}</Callout>}
+          <CancelOrderAction orderId={order.id} status={order.status} orderKey={['order', order.id]} />
         </Stack>
       }
     >

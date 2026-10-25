@@ -484,6 +484,7 @@ export interface OrderRow {
     email?: string | null;
     phone?: string | null;
   };
+  /** Stamped by trigger on every cancel, by whatever route (0045). */
   cancelled_at: string | null;
   cancelled_by_user_id: string | null;
   cancellation_reason: string | null;
