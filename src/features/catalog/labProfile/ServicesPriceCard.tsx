@@ -1,8 +1,9 @@
 import { forwardRef, useMemo, useState } from 'react';
 import { Box, Button, CircularProgress, Link, Stack, Typography } from '@mui/material';
-import { Link as RouterLink } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ChoicePill, EmptyState, PillRow } from '@/components/design';
+import { CardGrid, ChoicePill, EmptyState, Icon, MetaChip, PillRow } from '@/components/design';
+import { ServiceCard } from '@/components/ServiceCard';
 import { formatGELShort } from '@/utils/pricing';
 import {
   serviceCategoryLabelKey,
@@ -16,35 +17,20 @@ import type { ProfileService } from './useLabProfile';
 
 const ALL = 'all' as const;
 
-/** Desktop columns: service · turnaround · rush · price · action. */
-const COLUMNS = 'minmax(0, 1fr) 96px 130px 150px 112px';
-
 const muted = { color: 'text.secondary', fontSize: '0.8125rem' } as const;
 
-/** Read aloud, never seen: the desktop cells' column names. */
-const srOnly = {
-  position: 'absolute',
-  width: '1px',
-  height: '1px',
-  p: 0,
-  m: '-1px',
-  overflow: 'hidden',
-  clip: 'rect(0 0 0 0)',
-  whiteSpace: 'nowrap',
-  border: 0,
-} as const;
-
-function PriceCell({ price, t, tc }: { price: PriceDisplay; t: TranslateFn; tc: TranslateFn }) {
+/** The card's price: "from 80 ₾ / tooth", the lab's own words, or why there is none. */
+function PriceLine({ price, t, tc }: { price: PriceDisplay; t: TranslateFn; tc: TranslateFn }) {
   switch (price.kind) {
     case 'amount': {
       const amount = formatGELShort(price.amount);
       return (
-        <Box component="span" sx={{ fontSize: '0.875rem' }}>
+        <Box component="span" sx={{ fontSize: '0.9375rem' }}>
           <Box component="span" sx={{ fontWeight: 700 }}>
             {price.from ? t('marketplace.fromPrice', { price: amount }) : amount}
           </Box>
           {price.per !== 'order' && (
-            <Box component="span" sx={{ ...muted, fontSize: '0.75rem', fontWeight: 500 }}>
+            <Box component="span" sx={{ ...muted, fontWeight: 500 }}>
               {' '}
               {t(`marketplace.per.${price.per}`)}
             </Box>
@@ -60,7 +46,6 @@ function PriceCell({ price, t, tc }: { price: PriceDisplay; t: TranslateFn; tc: 
           title={price.text}
           sx={{
             ...muted,
-            fontSize: '0.75rem',
             lineHeight: 1.45,
             whiteSpace: 'pre-line',
             display: '-webkit-box',
@@ -78,11 +63,12 @@ function PriceCell({ price, t, tc }: { price: PriceDisplay; t: TranslateFn; tc: 
     case 'labConfirms':
       return <Typography sx={muted}>{t('labProfile.price.labConfirms')}</Typography>;
     default:
-      return <Typography sx={muted}>—</Typography>;
+      // 'unavailable': the card is dimmed and says so in its footer already.
+      return null;
   }
 }
 
-function ServiceRow({
+function ProfileServiceCard({
   service,
   orderHref,
 }: {
@@ -91,116 +77,62 @@ function ServiceRow({
 }) {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
+  const navigate = useNavigate();
   const turnaround = turnaroundText(service, t);
-  const rush = service.rush ? rushText(service.rush, t, tc) : null;
+  const href = orderHref(service.id);
 
   return (
-    <Box
-      component="li"
-      sx={{
-        listStyle: 'none',
-        display: 'grid',
-        alignItems: 'center',
-        columnGap: 2,
-        rowGap: 1,
-        py: 2,
-        borderTop: 1,
-        borderColor: 'divider',
-        gridTemplateColumns: { xs: 'minmax(0, 1fr) auto', md: COLUMNS },
-        gridTemplateAreas: {
-          xs: '"name name" "facts facts" "price action"',
-          md: '"name turn rush price action"',
-        },
-      }}
-    >
-      <Stack spacing={0.375} sx={{ gridArea: 'name', minWidth: 0 }}>
-        <Typography
-          component="h3"
-          sx={{ fontSize: '0.875rem', fontWeight: 600, lineHeight: 1.4, overflowWrap: 'anywhere' }}
-        >
-          {service.name}
-        </Typography>
-        {service.description && (
-          <Typography
-            sx={{
-              ...muted,
-              lineHeight: 1.5,
-              display: '-webkit-box',
-              WebkitBoxOrient: 'vertical',
-              WebkitLineClamp: 3,
-              overflow: 'hidden',
-              overflowWrap: 'anywhere',
-            }}
-          >
-            {service.description}
-          </Typography>
-        )}
-      </Stack>
-
-      {/* Phone: turnaround and rush on one labelled line under the name. */}
-      {(turnaround || rush) && (
-        <Stack
-          direction="row"
-          sx={{
-            gridArea: 'facts',
-            display: { xs: 'flex', md: 'none' },
-            flexWrap: 'wrap',
-            columnGap: 1.75,
-            rowGap: 0.25,
-            ...muted,
-          }}
-        >
-          {turnaround && <span>{t('labProfile.turnaroundIs', { value: turnaround })}</span>}
-          {rush && <span>{t('labProfile.rushIs', { value: rush })}</span>}
-        </Stack>
-      )}
-
-      {/* Desktop: one cell each under the (aria-hidden) column labels, so
-          each says what it is to a screen reader — both are day counts. */}
-      <Typography sx={{ gridArea: 'turn', display: { xs: 'none', md: 'block' }, fontSize: '0.875rem' }}>
-        <Box component="span" sx={srOnly}>
-          {t('labProfile.table.turnaround')}{' '}
-        </Box>
-        {turnaround ?? '—'}
-      </Typography>
-      <Typography sx={{ gridArea: 'rush', display: { xs: 'none', md: 'block' }, ...muted }}>
-        <Box component="span" sx={srOnly}>
-          {t('labProfile.table.rush')}{' '}
-        </Box>
-        {rush ?? '—'}
-      </Typography>
-
-      <Box sx={{ gridArea: 'price', minWidth: 0 }}>
-        <PriceCell price={service.price} t={t} tc={tc} />
-      </Box>
-
-      <Box sx={{ gridArea: 'action', justifySelf: { xs: 'end', md: 'stretch' } }}>
-        {service.orderable ? (
+    <ServiceCard
+      templateCode={service.templateCode}
+      imageUrl={service.imageUrl}
+      name={service.name}
+      description={service.description ?? undefined}
+      chips={
+        turnaround && <MetaChip icon={<Icon name="schedule" size={13} />}>{turnaround}</MetaChip>
+      }
+      // Labelled, as the lab's own card labels it: with no column header
+      // above it, a bare "3 days" beside the turnaround's "5 days" reads as
+      // a contradiction.
+      rush={
+        service.rush && (
+          <MetaChip icon={<Icon name="bolt" size={13} />}>
+            {t('labProfile.rushIs', { value: rushText(service.rush, t, tc) })}
+          </MetaChip>
+        )
+      }
+      price={
+        service.price.kind !== 'unavailable' && <PriceLine price={service.price} t={t} tc={tc} />
+      }
+      disabled={!service.orderable}
+      onClick={service.orderable ? () => navigate(href) : undefined}
+      action={
+        service.orderable ? (
+          // A real link, so ctrl- and middle-click open the form in a new tab.
           <Button
             component={RouterLink}
-            to={orderHref(service.id)}
-            variant="outlined"
+            to={href}
+            variant="contained"
             size="small"
-            fullWidth
             aria-label={t('labProfile.orderServiceA11y', { name: service.name })}
-            sx={{ minWidth: 96 }}
           >
             {t('labProfile.orderCta')}
           </Button>
         ) : (
-          <Typography sx={{ ...muted, fontSize: '0.75rem', textAlign: { xs: 'right', md: 'left' } }}>
+          <Typography sx={{ ...muted, fontSize: '0.75rem' }}>
             {t('labProfile.orderDisabled')}
           </Typography>
-        )}
-      </Box>
-    </Box>
+        )
+      }
+    />
   );
 }
 
 /**
- * "Services & prices" (design page 4): category chips over a table of the
- * lab's active services — name and description, turnaround, rush, price with
- * its unit, and an order button per orderable service. One column on phones.
+ * "Services & prices": category chips over one card per active service —
+ * its photo, name and description, turnaround and rush, price with its unit,
+ * and an order button. The whole card opens the order form too. Two cards a
+ * row from `sm` up (the page's right-hand column leaves too little room for
+ * three), one on phones.
  *
  * The ref lands on the card's heading, which the rail's order button scrolls
  * to and focuses.
@@ -275,31 +207,21 @@ export const ServicesPriceCard = forwardRef<
           <EmptyState icon="category" title={t('labProfile.noServices')} minHeight={160} />
         </Box>
       ) : (
-        <>
-          {/* Column labels — desktop only; on a phone each row labels itself. */}
-          <Box
-            aria-hidden
-            sx={{
-              display: { xs: 'none', md: 'grid' },
-              gridTemplateColumns: COLUMNS,
-              columnGap: 2,
-              pt: 1.75,
-              pb: 1,
-              '& > span': { fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary' },
-            }}
-          >
-            <span>{t('labProfile.table.service')}</span>
-            <span>{t('labProfile.table.turnaround')}</span>
-            <span>{t('labProfile.table.rush')}</span>
-            <span>{t('labProfile.table.price')}</span>
-            <span />
-          </Box>
-          <Box component="ul" sx={{ m: 0, p: 0, mt: { xs: 1.5, md: 0 } }}>
-            {shown.map((s) => (
-              <ServiceRow key={s.id} service={s} orderHref={orderHref} />
-            ))}
-          </Box>
-        </>
+        <CardGrid
+          columns={2}
+          sx={{
+            mt: 1.75,
+            mb: 2.25,
+            // From `sm`, not `CardGrid`'s `md`: the panel is full width
+            // until the rail moves beside it at `lg`.
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+            gridAutoRows: { xs: 'auto', sm: '1fr' },
+          }}
+        >
+          {shown.map((s) => (
+            <ProfileServiceCard key={s.id} service={s} orderHref={orderHref} />
+          ))}
+        </CardGrid>
       )}
 
       <Stack

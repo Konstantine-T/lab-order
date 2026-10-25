@@ -27,6 +27,7 @@ export function ServiceCard({
   chips,
   rush,
   meta,
+  price,
   action,
   headerAction,
   onClick,
@@ -45,6 +46,10 @@ export function ServiceCard({
   rush?: ReactNode;
   /** Muted footer text at the left of the action. */
   meta?: ReactNode;
+  /** The price line on the public lab profile, just above the footer. Its own
+   *  slot, not `meta`: `meta` is a muted one-line caption and would clip a
+   *  lab's own price text. The lab's service list passes none. */
+  price?: ReactNode;
   action?: ReactNode;
   /** Control at the top right — the lab's active toggle. */
   headerAction?: ReactNode;
@@ -68,7 +73,10 @@ export function ServiceCard({
       onKeyDown={
         onClick && !disabled
           ? (e) => {
-              if (e.key === 'Enter') onClick();
+              // Only the card's own Enter: one on the action (a link) or the
+              // header switch bubbles up here too, and must not also open
+              // the card.
+              if (e.key === 'Enter' && e.target === e.currentTarget) onClick();
             }
           : undefined
       }
@@ -145,7 +153,9 @@ export function ServiceCard({
       </Box>
 
       <Box sx={{ px: 2.75, pt: 2, pb: 2.5, display: 'flex', flexDirection: 'column', flex: 1 }}>
-        <Typography sx={{ fontSize: '0.9375rem', fontWeight: 800, letterSpacing: '-0.01em' }}>
+        <Typography
+          sx={{ fontSize: '0.9375rem', fontWeight: 800, letterSpacing: '-0.01em', overflowWrap: 'anywhere' }}
+        >
           {name}
         </Typography>
 
@@ -178,6 +188,10 @@ export function ServiceCard({
       )}
 
       <Box sx={{ flexGrow: 1 }} />
+
+      {/* Below the spacer, so the prices of a row's cards line up whatever
+          their descriptions' length. */}
+      {price && <Box sx={{ mt: 1.5, minWidth: 0 }}>{price}</Box>}
 
       {(meta || action) && (
         <Stack

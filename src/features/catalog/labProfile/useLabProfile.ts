@@ -30,7 +30,7 @@ export type ProfileLab = Pick<
 >;
 
 /**
- * One row of the services table. `name` / `description` / `turnaroundLabel`
+ * One service card. `name` / `description` / `turnaroundLabel`
  * are the base text here; `localizeProfileServices` swaps in the reader's
  * language (0042) before the page renders them.
  */
@@ -43,6 +43,9 @@ export type ProfileService = {
   /** `lab_services.translations` (0042). */
   translations: unknown;
   templateCode: string | null;
+  /** The lab's uploaded cover (`lab_services.cover_image_url`); the card falls
+   *  back to the template's stock picture, then its icon. */
+  imageUrl: string | null;
   category: ServiceCategory;
   /** The linked form is published: the order button works. */
   orderable: boolean;
@@ -56,6 +59,7 @@ type ServiceQueryRow = ServicePriceEmbed & {
   short_description: string | null;
   average_turnaround_days: number | null;
   average_turnaround_label: string | null;
+  cover_image_url: string | null;
   translations?: unknown;
 };
 
@@ -74,6 +78,7 @@ function toProfileService(row: ServiceQueryRow): ProfileService {
     turnaroundLabel: row.average_turnaround_label?.trim() || null,
     translations: row.translations ?? null,
     templateCode,
+    imageUrl: row.cover_image_url?.trim() || null,
     category: serviceCategory(templateCode),
     orderable,
     price: priceDisplay(orderable, pricing, templateCode),
@@ -141,7 +146,7 @@ export function useProfileServices(labId: string | undefined) {
         .from('lab_services')
         .select(
           `id, name, short_description, average_turnaround_days, average_turnaround_label,
-           translations, ${SERVICE_PRICE_EMBED}`,
+           cover_image_url, translations, ${SERVICE_PRICE_EMBED}`,
         )
         .eq('lab_id', labId!)
         .eq('is_active', true)
