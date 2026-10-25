@@ -3,7 +3,6 @@ import { z } from 'zod';
 export const labProfileSchema = z.object({
   public_name: z.string().min(2),
   short_description: z.string().optional().or(z.literal('')),
-  logo_url: z.string().url().optional().or(z.literal('')),
   legal_name: z.string().min(2),
   identification_code: z.string().min(2),
   legal_address: z.string().min(3),

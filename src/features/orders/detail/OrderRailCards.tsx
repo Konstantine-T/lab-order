@@ -241,6 +241,9 @@ export function LabCard({
             color: surfaces[mode].chipText,
             fontSize: '0.875rem',
             fontWeight: 700,
+            // `contain`: a wide logo shows whole. A logo that fails to load
+            // falls back to the initials (Avatar does that by itself).
+            '& .MuiAvatar-img': { objectFit: 'contain', p: '5px' },
           }}
         >
           {initialsOf(labName || '?')}

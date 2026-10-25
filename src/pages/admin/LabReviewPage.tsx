@@ -27,6 +27,7 @@ import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/auth/AuthProvider';
 import { LabStatusChip } from '@/components/LabStatusChip';
 import { isLabProfileComplete } from '@/features/lab/labProfileSchema';
+import { LabLogoTile } from '@/features/lab/logo/LabLogoTile';
 import type { LabApprovalStatus, LabRow } from '@/types/database';
 
 type ActionKind = 'approve' | 'reject' | 'request_changes' | 'suspend' | null;
@@ -182,7 +183,9 @@ export function LabReviewPage() {
         <DetailList>
           <DetailRow label={t('labs.fields.publicName')} labelWidth={200}>{lab.public_name || '—'}</DetailRow>
           <DetailRow label={t('labs.fields.shortDescription')} labelWidth={200}>{lab.short_description || '—'}</DetailRow>
-          <DetailRow label={t('labs.fields.logoUrl')} labelWidth={200}>{lab.logo_url || '—'}</DetailRow>
+          <DetailRow label={t('labs.fields.logo')} labelWidth={200}>
+            <LabLogoTile url={lab.logo_url} name={lab.public_name} colorSeed={lab.public_name} size={56} />
+          </DetailRow>
         </DetailList>
       </SectionCard>
 

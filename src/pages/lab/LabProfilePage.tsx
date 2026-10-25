@@ -13,6 +13,7 @@ import { LANGUAGES } from '@/i18n';
 import { LabApprovalBanner } from '@/features/lab/LabApprovalBanner';
 import { LabAccountCard } from '@/features/lab/LabAccountCard';
 import { LabPriceListCard } from '@/features/lab/priceList/LabPriceListCard';
+import { LabLogoField } from '@/features/lab/logo/LabLogoField';
 import { clearNotice, leaveNotice, readNotice } from '@/features/lab/remountNotice';
 import { classifyLabProfileError } from '@/features/lab/labProfileErrors';
 import {
@@ -80,7 +81,6 @@ const hasText = (slot: { public_name: string; short_description: string } | unde
 const empty: PageInput = {
   public_name: '',
   short_description: '',
-  logo_url: '',
   legal_name: '',
   identification_code: '',
   legal_address: '',
@@ -99,7 +99,6 @@ const empty: PageInput = {
 const fromLab = (lab: LabRow): PageInput => ({
   public_name: lab.public_name ?? '',
   short_description: lab.short_description ?? '',
-  logo_url: lab.logo_url ?? '',
   legal_name: lab.legal_name ?? '',
   identification_code: lab.identification_code ?? '',
   legal_address: lab.legal_address ?? '',
@@ -268,7 +267,6 @@ export function LabProfilePage() {
       .update({
         public_name: values.public_name,
         short_description: values.short_description || null,
-        logo_url: values.logo_url || null,
         legal_name: values.legal_name || null,
         identification_code: values.identification_code || null,
         legal_address: values.legal_address || null,
@@ -464,11 +462,9 @@ export function LabProfilePage() {
                       />
                     </>
                   )}
-                  <RHFTextField
-                    name="logo_url"
-                    label={t('profile.fields.logoUrl')}
-                    disabled={locked}
-                  />
+                  {/* Saves on its own, so logo_url is deliberately not in this
+                      form: a Save would write the form's stale copy back. */}
+                  <LabLogoField lab={lab} canEdit={editable || approved} />
 
                   {approved && (
                     <Stack direction="row" justifyContent="flex-end">

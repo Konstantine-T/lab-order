@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { alpha, Box, Button, Card, Stack, Typography, useTheme } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -25,9 +26,12 @@ const NO_MATERIALS: readonly string[] = [];
 /** Below this card width the price column drops under the body. */
 const WIDE = '@container (min-width: 640px)';
 
-/** The lab's logo, or its initials on a tile coloured from its base name. */
+/** The lab's logo, or its initials on a tile coloured from its base name
+ *  (also when the logo fails to load). */
 function LabTile({ lab, name }: { lab: CatalogueLab; name: string }) {
   const theme = useTheme();
+  // The URL that failed, not a flag: a new logo gets its own chance to load.
+  const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
   const sx = {
     width: 52,
     height: 52,
@@ -37,14 +41,22 @@ function LabTile({ lab, name }: { lab: CatalogueLab; name: string }) {
     gridArea: 'tile',
     alignSelf: 'start',
   } as const;
-  if (lab.logo_url) {
+  const logo = lab.logo_url;
+  if (logo && brokenSrc !== logo) {
     return (
       <Box
         component="img"
-        src={lab.logo_url}
+        src={logo}
         alt=""
         loading="lazy"
-        sx={{ ...sx, objectFit: 'cover', bgcolor: surfaces[theme.palette.mode].chip }}
+        onError={() => setBrokenSrc(logo)}
+        // `contain`: a wide logo shows whole instead of losing its edges.
+        sx={{
+          ...sx,
+          objectFit: 'contain',
+          p: '6px',
+          bgcolor: surfaces[theme.palette.mode].chip,
+        }}
       />
     );
   }

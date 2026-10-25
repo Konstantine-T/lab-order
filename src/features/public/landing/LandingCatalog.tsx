@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { alpha, Box, Link, Skeleton, Stack, Typography, type SxProps, type Theme } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -227,23 +228,28 @@ function LabCard({ lab }: { lab: LandingLab }) {
   );
 }
 
-/** The lab's logo, or its initials on the chip surface. */
+/** The lab's logo, or its initials on the chip surface (also when the logo
+ *  fails to load). */
 function LabAvatar({ lab, name }: { lab: LandingLab; name: string }) {
   const tones = useLandingTones();
+  const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
   const sx = {
     width: 44,
     height: 44,
     flexShrink: 0,
     borderRadius: `${radii.card}px`,
   } as const;
-  if (lab.logo_url) {
+  const logo = lab.logo_url;
+  if (logo && brokenSrc !== logo) {
     return (
       <Box
         component="img"
-        src={lab.logo_url}
+        src={logo}
         alt=""
         loading="lazy"
-        sx={{ ...sx, objectFit: 'cover', bgcolor: tones.chip }}
+        onError={() => setBrokenSrc(logo)}
+        // `contain`: a wide logo shows whole instead of losing its edges.
+        sx={{ ...sx, objectFit: 'contain', p: '5px', bgcolor: tones.chip }}
       />
     );
   }

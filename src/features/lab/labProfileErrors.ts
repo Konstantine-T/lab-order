@@ -12,6 +12,10 @@
  *   reload      — `public_translations_rpc_only` / `price_lists_rpc_only`
  *                 (0037 / 0038): a direct write to a column that only its RPC
  *                 may set. Only an outdated client sends one.
+ *   logo        — `logo_url_not_uploaded` (0047): a logo URL that is not a
+ *                 file uploaded to this lab's folder of the lab-logos bucket.
+ *                 Only an outdated client (one still sending a pasted link)
+ *                 or a hand-made request meets it.
  *   permission  — `not_your_lab`, or any other refusal (42501 / RLS).
  *   invalid     — the RPC's or a CHECK constraint's shape rules
  *                 (`invalid_translations`, 22023 / 23514).
@@ -21,6 +25,7 @@
 export type LabProfileErrorKind =
   | 'locked'
   | 'reload'
+  | 'logo'
   | 'permission'
   | 'invalid'
   | 'network'
@@ -37,6 +42,7 @@ export function classifyLabProfileError(err: unknown): LabProfileErrorKind {
   if (msg.includes('public_translations_rpc_only') || msg.includes('price_lists_rpc_only')) {
     return 'reload';
   }
+  if (msg.includes('logo_url_not_uploaded')) return 'logo';
   if (
     msg.includes('not_your_lab') ||
     msg.includes('not_authenticated') ||

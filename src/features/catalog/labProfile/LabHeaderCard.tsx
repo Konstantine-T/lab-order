@@ -27,7 +27,9 @@ function LogoTile({ name, logoUrl }: { name: string; logoUrl: string | null }) {
           height: size,
           flexShrink: 0,
           borderRadius: '18px',
-          objectFit: 'cover',
+          // `contain`: a wide logo shows whole instead of losing its edges.
+          objectFit: 'contain',
+          p: { xs: '6px', sm: '8px' },
           bgcolor: s.chip,
           border: 1,
           borderColor: 'divider',
