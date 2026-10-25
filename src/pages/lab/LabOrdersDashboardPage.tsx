@@ -3,6 +3,7 @@ import {
   Box,
   Button,
   Checkbox,
+  Chip,
   CircularProgress,
   Collapse,
   FormControl,
@@ -64,32 +65,18 @@ import {
 } from '@/features/lab/orders/queueFilters';
 import { QueueFilterAutocomplete } from '@/features/lab/orders/QueueFilterAutocomplete';
 import { LabInvoiceMark } from '@/features/lab/orders/LabInvoiceMark';
-
-const FILTERABLE_STATUSES: readonly OrderStatus[] = [
-  'SUBMITTED',
-  'RECEIVED',
-  'NEEDS_CLARIFICATION',
-  'NEEDS_DOCTOR_INPUT',
-  'IN_PROGRESS',
-  'READY_FOR_DELIVERY',
-  'SENT_TO_CLINIC',
-  // Reachable again through reopen_order. Without it a reopened order due this
-  // week is counted by the tile and hidden by the filter the tile applies.
-  // TRY_IN_PHASE stays out: nothing can set it yet (phases.md, Phase 11), so it
-  // would be an option that never matches.
-  'RECEIVED_BY_CLINIC',
-  'COMPLETED',
-  'CANCELLED',
-] as const;
-
-/** Everything a lab can still act on — what the "due this week" tile counts. */
-const OPEN_STATUSES: readonly OrderStatus[] = FILTERABLE_STATUSES.filter(
-  (s) => s !== 'COMPLETED' && s !== 'CANCELLED',
-);
-
-/** The mockup's quick filters across the top of the queue. */
-const QUICK = ['all', 'new', 'inProgress', 'clarification', 'ready', 'edited', 'completed'] as const;
-type Quick = (typeof QUICK)[number];
+import {
+  FILTERABLE_STATUSES,
+  isOrderPreset,
+  matchesPreset,
+  matchesQueueFilter,
+  matchesQueueQuick as matchesQuick,
+  type OrderPreset,
+  presetFilter,
+  QUEUE_QUICK as QUICK,
+  queueDates,
+  type QueueQuick as Quick,
+} from '@/features/lab/orders/orderPresets';
 
 type Row = OrderRow &
   DestinationColumns & {
@@ -111,25 +98,6 @@ const isAnswered = (row: Row) =>
     // up again on an order that once carried an edit request.
     (c) => c.answered_at !== null || c.resolved_by_edit_at !== null,
   );
-
-const matchesQuick = (row: Row, quick: Quick) => {
-  switch (quick) {
-    case 'all':
-      return true;
-    case 'new':
-      return row.status === 'SUBMITTED';
-    case 'inProgress':
-      return ['IN_PROGRESS', 'RECEIVED', 'TRY_IN_PHASE'].includes(row.status);
-    case 'clarification':
-      return row.status === 'NEEDS_CLARIFICATION' || row.status === 'NEEDS_DOCTOR_INPUT';
-    case 'ready':
-      return ['READY_FOR_DELIVERY', 'SENT_TO_CLINIC', 'RECEIVED_BY_CLINIC'].includes(row.status);
-    case 'edited':
-      return !!row.has_unreviewed_edits;
-    case 'completed':
-      return row.status === 'COMPLETED';
-  }
-};
 
 const COLUMNS: Column[] = [
   { key: 'code', width: '92px' },
@@ -172,14 +140,11 @@ export function LabOrdersDashboardPage() {
   const [quick, setQuick] = useState<Quick>('all');
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [statuses, setStatuses] = useState<OrderStatus[]>([]);
-  const [dateFrom, setDateFrom] = useState<Dayjs | null>(() => {
-    const s = location.state as { dueFrom?: string; dueTo?: string } | null;
-    return s?.dueFrom ? dayjs(s.dueFrom) : null;
-  });
-  const [dateTo, setDateTo] = useState<Dayjs | null>(() => {
-    const s = location.state as { dueFrom?: string; dueTo?: string } | null;
-    return s?.dueTo ? dayjs(s.dueTo) : null;
-  });
+  const [dateFrom, setDateFrom] = useState<Dayjs | null>(null);
+  const [dateTo, setDateTo] = useState<Dayjs | null>(null);
+  // Preset-only (the dashboard's "No final price"): a removable chip, not a
+  // quick pill.
+  const [noFinalPrice, setNoFinalPrice] = useState(false);
   // Keyed by doctor_id, and by the normalised destination — see queueFilters.
   const [doctorId, setDoctorId] = useState<string | null>(null);
   const [destination, setDestination] = useState<string | null>(null);
@@ -220,12 +185,23 @@ export function LabOrdersDashboardPage() {
     statuses.length > 0 ||
     dateFrom?.isValid() ||
     dateTo?.isValid() ||
+    noFinalPrice ||
     doctorId ||
     destination
   );
 
   const filtered = useMemo(() => {
-    let result = orders.filter((row) => matchesQuick(row, quick));
+    // Quick pill, statuses, due dates and the no-final-price chip go through
+    // the same function the lab dashboard counts with (orderPresets), so the
+    // rows a dashboard number opens onto are the rows it counted.
+    const queueFilter = {
+      quick,
+      statuses,
+      dateFrom: dateFrom?.isValid() ? dateFrom.format('YYYY-MM-DD') : null,
+      dateTo: dateTo?.isValid() ? dateTo.format('YYYY-MM-DD') : null,
+      noFinalPrice,
+    };
+    let result = orders.filter((row) => matchesQueueFilter(row, queueFilter));
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       result = result.filter((row) => {
@@ -243,23 +219,6 @@ export function LabOrdersDashboardPage() {
         );
       });
     }
-    if (statuses.length > 0) {
-      result = result.filter((row) => statuses.includes(row.status as OrderStatus));
-    }
-    if (dateFrom?.isValid()) {
-      const from = dateFrom.format('YYYY-MM-DD');
-      result = result.filter((row) => {
-        const due = dueDateOf(row);
-        return due != null && due >= from;
-      });
-    }
-    if (dateTo?.isValid()) {
-      const to = dateTo.format('YYYY-MM-DD');
-      result = result.filter((row) => {
-        const due = dueDateOf(row);
-        return due != null && due <= to;
-      });
-    }
     if (doctorId) {
       result = result.filter((row) => row.doctor_id === doctorId);
     }
@@ -269,7 +228,7 @@ export function LabOrdersDashboardPage() {
     // The lab's chosen order — newest first unless it picked otherwise. Every
     // comparator is total, so a background refetch never reshuffles equal rows.
     return [...result].sort(orderComparator(sort));
-  }, [orders, quick, search, statuses, dateFrom, dateTo, doctorId, destination, sort]);
+  }, [orders, quick, search, statuses, dateFrom, dateTo, noFinalPrice, doctorId, destination, sort]);
 
   const quickCounts = useMemo(
     () =>
@@ -280,22 +239,14 @@ export function LabOrdersDashboardPage() {
   );
 
   const stats = useMemo(() => {
-    const today = dayjs().format('YYYY-MM-DD');
-    const weekEnd = dayjs().add(7, 'day').format('YYYY-MM-DD');
+    const dates = queueDates();
     const open = orders.filter((o) => !['COMPLETED', 'CANCELLED'].includes(o.status));
     return {
-      // Counted over OPEN_STATUSES — the set the tile's click applies — so the
-      // number and the rows it opens onto cannot disagree. Identical to "not
-      // completed or cancelled" today; it differs only on TRY_IN_PHASE, which
-      // nothing can set yet.
-      dueThisWeek: orders.filter((o) => {
-        if (!OPEN_STATUSES.includes(o.status)) return false;
-        const d = dueDateOf(o);
-        return d != null && d >= today && d <= weekEnd;
-      }).length,
+      // Counted with the presets the tiles apply (orderPresets), so the number
+      // and the rows it opens onto cannot disagree.
+      dueThisWeek: orders.filter((o) => matchesPreset(o, 'dueThisWeek', dates)).length,
       edits: orders.filter((o) => o.has_unreviewed_edits).length,
-      inProgress: open.filter((o) => ['IN_PROGRESS', 'RECEIVED', 'TRY_IN_PHASE'].includes(o.status))
-        .length,
+      inProgress: orders.filter((o) => matchesPreset(o, 'inProgress', dates)).length,
       ready: open.filter((o) => o.status === 'READY_FOR_DELIVERY').length,
     };
   }, [orders]);
@@ -311,7 +262,7 @@ export function LabOrdersDashboardPage() {
   const toKey = dateTo?.format('YYYY-MM-DD');
   useEffect(() => {
     setPage(1);
-  }, [search, quick, statuses, fromKey, toKey, doctorId, destination, sort]);
+  }, [search, quick, statuses, fromKey, toKey, noFinalPrice, doctorId, destination, sort]);
 
   const clearFilters = () => {
     setSearch('');
@@ -319,32 +270,43 @@ export function LabOrdersDashboardPage() {
     setStatuses([]);
     setDateFrom(null);
     setDateTo(null);
+    setNoFinalPrice(false);
     setDoctorId(null);
     setDestination(null);
   };
 
-  // The stat tiles filter this page in place. They set state directly rather
-  // than navigating: the router-state hand-off from the lab dashboard is read
-  // only in the useState initialisers above, which a same-route navigate never
-  // re-runs. Each starts from a clean slate so the rows match the number on the
-  // tile, and each applies whatever reproduces that number exactly — which is
-  // not always the nearest quick pill. setPage too: re-clicking the same tile
-  // changes no filter, so the reset effect would not fire.
-  const showDueThisWeek = () => {
+  // A preset (orderPresets) from a clean slate, so the rows match the number
+  // that was clicked — this page's tiles and the lab dashboard's squares
+  // alike. setPage too: re-applying the same preset changes no filter, so the
+  // reset effect would not fire.
+  const applyPreset = (preset: OrderPreset) => {
+    const f = presetFilter(preset);
     clearFilters();
-    setDateFrom(dayjs().startOf('day'));
-    setDateTo(dayjs().add(7, 'day').startOf('day'));
-    // The date filter alone would include completed and cancelled orders.
-    setStatuses([...OPEN_STATUSES]);
-    setAdvancedOpen(true);
+    setQuick(f.quick);
+    setStatuses([...f.statuses]);
+    setDateFrom(f.dateFrom ? dayjs(f.dateFrom) : null);
+    setDateTo(f.dateTo ? dayjs(f.dateTo) : null);
+    setNoFinalPrice(f.noFinalPrice);
+    if (f.advancedOpen) setAdvancedOpen(true);
     setPage(1);
   };
-  const showInProgress = () => {
-    clearFilters();
-    // The pill means exactly what the tile counts.
-    setQuick('inProgress');
-    setPage(1);
-  };
+  const showDueThisWeek = () => applyPreset('dueThisWeek');
+  const showInProgress = () => applyPreset('inProgress');
+
+  // The lab dashboard hands a preset over in router state. Keyed on the
+  // location, not read once on mount: arriving again while already here (or
+  // from a second square after Back) has to apply too. The state is cleared
+  // once applied, so a refresh or Back does not re-apply it over filters the
+  // lab has changed since.
+  useEffect(() => {
+    const preset = (location.state as { preset?: unknown } | null)?.preset;
+    if (!isOrderPreset(preset)) return;
+    applyPreset(preset);
+    navigate(location.pathname, { replace: true, state: null });
+    // Only a new navigation should apply a preset; applyPreset and navigate
+    // are stable in what they do.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
   const showReady = () => {
     clearFilters();
     // Not the "ready" pill: it also takes sent-to-clinic and received-by-clinic,
@@ -462,6 +424,19 @@ export function LabOrdersDashboardPage() {
                 {t('ordersDashboard.moreFilters')}
               </ChoicePill>
             </PillRow>
+
+            {/* Preset-only filters, shown with the active filters so the lab
+                can see why rows are missing and take the filter off. */}
+            {noFinalPrice && (
+              <Stack direction="row" spacing={1} sx={{ mt: 1.75 }}>
+                <Chip
+                  color="primary"
+                  size="small"
+                  label={t('ordersDashboard.filters.noFinalPrice')}
+                  onDelete={() => setNoFinalPrice(false)}
+                />
+              </Stack>
+            )}
 
             <Collapse in={advancedOpen}>
               <Stack

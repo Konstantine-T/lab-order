@@ -19,6 +19,17 @@ import {
 } from '@/components/design';
 import { formatGEL } from '@/utils/pricing';
 import type { OrderRow } from '@/types/database';
+import {
+  CLOSED_STATUSES,
+  matchesPreset,
+  type OrderPreset,
+  queueDates,
+} from '@/features/lab/orders/orderPresets';
+import {
+  defaultReceivableFilters,
+  fetchReceivablesByCustomer,
+  OWED_PAYMENT_STATUSES as UNPAID_STATUSES,
+} from '@/features/lab/finances/financeApi';
 
 type DueRow = Pick<
   OrderRow,
@@ -48,10 +59,7 @@ export function LabDashboardPage() {
   const navigate = useNavigate();
   const approved = lab?.approval_status === 'APPROVED_ACTIVE';
 
-  const today = dayjs().format('YYYY-MM-DD');
-  const dayPlus2 = dayjs().add(2, 'day').format('YYYY-MM-DD');
-  const weekEnd = dayjs().add(7, 'day').format('YYYY-MM-DD');
-  const yesterday = dayjs().subtract(1, 'day').format('YYYY-MM-DD');
+  const { today, dayPlus2 } = queueDates();
 
   // Open orders, with just enough on each row to render the due-soon list and
   // every count on this screen from one request.
@@ -66,27 +74,30 @@ export function LabDashboardPage() {
             'patients(first_name, last_name)',
         )
         .eq('lab_id', labId!)
-        .not('status', 'in', '(COMPLETED,CANCELLED)');
+        // Every preset below needs a status outside these, so counting over
+        // this subset equals counting over all of the lab's orders.
+        .not('status', 'in', `(${CLOSED_STATUSES.join(',')})`);
       if (error) throw error;
       return (data ?? []) as unknown as DueRow[];
     },
   });
 
+  // Counted over exactly what the finances page lists for unpaid + partially
+  // paid — the same RPC with the same filters — so the square and the list it
+  // opens agree: every non-cancelled order with a final price that still owes
+  // money, and the amount still owed on them (the finances page's
+  // "Outstanding").
   const { data: unpaid = { count: 0, total: 0 } } = useQuery({
     queryKey: ['lab-dashboard-unpaid', labId],
     enabled: !!labId && approved,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('final_total, generated_total')
-        .eq('lab_id', labId!)
-        .neq('payment_status', 'PAID')
-        .in('status', ['SENT_TO_CLINIC', 'RECEIVED_BY_CLINIC', 'COMPLETED']);
-      if (error) throw error;
-      const rows = data ?? [];
+      const rows = await fetchReceivablesByCustomer(labId!, {
+        ...defaultReceivableFilters,
+        statuses: [...UNPAID_STATUSES],
+      });
       return {
-        count: rows.length,
-        total: rows.reduce((s, r) => s + (r.final_total ?? r.generated_total ?? 0), 0),
+        count: rows.reduce((s, r) => s + Number(r.order_count), 0),
+        total: rows.reduce((s, r) => s + Number(r.total_outstanding), 0),
       };
     },
   });
@@ -105,29 +116,35 @@ export function LabDashboardPage() {
     },
   });
 
+  // Every count is the preset the click applies on the orders page
+  // (orderPresets), so the number and the rows it opens onto cannot disagree.
   const stats = useMemo(() => {
+    const d = queueDates();
+    const count = (p: OrderPreset) => openOrders.filter((o) => matchesPreset(o, p, d)).length;
     const due = (o: DueRow) => o.confirmed_due_date ?? o.requested_due_date;
     const dated = openOrders.filter((o) => due(o) != null);
     return {
-      fresh: openOrders.filter((o) => o.status === 'SUBMITTED').length,
-      inProgress: openOrders.filter((o) =>
-        ['IN_PROGRESS', 'TRY_IN_PHASE', 'RECEIVED'].includes(o.status),
-      ).length,
-      overdue: dated.filter((o) => due(o)! < today).length,
-      dueSoon: dated.filter((o) => due(o)! >= today && due(o)! <= dayPlus2).length,
-      dueThisWeek: dated.filter((o) => due(o)! >= today && due(o)! <= weekEnd).length,
+      fresh: count('new'),
+      inProgress: count('inProgress'),
+      overdue: count('overdue'),
+      dueSoon: count('dueSoon'),
+      dueThisWeek: count('dueThisWeek'),
       // Both asks: an order parked waiting on the doctor is the same
       // "we cannot proceed" for the lab either way, and counting only one of
       // them let the dashboard claim all-clear with work blocked.
-      needsClarification: openOrders.filter(
-        (o) => o.status === 'NEEDS_CLARIFICATION' || o.status === 'NEEDS_DOCTOR_INPUT',
-      ).length,
-      noFinalPrice: openOrders.filter((o) => o.final_total == null).length,
+      needsClarification: count('clarification'),
+      noFinalPrice: count('noFinalPrice'),
       upcoming: [...dated]
         .sort((a, b) => due(a)!.localeCompare(due(b)!))
         .slice(0, 5),
     };
-  }, [openOrders, today, dayPlus2, weekEnd]);
+    // `today` is the key for the day the presets measure from.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openOrders, today]);
+
+  const openPreset = (preset: OrderPreset) => navigate('/lab/orders', { state: { preset } });
+  const showLabel = (label: string, value: string | number) =>
+    tc('statCard.show', { label, value });
 
   return (
     <>
@@ -179,29 +196,47 @@ export function LabDashboardPage() {
         ) : (
           <>
             <StatGrid>
+              {/* A square reading 0 has nothing to open, so it gets no
+                  onClick and renders as plain text. */}
               <StatCard
                 dotColor="#F59E0B"
                 label={t('dashboard.newOrders')}
                 value={stats.fresh}
                 caption={t('dashboard.newOrdersHint')}
+                onClick={stats.fresh > 0 ? () => openPreset('new') : undefined}
+                ariaLabel={showLabel(t('dashboard.newOrders'), stats.fresh)}
               />
               <StatCard
                 dotColor="#9292FF"
                 label={tc('orderStatus.IN_PROGRESS')}
                 value={stats.inProgress}
                 caption={t('dashboard.openOrders')}
+                onClick={stats.inProgress > 0 ? () => openPreset('inProgress') : undefined}
+                ariaLabel={showLabel(tc('orderStatus.IN_PROGRESS'), stats.inProgress)}
               />
               <StatCard
                 dotColor="#DC2626"
                 label={t('dashboard.dueThisWeek')}
                 value={stats.dueThisWeek}
                 caption={t('dashboard.overdueCount', { n: stats.overdue })}
+                onClick={stats.dueThisWeek > 0 ? () => openPreset('dueThisWeek') : undefined}
+                ariaLabel={showLabel(t('dashboard.dueThisWeek'), stats.dueThisWeek)}
               />
               <StatCard
                 dotColor="#16A34A"
                 label={t('dashboard.unpaidDelivered')}
                 value={formatGEL(unpaid.total)}
                 caption={t('dashboard.acrossOrders', { n: unpaid.count })}
+                // Applied by the finances page once its passcode lock is open.
+                onClick={
+                  unpaid.count > 0
+                    ? () =>
+                        navigate('/lab/finances', {
+                          state: { paymentStatuses: [...UNPAID_STATUSES] },
+                        })
+                    : undefined
+                }
+                ariaLabel={showLabel(t('dashboard.unpaidDelivered'), formatGEL(unpaid.total))}
               />
             </StatGrid>
 
@@ -302,7 +337,7 @@ export function LabDashboardPage() {
                       tone="danger"
                       icon="contact_support"
                       title={t('dashboard.clarificationCount', { n: stats.needsClarification })}
-                      onClick={() => navigate('/lab/orders')}
+                      onClick={() => openPreset('clarification')}
                     />
                   )}
                   {stats.overdue > 0 && (
@@ -310,7 +345,7 @@ export function LabDashboardPage() {
                       tone="danger"
                       icon="event_busy"
                       title={t('dashboard.overdueCount', { n: stats.overdue })}
-                      onClick={() => navigate('/lab/orders', { state: { dueTo: yesterday } })}
+                      onClick={() => openPreset('overdue')}
                     />
                   )}
                   {stats.dueSoon > 0 && (
@@ -318,9 +353,7 @@ export function LabDashboardPage() {
                       tone="warning"
                       icon="event_upcoming"
                       title={t('dashboard.dueSoonCount', { n: stats.dueSoon })}
-                      onClick={() =>
-                        navigate('/lab/orders', { state: { dueFrom: today, dueTo: dayPlus2 } })
-                      }
+                      onClick={() => openPreset('dueSoon')}
                     />
                   )}
                   {stats.noFinalPrice > 0 && (
@@ -328,7 +361,7 @@ export function LabDashboardPage() {
                       tone="neutral"
                       icon="payments"
                       title={t('dashboard.noFinalPriceCount', { n: stats.noFinalPrice })}
-                      onClick={() => navigate('/lab/orders')}
+                      onClick={() => openPreset('noFinalPrice')}
                     />
                   )}
                   {unreviewedEditsCount === 0 &&

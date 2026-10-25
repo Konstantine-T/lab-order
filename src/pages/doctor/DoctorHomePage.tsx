@@ -19,7 +19,11 @@ import {
   StatGrid,
 } from '@/components/design';
 import { formatGEL } from '@/utils/pricing';
-import type { OrderRow, OrderStatus } from '@/types/database';
+import type { OrderRow } from '@/types/database';
+import {
+  type HomePreset,
+  matchesHomePreset,
+} from '@/features/orders/list/homePresets';
 
 type Row = Pick<
   OrderRow,
@@ -61,19 +65,6 @@ const openEditNote = (row: Row): string | undefined =>
     (c) => c.needs_edit && c.answered_at === null && c.resolved_by_edit_at === null,
   )?.question;
 
-/** Statuses where the case is live — neither completed nor cancelled. */
-const OPEN: readonly OrderStatus[] = [
-  'SUBMITTED',
-  'RECEIVED',
-  'NEEDS_CLARIFICATION',
-  'NEEDS_DOCTOR_INPUT',
-  'IN_PROGRESS',
-  'TRY_IN_PHASE',
-  'READY_FOR_DELIVERY',
-  'SENT_TO_CLINIC',
-  'RECEIVED_BY_CLINIC',
-];
-
 /**
  * The doctor's landing screen, built to the dashboard mockup: a greeting, four
  * metrics and a "due soon" list, with anything needing attention called out.
@@ -103,13 +94,13 @@ export function DoctorHomePage() {
     },
   });
 
+  // The squares count with the presets their clicks apply on the orders list
+  // (homePresets), so the number is the number of rows they open onto.
   const stats = useMemo(() => {
-    const open = orders.filter((o) => OPEN.includes(o.status as OrderStatus));
-    const weekEnd = dayjs().add(7, 'day');
-    const dueThisWeek = open.filter((o) => {
-      const due = o.confirmed_due_date ?? o.requested_due_date;
-      return due != null && dayjs(due).isBefore(weekEnd);
-    });
+    const now = dayjs();
+    const submitted = orders.filter((o) => matchesHomePreset(o, 'submitted', now));
+    const open = orders.filter((o) => matchesHomePreset(o, 'open', now));
+    const dueThisWeek = orders.filter((o) => matchesHomePreset(o, 'dueThisWeek', now));
     const needsAction = orders.filter(
       (o) =>
         o.status === 'TRY_IN_PHASE' ||
@@ -122,8 +113,11 @@ export function DoctorHomePage() {
     const unpaid = orders
       .filter((o) => o.payment_status !== 'PAID' && o.status !== 'CANCELLED')
       .reduce((sum, o) => sum + (o.final_total ?? o.generated_total ?? 0), 0);
-    return { open, dueThisWeek, needsAction, needsChange, unpaid };
+    return { submitted, open, dueThisWeek, needsAction, needsChange, unpaid };
   }, [orders]);
+
+  const openPreset = (preset: HomePreset) => navigate('/doctor/orders', { state: { preset } });
+  const showLabel = (label: string, value: number) => tc('statCard.show', { label, value });
 
   const dueSoon = useMemo(
     () =>
@@ -167,24 +161,33 @@ export function DoctorHomePage() {
         <ClinicInvitesCard />
 
         <StatGrid>
+          {/* A square reading 0 has nothing to open: no onClick. */}
           <StatCard
             dotColor="#F59E0B"
             label={tc('orderStatus.SUBMITTED')}
-            value={orders.filter((o) => o.status === 'SUBMITTED').length}
+            value={stats.submitted.length}
             caption={t('home.stats.awaitingLab')}
+            onClick={stats.submitted.length > 0 ? () => openPreset('submitted') : undefined}
+            ariaLabel={showLabel(tc('orderStatus.SUBMITTED'), stats.submitted.length)}
           />
           <StatCard
             dotColor="#9292FF"
             label={tc('orderStatus.IN_PROGRESS')}
             value={stats.open.length}
             caption={t('home.stats.openCases')}
+            onClick={stats.open.length > 0 ? () => openPreset('open') : undefined}
+            ariaLabel={showLabel(tc('orderStatus.IN_PROGRESS'), stats.open.length)}
           />
           <StatCard
             dotColor="#DC2626"
             label={t('home.stats.dueThisWeek')}
             value={stats.dueThisWeek.length}
             caption={t('home.stats.acrossLabs')}
+            onClick={stats.dueThisWeek.length > 0 ? () => openPreset('dueThisWeek') : undefined}
+            ariaLabel={showLabel(t('home.stats.dueThisWeek'), stats.dueThisWeek.length)}
           />
+          {/* Not clickable: there is no payments page or payment filter for
+              the doctor yet. */}
           <StatCard
             dotColor="#16A34A"
             label={t('home.stats.unpaid')}

@@ -8,6 +8,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
@@ -37,7 +38,9 @@ import {
   type ReceivableFilters,
   type ReceivableSort,
 } from '@/features/lab/finances/financeApi';
-import type { LabReceivableOrder } from '@/types/database';
+import type { LabReceivableOrder, PaymentStatus } from '@/types/database';
+
+const PAYMENT_STATUSES: readonly PaymentStatus[] = ['UNPAID', 'PARTIALLY_PAID', 'PAID'];
 
 const CUSTOMER_COLUMNS: Column[] = [
   { key: 'customer', width: 'minmax(0, 2fr)' },
@@ -86,6 +89,23 @@ export function LabFinancesPage() {
   useEffect(() => {
     setPage(1);
   }, [filters, sort, pageSize]);
+
+  // The lab dashboard's "unpaid" square hands over payment statuses in router
+  // state. This page mounts only behind the passcode (FinanceLockGate), so a
+  // lab that had to type it first still lands on the filtered list. Applied
+  // from clean filters, then cleared, so a refresh or Back does not re-apply
+  // it over filters changed since.
+  const location = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    const raw = (location.state as { paymentStatuses?: unknown } | null)?.paymentStatuses;
+    if (!Array.isArray(raw)) return;
+    const statuses = PAYMENT_STATUSES.filter((s) => raw.includes(s));
+    if (statuses.length > 0) setFilters({ ...defaultReceivableFilters, statuses });
+    navigate(location.pathname, { replace: true, state: null });
+    // Only a new navigation should apply it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
 
   const byCustomer = useQuery({
     queryKey: ['lab-receivables-by-customer', labId, filters],

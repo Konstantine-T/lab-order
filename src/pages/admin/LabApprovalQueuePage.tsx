@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Box, CircularProgress, Stack, Typography } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
@@ -18,6 +18,7 @@ import {
   PillRow,
 } from '@/components/design';
 import type { LabApprovalStatus, LabRow } from '@/types/database';
+import { isLabApprovalStatus } from '@/features/admin/labQueuePresets';
 
 type FilterValue = 'ALL' | LabApprovalStatus;
 
@@ -43,6 +44,19 @@ export function LabApprovalQueuePage() {
   const { t } = useTranslation('admin');
   const navigate = useNavigate();
   const [filter, setFilter] = useState<FilterValue>('PENDING_APPROVAL');
+
+  // A square on the admin home hands over the status it counted. Keyed on the
+  // location so arriving again applies it too, then cleared so a refresh or
+  // Back keeps whatever filter the admin picked since.
+  const location = useLocation();
+  useEffect(() => {
+    const next = (location.state as { filter?: unknown } | null)?.filter;
+    if (!isLabApprovalStatus(next)) return;
+    setFilter(next);
+    navigate(location.pathname, { replace: true, state: null });
+    // Only a new navigation should apply it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
 
   const { data: labs = [], isLoading } = useQuery({
     queryKey: ['admin-labs', filter],

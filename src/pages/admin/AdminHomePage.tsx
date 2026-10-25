@@ -3,6 +3,7 @@ import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
+import { ADMIN_LAB_SQUARES } from '@/features/admin/labQueuePresets';
 import {
   CardStack,
   Icon,
@@ -13,6 +14,7 @@ import {
 
 export function AdminHomePage() {
   const { t } = useTranslation('admin');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
 
   const { data: pendingCount = 0 } = useQuery({
@@ -21,7 +23,10 @@ export function AdminHomePage() {
       const { count, error } = await supabase
         .from('labs')
         .select('*', { count: 'exact', head: true })
-        .in('approval_status', ['PENDING_APPROVAL', 'CHANGES_REQUESTED']);
+        // The queue's own status, so the square opens onto exactly the rows it
+        // counts (and agrees with the sidebar badge). Labs sent back with
+        // changes requested are waiting on the lab, not on review.
+        .eq('approval_status', ADMIN_LAB_SQUARES.pending);
       if (error) throw error;
       return count ?? 0;
     },
@@ -33,7 +38,7 @@ export function AdminHomePage() {
       const { count, error } = await supabase
         .from('labs')
         .select('*', { count: 'exact', head: true })
-        .eq('approval_status', 'APPROVED_ACTIVE');
+        .eq('approval_status', ADMIN_LAB_SQUARES.active);
       if (error) throw error;
       return count ?? 0;
     },
@@ -69,23 +74,38 @@ export function AdminHomePage() {
 
       <CardStack>
         <StatGrid columns={3}>
+          {/* A square reading 0 has nothing to open: no onClick. */}
           <StatCard
             dotColor="#F59E0B"
             label={t('home.pendingLabs')}
             value={pendingCount}
             caption={t('home.pendingCaption')}
+            onClick={
+              pendingCount > 0
+                ? () => navigate('/admin/labs', { state: { filter: ADMIN_LAB_SQUARES.pending } })
+                : undefined
+            }
+            ariaLabel={tc('statCard.show', { label: t('home.pendingLabs'), value: pendingCount })}
           />
           <StatCard
             dotColor="#16A34A"
             label={t('home.activeLabs')}
             value={activeCount}
             caption={t('home.activeCaption')}
+            onClick={
+              activeCount > 0
+                ? () => navigate('/admin/labs', { state: { filter: ADMIN_LAB_SQUARES.active } })
+                : undefined
+            }
+            ariaLabel={tc('statCard.show', { label: t('home.activeLabs'), value: activeCount })}
           />
           <StatCard
             dotColor="#9292FF"
             label={t('feedbacks.title')}
             value={feedbackCount}
             caption={t('home.feedbackCaption')}
+            onClick={feedbackCount > 0 ? () => navigate('/admin/feedbacks') : undefined}
+            ariaLabel={tc('statCard.show', { label: t('feedbacks.title'), value: feedbackCount })}
           />
         </StatGrid>
 

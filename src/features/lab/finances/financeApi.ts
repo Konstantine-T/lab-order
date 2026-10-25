@@ -36,12 +36,16 @@ export type ReceivableFilters = {
   maxAmount: number | null;
 };
 
+/** Everything still owed: what the default view and the lab dashboard's
+ *  "unpaid" square both show. */
+export const OWED_PAYMENT_STATUSES: readonly PaymentStatus[] = ['UNPAID', 'PARTIALLY_PAID'];
+
 /** Default view: everything still owed (unpaid + partially paid). */
 export const defaultReceivableFilters: ReceivableFilters = {
   search: '',
   recipientType: null,
   customerId: null,
-  statuses: ['UNPAID', 'PARTIALLY_PAID'],
+  statuses: [...OWED_PAYMENT_STATUSES],
   dateFrom: null,
   dateTo: null,
   overdueOnly: false,

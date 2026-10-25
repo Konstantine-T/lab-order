@@ -1,7 +1,8 @@
-import { useMemo, useState } from 'react';
-import type { Dayjs } from 'dayjs';
+import { useEffect, useMemo, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import dayjs, { type Dayjs } from 'dayjs';
 import type { OrderStatus } from '@/types/database';
-import { dueDateOf } from '@/features/orders/orderDates';
+import { homePresetFilter, isHomePreset, matchesStatusDue } from './homePresets';
 import {
   currentWeek,
   labNameOf,
@@ -57,13 +58,8 @@ export function useOrderListFilters(
         if (labId && row.lab_id !== labId) return false;
         if (patientId && row.patient_id !== patientId) return false;
         if (doctorId && row.doctor_id !== doctorId) return false;
-        if (statuses.length > 0 && !statuses.includes(row.status)) return false;
-        if (from || to) {
-          const due = dueDateOf(row);
-          if (due == null) return false;
-          if (from && due < from) return false;
-          if (to && due > to) return false;
-        }
+        // The same function the doctor home counts its squares with.
+        if (!matchesStatusDue(row, { statuses, from, to })) return false;
         if (q) {
           const haystack = [
             row.order_code,
@@ -130,6 +126,27 @@ export function useOrderListFilters(
     setDateFrom(null);
     setDateTo(null);
   };
+
+  // A square on the doctor home hands over a preset (homePresets) in router
+  // state. Keyed on the location, not read once on mount, so a second square
+  // after Back applies too; applied from clean filters with the panel that
+  // shows them open, then cleared so a refresh or Back does not re-apply it
+  // over filters changed since.
+  const location = useLocation();
+  const navigate = useNavigate();
+  useEffect(() => {
+    const preset = (location.state as { preset?: unknown } | null)?.preset;
+    if (!isHomePreset(preset)) return;
+    const f = homePresetFilter(preset);
+    clear();
+    setStatuses([...f.statuses]);
+    setDateFrom(f.from ? dayjs(f.from) : null);
+    setDateTo(f.to ? dayjs(f.to) : null);
+    setAdvancedOpen(true);
+    navigate(location.pathname, { replace: true, state: null });
+    // Only a new navigation should apply a preset.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.key]);
 
   /** Changes whenever the result set's definition or its order does — groups
    *  key on it to fold back to their first page, as the old pager went back to
