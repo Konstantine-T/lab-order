@@ -13,12 +13,23 @@ import { LabFinancesPage } from '@/pages/lab/LabFinancesPage';
 import { FinanceLockGate } from '@/features/lab/finances/FinanceLockGate';
 import { LabStaffPage } from '@/pages/lab/LabStaffPage';
 import { LabReviewsPage } from '@/pages/lab/LabReviewsPage';
+import { LabMarketplaceLabPage, LabMarketplacePage } from '@/pages/lab/LabMarketplacePages';
+import { lazyRoute } from './lazyRoute';
+import { LazyBoundary } from './LazyBoundary';
 import { NotFoundPage } from '@/pages/public/NotFoundPage';
+
+/** The lab's orders to other labs (0048): a chunk of its own, see labPurchasesRoutes. */
+const LabPurchases = lazyRoute(() => import('./labPurchasesRoutes'));
 
 /**
  * Everything under `/lab`, loaded as one chunk the first time a lab enters
  * the area (see `src/routes.tsx`). Paths are relative to `/lab`; the guards
  * stay in `routes.tsx`.
+ *
+ * `marketplace…` and `purchases…` are the lab buying from other labs (0048):
+ * the doctor's own pages, as the clinic reuses them, run through the lab's
+ * buying profile. They are kept apart from `orders…`, the orders the lab
+ * receives.
  */
 export default function LabRoutes() {
   return (
@@ -43,6 +54,16 @@ export default function LabRoutes() {
           <Route path="orders/:orderId" element={<LabOrderSheetPage />} />
           <Route path="staff" element={<LabStaffPage />} />
           <Route path="reviews" element={<LabReviewsPage />} />
+          <Route path="marketplace" element={<LabMarketplacePage />} />
+          <Route path="marketplace/:labId" element={<LabMarketplaceLabPage />} />
+          <Route
+            path="purchases/*"
+            element={
+              <LazyBoundary variant="inline">
+                <LabPurchases />
+              </LazyBoundary>
+            }
+          />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

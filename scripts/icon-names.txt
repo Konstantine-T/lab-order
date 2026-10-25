@@ -111,6 +111,7 @@ search
 search_off
 sell
 send
+shopping_cart
 smartphone
 south
 south_east
