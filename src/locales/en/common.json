@@ -100,7 +100,8 @@
     "describedBar": "See the lab's prices",
     "noPricingTitle": "No price published",
     "noPricingHint": "This lab does not publish a price for this service. It will set the total after reviewing your order.",
-    "noPricingBar": "No price published"
+    "noPricingBar": "No price published",
+    "finalPriceNoteTitle": "The lab's explanation"
   },
   "toothMap": {
     "upper": "Upper",
@@ -533,6 +534,14 @@
       "lab_rejected": {
         "title": "Lab not approved",
         "body": "Contact the administration for details"
+      },
+      "lab_review_new": {
+        "title": "New review",
+        "body": "Order {{code}}. Rating: {{rating}} ★"
+      },
+      "lab_review_reply": {
+        "title": "The lab replied to your review",
+        "body": "Order {{code}}, {{lab}}"
       }
     }
   },

@@ -40,7 +40,8 @@
     "invoices": "Invoices",
     "debts": "Debts",
     "platformBilling": "Platform billing",
-    "staff": "Staff"
+    "staff": "Staff",
+    "reviews": "Reviews"
   },
   "finances": {
     "title": "Finances",
@@ -269,7 +270,11 @@
         "sgPrice": "Set at least one surgical-guide price.",
         "rushValue": "Enter the rush surcharge amount.",
         "rushTurnaround": "Enter the rush turnaround in days.",
-        "priceDescription": "The price description is empty."
+        "priceDescription": "The price description is empty.",
+        "choiceMaterials": "Add at least one material.",
+        "noCrownMaterials": "Add at least one crown material.",
+        "crownMaterialNeedsName": "Crown material {{index}} needs a name.",
+        "noImplantOptions": "Switch on at least one abutment type."
       },
       "publishBlocked": "Fix these before publishing",
       "customQuestionIssues": {
@@ -397,7 +402,16 @@
         "priceDescription": "Price description",
         "priceDescriptionHelp": "Write out what you charge for this service. The doctor reads this exactly as you type it, and you confirm the final price after reviewing the order.",
         "priceDescriptionRequired": "Write the prices before publishing.",
-        "noPricingWarning": "Nothing will be calculated for this service. The doctor sees no estimate when ordering, and the order counts as 0 in receivables and in the clinic’s balance until you set the final total on the order yourself. A rush request still shortens the due date, but its surcharge is not added — include it in the final total yourself."
+        "noPricingWarning": "Nothing will be calculated for this service. The doctor sees no estimate when ordering, and the order counts as 0 in receivables and in the clinic’s balance until you set the final total on the order yourself. A rush request still shortens the due date, but its surcharge is not added — include it in the final total yourself.",
+        "modes": {
+          "described": "Price description (recommended)",
+          "automatic": "Automatic estimate"
+        },
+        "automaticModel": "How the estimate is calculated",
+        "priceDescriptionExample": "e.g. Zirconia crown 150 ₾ per tooth, E.max 180 ₾. Implant constructions: price depends on the abutment; we confirm it after receiving the order.",
+        "choicesTitle": "What the doctor chooses",
+        "choicesHelp": "The doctor picks from these lists when ordering. Names only: your prices go in the description above.",
+        "materialsNamesHelp": "Up to 5 materials. The doctor picks one material for each tooth."
       },
       "publish": "Publish",
       "unpublish": "Unpublish",
@@ -609,7 +623,15 @@
     "patient": "Patient",
     "patientDob": "Date of birth: {{date}}",
     "dueConfirmed": "Confirmed",
-    "requestedDayHint": "The date the doctor asked for"
+    "requestedDayHint": "The date the doctor asked for",
+    "finalPriceNote": {
+      "label": "How the price was calculated",
+      "helper": "Explain to the doctor how you arrived at this price",
+      "required": "Explain how the price was calculated",
+      "priceChanged": "Check that the explanation matches the new price",
+      "stillCorrect": "The explanation is still correct",
+      "confirmRequired": "Update the explanation or confirm that it is still correct."
+    }
   },
   "approvalBanner": {
     "PENDING_APPROVAL": {
@@ -1052,7 +1074,10 @@
         "barMaterial": "Bar material"
       },
       "crownMaterialsHelp": "Define the final crown materials doctors can choose from. Price is per tooth.",
-      "addCrownMaterial": "Add crown material"
+      "addCrownMaterial": "Add crown material",
+      "optionsTitle": "Implant options",
+      "optionsHelp": "Switch off what your lab does not offer. The doctor only sees the options that are on.",
+      "crownMaterialsNamesHelp": "The final crown materials doctors can choose from."
     },
     "transferCheck": {
       "label": "Transfer check (verification jig) needed?"
@@ -1131,5 +1156,33 @@
       "material": "Pick a material, then click teeth to paint them",
       "selectTooth": "Click a tooth to assign the selected material; click it again to remove it"
     }
+  },
+  "reviews": {
+    "title": "Reviews",
+    "subtitle": "What doctors say about your work. Reply publicly, or report a review to the platform.",
+    "count_one": "{{count}} review",
+    "count_other": "{{count}} reviews",
+    "empty": "No reviews yet",
+    "emptyHint": "Doctors can rate an order after they close it.",
+    "showMore": "Show more",
+    "order": "Order {{code}}",
+    "state": {
+      "open": "Reported, waiting for the platform",
+      "kept": "Kept by the platform",
+      "hidden": "Hidden by the platform"
+    },
+    "hiddenNote": "Note from the platform: {{note}}",
+    "reply": "Reply",
+    "editReply": "Edit reply",
+    "removeReply": "Remove reply",
+    "replyPlaceholder": "Your reply",
+    "replyPublic": "Everyone who sees the review sees your reply.",
+    "publishReply": "Publish reply",
+    "cancel": "Cancel",
+    "report": "Report to the platform",
+    "reportTitle": "Report this review",
+    "reportBody": "Tell the platform what is wrong with this review. An administrator will hide it or keep it.",
+    "reportReason": "Reason",
+    "reportSubmit": "Send report"
   }
 }

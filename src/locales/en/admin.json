@@ -97,5 +97,32 @@
     "deleteAction": "Delete",
     "subtitle": "Messages sent from the in-app feedback button",
     "attachment": "Attachment"
+  },
+  "reviews": {
+    "title": "Reviews",
+    "subtitle": "Doctors' reviews of labs. Labs can report a review; hide it or keep it.",
+    "tabs": {
+      "reported": "Reported",
+      "all": "All reviews"
+    },
+    "emptyReported": "No reported reviews",
+    "emptyAll": "No reviews yet",
+    "showMore": "Show more",
+    "state": {
+      "open": "Waiting for a decision",
+      "hidden": "Hidden",
+      "kept": "Kept"
+    },
+    "reportedAt": "Reported {{date}}",
+    "reason": "Reason from the lab",
+    "noteShown": "Note shown to the doctor and the lab: {{note}}",
+    "hide": "Hide",
+    "unhide": "Unhide",
+    "keep": "Keep",
+    "hideTitle": "Hide this review?",
+    "hideBody": "It disappears from the lab's public page and from its average. The doctor and the lab still see it, marked as hidden.",
+    "hideNote": "Note for the doctor and the lab (optional)",
+    "confirmHide": "Hide review",
+    "cancel": "Cancel"
   }
 }

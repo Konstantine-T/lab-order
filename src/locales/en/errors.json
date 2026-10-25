@@ -6,5 +6,26 @@
     "too_big": "Too long.",
     "invalid_enum_value": "Invalid option.",
     "custom": "Invalid value."
+  },
+  "reviews": {
+    "not_your_order": "Only the doctor of this order can review it.",
+    "order_not_completed": "You can review an order once it is completed.",
+    "review_window_closed": "The 30 days to review this order have passed.",
+    "invalid_rating": "Choose from 1 to 5 stars.",
+    "comment_required": "A comment is required for 1 or 2 stars",
+    "comment_too_long": "The comment can be at most 2000 characters.",
+    "not_your_review": "Only the doctor who wrote this review can change it.",
+    "not_your_lab": "This review is about another lab.",
+    "reply_too_long": "The reply can be at most 2000 characters.",
+    "reason_required": "Write the reason for the report.",
+    "reason_too_long": "The reason can be at most 1000 characters.",
+    "already_reported": "This review is already reported and waiting for the platform.",
+    "not_platform_admin": "Only a platform administrator can do this.",
+    "review_not_found": "This review no longer exists.",
+    "note_too_long": "The note can be at most 1000 characters.",
+    "invalid_action": "Unknown action. Reload the page and try again.",
+    "permission": "You do not have permission to do this.",
+    "network": "No connection. Check the internet and try again.",
+    "generic": "Something went wrong. Try again."
   }
 }

@@ -527,5 +527,46 @@
     "accept": "Accept",
     "decline": "Decline",
     "alreadyInClinic": "You're already part of a clinic. Leave it before joining another."
+  },
+  "reviews": {
+    "sectionTitle": "Reviews",
+    "cardTitle": "Review",
+    "yourReview": "Your review",
+    "rate": "Rate this order",
+    "rateTitle": "Rate this order",
+    "editTitle": "Edit your review",
+    "completionTitle": "How was the work?",
+    "skip": "Skip",
+    "submit": "Submit review",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "deleteTitle": "Delete your review?",
+    "deleteBody": "The lab's reply goes with it.",
+    "deadline": "You can review until {{date}}",
+    "edited": "edited",
+    "hidden": "Hidden by the platform",
+    "replyFrom": "Reply from {{lab}}",
+    "anonymous": "Doctor",
+    "showMore": "Show more",
+    "count_one": "{{count}} review",
+    "count_other": "{{count}} reviews",
+    "ratedA11y_one": "Rated {{average}} out of 5 from {{count}} review",
+    "ratedA11y_other": "Rated {{average}} out of 5 from {{count}} reviews",
+    "starLabel_one": "{{count}} star",
+    "starLabel_other": "{{count}} stars",
+    "caption": {
+      "1": "Very poor",
+      "2": "Poor",
+      "3": "Average",
+      "4": "Good",
+      "5": "Excellent"
+    },
+    "form": {
+      "ratingLabel": "Your rating",
+      "placeholder": "Comment (optional)",
+      "placeholderLow": "What went wrong?"
+    }
   }
 }
