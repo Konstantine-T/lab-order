@@ -132,11 +132,19 @@ begin
   return new;
 end $$;
 
+-- status_before_doctor_input is guarded too: close_doctor_input_on_edit (0033)
+-- restores status FROM it, as the definer, on the doctor's next edit. Left
+-- open, a doctor could PATCH it to SENT_TO_CLINIC while the order waits on
+-- them, save any edit, and the definer would push the order there for them.
+-- Every legitimate writer of that column (request_doctor_input,
+-- close_doctor_input_on_edit, release_doctor_input_request) is SECURITY
+-- DEFINER, so it still passes.
 drop trigger if exists orders_cancel_status_guard on public.orders;
 create trigger orders_cancel_status_guard
-  before update of status on public.orders
+  before update of status, status_before_doctor_input on public.orders
   for each row
-  when (new.status is distinct from old.status)
+  when (new.status is distinct from old.status
+        or new.status_before_doctor_input is distinct from old.status_before_doctor_input)
   execute function public.tg_cancel_order_status_guard();
 
 
@@ -186,6 +194,8 @@ revoke all on function public.tg_cancel_order_stamp() from public, anon, authent
 --   --   set local role authenticated;
 --   --   update public.orders set status = 'READY_FOR_DELIVERY'
 --   --    where id = '<their SUBMITTED order>';     -- raises status_change_not_allowed
+--   --   update public.orders set status_before_doctor_input = 'SENT_TO_CLINIC'
+--   --    where id = '<their NEEDS_DOCTOR_INPUT order>';  -- raises status_change_not_allowed
 --   --   select public.cancel_order('<their RECEIVED order>');  -- order_already_accepted
 --   --   select public.cancel_order('<another doctor''s order>'); -- not_your_order
 --   --   select public.cancel_order('<their SUBMITTED order>', '  changed my mind ');
