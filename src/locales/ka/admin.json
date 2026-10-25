@@ -73,7 +73,6 @@
     "fields": {
       "publicName": "საჯარო სახელი",
       "shortDescription": "მოკლე აღწერა",
-      "logoUrl": "ლოგოს URL",
       "legalName": "იურიდიული სახელი",
       "identificationCode": "საიდენტიფიკაციო კოდი",
       "legalAddress": "იურიდიული მისამართი",
@@ -85,7 +84,8 @@
       "contactEmail": "საკონტაქტო ელფოსტა",
       "bankName": "ბანკის დასახელება",
       "bankAccount": "საბანკო ანგარიში / IBAN",
-      "paymentInstructions": "გადახდის ინსტრუქციები"
+      "paymentInstructions": "გადახდის ინსტრუქციები",
+      "logo": "ლოგო"
     }
   },
   "feedbacks": {

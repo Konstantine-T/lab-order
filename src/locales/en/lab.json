@@ -461,7 +461,8 @@
       "orderCount_other": "{{count}} orders",
       "noMatches": "No matches",
       "clearField": "Clear",
-      "openList": "Open"
+      "openList": "Open",
+      "noFinalPrice": "No final price"
     },
     "columns": {
       "code": "Order",
@@ -641,7 +642,6 @@
     },
     "fields": {
       "publicName": "Public laboratory name",
-      "logoUrl": "Logo URL",
       "shortDescription": "Short description",
       "legalName": "Legal company name",
       "identificationCode": "Tax / identification code",
@@ -670,7 +670,8 @@
       "permission": "You don't have permission to change this laboratory's profile.",
       "invalid": "Some of the text can't be saved as it is. Check the fields and try again.",
       "network": "Connection problem. Check your internet and try again.",
-      "generic": "Couldn't save the laboratory profile. Please try again."
+      "generic": "Couldn't save the laboratory profile. Please try again.",
+      "logo": "A logo can't be saved as a link. Upload the image file instead."
     },
     "translations": {
       "tabBase": "Original",
@@ -706,6 +707,20 @@
       "emailReadOnly": "The sign-in email can't be changed here.",
       "saved": "Your details have been saved.",
       "saveFailed": "Couldn't save your details. Please try again."
+    },
+    "logo": {
+      "title": "Logo",
+      "upload": "Upload logo",
+      "replace": "Replace",
+      "remove": "Remove",
+      "hint": "PNG, JPG or WebP, up to 2 MB. A square image looks best",
+      "saved": "Logo saved",
+      "removed": "Logo removed",
+      "errors": {
+        "too-large": "The file is larger than 2 MB",
+        "wrong-type": "Upload a PNG, JPG or WebP",
+        "failed": "The upload failed. Please try again"
+      }
     }
   },
   "espForm": {

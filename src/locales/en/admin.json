@@ -73,7 +73,6 @@
     "fields": {
       "publicName": "Public name",
       "shortDescription": "Short description",
-      "logoUrl": "Logo URL",
       "legalName": "Legal name",
       "identificationCode": "Identification code",
       "legalAddress": "Legal address",
@@ -85,7 +84,8 @@
       "contactEmail": "Contact email",
       "bankName": "Bank name",
       "bankAccount": "Bank account / IBAN",
-      "paymentInstructions": "Payment instructions"
+      "paymentInstructions": "Payment instructions",
+      "logo": "Logo"
     }
   },
   "feedbacks": {

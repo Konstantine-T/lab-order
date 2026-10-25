@@ -535,5 +535,8 @@
         "body": "Contact the administration for details"
       }
     }
+  },
+  "statCard": {
+    "show": "Show {{label}} ({{value}})"
   }
 }

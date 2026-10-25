@@ -73,7 +73,6 @@
     "fields": {
       "publicName": "Публичное название",
       "shortDescription": "Краткое описание",
-      "logoUrl": "URL логотипа",
       "legalName": "Юридическое название",
       "identificationCode": "Идентификационный код",
       "legalAddress": "Юридический адрес",
@@ -85,7 +84,8 @@
       "contactEmail": "Контактный email",
       "bankName": "Название банка",
       "bankAccount": "Счёт / IBAN",
-      "paymentInstructions": "Платёжные инструкции"
+      "paymentInstructions": "Платёжные инструкции",
+      "logo": "Логотип"
     }
   },
   "feedbacks": {

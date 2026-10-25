@@ -102,12 +102,6 @@
     "priceListA11y": "Price list (opens in a new tab)",
     "servicesAndPrices": "Services & prices",
     "categoryAll": "All",
-    "table": {
-      "service": "Service",
-      "turnaround": "Turnaround",
-      "rush": "Rush",
-      "price": "Price"
-    },
     "turnaroundIs": "Turnaround {{value}}",
     "rushIs": "Rush {{value}}",
     "rushAvailable": "Rush available",
@@ -428,6 +422,21 @@
     "phoneBar": {
       "chat": "Chat with the lab",
       "call": "Call the lab"
+    },
+    "cancel": {
+      "button": "Cancel order",
+      "title": "Cancel this order?",
+      "notAcceptedYet": "The lab hasn't accepted this order yet, so you can still cancel it. This can't be undone.",
+      "reasonLabel": "Reason (optional)",
+      "keep": "Keep order",
+      "confirm": "Cancel order",
+      "alreadyAccepted": "The lab has already accepted this order. Contact the lab to change or cancel it.",
+      "errors": {
+        "notYourOrder": "You can't cancel this order.",
+        "notAllowed": "Only the lab can change this order's status.",
+        "reasonTooLong": "The reason can be at most 1000 characters.",
+        "generic": "Couldn't cancel the order. Please try again."
+      }
     }
   },
   "orderEdit": {
