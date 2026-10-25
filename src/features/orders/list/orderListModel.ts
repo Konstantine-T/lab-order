@@ -102,10 +102,15 @@ export const patientShortName = (row: ListOrderRow) =>
 
 /**
  * The card's patient: the short name, else a purchase's reference (0048),
- * else "—" for an order placed with neither.
+ * else "—" for an order placed with neither. A purchase with both shows both,
+ * so a search that matched the reference shows why.
  */
-export const patientOrReference = (row: ListOrderRow) =>
-  patientShortName(row) || row.patient_reference?.trim() || (row.patient_id ? '' : '—');
+export const patientOrReference = (row: ListOrderRow) => {
+  const name = patientShortName(row);
+  const reference = row.patient_reference?.trim();
+  if (name) return reference ? `${name} · ${reference}` : name;
+  return reference || (row.patient_id ? '' : '—');
+};
 
 // ===== Waiting on the doctor =================================================
 

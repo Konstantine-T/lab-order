@@ -52,7 +52,7 @@ import {
   useBuyerMode,
 } from '@/features/labBuying/buyerMode';
 import { buyerPatientPayload, labDeliveryLine, labInvoiceLine } from '@/features/labBuying/buyerOrder';
-import { buyerErrorText } from '@/features/labBuying/buyerErrors';
+import { orderErrorText } from '@/features/labBuying/buyerErrors';
 import { useFocusedShell } from '@/layouts/shellFocus';
 import { useSections, type SectionEntry } from '@/features/orderForms/wizard/sectionRegistry';
 import { SectionRegistryProvider } from '@/features/orderForms/wizard/SectionRegistryProvider';
@@ -628,10 +628,11 @@ export function OrderCreateWizard({
       clearGuestDraft();
       setSubmittedOrderId(orderId);
     },
-    // The 0048 codes in words; a buying lab never sees a raw message.
+    // Every known refusal in words (the 0048 codes and the RPC's sentences);
+    // a buying lab never sees a raw message.
     onError: (e) =>
       setError(
-        buyerErrorText(e, te) ??
+        orderErrorText(e, te) ??
           (buyer ? tc('errors.generic') : e instanceof Error ? e.message : 'Error'),
       ),
   });

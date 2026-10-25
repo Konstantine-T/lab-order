@@ -42,7 +42,7 @@ import {
   snapshotDeliveryLine,
   snapshotInvoiceLine,
 } from '@/features/labBuying/buyerOrder';
-import { buyerErrorText } from '@/features/labBuying/buyerErrors';
+import { orderErrorText } from '@/features/labBuying/buyerErrors';
 import type {
   DoctorWorkLocationRow,
   EditReasonCode,
@@ -283,10 +283,11 @@ export function OrderEditPage({
       qc.invalidateQueries({ queryKey: ['doctor-home-orders'] });
       navigate(`${basePath}/${orderId}`);
     },
-    // The 0048 codes in words; a buying lab never sees a raw message.
+    // Every known refusal in words (the 0048 codes and the RPC's sentences);
+    // a buying lab never sees a raw message.
     onError: (e) =>
       setError(
-        buyerErrorText(e, te) ??
+        orderErrorText(e, te) ??
           (buyer ? tc('errors.generic') : e instanceof Error ? e.message : 'Error'),
       ),
   });

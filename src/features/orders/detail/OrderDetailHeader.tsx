@@ -169,6 +169,15 @@ export function OrderDetailHeader({
                 <Box component="b" sx={{ color: 'text.primary', fontWeight: 600 }}>
                   {patient}
                 </Box>
+                {patientLine?.reference && (
+                  <>
+                    {' · '}
+                    {t('labBuyer.patient.reference')}{' '}
+                    <Box component="b" sx={{ color: 'text.primary', fontWeight: 600 }}>
+                      {patientLine.reference}
+                    </Box>
+                  </>
+                )}
               </>
             )}
             {meta.map((part, i) => (

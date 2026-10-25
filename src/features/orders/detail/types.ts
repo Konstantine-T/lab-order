@@ -42,15 +42,17 @@ export const patientNameOf = (order: DetailOrder) =>
 
 /**
  * The header's patient line. A lab's purchase may have no patient (0048):
- * then its free-text reference, labelled as one, else a dash.
+ * then its free-text reference, labelled as one, else a dash. A purchase with
+ * both keeps the reference alongside the name (`reference`), so the buying
+ * lab still sees the case reference it typed once the order is closed.
  */
 export function patientLineOf(
   order: DetailOrder,
-): { kind: 'patient' | 'reference'; text: string } | null {
+): { kind: 'patient' | 'reference'; text: string; reference?: string } | null {
   const name = patientNameOf(order);
-  if (name) return { kind: 'patient', text: name };
+  const reference = order.patient_reference?.trim() || undefined;
+  if (name) return { kind: 'patient', text: name, reference };
   if (order.patient_id) return null;
-  const reference = order.patient_reference?.trim();
   return reference ? { kind: 'reference', text: reference } : { kind: 'patient', text: '—' };
 }
 

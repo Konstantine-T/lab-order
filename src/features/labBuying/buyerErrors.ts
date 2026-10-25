@@ -28,3 +28,43 @@ export function buyerErrorText(err: unknown, t: TFunction): string | null {
   const code = buyerErrorCode(err);
   return code ? t(`labBuying.${code}`) : null;
 }
+
+/**
+ * The ordering RPCs' other refusals (_submit_order_impl, edit_order), which
+ * raise plain English sentences rather than codes, as keys of
+ * `errors:orderRpc.*`. Matched whole, case-insensitively: "order not found" must
+ * not catch "Continued order not found or not in the same lab". Most of these
+ * are races (the lab paused, the service or form changed, the lab moved the
+ * order on) that a retry will not fix, so the reason has to be said.
+ */
+const RPC_MESSAGES: Record<string, string> = {
+  'lab is not available for orders': 'labUnavailable',
+  'service is not available': 'serviceUnavailable',
+  'form version not found or not published': 'formChanged',
+  'continued order not found or not in the same lab': 'continuedOrderMissing',
+  'work location is not available': 'workLocationUnavailable',
+  'patient not found': 'patientNotFound',
+  'order not found': 'orderNotFound',
+  'you are not allowed to edit this order': 'notAllowed',
+  'this order can no longer be edited': 'notEditable',
+  patient_reference_too_long: 'referenceTooLong',
+};
+
+export function orderRpcErrorKey(err: unknown): string | null {
+  const msg = String((err as { message?: unknown } | null)?.message ?? '')
+    .trim()
+    .toLowerCase();
+  return RPC_MESSAGES[msg] ?? null;
+}
+
+/**
+ * The words for any refusal the submit / edit RPCs are known to raise: the 0048
+ * codes first, then the sentences above. Null for anything else, so the caller
+ * keeps its own fallback. `t` is the `errors` namespace's.
+ */
+export function orderErrorText(err: unknown, t: TFunction): string | null {
+  const buyerText = buyerErrorText(err, t);
+  if (buyerText) return buyerText;
+  const key = orderRpcErrorKey(err);
+  return key ? t(`orderRpc.${key}`) : null;
+}

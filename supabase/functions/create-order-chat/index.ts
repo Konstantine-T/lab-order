@@ -86,7 +86,7 @@ Deno.serve(async (req) => {
   // --- load order + lab, re-check lab ownership server-side ---
   const { data: order, error: orderErr } = await admin
     .from('orders')
-    .select('id, order_code, lab_id, doctor_id, doctor_snapshot')
+    .select('id, order_code, lab_id, doctor_id, doctor_snapshot, buyer_lab_id')
     .eq('id', orderId)
     .maybeSingle();
   if (orderErr) return json({ error: 'order_lookup_failed' }, 500);
@@ -139,13 +139,27 @@ Deno.serve(async (req) => {
     return json({ error: 'no_assigned_staff' }, 400);
   }
 
-  // doctor phone: order.doctor_id -> doctor_profiles.user_id -> users.phone
-  const { data: docProfile } = await admin
-    .from('doctor_profiles')
-    .select('user_id')
-    .eq('id', order.doctor_id)
-    .maybeSingle();
-  if (docProfile?.user_id) {
+  // A lab's purchase (0048): the customer is the buying lab, by the name and
+  // business phone its snapshot carries, never its owner's personal users row
+  // (which the selling lab cannot otherwise see).
+  const snapshot = (order.doctor_snapshot ?? {}) as { first_name?: string; phone?: string | null };
+  const docProfile = order.buyer_lab_id
+    ? null
+    : (
+        await admin
+          .from('doctor_profiles')
+          .select('user_id')
+          .eq('id', order.doctor_id)
+          .maybeSingle()
+      ).data;
+  if (order.buyer_lab_id) {
+    participants.push({
+      name: snapshot.first_name?.trim() || 'Lab',
+      phone: snapshot.phone ?? '',
+      role: 'doctor',
+    });
+  } else if (docProfile?.user_id) {
+    // doctor phone: order.doctor_id -> doctor_profiles.user_id -> users.phone
     const { data: docUser } = await admin
       .from('users')
       .select('first_name, last_name, phone')

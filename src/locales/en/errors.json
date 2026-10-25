@@ -34,5 +34,17 @@
     "cannot_order_from_own_lab": "A lab cannot order from itself. Choose another lab.",
     "patient_required": "Enter the patient's first and last name.",
     "invoice_recipient_not_allowed": "This invoice recipient is not available for this order. Choose the doctor or the clinic."
+  },
+  "orderRpc": {
+    "labUnavailable": "This lab is not taking orders right now.",
+    "serviceUnavailable": "This service is no longer available. Choose another service.",
+    "formChanged": "The lab has changed this service's order form. Reload the page and check your answers.",
+    "continuedOrderMissing": "The order this one continues is no longer available.",
+    "workLocationUnavailable": "This work location is no longer available. Choose another one.",
+    "patientNotFound": "This patient could not be found. Choose the patient again.",
+    "orderNotFound": "This order could not be found.",
+    "notAllowed": "You are not allowed to edit this order.",
+    "notEditable": "This order can no longer be edited.",
+    "referenceTooLong": "The reference can be at most 200 characters."
   }
 }
