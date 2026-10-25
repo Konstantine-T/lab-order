@@ -7,6 +7,7 @@ import { TopNavShell } from './TopNavShell';
 import { NavBadge } from '@/components/design';
 import { useAuth } from '@/auth/AuthProvider';
 import { useDoctorNavAlerts } from '@/features/notifications/useNavAlerts';
+import { CompletionDialogHost } from '@/features/orders/completion/CompletionDialogHost';
 import { guestDraftResumePath, readGuestDraft } from '@/features/public/guestDraft';
 
 const WIZARD_PATH = '/doctor/orders/new';
@@ -71,13 +72,17 @@ export function DoctorLayout() {
   ];
 
   return (
-    <TopNavShell
-      homeTo="/doctor"
-      nav={nav}
-      tabs={tabs}
-      menuLinks={menuLinks}
-      // Every new order starts by picking a lab.
-      newOrder={{ to: '/doctor/marketplace', label: t('orders.newOrder') }}
-    />
+    <>
+      <TopNavShell
+        homeTo="/doctor"
+        nav={nav}
+        tabs={tabs}
+        menuLinks={menuLinks}
+        // Every new order starts by picking a lab.
+        newOrder={{ to: '/doctor/marketplace', label: t('orders.newOrder') }}
+      />
+      {/* "Mark completed" → the review step, on any doctor page (0044). */}
+      <CompletionDialogHost />
+    </>
   );
 }

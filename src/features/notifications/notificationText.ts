@@ -34,6 +34,8 @@ const KINDS: Record<NotificationKind, true> = {
   new_payable: true,
   admin_new_lab: true,
   admin_new_feedback: true,
+  lab_review_new: true,
+  lab_review_reply: true,
 };
 const KNOWN = new Set<string>(Object.keys(KINDS));
 
@@ -71,6 +73,8 @@ export function notificationText(
     // The raw YYYY-MM-DD, as formatDueWindow shows a due date everywhere.
     date: p.date ?? '',
     time: '',
+    // lab_review_new: the stars, 1 to 5.
+    rating: typeof p.rating === 'number' ? String(p.rating) : '',
   };
   const base = `notifications.kinds.${row.kind}`;
   let bodyKey = `${base}.body`;
@@ -123,6 +127,9 @@ export function notificationTarget(
       return row.params?.lab_id ? `/admin/labs/${row.params.lab_id}` : '/admin/labs';
     case 'admin_new_feedback':
       return '/admin/feedbacks';
+    case 'lab_review_new':
+      return '/lab/reviews';
+    // lab_review_reply is about the doctor's order: the default below.
   }
   // Every other kind is about one order: its page in the viewer's own area.
   if (row.order_id && area !== '/admin') return `${area}/orders/${row.order_id}`;

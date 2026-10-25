@@ -8,6 +8,7 @@ import { Callout, Icon } from '@/components/design';
 import { useContinueProject } from '@/features/doctor/orderCreate/useContinueProject';
 import { CancelOrderAction } from '@/features/orders/cancel/CancelOrderAction';
 import { OrderDetailView } from '@/features/orders/detail/OrderDetailView';
+import { OrderReviewCard } from '@/features/reviews/OrderReviewCard';
 import { useOrderContacts } from '@/features/orders/detail/useOrderContacts';
 import {
   DETAIL_ORDER_SELECT,
@@ -107,6 +108,8 @@ export function OrderDetailPage() {
       }
       railFooter={
         <Stack spacing={1.5}>
+          {/* Rate the lab once the case is closed (0044). */}
+          <OrderReviewCard order={order} />
           {/* Deliberately ungated by status, unlike "continue project" above:
               this is not the next phase of this case, it is a separate piece
               of work for the same patient, and the doctor has no reason to

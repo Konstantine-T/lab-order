@@ -19,6 +19,18 @@ export function AdminLayout() {
         <NavBadge count={alerts.labs} label={tc('nav.needsAttention', { count: alerts.labs })} />
       ),
     },
+    {
+      to: '/admin/reviews',
+      label: t('nav.reviews'),
+      icon: 'reviews',
+      // Reviews a lab reported, waiting for a decision (0044).
+      badge: (
+        <NavBadge
+          count={alerts.reviews}
+          label={tc('nav.needsAttention', { count: alerts.reviews })}
+        />
+      ),
+    },
     { to: '/admin/feedbacks', label: t('nav.feedbacks'), icon: 'feedback' },
   ];
   return <AppShell navEntries={nav} />;

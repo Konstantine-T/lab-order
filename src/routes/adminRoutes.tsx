@@ -5,6 +5,7 @@ import { AdminHomePage } from '@/pages/admin/AdminHomePage';
 import { LabApprovalQueuePage } from '@/pages/admin/LabApprovalQueuePage';
 import { LabReviewPage } from '@/pages/admin/LabReviewPage';
 import { FeedbacksPage } from '@/pages/admin/FeedbacksPage';
+import { AdminReviewsPage } from '@/pages/admin/AdminReviewsPage';
 import { NotFoundPage } from '@/pages/public/NotFoundPage';
 
 /**
@@ -22,6 +23,7 @@ export default function AdminRoutes() {
           <Route path="labs" element={<LabApprovalQueuePage />} />
           <Route path="labs/:labId" element={<LabReviewPage />} />
           <Route path="feedbacks" element={<FeedbacksPage />} />
+          <Route path="reviews" element={<AdminReviewsPage />} />
         </Route>
         <Route path="*" element={<NotFoundPage />} />
       </Routes>

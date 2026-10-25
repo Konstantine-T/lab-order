@@ -6,6 +6,7 @@ import { PUBLIC_ROUTES } from '@/features/public/publicRoutes';
 import { initialsOf, lift, motion, palette2026, radii } from '@/theme/tokens';
 import { formatGELShort } from '@/utils/pricing';
 import { pickText, useLabText } from '@/features/lab/labText';
+import { LabRatingBadge } from '@/features/reviews/LabRatingBadge';
 import { useLandingLabs, type LandingLab } from './useLandingLabs';
 import { ArrowLink, Container, SectionHead } from './primitives';
 import { landingRadii, useLandingTones } from './helpers';
@@ -21,10 +22,11 @@ const LAB_COUNT = 1;
  * "The catalogue — prices and turnaround": the best-stocked live lab as a
  * card, then a dashed "your lab here" card beside it.
  *
- * The design's lab card also carried a rating, a case count, an on-time
- * percentage and a verified tick. The platform has none of those yet, so the
- * card shows only what a lab has actually published: its services' starting
- * prices, the turnaround range and how many services it offers. For the same
+ * The design's lab card also carried a case count, an on-time percentage and
+ * a verified tick. The platform has none of those yet, so the card shows only
+ * what a lab has actually published: its services' starting prices, the
+ * turnaround range and how many services it offers, plus the doctors' average
+ * rating once three reviews are in (0044). For the same
  * reason the design's "first 10 labs get a founder badge" line and its
  * "invite your lab" card are left out.
  *
@@ -141,13 +143,16 @@ function LabCard({ lab }: { lab: LandingLab }) {
       <Stack direction="row" alignItems="center" sx={{ gap: '12px', minWidth: 0 }}>
         <LabAvatar lab={lab} name={name} />
         <Stack sx={{ gap: '2px', minWidth: 0 }}>
-          <Typography
-            component="h3"
-            noWrap
-            sx={{ fontSize: '1.0625rem', fontWeight: 600, lineHeight: 1.35 }}
-          >
-            {name}
-          </Typography>
+          <Stack direction="row" alignItems="center" sx={{ gap: '8px', minWidth: 0 }}>
+            <Typography
+              component="h3"
+              noWrap
+              sx={{ fontSize: '1.0625rem', fontWeight: 600, lineHeight: 1.35, minWidth: 0 }}
+            >
+              {name}
+            </Typography>
+            <LabRatingBadge summary={lab.ratingSummary} />
+          </Stack>
           {lab.city && (
             <Typography noWrap sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
               {lab.city}

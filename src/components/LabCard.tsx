@@ -13,6 +13,7 @@ import {
   type CatalogueService,
 } from '@/features/catalog/catalogue';
 import { priceLabel, rushNote } from '@/features/catalog/catalogueText';
+import { LabRatingBadge } from '@/features/reviews/LabRatingBadge';
 import { avatarColor, brand, initialsOf, lift, palette2026, radii, surfaces } from '@/theme/tokens';
 
 /** Days-old threshold for the NEW badge. */
@@ -212,6 +213,8 @@ export function LabCard({
               {name}
             </Typography>
             {isNew && <StatusPill tone="neutral">{t('marketplace.new')}</StatusPill>}
+            {/* "★ 4.7 (12)" from three visible reviews on (0044). */}
+            <LabRatingBadge summary={lab.ratingSummary} />
           </Stack>
           {where && (
             <Typography

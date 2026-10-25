@@ -25,6 +25,7 @@ import type { StartingPrice } from '@/utils/pricing';
 export const CATALOGUE_SELECT = `
   id, public_name, city, working_address, short_description, logo_url, created_at,
   public_translations, price_lists,
+  lab_rating_summary ( review_count, rating_avg ),
   lab_services (
     id, name, translations, is_active, sort_order, created_at, average_turnaround_days,
     ${SERVICE_PRICE_EMBED}
@@ -53,6 +54,8 @@ export type CatalogueLabRow = {
   created_at: string | null;
   public_translations: unknown;
   price_lists: unknown;
+  /** 0044's public numbers, embedded by the foreign key (anon-readable). */
+  lab_rating_summary?: unknown;
   lab_services: ServiceRow[] | null;
 };
 
@@ -118,6 +121,8 @@ export type CatalogueLab = {
   pricedCount: number;
   /** Across orderable services with a positive turnaround; null when none says. */
   turnaround: { min: number; max: number } | null;
+  /** 0044's `lab_rating_summary` embed, as is; read by `LabRatingBadge`. */
+  ratingSummary: unknown;
 };
 
 /* ---------------------------------------------------------------------------
@@ -320,6 +325,7 @@ export function toCatalogueLab(row: CatalogueLabRow): CatalogueLab {
     services,
     pricedCount: services.filter((s) => s.from !== null).length,
     turnaround: days.length ? { min: Math.min(...days), max: Math.max(...days) } : null,
+    ratingSummary: row.lab_rating_summary ?? null,
   };
 }
 

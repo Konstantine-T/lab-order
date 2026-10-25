@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
 import { Alert, Box, CircularProgress, Link, Stack, useMediaQuery, useTheme } from '@mui/material';
 import { Link as RouterLink, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +16,12 @@ import {
   useProfileLab,
   useProfileServices,
 } from '@/features/catalog/labProfile/useLabProfile';
+
+// Its own chunk (0044): this page is in the guest entry bundle. A failed load
+// simply shows no reviews rather than breaking the profile.
+const LabReviewsCard = lazy(() =>
+  import('@/features/reviews/LabReviewsCard').catch(() => ({ default: () => null })),
+);
 
 /**
  * A lab's public profile and its orderable services (design page 4). Shared by
@@ -164,6 +170,9 @@ export function LabPublicProfilePage({
           loading={servicesLoading}
           orderHref={orderHref}
         />
+        <Suspense fallback={null}>
+          <LabReviewsCard labId={lab.id} labName={labText(lab, 'public_name')} />
+        </Suspense>
       </SplitLayout>
     </Stack>
   );

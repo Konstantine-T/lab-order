@@ -722,7 +722,10 @@ export type NotificationKind =
   | 'payment_recorded'
   | 'new_payable'
   | 'admin_new_lab'
-  | 'admin_new_feedback';
+  | 'admin_new_feedback'
+  // 0044
+  | 'lab_review_new'
+  | 'lab_review_reply';
 
 /** Raw values captured by the trigger; never a patient's name. */
 export type NotificationParams = {
@@ -737,6 +740,8 @@ export type NotificationParams = {
   date?: string;
   /** HH:mm */
   time?: string;
+  /** 1 to 5, `lab_review_new` (0044). */
+  rating?: number;
 };
 
 export interface NotificationRow {
@@ -749,4 +754,66 @@ export interface NotificationRow {
   params: NotificationParams;
   created_at: string;
   read_at: string | null;
+}
+
+// ===== Lab reviews (0044) ===================================================
+/** A row of `lab_reviews`, as RLS shows it to its doctor, its lab and the
+ *  platform admin. Guests never read this table: they get `PublicLabReview`
+ *  from `lab_reviews_public()`. */
+export interface LabReviewRow {
+  id: string;
+  order_id: string;
+  lab_id: string;
+  doctor_id: string;
+  /** 1 to 5. */
+  rating: number;
+  comment: string | null;
+  /** "Irakli K.", captured server-side; '' when the account has no name. */
+  reviewer_display: string;
+  /** From the order's service_snapshot; read through `pickText`. */
+  service_name: string | null;
+  service_translations: unknown;
+  lab_reply: string | null;
+  lab_replied_at: string | null;
+  hidden_at: string | null;
+  hidden_by_user_id: string | null;
+  hidden_note: string | null;
+  created_at: string;
+  /** Moved only by the doctor's edits. */
+  updated_at: string;
+}
+
+/** One row of `lab_reviews_public()`: these columns and nothing else. */
+export interface PublicLabReview {
+  id: string;
+  rating: number;
+  comment: string | null;
+  reviewer_display: string;
+  service_name: string | null;
+  service_translations: unknown;
+  lab_reply: string | null;
+  lab_replied_at: string | null;
+  created_at: string;
+  edited: boolean;
+}
+
+export type LabReviewResolution = 'HIDDEN' | 'KEPT';
+
+export interface LabReviewReportRow {
+  id: string;
+  review_id: string;
+  reported_by_user_id: string;
+  reason: string;
+  created_at: string;
+  resolved_at: string | null;
+  resolution: LabReviewResolution | null;
+  resolved_by_user_id: string | null;
+}
+
+/** `lab_rating_summary`: visible reviews only, written by a trigger. */
+export interface LabRatingSummaryRow {
+  lab_id: string;
+  review_count: number;
+  /** numeric(3,2); PostgREST may send it as a string. Null with no reviews. */
+  rating_avg: number | string | null;
 }

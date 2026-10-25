@@ -79,6 +79,9 @@ function listenersFor(
         { table: 'order_clarifications', events: both },
         { table: 'order_files', events: both },
         { table: 'clinic_doctor_invites', events: both },
+        ...(ids.doctorId
+          ? [{ table: 'lab_reviews', filter: `doctor_id=eq.${ids.doctorId}`, events: both } as Listener]
+          : []),
         ...marketplace,
       ];
     case 'LAB_MAIN_ADMIN':
@@ -88,8 +91,11 @@ function listenersFor(
           ? [
               { table: 'orders', filter: `lab_id=eq.${ids.labId}`, events: both } as Listener,
               { table: 'labs', filter: `id=eq.${ids.labId}`, events: both } as Listener,
+              { table: 'lab_reviews', filter: `lab_id=eq.${ids.labId}`, events: both } as Listener,
             ]
           : []),
+        // RLS limits it to reports on the lab's own reviews.
+        { table: 'lab_review_reports', events: both },
         { table: 'order_clarifications', events: both },
         { table: 'order_files', events: both },
       ];
@@ -104,7 +110,13 @@ function listenersFor(
         ...marketplace,
       ];
     case 'PLATFORM_ADMIN':
-      return [notifications, { table: 'labs', events: both }, { table: 'feedback', events: both }];
+      return [
+        notifications,
+        { table: 'labs', events: both },
+        { table: 'feedback', events: both },
+        { table: 'lab_reviews', events: both },
+        { table: 'lab_review_reports', events: both },
+      ];
   }
 }
 

@@ -5,6 +5,7 @@ import { Icon } from '@/components/design';
 import { useLabText } from '@/features/lab/labText';
 import { pickPriceList, priceListUrl } from '@/features/lab/priceList/priceListApi';
 import { initialsOf, surfaces } from '@/theme/tokens';
+import { LabRatingBadge } from '@/features/reviews/LabRatingBadge';
 import { panelSx, rushSummary, turnaroundRange } from './format';
 import type { ProfileLab, ProfileService } from './useLabProfile';
 
@@ -132,6 +133,8 @@ export function LabHeaderCard({
           >
             {name}
           </Typography>
+          {/* "★ 4.7 (12)" from three reviews on, a link to the reviews (0044). */}
+          <LabRatingBadge labId={lab.id} link />
           {place && (
             <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', overflowWrap: 'anywhere' }}>
               {place}

@@ -192,20 +192,32 @@ export function useClinicNavAlerts(clinicId: string | undefined) {
   return data ?? { orders: 0, invoices: 0 };
 }
 
-/** Platform admin: labs sitting in the approval queue. */
+/**
+ * Platform admin: labs sitting in the approval queue, and reviews a lab has
+ * reported and nobody has moderated yet (0044 — a badge, not a notification,
+ * J6).
+ */
 export function useAdminNavAlerts() {
   const shared = useShared();
   const { data } = useQuery({
     queryKey: ['nav-alerts', 'admin'],
     ...shared,
     queryFn: async () => {
-      const { count, error } = await supabase
-        .from('labs')
-        .select('id', { count: 'exact', head: true })
-        .eq('approval_status', 'PENDING_APPROVAL');
-      if (error) return { labs: 0 };
-      return { labs: count ?? 0 };
+      const [labs, reports] = await Promise.all([
+        supabase
+          .from('labs')
+          .select('id', { count: 'exact', head: true })
+          .eq('approval_status', 'PENDING_APPROVAL'),
+        supabase
+          .from('lab_review_reports')
+          .select('id', { count: 'exact', head: true })
+          .is('resolved_at', null),
+      ]);
+      return {
+        labs: labs.error ? 0 : (labs.count ?? 0),
+        reviews: reports.error ? 0 : (reports.count ?? 0),
+      };
     },
   });
-  return data ?? { labs: 0 };
+  return data ?? { labs: 0, reviews: 0 };
 }

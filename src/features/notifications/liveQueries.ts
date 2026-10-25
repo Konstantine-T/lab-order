@@ -26,7 +26,9 @@ export type LiveTable =
   | 'lab_services'
   | 'lab_forms'
   | 'clinic_doctor_invites'
-  | 'feedback';
+  | 'feedback'
+  | 'lab_reviews'
+  | 'lab_review_reports';
 
 type Row = Record<string, unknown>;
 
@@ -148,6 +150,28 @@ export function keysForRow(table: LiveTable, row: Row): QueryKey[] {
       ];
     case 'feedback':
       return [['admin-feedback'], ['admin-feedback-count']];
+    case 'lab_reviews': {
+      // 0044: the lab's page, the doctor's order card, the public list and
+      // every place the average shows.
+      const labId = str(row.lab_id);
+      const orderId = str(row.order_id);
+      return [
+        ...MARKETPLACE,
+        ['admin-reviews'],
+        ['admin-review-reports'],
+        ...(labId
+          ? [
+              ['lab-reviews', labId],
+              ['public-lab-reviews', labId],
+              ['public-lab', labId],
+            ]
+          : [['lab-reviews']]),
+        ...(orderId ? [['order-review', orderId]] : []),
+      ];
+    }
+    case 'lab_review_reports':
+      // A report carries only its review's id: refresh the lab's page whole.
+      return [['admin-review-reports'], ['admin-reviews'], ['nav-alerts'], ['lab-reviews']];
   }
 }
 
@@ -177,6 +201,8 @@ export const ALL_LIVE_KEYS: QueryKey[] = (() => {
     'lab_forms',
     'clinic_doctor_invites',
     'feedback',
+    'lab_reviews',
+    'lab_review_reports',
   ];
   // A row with no ids yields the list keys; the per-id keys are covered by
   // their first element as a prefix.
@@ -198,6 +224,8 @@ export const ALL_LIVE_KEYS: QueryKey[] = (() => {
     ['lab-price-lists'],
     ['lab-services-with-forms'],
     ['clinic-doctors'],
+    ['public-lab-reviews'],
+    ['order-review'],
   ].forEach(add);
   return [...seen.values()];
 })();

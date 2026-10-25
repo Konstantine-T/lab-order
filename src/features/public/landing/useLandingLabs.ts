@@ -21,6 +21,8 @@ export type LandingLab = {
   turnaround: { min: number; max: number } | null;
   /** Up to three active services that publish a number, in the lab's own order. */
   services: { id: string; name: string; translations: unknown; from: StartingPrice }[];
+  /** 0044's `lab_rating_summary` embed, as is; read by `LabRatingBadge`. */
+  ratingSummary: unknown;
 };
 
 /** How many priced services a landing card lists. */
@@ -34,6 +36,7 @@ const SERVICES_PER_CARD = 3;
  */
 const SELECT = `
   id, public_name, public_translations, city, logo_url,
+  lab_rating_summary ( review_count, rating_avg ),
   lab_services (
     id, name, translations, is_active, sort_order, created_at, average_turnaround_days,
     ${SERVICE_PRICE_EMBED}
@@ -57,6 +60,7 @@ type LabQueryRow = {
   public_translations: unknown;
   city: string | null;
   logo_url: string | null;
+  lab_rating_summary?: unknown;
   lab_services: ServiceRow[] | null;
 };
 
@@ -94,6 +98,7 @@ function toLandingLab(row: LabQueryRow): { lab: LandingLab; pricedCount: number 
       serviceCount: active.length,
       turnaround: days.length ? { min: Math.min(...days), max: Math.max(...days) } : null,
       services: priced.slice(0, SERVICES_PER_CARD),
+      ratingSummary: row.lab_rating_summary ?? null,
     },
     pricedCount: priced.length,
   };

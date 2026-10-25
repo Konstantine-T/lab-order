@@ -31,6 +31,7 @@ export function LabLayout() {
       // The doctor changed an order the lab has not reviewed since.
       badge: badge(alerts.editedOrders),
     },
+    { to: '/lab/reviews', label: t('nav.reviews'), icon: 'reviews' },
     { to: '/lab/services', label: t('nav.services'), icon: 'category' },
     { to: '/lab/staff', label: t('nav.staff'), icon: 'groups' },
     { to: '/lab/profile', label: t('nav.profile'), icon: 'store' },

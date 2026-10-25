@@ -10,9 +10,11 @@ import {
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
+import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { canComplete } from '@/types/database';
 import type { OrderStatus } from '@/types/database';
+import { openCompletionDialog } from './completionDialog';
 
 type Props = {
   orderId: string;
@@ -31,10 +33,15 @@ type Props = {
  *
  * Shared by the doctor's and the clinic admin's order screens — a clinic admin
  * acts for their doctors here exactly as they do for edits and cancellations.
+ *
+ * A doctor's confirmation opens in `CompletionDialogHost` instead (mounted by
+ * DoctorLayout), which follows a successful completion with the review step
+ * (0044). The clinic admin keeps this plain dialog: only the doctor reviews.
  */
 export function OrderCompletionActions({ orderId, status, size = 'small' }: Props) {
   const { t } = useTranslation('doctor');
   const qc = useQueryClient();
+  const { user } = useAuth();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   // Completing changes what a doctor, a lab and a clinic each see, across list
@@ -84,7 +91,10 @@ export function OrderCompletionActions({ orderId, status, size = 'small' }: Prop
         color="success"
         size={size}
         startIcon={<Icon name="task_alt" size={16} />}
-        onClick={() => setConfirmOpen(true)}
+        onClick={() => {
+          if (user?.role === 'DOCTOR' && openCompletionDialog(orderId)) return;
+          setConfirmOpen(true);
+        }}
       >
         {t('orderDetail.completion.markCompleted')}
       </Button>
