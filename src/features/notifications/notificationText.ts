@@ -101,6 +101,26 @@ export function notificationText(
   };
 }
 
+/**
+ * The kinds sent to an order's doctor (0043 / 0044 / 0046 triggers: the
+ * `doctor_user` recipient). A lab owner receives these only about its own
+ * purchases from other labs (0048), so for the lab they open the purchase,
+ * never the incoming order sheet, where that order does not exist. Every
+ * other order kind a lab owner gets is about an order it received.
+ */
+const DOCTOR_SIDE_KINDS = new Set<string>([
+  'lab_question',
+  'lab_needs_change',
+  'order_ready',
+  'order_sent',
+  'order_cancelled_by_lab',
+  'price_set',
+  'due_confirmed',
+  'invoice_attached',
+  'invoice_replaced',
+  'lab_review_reply',
+]);
+
 const AREA: Partial<Record<UserRole, string>> = {
   DOCTOR: '/doctor',
   LAB_MAIN_ADMIN: '/lab',
@@ -139,6 +159,10 @@ export function notificationTarget(
     case 'lab_review_new':
       return '/lab/reviews';
     // lab_review_reply is about the doctor's order: the default below.
+  }
+  // A lab's own purchase from another lab (0048).
+  if (role === 'LAB_MAIN_ADMIN' && row.order_id && DOCTOR_SIDE_KINDS.has(row.kind)) {
+    return `/lab/purchases/${row.order_id}`;
   }
   // Every other kind is about one order: its page in the viewer's own area.
   if (row.order_id && area !== '/admin') return `${area}/orders/${row.order_id}`;

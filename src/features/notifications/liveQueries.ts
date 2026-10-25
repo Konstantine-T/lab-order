@@ -45,7 +45,10 @@ const ORDER_LISTS: QueryKey[] = [
   ['lab-edited-orders'],
   ['lab-receivables-list'],
   ['lab-receivables-by-customer'],
-  // doctor
+  // doctor, and a lab's purchases from other labs (0048): the purchase pages
+  // are the doctor's own, under the same keys scoped by the buying profile's
+  // id (`['doctor-orders', id]`, `['order', id]`, `['nav-alerts', 'doctor', id]`),
+  // so the lab's `doctor_id=eq.<buying profile>` listener refreshes them here.
   ['doctor-orders'],
   ['doctor-home-orders'],
   ['doctor-patient-orders'],
