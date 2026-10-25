@@ -17,6 +17,7 @@ const CODES = [
   'reason_required',
   'reason_too_long',
   'already_reported',
+  'review_hidden',
   'not_platform_admin',
   'review_not_found',
   'note_too_long',

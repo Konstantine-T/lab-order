@@ -572,9 +572,17 @@ export function LabOrderSheetPage() {
                         setNoteConfirmError(false);
                         // Clearing the price is a legitimate action. The
                         // explanation stays stored; nothing shows it without
-                        // a price.
+                        // a price. But text the lab typed into the field is
+                        // saved with it, never dropped under a "Saved" toast
+                        // (0046 allows a note without a price).
                         if (finalPrice.trim() === '') {
-                          savePrice.mutate({ final_total: null });
+                          const note = finalNote.trim() || null;
+                          if (note === (order.final_price_note ?? null)) {
+                            savePrice.mutate({ final_total: null });
+                          } else {
+                            setFinalNote(note ?? '');
+                            savePrice.mutate({ final_total: null, final_price_note: note });
+                          }
                           return;
                         }
                         const amount = parseAmount(finalPrice);

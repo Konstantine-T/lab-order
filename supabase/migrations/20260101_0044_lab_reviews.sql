@@ -446,7 +446,14 @@ begin
    where id = p_review_id;
 end $$;
 
--- The lab owner reports a review to the platform. One open report at a time.
+-- The lab owner reports a review to the platform. One open report at a time,
+-- and never on a review an admin has already hidden: HIDE resolves the open
+-- reports, UNHIDE leaves reports alone, and the admin page offers only Unhide
+-- on a hidden review, so a report filed after the hide (a stale page, a
+-- dialog left open, a direct call) would hold the admin badge up with no way
+-- to close it short of making the review public again. The FOR UPDATE below
+-- serialises against moderate_lab_review's row update, so a report racing a
+-- hide either lands first (and the hide resolves it) or sees hidden_at.
 create or replace function public.report_lab_review(p_review_id uuid, p_reason text)
 returns uuid
 language plpgsql
@@ -455,12 +462,17 @@ set search_path = public
 as $$
 declare
   v_lab    uuid;
+  v_hidden timestamptz;
   v_reason text := nullif(btrim(coalesce(p_reason, '')), '');
   v_id     uuid;
 begin
-  select lab_id into v_lab from public.lab_reviews where id = p_review_id for update;
+  select lab_id, hidden_at into v_lab, v_hidden
+    from public.lab_reviews where id = p_review_id for update;
   if v_lab is null or not public.current_user_owns_lab(v_lab) then
     raise exception 'not_your_lab' using errcode = '42501';
+  end if;
+  if v_hidden is not null then
+    raise exception 'review_hidden' using errcode = '22023';
   end if;
   if v_reason is null then
     raise exception 'reason_required' using errcode = '22023';
@@ -690,6 +702,11 @@ end $$;
 --            'service_translations','lab_reply','lab_replied_at','created_at','edited']
 --     from pg_proc p, unnest(p.proargnames, p.proargmodes) with ordinality as x(a, m, n)
 --    where p.oid = 'public.lab_reviews_public(uuid,int,int)'::regprocedure and m = 't';
+--   -- a hidden review cannot be reported (no open report the admin cannot close):
+--   select pg_get_functiondef('public.report_lab_review(uuid,text)'::regprocedure) like '%review_hidden%';
+--   select not exists (
+--     select 1 from public.lab_review_reports p join public.lab_reviews r on r.id = p.review_id
+--      where p.resolved_at is null and r.hidden_at is not null);
 --   select count(*) = 3 from pg_trigger
 --     where not tgisinternal and tgname in (
 --       'lab_reviews_refresh_summary', 'lab_reviews_notify_new', 'lab_reviews_notify_reply');

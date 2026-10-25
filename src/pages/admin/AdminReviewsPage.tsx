@@ -78,26 +78,49 @@ const SELECT =
   `${REVIEW_COLUMNS}, labs(public_name), ` +
   'lab_review_reports(id, reason, created_at, resolved_at, resolution)';
 
-/** Reviews with a report: open ones first (newest report first), then the rest. */
+/** How many resolved reports the Reported tab lists; older ones are under All. */
+const RESOLVED_LIMIT = 200;
+
+/**
+ * Reviews with a report: open ones first (newest report first), then the rest.
+ *
+ * Read from the reports side, embedding each report's review. Every open
+ * report is loaded, uncapped (at most one per review, and each is something
+ * the admin still has to act on), so the list always matches the sidebar
+ * badge, which counts every unresolved report. Only the resolved history is
+ * capped, newest resolution first.
+ */
 function ReportedList() {
   const { t } = useTranslation('admin');
   const { t: tc } = useTranslation('common');
   const { data = [], isLoading, isError } = useQuery({
     queryKey: ['admin-review-reports'],
     queryFn: async () => {
-      // `!inner`: only reviews that have at least one report.
-      const { data, error } = await supabase
-        .from('lab_reviews')
-        .select(SELECT.replace('lab_review_reports(', 'lab_review_reports!inner('))
-        .order('created_at', { ascending: false })
-        .limit(200);
-      if (error) throw error;
-      const rows = (data ?? []) as unknown as AdminReview[];
+      const embed = `lab_reviews(${SELECT})`;
+      const [open, resolved] = await Promise.all([
+        supabase.from('lab_review_reports').select(embed).is('resolved_at', null),
+        supabase
+          .from('lab_review_reports')
+          .select(embed)
+          .not('resolved_at', 'is', null)
+          .order('resolved_at', { ascending: false })
+          .limit(RESOLVED_LIMIT),
+      ]);
+      if (open.error) throw open.error;
+      if (resolved.error) throw resolved.error;
+      // A review reported several times appears once.
+      const byId = new Map<string, AdminReview>();
+      for (const row of [...(open.data ?? []), ...(resolved.data ?? [])] as unknown as {
+        lab_reviews: AdminReview | null;
+      }[]) {
+        const r = row.lab_reviews;
+        if (r && !byId.has(r.id)) byId.set(r.id, r);
+      }
       const key = (r: AdminReview) => {
         const rep = currentReport(r.lab_review_reports);
         return { open: !!rep && !rep.resolved_at, at: rep?.resolved_at ?? rep?.created_at ?? '' };
       };
-      return rows.sort((a, b) => {
+      return [...byId.values()].sort((a, b) => {
         const ka = key(a);
         const kb = key(b);
         if (ka.open !== kb.open) return ka.open ? -1 : 1;

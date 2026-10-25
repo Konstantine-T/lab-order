@@ -20,6 +20,7 @@
     "reason_required": "Write the reason for the report.",
     "reason_too_long": "The reason can be at most 1000 characters.",
     "already_reported": "This review is already reported and waiting for the platform.",
+    "review_hidden": "The platform has already hidden this review, so there is nothing to report.",
     "not_platform_admin": "Only a platform administrator can do this.",
     "review_not_found": "This review no longer exists.",
     "note_too_long": "The note can be at most 1000 characters.",

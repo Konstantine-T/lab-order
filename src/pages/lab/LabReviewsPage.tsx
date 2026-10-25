@@ -33,7 +33,7 @@ import { ReplyBlock, ReviewItem } from '@/features/reviews/ReviewItem';
 import { starSx } from '@/features/reviews/reviewDraft';
 import { formatAverage } from '@/features/reviews/rating';
 import { useLabRating } from '@/features/reviews/useLabRating';
-import { reviewErrorText } from '@/features/reviews/reviewErrors';
+import { reviewErrorCode, reviewErrorText } from '@/features/reviews/reviewErrors';
 import {
   REVIEW_COLUMNS,
   currentReport,
@@ -317,6 +317,11 @@ function ReportDialog({
     onSuccess: () => {
       invalidateReviews(qc, { labId: review.lab_id });
       close();
+    },
+    // The admin hid the review while this dialog was open: refresh the list so
+    // the card shows it hidden and drops its Report button.
+    onError: (err) => {
+      if (reviewErrorCode(err) === 'review_hidden') invalidateReviews(qc, { labId: review.lab_id });
     },
   });
 
