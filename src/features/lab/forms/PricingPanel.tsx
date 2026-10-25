@@ -11,8 +11,9 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Callout, Icon, SectionCard } from '@/components/design';
+import { Callout, Icon, SectionCard, Segmented } from '@/components/design';
 import { NumberField } from '@/components/NumberField';
 import type {
   FieldConfig,
@@ -35,7 +36,8 @@ import {
 } from '@/features/orderForms/implantTypes';
 import { isFabTemplate } from '@/features/orderForms/fabTypes';
 import { isModelTemplateCode } from '@/features/orderForms/modelTypes';
-import { pricingIssues } from '@/utils/pricing';
+import { pricingIssues, type PricingIssue } from '@/utils/pricing';
+import { defaultAutomaticModel } from './buildDefaultConfig';
 import type { SgSupportFee, ImplantPriceItem } from '@/types/database';
 
 function makeId(): string {
@@ -45,11 +47,20 @@ function makeId(): string {
   return Math.random().toString(36).slice(2, 10);
 }
 
+/** The models behind "Automatic estimate"; LAB_DESCRIBED is the other mode. */
+type AutoModel = Exclude<PricingModel, 'LAB_DESCRIBED'>;
+const AUTO_MODELS: readonly AutoModel[] = ['UNIT_BASED', 'FIXED_PRICE', 'NO_PRICING'];
+const isAutoModel = (m: PricingModel): m is AutoModel =>
+  (AUTO_MODELS as readonly string[]).includes(m);
+
+type PricingMode = 'described' | 'automatic';
+
 export function PricingPanel({
   pricing,
   onChange,
-  // fields not used directly anymore (we no longer offer count_field selection)
-  fields: _fields,
+  // Only read for the automatic model a described service switches to (a
+  // template with a tooth chart starts unit based, as it was seeded before).
+  fields,
   templateCode,
   /** Upper bound for the rush turnaround input — usually the service's
    *  `average_turnaround_days`. Rush has to be faster than the regular
@@ -80,45 +91,127 @@ export function PricingPanel({
   const setMaterials = (next: MaterialOption[]) =>
     onChange({ ...pricing, materials: next });
 
-  const addMaterial = () => {
-    const cur = pricing.materials ?? [];
-    if (cur.length >= MAX_MATERIALS) return;
-    setMaterials([...cur, { id: makeId(), name: '' }]);
+  // Two modes (to75nCxF): the lab's own description, or one of the automatic
+  // models. Switching keeps every field — lists and prices alike — so going
+  // back loses nothing; the automatic model last used is remembered here.
+  const described = pricing.model === 'LAB_DESCRIBED';
+  const [autoModel, setAutoModel] = useState<AutoModel>(() =>
+    isAutoModel(pricing.model) ? pricing.model : defaultAutomaticModel(templateCode, fields),
+  );
+  const setMode = (mode: PricingMode) => {
+    if (mode === 'described' && !described) {
+      if (isAutoModel(pricing.model)) setAutoModel(pricing.model);
+      onChange({ ...pricing, model: 'LAB_DESCRIBED' });
+    } else if (mode === 'automatic' && described) {
+      onChange({ ...pricing, model: autoModel });
+    }
   };
 
-  const updateMaterial = (id: string, patch: Partial<MaterialOption>) => {
-    const cur = pricing.materials ?? [];
-    setMaterials(cur.map((m) => (m.id === id ? { ...m, ...patch } : m)));
-  };
+  const descriptionError =
+    pricing.price_description !== undefined &&
+    issues.some((x) => x.kind === 'price-description');
 
-  const removeMaterial = (id: string) => {
-    const cur = pricing.materials ?? [];
-    setMaterials(cur.filter((m) => m.id !== id));
-  };
+  // What the doctor picks from, shown in both modes (with prices only in the
+  // automatic one), so the two can never disagree about the lists.
+  const hasMaterialList = isCnb || isEsp || isFab;
+  const materialsEditor = (hidePrices: boolean) => (
+    <MaterialsEditor
+      materials={pricing.materials ?? []}
+      onChange={setMaterials}
+      issues={issues}
+      hidePrices={hidePrices}
+      t={t}
+    />
+  );
+  const implantEditor = (hidePrices: boolean) => (
+    <ImplantPricingSection
+      abutmentsOnly={abutmentsOnly}
+      config={pricing.implant_price_config ?? DEFAULT_IMPLANT_PRICE_CONFIG}
+      onChange={(next) => onChange({ ...pricing, implant_price_config: next })}
+      brands={pricing.implant_brands ?? []}
+      onBrandsChange={(next) => onChange({ ...pricing, implant_brands: next })}
+      crownMaterials={pricing.implant_crown_materials ?? []}
+      onCrownMaterialsChange={(next) => onChange({ ...pricing, implant_crown_materials: next })}
+      hidePrices={hidePrices}
+      issues={hidePrices ? issues : []}
+      t={t}
+    />
+  );
 
   return (
     <SectionCard icon="payments" title={t('forms.editor.pricing.title')}>
         <Stack spacing={3}>
-          <TextField
-            select
-            label={t('forms.editor.pricing.model')}
-            value={pricing.model}
-            onChange={(e) => onChange({ ...pricing, model: e.target.value as PricingModel })}
-            fullWidth
-          >
-            <MenuItem value="UNIT_BASED">
-              {t('forms.editor.pricing.models.UNIT_BASED')}
-            </MenuItem>
-            <MenuItem value="FIXED_PRICE">
-              {t('forms.editor.pricing.models.FIXED_PRICE')}
-            </MenuItem>
-            <MenuItem value="LAB_DESCRIBED">
-              {t('forms.editor.pricing.models.LAB_DESCRIBED')}
-            </MenuItem>
-            <MenuItem value="NO_PRICING">
-              {t('forms.editor.pricing.models.NO_PRICING')}
-            </MenuItem>
-          </TextField>
+          <Stack spacing={1}>
+            <Typography variant="subtitle2">{t('forms.editor.pricing.model')}</Typography>
+            <Segmented<PricingMode>
+              value={described ? 'described' : 'automatic'}
+              onChange={setMode}
+              options={[
+                { value: 'described', label: t('forms.editor.pricing.modes.described') },
+                { value: 'automatic', label: t('forms.editor.pricing.modes.automatic') },
+              ]}
+            />
+          </Stack>
+
+          {/* Priced in the lab's own words: the default for new services. A
+              new service has no description at all yet (undefined), and its
+              field is not flagged until the lab has typed into it; the publish
+              callout names the omission meanwhile. */}
+          {described && (
+            <TextField
+              label={t('forms.editor.pricing.priceDescription')}
+              value={pricing.price_description ?? ''}
+              onChange={(e) => onChange({ ...pricing, price_description: e.target.value })}
+              error={descriptionError}
+              helperText={
+                descriptionError
+                  ? t('forms.editor.pricing.priceDescriptionRequired')
+                  : t('forms.editor.pricing.priceDescriptionHelp')
+              }
+              placeholder={t('forms.editor.pricing.priceDescriptionExample')}
+              InputLabelProps={{ shrink: true }}
+              multiline
+              minRows={5}
+              fullWidth
+            />
+          )}
+
+          {described && (hasMaterialList || isImplant) && (
+            <Stack spacing={2}>
+              <Stack>
+                <Typography variant="subtitle2">{t('forms.editor.pricing.choicesTitle')}</Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {t('forms.editor.pricing.choicesHelp')}
+                </Typography>
+              </Stack>
+              {hasMaterialList && materialsEditor(true)}
+              {isImplant && implantEditor(true)}
+            </Stack>
+          )}
+
+          {!described && (
+            <TextField
+              select
+              label={t('forms.editor.pricing.automaticModel')}
+              value={pricing.model}
+              onChange={(e) => {
+                const next = e.target.value as AutoModel;
+                setAutoModel(next);
+                onChange({ ...pricing, model: next });
+              }}
+              fullWidth
+            >
+              <MenuItem value="UNIT_BASED">
+                {t('forms.editor.pricing.models.UNIT_BASED')}
+              </MenuItem>
+              <MenuItem value="FIXED_PRICE">
+                {t('forms.editor.pricing.models.FIXED_PRICE')}
+              </MenuItem>
+              <MenuItem value="NO_PRICING">
+                {t('forms.editor.pricing.models.NO_PRICING')}
+              </MenuItem>
+            </TextField>
+          )}
 
           {/* The one option with no fields under it, so without this the panel
               would just go blank and look broken. It is also the one option
@@ -131,94 +224,9 @@ export function PricingPanel({
           )}
 
           {/* CnB / ESP UNIT_BASED — materials editor */}
-          {pricing.model === 'UNIT_BASED' && (isCnb || isEsp || isFab) && (
+          {pricing.model === 'UNIT_BASED' && hasMaterialList && (
             <Stack spacing={2}>
-              <Stack>
-                <Typography variant="subtitle2">
-                  {t('forms.editor.pricing.materialsTitle')}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  {t('forms.editor.pricing.materialsHelp')}
-                </Typography>
-              </Stack>
-
-              {(pricing.materials ?? []).map((mat, i) => {
-                const color = MATERIAL_COLORS[i % MATERIAL_COLORS.length];
-                const hasPrice = (mat.unit_price ?? 0) > 0;
-                // Defer errors so a pristine, untouched row doesn't flash red:
-                // flag the name only once a price is entered, and the price only
-                // once the row is named (the other half signals intent to fill it).
-                const nameError =
-                  hasPrice && issues.some((x) => x.kind === 'material-name' && x.index === i);
-                const priceError = issues.some(
-                  (x) => x.kind === 'material-price' && x.index === i,
-                );
-                return (
-                  <Stack
-                    key={mat.id}
-                    direction={{ xs: 'column', sm: 'row' }}
-                    spacing={1.5}
-                    alignItems={{ sm: 'flex-start' }}
-                  >
-                    <Box
-                      sx={{
-                        width: 18,
-                        height: 18,
-                        borderRadius: '50%',
-                        bgcolor: color,
-                        flexShrink: 0,
-                        border: 1,
-                        borderColor: 'divider',
-                        mt: 1,
-                      }}
-                    />
-                    <TextField
-                      label={t('forms.editor.pricing.materialName')}
-                      value={mat.name}
-                      onChange={(e) => updateMaterial(mat.id, { name: e.target.value })}
-                      error={nameError}
-                      helperText={nameError ? t('forms.editor.pricing.nameRequired') : undefined}
-                      size="small"
-                      sx={{ flex: 1 }}
-                    />
-                    <NumberField
-                      label={t('forms.editor.pricing.materialUnitPrice')}
-                      value={mat.unit_price}
-                      onChange={(v) => updateMaterial(mat.id, { unit_price: v })}
-                      error={priceError}
-                      helperText={priceError ? t('forms.editor.pricing.priceRequired') : undefined}
-                      decimal
-                      min={0}
-                      InputProps={{
-                        endAdornment: <InputAdornment position="end">GEL</InputAdornment>,
-                      }}
-                      size="small"
-                      sx={{ width: 200 }}
-                    />
-                    <IconButton onClick={() => removeMaterial(mat.id)} size="small">
-                      <Icon name="delete" size={18} />
-                    </IconButton>
-                  </Stack>
-                );
-              })}
-
-              <Box>
-                <Button
-                  startIcon={<Icon name="add" size={17} />}
-                  variant="outlined"
-                  onClick={addMaterial}
-                  disabled={(pricing.materials ?? []).length >= MAX_MATERIALS}
-                >
-                  {t('forms.editor.pricing.addMaterial')}
-                </Button>
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{ ml: 2 }}
-                >
-                  {(pricing.materials ?? []).length} / {MAX_MATERIALS}
-                </Typography>
-              </Box>
+              {materialsEditor(false)}
 
               {/* ESP: gingival reduction guide extra fee */}
               {isEsp && (
@@ -316,18 +324,7 @@ export function PricingPanel({
           )}
 
           {/* Constructions on Implants — brands + crown materials + per-item price grid */}
-          {pricing.model === 'UNIT_BASED' && isImplant && (
-            <ImplantPricingSection
-              abutmentsOnly={abutmentsOnly}
-              config={pricing.implant_price_config ?? DEFAULT_IMPLANT_PRICE_CONFIG}
-              onChange={(next) => onChange({ ...pricing, implant_price_config: next })}
-              brands={pricing.implant_brands ?? []}
-              onBrandsChange={(next) => onChange({ ...pricing, implant_brands: next })}
-              crownMaterials={pricing.implant_crown_materials ?? []}
-              onCrownMaterialsChange={(next) => onChange({ ...pricing, implant_crown_materials: next })}
-              t={t}
-            />
-          )}
+          {pricing.model === 'UNIT_BASED' && isImplant && implantEditor(false)}
 
           {/* Model printing — single price charged per jaw (BOTH = 2 arches) */}
           {pricing.model === 'UNIT_BASED' && isModel && (
@@ -367,26 +364,6 @@ export function PricingPanel({
               InputProps={{
                 endAdornment: <InputAdornment position="end">GEL</InputAdornment>,
               }}
-              fullWidth
-            />
-          )}
-
-          {/* Priced in the lab's own words — for services whose real pricing has
-              more variables than any structured config can hold without turning
-              into a form nobody fills in correctly. */}
-          {pricing.model === 'LAB_DESCRIBED' && (
-            <TextField
-              label={t('forms.editor.pricing.priceDescription')}
-              value={pricing.price_description ?? ''}
-              onChange={(e) => onChange({ ...pricing, price_description: e.target.value })}
-              error={issues.some((x) => x.kind === 'price-description')}
-              helperText={
-                issues.some((x) => x.kind === 'price-description')
-                  ? t('forms.editor.pricing.priceDescriptionRequired')
-                  : t('forms.editor.pricing.priceDescriptionHelp')
-              }
-              multiline
-              minRows={5}
               fullWidth
             />
           )}
@@ -482,6 +459,138 @@ export function PricingPanel({
   );
 }
 
+// ─── Materials editor ─────────────────────────────────────────────────────────
+
+/**
+ * The lab's material list (C&B and its variants, ESP, print, milling): what the
+ * doctor picks per tooth. One editor for both pricing modes; `hidePrices`
+ * drops the price column for a described service, whose prices live in its
+ * description. A price kept from automatic pricing stays stored, unused.
+ */
+function MaterialsEditor({
+  materials,
+  onChange,
+  issues,
+  hidePrices,
+  t,
+}: {
+  materials: MaterialOption[];
+  onChange: (next: MaterialOption[]) => void;
+  issues: PricingIssue[];
+  hidePrices: boolean;
+  t: ReturnType<typeof useTranslation>['t'];
+}) {
+  const addMaterial = () => {
+    if (materials.length >= MAX_MATERIALS) return;
+    onChange([...materials, { id: makeId(), name: '' }]);
+  };
+
+  const updateMaterial = (id: string, patch: Partial<MaterialOption>) => {
+    onChange(materials.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+  };
+
+  const removeMaterial = (id: string) => {
+    onChange(materials.filter((m) => m.id !== id));
+  };
+
+  return (
+    <Stack spacing={2}>
+      <Stack>
+        <Typography variant="subtitle2">
+          {t('forms.editor.pricing.materialsTitle')}
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          {hidePrices
+            ? t('forms.editor.pricing.materialsNamesHelp')
+            : t('forms.editor.pricing.materialsHelp')}
+        </Typography>
+      </Stack>
+
+      {materials.map((mat, i) => {
+        const color = MATERIAL_COLORS[i % MATERIAL_COLORS.length];
+        const hasPrice = (mat.unit_price ?? 0) > 0;
+        const blankName = issues.some((x) => x.kind === 'material-name' && x.index === i);
+        // Defer errors so a pristine, untouched row doesn't flash red: with
+        // prices, flag the name only once a price is entered, and the price
+        // only once the row is named (the other half signals intent to fill
+        // it). Without prices, a blank row is flagged once another follows it.
+        const nameError = hidePrices
+          ? blankName && i < materials.length - 1
+          : hasPrice && blankName;
+        const priceError =
+          !hidePrices && issues.some((x) => x.kind === 'material-price' && x.index === i);
+        return (
+          <Stack
+            key={mat.id}
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1.5}
+            alignItems={{ sm: 'flex-start' }}
+          >
+            <Box
+              sx={{
+                width: 18,
+                height: 18,
+                borderRadius: '50%',
+                bgcolor: color,
+                flexShrink: 0,
+                border: 1,
+                borderColor: 'divider',
+                mt: 1,
+              }}
+            />
+            <TextField
+              label={t('forms.editor.pricing.materialName')}
+              value={mat.name}
+              onChange={(e) => updateMaterial(mat.id, { name: e.target.value })}
+              error={nameError}
+              helperText={nameError ? t('forms.editor.pricing.nameRequired') : undefined}
+              size="small"
+              sx={{ flex: 1 }}
+            />
+            {!hidePrices && (
+              <NumberField
+                label={t('forms.editor.pricing.materialUnitPrice')}
+                value={mat.unit_price}
+                onChange={(v) => updateMaterial(mat.id, { unit_price: v })}
+                error={priceError}
+                helperText={priceError ? t('forms.editor.pricing.priceRequired') : undefined}
+                decimal
+                min={0}
+                InputProps={{
+                  endAdornment: <InputAdornment position="end">GEL</InputAdornment>,
+                }}
+                size="small"
+                sx={{ width: 200 }}
+              />
+            )}
+            <IconButton onClick={() => removeMaterial(mat.id)} size="small">
+              <Icon name="delete" size={18} />
+            </IconButton>
+          </Stack>
+        );
+      })}
+
+      <Box>
+        <Button
+          startIcon={<Icon name="add" size={17} />}
+          variant="outlined"
+          onClick={addMaterial}
+          disabled={materials.length >= MAX_MATERIALS}
+        >
+          {t('forms.editor.pricing.addMaterial')}
+        </Button>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ ml: 2 }}
+        >
+          {materials.length} / {MAX_MATERIALS}
+        </Typography>
+      </Box>
+    </Stack>
+  );
+}
+
 // ─── Implant Pricing Section ──────────────────────────────────────────────────
 
 type ImplantPriceGroup = {
@@ -508,11 +617,20 @@ function ImplantPricingSection({
   onBrandsChange,
   crownMaterials,
   onCrownMaterialsChange,
+  hidePrices = false,
+  issues = [],
   t,
 }: {
   /** Lab-placed abutments: no crown materials to set (its bar is priced as
    *  on Constructions on Implants). */
   abutmentsOnly?: boolean;
+  /**
+   * A described service: the same brands, crown materials and on/off
+   * switches, with no price inputs. Prices already stored stay untouched.
+   */
+  hidePrices?: boolean;
+  /** Publish issues to point at in place (the described mode's list rules). */
+  issues?: PricingIssue[];
   config: Record<string, ImplantPriceItem>;
   onChange: (next: Record<string, ImplantPriceItem>) => void;
   brands: { id: string; name: string }[];
@@ -550,12 +668,16 @@ function ImplantPricingSection({
     onCrownMaterialsChange(crownMaterials.filter((m) => m.id !== id));
   };
 
+  const noOptions = issues.some((x) => x.kind === 'no-implant-options');
+
   return (
     <Stack spacing={3}>
       <Stack>
-        <Typography variant="subtitle2">{t('implantForm.pricing.sectionTitle')}</Typography>
+        <Typography variant="subtitle2">
+          {hidePrices ? t('implantForm.pricing.optionsTitle') : t('implantForm.pricing.sectionTitle')}
+        </Typography>
         <Typography variant="caption" color="text.secondary">
-          {t('implantForm.pricing.sectionHelp')}
+          {hidePrices ? t('implantForm.pricing.optionsHelp') : t('implantForm.pricing.sectionHelp')}
         </Typography>
       </Stack>
 
@@ -616,11 +738,18 @@ function ImplantPricingSection({
               {t('implantForm.pricing.groups.crownMaterials')}
             </Typography>
             <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-              {t('implantForm.pricing.crownMaterialsHelp')}
+              {hidePrices
+                ? t('implantForm.pricing.crownMaterialsNamesHelp')
+                : t('implantForm.pricing.crownMaterialsHelp')}
             </Typography>
             <Stack spacing={1}>
               {crownMaterials.map((mat, i) => {
                 const color = MATERIAL_COLORS[i % MATERIAL_COLORS.length];
+                // As in the materials editor: a blank row is flagged once
+                // another follows it, never the one just added.
+                const nameError =
+                  i < crownMaterials.length - 1 &&
+                  issues.some((x) => x.kind === 'crown-material-name' && x.index === i);
                 return (
                   <Stack
                     key={mat.id}
@@ -643,21 +772,25 @@ function ImplantPricingSection({
                       label={t('forms.editor.pricing.materialName')}
                       value={mat.name}
                       onChange={(e) => updateCrownMaterial(mat.id, { name: e.target.value })}
+                      error={nameError}
+                      helperText={nameError ? t('forms.editor.pricing.nameRequired') : undefined}
                       size="small"
                       sx={{ flex: 1 }}
                     />
-                    <NumberField
-                      label={t('implantForm.pricing.pricePerImplant')}
-                      value={mat.unit_price}
-                      onChange={(v) => updateCrownMaterial(mat.id, { unit_price: v })}
-                      decimal
-                      min={0}
-                      InputProps={{
-                        endAdornment: <InputAdornment position="end">GEL</InputAdornment>,
-                      }}
-                      size="small"
-                      sx={{ width: 200 }}
-                    />
+                    {!hidePrices && (
+                      <NumberField
+                        label={t('implantForm.pricing.pricePerImplant')}
+                        value={mat.unit_price}
+                        onChange={(v) => updateCrownMaterial(mat.id, { unit_price: v })}
+                        decimal
+                        min={0}
+                        InputProps={{
+                          endAdornment: <InputAdornment position="end">GEL</InputAdornment>,
+                        }}
+                        size="small"
+                        sx={{ width: 200 }}
+                      />
+                    )}
                     <IconButton onClick={() => removeCrownMaterial(mat.id)} size="small">
                       <Icon name="delete" size={18} />
                     </IconButton>
@@ -693,6 +826,11 @@ function ImplantPricingSection({
           >
             {t(group.titleKey)}
           </Typography>
+          {noOptions && group.titleKey === 'implantForm.pricing.groups.abutmentType' && (
+            <Typography variant="caption" color="error" display="block">
+              {t('services.create.pricingIssues.noImplantOptions')}
+            </Typography>
+          )}
           <Stack spacing={1} mt={1}>
             {group.keys.map((key) => {
               const item: ImplantPriceItem = config[key] ?? DEFAULT_IMPLANT_PRICE_CONFIG[key];
@@ -708,7 +846,7 @@ function ImplantPricingSection({
                     {item.label}
                   </Typography>
 
-                  {!group.hidePrice && (
+                  {!group.hidePrice && !hidePrices && (
                     item.pricingMode === 'base_plus_per_implant' ? (
                       <>
                         <NumberField

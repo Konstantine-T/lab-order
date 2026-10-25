@@ -20,6 +20,7 @@ import {
   type OrderGroupKey,
 } from './orderListModel';
 import { dueLine, pastDate, recentAge, shortDate } from './listFormat';
+import { FinalPriceNoteIcon } from './FinalPriceNoteIcon';
 
 /** The card bar's five stages: sent · confirmed · in progress · ready · delivered. */
 const BAR_STAGES = 5;
@@ -325,6 +326,7 @@ export function OrderCard({
                   {price.kind === 'estimate' ? '≈ ' : ''}
                   {formatGELShort(price.amount)}
                 </Typography>
+                {price.kind === 'final' && <FinalPriceNoteIcon note={row.final_price_note} />}
               </Stack>
             )}
           </Stack>

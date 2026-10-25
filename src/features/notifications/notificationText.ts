@@ -57,7 +57,7 @@ export function notificationText(
   row: Pick<NotificationRow, 'kind' | 'params'>,
   t: TFunction,
   i18n: I18n,
-): { title: string; body: string; known: boolean } {
+): { title: string; body: string; detail?: string; known: boolean } {
   if (!isKnownKind(row.kind, i18n)) {
     return { title: t('notifications.unknown'), body: '', known: false };
   }
@@ -89,7 +89,16 @@ export function notificationText(
       bodyKey = `${base}.bodyDateOnly`;
     }
   }
-  return { title: t(`${base}.title`, vars), body: t(bodyKey, vars), known: true };
+  // price_set: the lab's explanation of the price (0046), as the lab wrote it
+  // — raw text, not a key, so every reader sees the same words. Rows from
+  // before 0046 have no note and read as they always did.
+  const note = row.kind === 'price_set' && typeof p.note === 'string' ? p.note.trim() : '';
+  return {
+    title: t(`${base}.title`, vars),
+    body: t(bodyKey, vars),
+    ...(note ? { detail: note } : {}),
+    known: true,
+  };
 }
 
 const AREA: Partial<Record<UserRole, string>> = {

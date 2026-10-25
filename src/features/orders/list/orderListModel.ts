@@ -37,6 +37,7 @@ export type ListOrderRow = Pick<
   | 'payment_status'
   | 'generated_total'
   | 'final_total'
+  | 'final_price_note'
   | 'requested_due_date'
   | 'confirmed_due_date'
   | 'requested_due_time'
@@ -68,7 +69,7 @@ export type ListOrderRow = Pick<
  * snapshot is the full `labs` row, and a list of hundreds only needs its name.
  */
 export const LIST_ORDER_SELECT =
-  'id, order_code, doctor_id, lab_id, patient_id, status, payment_status, generated_total, final_total, ' +
+  'id, order_code, doctor_id, lab_id, patient_id, status, payment_status, generated_total, final_total, final_price_note, ' +
   'requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, completed_at, cancelled_at, ' +
   'has_unreviewed_edits, edit_count, last_edited_at, continues_order_id, ' +
   'service_name:service_snapshot->>name, lab_name:lab_snapshot->>public_name, doctor_snapshot, ' +

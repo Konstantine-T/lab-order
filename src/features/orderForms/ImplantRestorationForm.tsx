@@ -45,6 +45,7 @@ import {
   type AbutmentType,
   type GingivalHeightMode,
 } from './implantTypes';
+import { offeredImplantOptions } from './implantOffered';
 import {
   AB_TRANSFER_CHECK,
   ABUTMENTS_STATUS_OPTIONS,
@@ -137,6 +138,14 @@ export function ImplantRestorationForm({
   const isConfigComplete = abutmentsOnly ? isAbutmentConfigComplete : isImplantConfigComplete;
 
   const labBrands = pricing?.implant_brands ?? [];
+  // Only what the lab offers (its Pricing tab's switches), keeping a choice
+  // already made; see offeredImplantOptions.
+  const offer = (options: readonly { key: string }[], current: string | undefined) =>
+    offeredImplantOptions(
+      options.map((o) => o.key),
+      pricing?.implant_price_config,
+      current,
+    );
 
   // The lab's edit review: implant positions whose configuration changed (or
   // that were added or removed), and positions moved on or off the bar.
@@ -567,7 +576,7 @@ export function ImplantRestorationForm({
                           </Typography>
                           <PillGroup
                             value={representativeCfg.abutmentType ?? ''}
-                            options={ABUTMENT_TYPE_OPTIONS.map((o) => o.key) as readonly AbutmentType[]}
+                            options={offer(ABUTMENT_TYPE_OPTIONS, representativeCfg.abutmentType) as readonly AbutmentType[]}
                             getLabel={(k) => t(`implantForm.configure.abutmentType.${k}`)}
                             onChange={(v) => setAbutmentType(v as AbutmentType)}
                             readOnly={readOnly}
@@ -584,7 +593,7 @@ export function ImplantRestorationForm({
                             </Typography>
                             <PillGroup
                               value={representativeCfg.indMaterial ?? ''}
-                              options={IND_MATERIAL_OPTIONS.map((o) => o.key) as readonly string[]}
+                              options={offer(IND_MATERIAL_OPTIONS, representativeCfg.indMaterial)}
                               getLabel={(k) => t(`implantForm.configure.indMaterial.${k}`)}
                               onChange={(v) => updateEditGroup({ indMaterial: v })}
                               readOnly={readOnly}
@@ -596,7 +605,7 @@ export function ImplantRestorationForm({
                             </Typography>
                             <PillGroup
                               value={representativeCfg.indShape ?? ''}
-                              options={IND_SHAPE_OPTIONS.map((o) => o.key) as readonly string[]}
+                              options={offer(IND_SHAPE_OPTIONS, representativeCfg.indShape)}
                               getLabel={(k) => t(`implantForm.configure.indShape.${k}`)}
                               onChange={(v) => updateEditGroup({ indShape: v })}
                               readOnly={readOnly}
@@ -608,7 +617,7 @@ export function ImplantRestorationForm({
                             </Typography>
                             <PillGroup
                               value={representativeCfg.indRetention ?? ''}
-                              options={RETENTION_OPTIONS.map((o) => o.key) as readonly string[]}
+                              options={offer(RETENTION_OPTIONS, representativeCfg.indRetention)}
                               getLabel={(k) => t(`implantForm.configure.retention.${k}`)}
                               onChange={(v) => updateEditGroup({ indRetention: v })}
                               readOnly={readOnly}
@@ -626,7 +635,7 @@ export function ImplantRestorationForm({
                             </Typography>
                             <PillGroup
                               value={representativeCfg.muaHex ?? ''}
-                              options={MUA_HEX_OPTIONS.map((o) => o.key) as readonly string[]}
+                              options={offer(MUA_HEX_OPTIONS, representativeCfg.muaHex)}
                               getLabel={(k) => t(`implantForm.configure.muaHex.${k}`)}
                               onChange={(v) => updateEditGroup({ muaHex: v })}
                               readOnly={readOnly}
@@ -638,7 +647,7 @@ export function ImplantRestorationForm({
                             </Typography>
                             <PillGroup
                               value={representativeCfg.muaUpperConn ?? ''}
-                              options={MUA_UPPER_CONN_OPTIONS.map((o) => o.key) as readonly string[]}
+                              options={offer(MUA_UPPER_CONN_OPTIONS, representativeCfg.muaUpperConn)}
                               getLabel={(k) => t(`implantForm.configure.muaUpperConn.${k}`)}
                               onChange={(v) => updateEditGroup({ muaUpperConn: v })}
                               readOnly={readOnly}
@@ -662,7 +671,7 @@ export function ImplantRestorationForm({
                           </Typography>
                           <PillGroup
                             value={representativeCfg.factoryRetention ?? ''}
-                            options={RETENTION_OPTIONS.map((o) => o.key) as readonly string[]}
+                            options={offer(RETENTION_OPTIONS, representativeCfg.factoryRetention)}
                             getLabel={(k) => t(`implantForm.configure.retention.${k}`)}
                             onChange={(v) => updateEditGroup({ factoryRetention: v })}
                             readOnly={readOnly}
@@ -750,7 +759,7 @@ export function ImplantRestorationForm({
                   </Typography>
                   <PillGroup
                     value={a.bar.barMaterial ?? ''}
-                    options={BAR_MATERIAL_OPTIONS.map((o) => o.key) as readonly string[]}
+                    options={offer(BAR_MATERIAL_OPTIONS, a.bar.barMaterial)}
                     getLabel={(k) => t(`implantForm.bar.barMaterial.${k}`)}
                     onChange={(v) => set({ bar: { ...a.bar, barMaterial: v } })}
                     readOnly={readOnly}

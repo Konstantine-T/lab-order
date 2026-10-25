@@ -4,6 +4,7 @@ import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon, SectionCard, StatusPill } from '@/components/design';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
+import { FinalPriceNote } from '@/components/FinalPriceNote';
 import { DoctorInvoiceBlock } from '@/features/orders/orderFiles/OrderInvoice';
 import { appendDueWindow, dueDateOf, dueTimeOf } from '@/features/orders/orderDates';
 import { calculatePrice, formatGELShort } from '@/utils/pricing';
@@ -156,7 +157,7 @@ export function PriceDueCard({
           </BigFigure>
         </Box>
 
-        {version && (
+        {version ? (
           <>
             <Divider />
             <PriceBreakdown
@@ -165,10 +166,18 @@ export function PriceDueCard({
               answers={answers}
               rush={rush}
               finalTotal={order.final_total}
+              finalPriceNote={order.final_price_note}
+              finalPriceNoteAt={order.final_price_note_at}
               // The big figure above is written short; so is everything under it.
               format={formatGELShort}
             />
           </>
+        ) : (
+          // No form version to break the price down by: the lab's explanation
+          // of its final price still belongs beside it.
+          order.final_total != null && (
+            <FinalPriceNote note={order.final_price_note} at={order.final_price_note_at} />
+          )
         )}
 
         <Divider />

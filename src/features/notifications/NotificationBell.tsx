@@ -22,6 +22,7 @@ import type { NotificationRow } from '@/types/database';
 import { useNotificationCenter } from './liveContext';
 import { useNotificationList, useMarkRead } from './useNotifications';
 import { notificationText, relativeTime } from './notificationText';
+import { NotificationDetail } from './LiveSurfaces';
 
 /**
  * The bell: an unread count on the icon, and the last 30 days of
@@ -241,7 +242,7 @@ function NotificationItem({ row, onOpen }: { row: NotificationRow; onOpen: () =>
   const theme = useTheme();
   const mode = theme.palette.mode;
   const { t, i18n } = useTranslation('common');
-  const { title, body } = notificationText(row, t, i18n);
+  const { title, body, detail } = notificationText(row, t, i18n);
   const unread = !row.read_at;
 
   return (
@@ -284,6 +285,7 @@ function NotificationItem({ row, onOpen }: { row: NotificationRow; onOpen: () =>
               {body}
             </Typography>
           )}
+          {detail && <NotificationDetail text={detail} />}
           <Typography
             component="time"
             dateTime={row.created_at}

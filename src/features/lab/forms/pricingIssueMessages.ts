@@ -21,6 +21,14 @@ export function pricingIssueMessage(issue: PricingIssue, t: TranslateFn): string
       return t(`${p}.fixedPrice`);
     case 'price-description':
       return t(`${p}.priceDescription`);
+    case 'choice-materials':
+      return t(`${p}.choiceMaterials`);
+    case 'no-crown-materials':
+      return t(`${p}.noCrownMaterials`);
+    case 'crown-material-name':
+      return t(`${p}.crownMaterialNeedsName`, { index: issue.index + 1 });
+    case 'no-implant-options':
+      return t(`${p}.noImplantOptions`);
     case 'unit-price':
       return t(`${p}.unitPrice`);
     case 'model-price':

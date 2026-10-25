@@ -68,7 +68,9 @@ export function EspForm({
   const [selectedMaterialId, setSelectedMaterialId] = useState<string | null>(null);
   const materials = pricing?.materials ?? [];
 
-  const gingivalReductionPrice = pricing?.esp_gingival_reduction_price ?? 0;
+  // Only a unit-priced service adds this fee; a described one prices in prose.
+  const gingivalReductionPrice =
+    pricing?.model === 'UNIT_BASED' ? (pricing.esp_gingival_reduction_price ?? 0) : 0;
 
   let counter = 0;
   const next = () => ++counter;

@@ -402,7 +402,7 @@ function PriceSummary({
 
   // Same plain-language rule the breakdown panel gives, keyed by the same
   // shape `calculatePrice` used, so the two cannot describe different maths.
-  const shape = version ? pricingShape(pricing, answers) : null;
+  const shape = calculated ? pricingShape(pricing, answers) : null;
   const effectiveRush = rush ?? pricing?.rush;
   const explainRule = shape ? tc(`priceBreakdown.explain.${shape}`) : null;
   const explainRush =

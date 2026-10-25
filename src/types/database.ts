@@ -468,6 +468,10 @@ export interface OrderRow {
   invoice_acknowledged_at: string | null;
   generated_total: number | null;
   final_total: number | null;
+  /** The lab's explanation of `final_total` (0046); required with any new price. */
+  final_price_note: string | null;
+  /** Stamped by trigger whenever the price or the note changes (0046). */
+  final_price_note_at: string | null;
   rush_type: RushType;
   rush_value: number | null;
   paid_total: number;
@@ -742,6 +746,9 @@ export type NotificationParams = {
   time?: string;
   /** 1 to 5, `lab_review_new` (0044). */
   rating?: number;
+  /** price_set / new_payable: the first 140 characters of the lab's
+   *  explanation of the price (0046), raw lab text. */
+  note?: string;
 };
 
 export interface NotificationRow {

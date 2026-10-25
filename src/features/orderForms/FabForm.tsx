@@ -24,6 +24,7 @@ function MaterialSelect({
   error,
   label,
   unitLabel,
+  showPrices,
 }: {
   materials: MaterialOption[];
   value: string;
@@ -32,6 +33,12 @@ function MaterialSelect({
   error?: string;
   label: string;
   unitLabel: string;
+  /**
+   * The service is priced by these materials (`UNIT_BASED`). A described,
+   * fixed or unpriced service may keep old unit prices that are not what the
+   * order costs, so it lists the names only.
+   */
+  showPrices: boolean;
 }) {
   // The lab's material names in the reader's language; the value is the id.
   const lang = useUiLang();
@@ -50,7 +57,7 @@ function MaterialSelect({
       {localizeMaterials(materials, lang).map((m) => (
         <MenuItem key={m.id} value={m.id}>
           {m.name}
-          {m.unit_price ? ` — ${formatGEL(m.unit_price)}/${unitLabel}` : ''}
+          {showPrices && m.unit_price ? ` — ${formatGEL(m.unit_price)}/${unitLabel}` : ''}
         </MenuItem>
       ))}
     </TextField>
@@ -103,6 +110,7 @@ export function PrintForm({
           error={errors.materialId}
           label={t('fabForm.material')}
           unitLabel={t('fabForm.unit')}
+          showPrices={pricing?.model === 'UNIT_BASED'}
         />
       </NumberedSection>
       <NumberedSection number={2} label={`${t('fabForm.units')} *`}>
@@ -190,6 +198,7 @@ export function MillingForm({
           error={errors.materialId}
           label={t('fabForm.material')}
           unitLabel={t('fabForm.unit')}
+          showPrices={pricing?.model === 'UNIT_BASED'}
         />
       </NumberedSection>
       <NumberedSection

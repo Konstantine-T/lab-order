@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { Callout, Icon } from '@/components/design';
-import { lift, radii, tone } from '@/theme/tokens';
+import { lift, radii, surfaces, tone } from '@/theme/tokens';
 import type { NotificationRow } from '@/types/database';
 import { notificationText } from './notificationText';
 
@@ -90,7 +90,7 @@ function ToastItem({
     };
   }, [paused, onDismiss, row.id]);
 
-  const { title, body } = notificationText(row, t, i18n);
+  const { title, body, detail } = notificationText(row, t, i18n);
   const accent = tone('brand', mode);
 
   return (
@@ -152,6 +152,7 @@ function ToastItem({
                 {body}
               </Typography>
             )}
+            {detail && <NotificationDetail text={detail} />}
           </Stack>
         </ButtonBase>
         <IconButton
@@ -190,5 +191,29 @@ export function LiveUpdateBanner({ onReload }: { onReload: () => void }) {
         sx={{ mb: 2 }}
       />
     </Box>
+  );
+}
+
+/**
+ * A third line under a notification's body: raw text from the row's params
+ * (the lab's explanation of a price), muted and clamped to one line. The bell
+ * uses it too.
+ */
+export function NotificationDetail({ text }: { text: string }) {
+  const mode = useTheme().palette.mode;
+  return (
+    <Typography
+      sx={{
+        fontSize: '0.75rem',
+        color: surfaces[mode].textMuted,
+        lineHeight: 1.4,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        whiteSpace: 'nowrap',
+        minWidth: 0,
+      }}
+    >
+      {text}
+    </Typography>
   );
 }

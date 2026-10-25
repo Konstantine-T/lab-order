@@ -80,6 +80,11 @@ import type {
 import { LAB_SELECTABLE_STATUSES } from '@/types/database';
 import { LiveUpdateBanner } from '@/features/notifications/LiveSurfaces';
 import { useLiveFormSync } from '@/features/notifications/liveContext';
+import { FinalPriceNoteField } from '@/features/lab/orderSheet/FinalPriceNoteField';
+import {
+  isNoteRequiredError,
+  needsNoteConfirmation,
+} from '@/features/lab/orderSheet/finalPriceNote';
 
 // The patient is embedded so the sheet can show who the case is for; the lab
 // reads it under patients_lab_via_order (0009), the same grant its order lists
@@ -112,6 +117,11 @@ export function LabOrderSheetPage() {
   const qc = useQueryClient();
 
   const [finalPrice, setFinalPrice] = useState<string>('');
+  // The lab's explanation of the final price (to75nCxF), saved with it.
+  const [finalNote, setFinalNote] = useState<string>('');
+  const [noteConfirmed, setNoteConfirmed] = useState(false);
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const [noteConfirmError, setNoteConfirmError] = useState(false);
   const [paidAmount, setPaidAmount] = useState<string>('');
   const [confirmedDue, setConfirmedDue] = useState<string>('');
   const [confirmedTime, setConfirmedTime] = useState<string>('');
@@ -228,6 +238,7 @@ export function LabOrderSheetPage() {
       ? {
           fields: {
             finalPrice: order.final_total?.toString() ?? '',
+            finalNote: order.final_price_note ?? '',
             paidAmount: order.paid_total?.toString() ?? '0',
             confirmedDue: seededDue.date,
             confirmedTime: seededDue.time,
@@ -240,6 +251,7 @@ export function LabOrderSheetPage() {
       : null,
     values: {
       finalPrice: money(finalPrice, ''),
+      finalNote,
       paidAmount: money(paidAmount, '0'),
       confirmedDue: dueFollowsServer ? undefined : confirmedDue,
       confirmedTime: dueFollowsServer ? undefined : confirmedTime,
@@ -247,6 +259,7 @@ export function LabOrderSheetPage() {
     },
     apply: (f) => {
       if (f.finalPrice !== undefined) setFinalPrice(f.finalPrice);
+      if (f.finalNote !== undefined) setFinalNote(f.finalNote);
       if (f.paidAmount !== undefined) setPaidAmount(f.paidAmount);
       if (f.confirmedDue !== undefined) setConfirmedDue(f.confirmedDue);
       if (f.confirmedTime !== undefined) setConfirmedTime(f.confirmedTime);
@@ -266,6 +279,28 @@ export function LabOrderSheetPage() {
       qc.invalidateQueries({ queryKey: ['lab-orders'] });
     },
     onError: () => setError(t('orderSheet.saveFailed')),
+  });
+
+  // Price and explanation in ONE update: the "price set" notification (0043)
+  // reads the note from the same row the price lands in (0046).
+  const savePrice = useMutation({
+    mutationFn: async (patch: Pick<OrderRow, 'final_total'> & Partial<Pick<OrderRow, 'final_price_note'>>) => {
+      if (!orderId) return;
+      const { error } = await supabase.from('orders').update(patch).eq('id', orderId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setNoteConfirmed(false);
+      setNoteConfirmError(false);
+      setSuccess(t('orderSheet.saved'));
+      qc.invalidateQueries({ queryKey: ['lab-order', orderId] });
+      qc.invalidateQueries({ queryKey: ['lab-orders'] });
+    },
+    onError: (err) => {
+      // The database's own refusal, on the field it is about.
+      if (isNoteRequiredError(err)) setNoteError(t('orderSheet.finalPriceNote.required'));
+      else setError(t('orderSheet.saveFailed'));
+    },
   });
 
   const recordPay = useMutation({
@@ -377,6 +412,10 @@ export function LabOrderSheetPage() {
     city?: string;
   };
   const statusDirty = !!pendingStatus && pendingStatus !== order.status;
+  // The typed price moved off the saved one and the explanation did not.
+  const noteConfirmNeeded =
+    finalPrice.trim() !== '' &&
+    needsNoteConfirmation(parseAmount(finalPrice), finalNote, order);
   const dueDirty = isDueDirty({ date: confirmedDue, time: confirmedTime }, order);
   const dueSaved = order.confirmed_due_date != null || order.confirmed_due_time != null;
   const patientName = order.patients
@@ -510,15 +549,32 @@ export function LabOrderSheetPage() {
                         ),
                       }}
                     />
+                    <FinalPriceNoteField
+                      value={finalNote}
+                      onChange={(next) => {
+                        setFinalNote(next);
+                        setNoteError(null);
+                      }}
+                      required={finalPrice.trim() !== ''}
+                      error={noteError}
+                      confirmNeeded={noteConfirmNeeded}
+                      confirmed={noteConfirmed}
+                      onConfirmedChange={setNoteConfirmed}
+                      confirmError={noteConfirmError}
+                    />
                     <Button
                       variant="outlined"
                       fullWidth
                       size="small"
                       onClick={() => {
                         setPriceError(null);
-                        // Clearing the price is a legitimate action.
+                        setNoteError(null);
+                        setNoteConfirmError(false);
+                        // Clearing the price is a legitimate action. The
+                        // explanation stays stored; nothing shows it without
+                        // a price.
                         if (finalPrice.trim() === '') {
-                          update.mutate({ final_total: null });
+                          savePrice.mutate({ final_total: null });
                           return;
                         }
                         const amount = parseAmount(finalPrice);
@@ -535,9 +591,23 @@ export function LabOrderSheetPage() {
                             return;
                           }
                         }
-                        update.mutate({ final_total: amount });
+                        // Every price carries its explanation (0046 refuses one
+                        // without), and a changed price needs the text updated
+                        // or confirmed as still correct.
+                        const note = finalNote.trim();
+                        if (note === '') {
+                          setNoteError(t('orderSheet.finalPriceNote.required'));
+                          return;
+                        }
+                        if (needsNoteConfirmation(amount, finalNote, order) && !noteConfirmed) {
+                          setNoteConfirmError(true);
+                          return;
+                        }
+                        // As the database stores it, so the refetch reads as our own save.
+                        setFinalNote(note);
+                        savePrice.mutate({ final_total: amount, final_price_note: note });
                       }}
-                      disabled={update.isPending}
+                      disabled={savePrice.isPending}
                     >
                       {t('orderSheet.setFinalPrice')}
                     </Button>

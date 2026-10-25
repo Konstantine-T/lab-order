@@ -2,7 +2,11 @@ import type { MaterialOption, PricingConfig, RushType } from '@/types/database';
 import { isModelTemplateCode } from '@/features/orderForms/modelTypes';
 import { SG_SUPPORT_TYPES } from '@/features/orderForms/sgTypes';
 import { TEMPLATE_CODE_PRINT } from '@/features/orderForms/fabTypes';
-import { isImplantTemplate } from '@/features/orderForms/implantTypes';
+import {
+  ABUTMENT_TYPE_OPTIONS,
+  TEMPLATE_CODE_IMPLANT,
+  isImplantTemplate,
+} from '@/features/orderForms/implantTypes';
 import { localizeMaterials, priceDescription } from '@/features/lab/labText';
 
 export type PriceLineItem = {
@@ -425,6 +429,11 @@ export type PricingIssue =
   | { kind: 'material-price'; index: number; name: string } // named, but no/zero price
   | { kind: 'fixed-price' }
   | { kind: 'price-description' } // LAB_DESCRIBED with nothing written
+  // LAB_DESCRIBED keeps the doctor's choices (to75nCxF): the lists, minus prices.
+  | { kind: 'choice-materials' } // no material listed (C&B family, ESP, print, milling)
+  | { kind: 'no-crown-materials' } // Constructions on Implants: no crown material
+  | { kind: 'crown-material-name'; index: number } // a crown material with a blank name
+  | { kind: 'no-implant-options' } // every abutment type switched off
   | { kind: 'unit-price' }
   | { kind: 'model-price' }
   | { kind: 'sg-price' }
@@ -470,6 +479,7 @@ export function pricingIssues(
     // The description *is* the pricing here, so an empty one is the same
     // omission as a missing price.
     if (!pricing.price_description?.trim()) issues.push({ kind: 'price-description' });
+    issues.push(...describedChoiceIssues(pricing, templateCode));
   } else if (pricing.model === 'UNIT_BASED') {
     if (isModelTemplateCode(templateCode)) {
       // Model printing is complete once the per-jaw price is set (> 0).
@@ -509,6 +519,43 @@ export function pricingIssues(
     issues.push({ kind: 'fixed-price' });
   }
 
+  return issues;
+}
+
+/**
+ * A described service still asks the doctor to choose: a material per tooth, a
+ * crown material, an abutment. Those lists live in the pricing config, so a
+ * described service needs them filled exactly as an automatic one does, only
+ * without the prices — or the doctor's form stops at "the lab hasn't added any
+ * materials" and the service cannot be ordered. A named material with no price
+ * is complete here; a blank row is not, as under automatic pricing.
+ */
+function describedChoiceIssues(
+  pricing: PricingConfig,
+  templateCode: string | undefined,
+): PricingIssue[] {
+  const issues: PricingIssue[] = [];
+  if (templateCode && MATERIAL_TEMPLATES.has(templateCode)) {
+    const ms = pricing.materials ?? [];
+    if (ms.length === 0) issues.push({ kind: 'choice-materials' });
+    ms.forEach((m, index) => {
+      if (!m.name?.trim()) issues.push({ kind: 'material-name', index });
+    });
+  } else if (isImplantTemplate(templateCode)) {
+    // Only Constructions on Implants draws crowns; lab-placed abutments has none.
+    if (templateCode === TEMPLATE_CODE_IMPLANT) {
+      const cms = pricing.implant_crown_materials ?? [];
+      if (cms.length === 0) issues.push({ kind: 'no-crown-materials' });
+      cms.forEach((m, index) => {
+        if (!m.name?.trim()) issues.push({ kind: 'crown-material-name', index });
+      });
+    }
+    // An item missing from a stored config falls back to the default (on),
+    // as the editor and the order form both read it.
+    const cfg = pricing.implant_price_config ?? {};
+    const anyType = ABUTMENT_TYPE_OPTIONS.some((o) => cfg[o.key]?.enabled !== false);
+    if (!anyType) issues.push({ kind: 'no-implant-options' });
+  }
   return issues;
 }
 

@@ -1,7 +1,9 @@
 import type {
+  FieldConfig,
   FormConfiguration,
   PlatformTemplateFieldRow,
   PricingConfig,
+  PricingModel,
 } from '@/types/database';
 import {
   DEFAULT_IMPLANT_PRICE_CONFIG,
@@ -38,7 +40,6 @@ export function buildDefaultConfig(
     _templateCode: templateCode,
   };
 
-  const toothField = fields.find((f) => f.type === 'tooth_selection');
   const isSg = templateCode === 'SURGICAL_GUIDE';
   const isEsp = templateCode === 'EVIDENT_SMILE';
   // Constructions on Implants and lab-placed abutments share the implant
@@ -54,11 +55,12 @@ export function buildDefaultConfig(
   // services (seeded FIXED_PRICE) are untouched.
   const isModel = isModelTemplateCode(templateCode);
   const isCnb = isCnbTemplate(templateCode);
+  // Every new service starts priced in the lab's own words (to75nCxF): the
+  // lab writes what it charges and confirms the final price per order.
+  // Automatic pricing stays one switch away in the Pricing tab, and the choice
+  // lists below are seeded exactly as before, so switching finds them in place.
   const pricing: PricingConfig = {
-    model:
-      toothField || isCnb || isSg || isEsp || isImplant || isFab || isModel
-        ? 'UNIT_BASED'
-        : 'FIXED_PRICE',
+    model: 'LAB_DESCRIBED',
     materials: isCnb || isEsp || isFab ? [] : undefined,
     model_per_jaw_price: isModel ? 0 : undefined,
     sg_support_fees: isSg ? [] : undefined,
@@ -68,4 +70,25 @@ export function buildDefaultConfig(
   };
 
   return { configuration, pricing };
+}
+
+/**
+ * The automatic model a template was seeded with before descriptions became
+ * the default: unit based for every template with a tooth chart or a lab
+ * list to price, a fixed price for the rest. The Pricing tab starts here when
+ * a described service is switched to "Automatic estimate".
+ */
+export function defaultAutomaticModel(
+  templateCode: string | undefined,
+  fields: Pick<FieldConfig, 'type'>[],
+): Extract<PricingModel, 'UNIT_BASED' | 'FIXED_PRICE'> {
+  const unitBased =
+    fields.some((f) => f.type === 'tooth_selection') ||
+    isCnbTemplate(templateCode) ||
+    templateCode === 'SURGICAL_GUIDE' ||
+    templateCode === 'EVIDENT_SMILE' ||
+    isImplantTemplate(templateCode) ||
+    isFabTemplate(templateCode) ||
+    isModelTemplateCode(templateCode);
+  return unitBased ? 'UNIT_BASED' : 'FIXED_PRICE';
 }

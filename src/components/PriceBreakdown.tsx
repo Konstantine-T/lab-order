@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { Box, ButtonBase, Collapse, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { FieldLabel, Icon, MoneyRow } from '@/components/design';
+import { FinalPriceNote } from '@/components/FinalPriceNote';
 import { calculatePrice, formatGEL, pricingShape } from '@/utils/pricing';
 import { useUiLang } from '@/features/lab/labText';
 import type { PriceLineItem, PricingShape } from '@/utils/pricing';
@@ -14,6 +15,13 @@ type Props = {
   answers: Record<string, unknown>;
   rush?: { type: RushType; value: number };
   finalTotal?: number | null;
+  /**
+   * The lab's explanation of `finalTotal` and when it was written (to75nCxF),
+   * shown under the final price. The doctor's and the clinic's order pages
+   * pass it; the lab, who wrote it, edits it beside the price input instead.
+   */
+  finalPriceNote?: string | null;
+  finalPriceNoteAt?: string | null;
   /**
    * `plain` drops the surrounding box so the breakdown can sit inside a
    * `SectionCard` — which is how the mockups draw every price panel.
@@ -135,6 +143,8 @@ export function PriceBreakdown({
   answers,
   rush,
   finalTotal,
+  finalPriceNote,
+  finalPriceNoteAt,
   variant = 'boxed',
   explain = false,
   format = formatGEL,
@@ -156,7 +166,12 @@ export function PriceBreakdown({
   // Nothing priceable answered yet — lead with a hint rather than a bare 0.
   const isEmpty = !hasDetails && result.subtotal === 0;
 
-  const shape = pricingShape(pricing, answers);
+  // Only a calculated price has a rule to explain; a described service never
+  // reaches the duck-typing (calculatePrice settles it first, as here).
+  const shape = result.kind === 'CALCULATED' ? pricingShape(pricing, answers) : null;
+  // Under the final price wherever it is drawn; nothing without a price.
+  const finalNote =
+    finalTotal != null ? <FinalPriceNote note={finalPriceNote} at={finalPriceNoteAt} /> : null;
   // The rush actually applied: an explicit override (the wizard's toggle) wins
   // over the lab's configured default, exactly as calculatePrice resolves it.
   const effectiveRush = rush ?? pricing?.rush;
@@ -188,6 +203,7 @@ export function PriceBreakdown({
           color="success.main"
         />
       )}
+      {finalNote}
     </Stack>
   );
 
@@ -205,6 +221,7 @@ export function PriceBreakdown({
           color="success.main"
         />
       )}
+      {finalNote}
     </Stack>
   );
 
@@ -255,6 +272,7 @@ export function PriceBreakdown({
           color="success.main"
         />
       )}
+      {finalNote}
 
       {canExplain && (
         <Box sx={{ pt: 0.5 }}>
