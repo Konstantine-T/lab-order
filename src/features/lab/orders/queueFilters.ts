@@ -13,6 +13,8 @@
  * same door. The destination filter keys on the normalised name instead.
  */
 
+import { type CustomerSource, isLabPurchase } from './labCustomer';
+
 /** One entry in either filter's dropdown. */
 export type QueueFilterOption = {
   /** What the filter stores and matches rows on. */
@@ -26,6 +28,10 @@ export type QueueFilterOption = {
   count: number;
   /** Newest `created_at` among those orders. The list sorts on it. */
   latestAt: string;
+  /** Doctor filter only: this "doctor" is a lab's buying profile (0048), so
+   *  the page can say so. One buying profile per lab, so a buying lab is
+   *  listed once, under its name (the snapshot carries it). */
+  isLab?: boolean;
 };
 
 /** Most recent order first — the doctor who sent something yesterday is the
@@ -43,10 +49,10 @@ const tidy = (value: unknown): string =>
 
 // ===== Doctors ================================================================
 
-type DoctorSource = {
+type DoctorSource = CustomerSource & {
   doctor_id: string;
   created_at: string;
-  doctor_snapshot: { first_name?: string; last_name?: string } | null;
+  doctor_snapshot: { first_name?: string; last_name?: string; is_lab?: boolean } | null;
 };
 
 const doctorNameOf = (snap: DoctorSource['doctor_snapshot']): string =>
@@ -74,11 +80,13 @@ export function doctorOptionsFrom(rows: readonly DoctorSource[]): QueueFilterOpt
         label: name,
         count: 1,
         latestAt: row.created_at,
+        ...(isLabPurchase(row) ? { isLab: true } : {}),
       });
       if (name) namedAt.set(row.doctor_id, row.created_at);
       continue;
     }
     group.count += 1;
+    if (isLabPurchase(row)) group.isLab = true;
     if (row.created_at > group.latestAt) group.latestAt = row.created_at;
     if (name && row.created_at > (namedAt.get(row.doctor_id) ?? '')) {
       group.label = name;

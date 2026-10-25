@@ -65,6 +65,14 @@ import {
 } from '@/features/lab/orders/queueFilters';
 import { QueueFilterAutocomplete } from '@/features/lab/orders/QueueFilterAutocomplete';
 import { LabInvoiceMark } from '@/features/lab/orders/LabInvoiceMark';
+import { FromLabBadge } from '@/features/lab/orders/FromLabBadge';
+import {
+  CUSTOMER_KINDS,
+  type CustomerKind,
+  isLabPurchase,
+  matchesCustomerKind,
+  patientLabel,
+} from '@/features/lab/orders/labCustomer';
 import {
   FILTERABLE_STATUSES,
   isOrderPreset,
@@ -120,7 +128,11 @@ export function LabOrdersDashboardPage() {
 
   const updateStatus = useMutation({
     mutationFn: async ({ orderId, status }: { orderId: string; status: OrderStatus }) => {
-      const { error } = await supabase.from('orders').update({ status }).eq('id', orderId);
+      const { error } = await supabase
+        .from('orders')
+        .update({ status })
+        .eq('id', orderId)
+        .eq('lab_id', labId!);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ['lab-orders', labId] }),
@@ -148,6 +160,9 @@ export function LabOrdersDashboardPage() {
   // Keyed by doctor_id, and by the normalised destination — see queueFilters.
   const [doctorId, setDoctorId] = useState<string | null>(null);
   const [destination, setDestination] = useState<string | null>(null);
+  // Doctors or laboratories (0048): a lab buying from this one orders through
+  // a buying profile, so it is a "doctor" row with buyer_lab_id set.
+  const [customerKind, setCustomerKind] = useState<CustomerKind>('all');
   // A preference, not a filter: remembered per area across visits, and left
   // alone by "Clear filters" and the stat tiles. Newest first by default.
   const [sort, setSort] = useOrderSort('lab');
@@ -159,10 +174,13 @@ export function LabOrdersDashboardPage() {
       const { data, error } = await supabase
         .from('orders')
         .select(
-          'id, order_code, doctor_id, status, generated_total, final_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, service_snapshot, doctor_snapshot, has_unreviewed_edits, ' +
+          'id, order_code, doctor_id, buyer_lab_id, patient_reference, status, generated_total, final_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, service_snapshot, doctor_snapshot, has_unreviewed_edits, ' +
             `${DESTINATION_SELECT}, ` +
             'lab_services(name), patients(first_name, last_name), order_clarifications(answered_at, resolved_by_edit_at)',
         )
+        // Not left to RLS: from 0048 the lab's owner also reads its own
+        // purchases from other labs (as their buying profile), and those
+        // belong under "My orders to labs", never in this queue.
         .eq('lab_id', labId!)
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -176,7 +194,15 @@ export function LabOrdersDashboardPage() {
 
   // Counted over every loaded order, not the filtered set, so the numbers in
   // the dropdowns do not shift as other filters are applied.
-  const doctorOptions = useMemo(() => doctorOptionsFrom(orders), [orders]);
+  // A buying lab is one "doctor" (its buying profile) under its own name;
+  // the caption says it is a laboratory, and type-to-narrow matches it too.
+  const doctorOptions = useMemo(
+    () =>
+      doctorOptionsFrom(orders).map((o) =>
+        o.isLab ? { ...o, detail: t('customer.fromLab') } : o,
+      ),
+    [orders, t],
+  );
   const destinationOptions = useMemo(() => destinationOptionsFrom(orders), [orders]);
 
   const hasFilters = !!(
@@ -187,7 +213,8 @@ export function LabOrdersDashboardPage() {
     dateTo?.isValid() ||
     noFinalPrice ||
     doctorId ||
-    destination
+    destination ||
+    customerKind !== 'all'
   );
 
   const filtered = useMemo(() => {
@@ -207,9 +234,13 @@ export function LabOrdersDashboardPage() {
       result = result.filter((row) => {
         const ds = row.doctor_snapshot ?? {};
         const doctor = [ds.first_name, ds.last_name].filter(Boolean).join(' ').toLowerCase();
-        const patient = row.patients
-          ? `${row.patients.first_name} ${row.patients.last_name}`.toLowerCase()
-          : '';
+        // The buying lab's case reference stands in for a missing patient.
+        const patient = [
+          row.patients ? `${row.patients.first_name} ${row.patients.last_name}` : '',
+          row.patient_reference ?? '',
+        ]
+          .join(' ')
+          .toLowerCase();
         const service = (row.lab_services?.name ?? row.service_snapshot?.name ?? '').toLowerCase();
         return (
           row.order_code.toLowerCase().includes(q) ||
@@ -225,10 +256,25 @@ export function LabOrdersDashboardPage() {
     if (destination) {
       result = result.filter((row) => destinationKeyOf(row) === destination);
     }
+    if (customerKind !== 'all') {
+      result = result.filter((row) => matchesCustomerKind(row, customerKind));
+    }
     // The lab's chosen order — newest first unless it picked otherwise. Every
     // comparator is total, so a background refetch never reshuffles equal rows.
     return [...result].sort(orderComparator(sort));
-  }, [orders, quick, search, statuses, dateFrom, dateTo, noFinalPrice, doctorId, destination, sort]);
+  }, [
+    orders,
+    quick,
+    search,
+    statuses,
+    dateFrom,
+    dateTo,
+    noFinalPrice,
+    doctorId,
+    destination,
+    customerKind,
+    sort,
+  ]);
 
   const quickCounts = useMemo(
     () =>
@@ -262,7 +308,7 @@ export function LabOrdersDashboardPage() {
   const toKey = dateTo?.format('YYYY-MM-DD');
   useEffect(() => {
     setPage(1);
-  }, [search, quick, statuses, fromKey, toKey, noFinalPrice, doctorId, destination, sort]);
+  }, [search, quick, statuses, fromKey, toKey, noFinalPrice, doctorId, destination, customerKind, sort]);
 
   const clearFilters = () => {
     setSearch('');
@@ -273,6 +319,7 @@ export function LabOrdersDashboardPage() {
     setNoFinalPrice(false);
     setDoctorId(null);
     setDestination(null);
+    setCustomerKind('all');
   };
 
   // A preset (orderPresets) from a clean slate, so the rows match the number
@@ -468,6 +515,20 @@ export function LabOrdersDashboardPage() {
                     ))}
                   </Select>
                 </FormControl>
+                <FormControl size="small" sx={{ minWidth: 160 }}>
+                  <InputLabel>{t('ordersDashboard.filters.customer')}</InputLabel>
+                  <Select
+                    value={customerKind}
+                    onChange={(e) => setCustomerKind(e.target.value as CustomerKind)}
+                    input={<OutlinedInput label={t('ordersDashboard.filters.customer')} />}
+                  >
+                    {CUSTOMER_KINDS.map((k) => (
+                      <MenuItem key={k} value={k}>
+                        {t(`ordersDashboard.filters.customerKind.${k}`)}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
                 <QueueFilterAutocomplete
                   label={t('ordersDashboard.columns.doctor')}
                   placeholder={t('ordersDashboard.filters.allDoctors')}
@@ -538,9 +599,8 @@ export function LabOrdersDashboardPage() {
             {visible.map((row) => {
               const ds = row.doctor_snapshot ?? {};
               const doctorName = [ds.first_name, ds.last_name].filter(Boolean).join(' ') || '—';
-              const patientName = row.patients
-                ? `${row.patients.first_name} ${row.patients.last_name}`
-                : '—';
+              const patientName = patientLabel(row);
+              const fromLab = isLabPurchase(row);
               const serviceName = row.lab_services?.name ?? row.service_snapshot?.name ?? '';
               const total = row.final_total ?? row.generated_total;
               const dueRaw = dueDateOf(row);
@@ -633,6 +693,13 @@ export function LabOrdersDashboardPage() {
                     <Typography variant="body1" color="text.secondary" noWrap>
                       {doctorName}
                     </Typography>
+                    {/* On its own line, not beside the name: the column is
+                        narrow at 1280px and a lab's name is long. */}
+                    {fromLab && (
+                      <Box sx={{ mt: 0.375 }}>
+                        <FromLabBadge />
+                      </Box>
+                    )}
                     {place.clinic && (
                       <Typography
                         sx={{ fontSize: '0.6875rem', color: 'text.secondary', opacity: 0.8 }}

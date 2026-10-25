@@ -13,6 +13,8 @@ import { OrderRowCard } from '@/features/orders/OrderRowCard';
 import { LineageBadge } from '@/features/orders/LineageBadge';
 import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
+import { FromLabBadge } from '@/features/lab/orders/FromLabBadge';
+import { isLabPurchase } from '@/features/lab/orders/labCustomer';
 import type { OrderRow } from '@/types/database';
 
 type Row = OrderRow & {
@@ -37,8 +39,10 @@ export function LabEditedOrdersPage() {
           'id, order_code, status, generated_total, final_total, requested_due_date, ' +
             'confirmed_due_date, requested_due_time, confirmed_due_time, ' +
             'created_at, service_snapshot, doctor_snapshot, continues_order_id, ' +
-            'has_unreviewed_edits, last_edited_at, edit_count, lab_services(name)',
+            'has_unreviewed_edits, last_edited_at, edit_count, buyer_lab_id, lab_services(name)',
         )
+        // Not left to RLS: from 0048 the owner also reads its own purchases
+        // from other labs, and edits it made to those are not this list's.
         .eq('lab_id', labId!)
         .gt('edit_count', 0)
         // Unconfirmed edits float to the top, but every edited order stays in
@@ -90,8 +94,13 @@ export function LabEditedOrdersPage() {
                 secondary={serviceName}
                 highlight={row.has_unreviewed_edits}
                 flag={
-                  row.has_unreviewed_edits ? (
-                    <StatusPill tone="warning">{t('editedOrders.unconfirmedBadge')}</StatusPill>
+                  row.has_unreviewed_edits || isLabPurchase(row) ? (
+                    <>
+                      {row.has_unreviewed_edits && (
+                        <StatusPill tone="warning">{t('editedOrders.unconfirmedBadge')}</StatusPill>
+                      )}
+                      {isLabPurchase(row) && <FromLabBadge />}
+                    </>
                   ) : undefined
                 }
                 status={<OrderStatusChip status={row.status} />}
