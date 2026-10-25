@@ -14,17 +14,19 @@ export function reviewDeadline(order: Pick<OrderRow, 'status' | 'completed_at'>)
   return dayjs().isAfter(until) ? null : until;
 }
 
-/** The doctor's own review of one order (RLS returns only their own). */
-export function useOrderReview(orderId: string | undefined) {
+/**
+ * The doctor's own review of one order. `doctorId` (the order's doctor) makes
+ * that explicit: a lab owner reviewing a lab it bought from (0048) can also
+ * read the reviews written about its own lab.
+ */
+export function useOrderReview(orderId: string | undefined, doctorId?: string) {
   return useQuery({
-    queryKey: ['order-review', orderId],
+    queryKey: ['order-review', orderId, doctorId ?? null],
     enabled: !!orderId,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('lab_reviews')
-        .select(REVIEW_COLUMNS)
-        .eq('order_id', orderId!)
-        .maybeSingle();
+      let q = supabase.from('lab_reviews').select(REVIEW_COLUMNS).eq('order_id', orderId!);
+      if (doctorId) q = q.eq('doctor_id', doctorId);
+      const { data, error } = await q.maybeSingle();
       // Not there yet (a database before 0044) reads as "no review".
       if (error) return null;
       return (data as LabReviewRow | null) ?? null;

@@ -21,6 +21,7 @@ import { tone } from '@/theme/tokens';
 import type { PatientRow } from '@/types/database';
 import type { WizardState } from '@/features/doctor/orderCreate/types';
 import { normalizeName } from '@/features/doctor/orderCreate/patientName';
+import { PATIENT_REFERENCE_MAX } from '@/features/labBuying/buyerOrder';
 import { SectionBadge, SectionCardShell } from '../primitives';
 import { useRegisterSection } from './sectionRegistry';
 import { InkSegmented, PeriLink, WizLabel } from './ui';
@@ -52,6 +53,10 @@ type LatestOrder = {
  *   to send until it is answered, exactly as the old dialog refused to let
  *   the doctor past it: an unanswered match is not "use the existing one".
  * - `dialog` (the edit page, unchanged): the modal with two buttons.
+ *
+ * `patientOptional` is a lab buying from a lab (0048): "No patient" or "With a
+ * patient" first, and a free-text reference under either. Without a patient
+ * nothing below the choice is asked, matched or required.
  */
 export function PatientStep({
   state,
@@ -64,6 +69,7 @@ export function PatientStep({
   onContinueFrom,
   onCancelContinuation,
   onMatchPendingChange,
+  patientOptional = false,
 }: {
   state: WizardState;
   update: (p: Partial<WizardState>) => void;
@@ -80,6 +86,8 @@ export function PatientStep({
    *  line, so a mis-click there is not a dead end. */
   onCancelContinuation?: () => void;
   onMatchPendingChange?: (pending: boolean) => void;
+  /** A lab's purchase (0048): the patient may be left out, and a reference given. */
+  patientOptional?: boolean;
 }) {
   const { t } = useTranslation('doctor');
   const theme = useTheme();
@@ -87,12 +95,15 @@ export function PatientStep({
   const [match, setMatch] = useState<PatientRow | null>(null);
   const [matchOpen, setMatchOpen] = useState(false);
   const inline = matchMode === 'inline';
+  // Whether a patient is being asked for at all: always for a doctor, and for
+  // a buying lab only once it chose "With a patient".
+  const active = !patientOptional || !!state.with_patient;
 
   // The one place the lookup happens, so the debounce and the blur handler
   // can't drift. Names go out normalized — the RPC compares on the same rule,
   // and sending the raw value would miss a match over a stray space.
   const lookupMatch = useCallback(() => {
-    if (readOnly) return; // locked patient never needs the match lookup
+    if (readOnly || !active) return; // locked or left out: nothing to match
     const { first_name, last_name, existing_id, force_new, date_of_birth, gender } = state.patient;
     if (!first_name.trim() || !last_name.trim() || !doctorId || existing_id) return;
     // Already answered "create a new one" for this name — asking again on the
@@ -116,12 +127,12 @@ export function PatientStep({
           setMatchOpen(true);
         }
       });
-  }, [state.patient, doctorId, readOnly]);
+  }, [state.patient, doctorId, readOnly, active]);
 
   // Trigger match check as soon as first + last name are filled; gender/DOB
   // are no longer required because the RPC now matches on name only.
   useEffect(() => {
-    if (readOnly || state.patient.existing_id || state.patient.force_new) return;
+    if (readOnly || !active || state.patient.existing_id || state.patient.force_new) return;
     if (!state.patient.first_name.trim() || !state.patient.last_name.trim()) return;
 
     // 400ms debounce so we don't hit the RPC on every keystroke while the
@@ -138,13 +149,22 @@ export function PatientStep({
     state.patient.existing_id,
     doctorId,
     readOnly,
+    active,
   ]);
 
   const complete = !!state.patient.first_name.trim() && !!state.patient.last_name.trim();
   // Inline, a match stays on screen until it is answered; the dialog tracked
   // the same thing with `matchOpen`.
   const pending =
-    inline && !!match && !state.patient.existing_id && !state.patient.force_new && !readOnly;
+    inline &&
+    active &&
+    !!match &&
+    !state.patient.existing_id &&
+    !state.patient.force_new &&
+    !readOnly;
+  // "Done" for the navigator and the badge: a buying lab that left the
+  // patient out has answered the question.
+  const sectionDone = active ? complete && !pending : true;
 
   useEffect(() => {
     onMatchPendingChange?.(pending);
@@ -153,14 +173,17 @@ export function PatientStep({
   // Only while a match is on screen, and only for the inline line: the most
   // recent order of that patient, so the line can say which case it was.
   const { data: latest } = useQuery({
-    queryKey: ['patient-latest-order', match?.id],
-    enabled: pending && !!match,
+    queryKey: ['patient-latest-order', match?.id, doctorId],
+    enabled: pending && !!match && !!doctorId,
     staleTime: 60_000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
         .select('id, order_code, status, lab_id, service_snapshot')
         .eq('patient_id', match!.id)
+        // Explicit, not left to RLS: a lab owner buying from a lab can also
+        // read the orders it receives (0048, B3).
+        .eq('doctor_id', doctorId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -180,7 +203,7 @@ export function PatientStep({
     label: t('orderCreate.nav.patient'),
     name: t('orderCreate.progress.patient'),
     required: true,
-    done: complete && !pending,
+    done: sectionDone,
   });
 
   // A new name is a new question: the previous match no longer applies, and
@@ -215,12 +238,71 @@ export function PatientStep({
 
   const matchName = match ? `${match.first_name} ${match.last_name}`.trim() : '';
 
+  // A buying lab (0048) answers "is there a patient" first. A continuation is
+  // locked to its patient, so it has no such choice to offer (unless it
+  // somehow lost the patient, which must stay fixable).
+  const choice =
+    patientOptional && (!readOnly || !active) ? (
+      <Stack spacing={0.75}>
+        <InkSegmented
+          value={state.with_patient ? 'patient' : 'none'}
+          options={[
+            { value: 'none' as const, label: t('labBuyer.patient.noPatient') },
+            { value: 'patient' as const, label: t('labBuyer.patient.withPatient') },
+          ]}
+          onChange={(v) => v && update({ with_patient: v === 'patient' })}
+          height={40}
+          fullWidth
+          ariaLabel={t('orderCreate.patient.cardTitle')}
+        />
+        {!active && (
+          <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary', lineHeight: 1.5 }}>
+            {t('labBuyer.patient.noPatientNote')}
+          </Typography>
+        )}
+      </Stack>
+    ) : null;
+
+  // …and may give its own case reference, with or without a patient.
+  const reference = patientOptional ? (
+    <Stack spacing={0.625}>
+      <WizLabel htmlFor="patient-reference">{t('labBuyer.patient.reference')}</WizLabel>
+      <TextField
+        id="patient-reference"
+        value={state.patient_reference ?? ''}
+        onChange={(e) => update({ patient_reference: e.target.value })}
+        fullWidth
+        autoComplete="off"
+        inputProps={{ maxLength: PATIENT_REFERENCE_MAX }}
+        helperText={t('labBuyer.patient.referenceHint', { max: PATIENT_REFERENCE_MAX })}
+      />
+    </Stack>
+  ) : null;
+
+  if (!active) {
+    // No patient: nothing to name, match or require.
+    return (
+      <SectionCardShell
+        id={PATIENT_SECTION_ID}
+        badge={
+          <SectionBadge done>
+            <Icon name="person" size={15} />
+          </SectionBadge>
+        }
+        title={t('orderCreate.patient.cardTitle')}
+      >
+        {choice}
+        {reference}
+      </SectionCardShell>
+    );
+  }
+
   return (
     <SectionCardShell
       id={PATIENT_SECTION_ID}
       badge={
         // Not done while a match waits for its answer — the navigator agrees.
-        <SectionBadge done={complete && !pending}>
+        <SectionBadge done={sectionDone}>
           <Icon name="person" size={15} />
         </SectionBadge>
       }
@@ -261,6 +343,8 @@ export function PatientStep({
           {t('orderCreate.patient.lockedForContinuation')}
         </Callout>
       )}
+
+      {choice}
 
       <Box
         sx={{
@@ -389,6 +473,7 @@ export function PatientStep({
           {t('orderCreate.patient.creatingNew')}
         </Callout>
       )}
+      {reference}
 
       {!inline && (
         <Dialog

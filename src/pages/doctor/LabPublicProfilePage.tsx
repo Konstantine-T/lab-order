@@ -33,9 +33,12 @@ const LabReviewsCard = lazy(() =>
 export function LabPublicProfilePage({
   basePath = '/doctor',
   guest = false,
+  paths: pathsOverride,
 }: {
   basePath?: string;
   guest?: boolean;
+  /** Where the links go, when not under `basePath` (a lab buying: `/lab/marketplace`). */
+  paths?: ReturnType<typeof catalogPaths>;
 }) {
   const { labId } = useParams<{ labId: string }>();
   const { t } = useTranslation('doctor');
@@ -45,7 +48,7 @@ export function LabPublicProfilePage({
   const { hash, key: locationKey } = useLocation();
   const theme = useTheme();
   const wide = useMediaQuery(theme.breakpoints.up('lg'));
-  const paths = catalogPaths(guest, basePath);
+  const paths = pathsOverride ?? catalogPaths(guest, basePath);
   const servicesHeading = useRef<HTMLHeadingElement | null>(null);
 
   // Set when the doctor arrived here via "Continue project" — carry them onto

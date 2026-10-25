@@ -40,5 +40,19 @@ export const serviceNameOf = (order: OrderRow) =>
 export const patientNameOf = (order: DetailOrder) =>
   order.patients ? `${order.patients.first_name} ${order.patients.last_name}`.trim() : '';
 
+/**
+ * The header's patient line. A lab's purchase may have no patient (0048):
+ * then its free-text reference, labelled as one, else a dash.
+ */
+export function patientLineOf(
+  order: DetailOrder,
+): { kind: 'patient' | 'reference'; text: string } | null {
+  const name = patientNameOf(order);
+  if (name) return { kind: 'patient', text: name };
+  if (order.patient_id) return null;
+  const reference = order.patient_reference?.trim();
+  return reference ? { kind: 'reference', text: reference } : { kind: 'patient', text: '—' };
+}
+
 export const isTerminal = (order: OrderRow) =>
   order.status === 'COMPLETED' || order.status === 'CANCELLED';

@@ -3,6 +3,8 @@ import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/auth/AuthProvider';
+import { PURCHASE_PATHS, useBuyerMode } from '@/features/labBuying/buyerMode';
 import { OrderCompletionActions } from '@/features/orders/completion/OrderCompletionActions';
 import { Callout, Icon } from '@/components/design';
 import { useContinueProject } from '@/features/doctor/orderCreate/useContinueProject';
@@ -17,30 +19,43 @@ import {
 } from '@/features/orders/detail/types';
 import type { LabFormVersionRow, OrderAnswerRow } from '@/types/database';
 
-export function OrderDetailPage() {
+/**
+ * The doctor's order, or with `buyer` a lab's order to another lab (0048) at
+ * `/lab/purchases/:orderId`: the same screen, read through the lab's buying
+ * profile, linking only under `/lab/marketplace` and `/lab/purchases`.
+ */
+export function OrderDetailPage({ buyer: buyerProp = false }: { buyer?: boolean } = {}) {
   const { orderId } = useParams<{ orderId: string }>();
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
-  const continueProject = useContinueProject();
+  const { t: tl } = useTranslation('lab');
+  const { user } = useAuth();
+  const buyer = useBuyerMode(buyerProp);
+  const continueProject = useContinueProject({ buyer });
   const qc = useQueryClient();
+  // Whose order this must be. Explicit, never left to RLS: a lab owner can
+  // read the orders it receives too, and an incoming order opened at a
+  // purchase URL must read as not found (0048, B3).
+  const doctorId = buyer ? buyer.profileId : (user?.doctor_profile?.id ?? null);
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['order', orderId],
-    enabled: !!orderId,
+    enabled: !!orderId && (!buyer || !!doctorId),
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select(DETAIL_ORDER_SELECT)
-        .eq('id', orderId!)
-        .maybeSingle();
+      let q = supabase.from('orders').select(DETAIL_ORDER_SELECT).eq('id', orderId!);
+      if (doctorId) q = q.eq('doctor_id', doctorId);
+      const { data, error } = await q.maybeSingle();
       if (error) throw error;
       return data as DetailOrder | null;
     },
   });
 
+  // A buying lab reads the rest only once the order has proved to be its own.
+  const orderReady = !buyer || !!order;
+
   const { data: answers = [] } = useQuery({
     queryKey: ['order-answers', orderId],
-    enabled: !!orderId,
+    enabled: !!orderId && orderReady,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('order_answers')
@@ -52,7 +67,7 @@ export function OrderDetailPage() {
   });
 
   // Staff names and the Telegram invite link, through the doctor-safe RPCs.
-  const { staff, chatLink } = useOrderContacts(orderId);
+  const { staff, chatLink } = useOrderContacts(orderReady ? orderId : undefined);
 
   const { data: version } = useQuery({
     queryKey: ['order-version', order?.lab_form_version_id],
@@ -90,7 +105,9 @@ export function OrderDetailPage() {
       staff={staff}
       chatLink={chatLink}
       basePath="/doctor"
-      ordersLabel={t('nav.orders')}
+      ordersTo={buyer ? PURCHASE_PATHS.orders : undefined}
+      labProfileTo={buyer ? PURCHASE_PATHS.lab(order.lab_id) : undefined}
+      ordersLabel={buyer ? tl('nav.purchases') : t('nav.orders')}
       onInvoiceAcknowledged={() => qc.invalidateQueries({ queryKey: ['order', order.id] })}
       actions={
         <>

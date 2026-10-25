@@ -24,8 +24,15 @@ type ContinuableRow = {
  * orders that have edits, so a parent that was never edited is missing. Those
  * are collected and fetched in ONE batched query for the whole page, never one
  * per row.
+ *
+ * `doctorId` scopes that query to one doctor's orders. The doctor's and a
+ * buying lab's lists pass it: a lab owner can also read the orders it
+ * receives, and a purchase's parent is always one of its own (0048, B3).
  */
-export function useParentOrderCodes(rows: ContinuableRow[]): Map<string, string> {
+export function useParentOrderCodes(
+  rows: ContinuableRow[],
+  doctorId?: string,
+): Map<string, string> {
   const known = useMemo(() => {
     const m = new Map<string, string>();
     for (const r of rows) m.set(r.id, r.order_code);
@@ -46,14 +53,13 @@ export function useParentOrderCodes(rows: ContinuableRow[]): Map<string, string>
   const { data: fetched } = useQuery({
     // Keyed on the ids themselves, so paging to a set with the same gaps reuses
     // the result instead of refetching.
-    queryKey: ['order-parent-codes', missing],
+    queryKey: ['order-parent-codes', missing, doctorId ?? null],
     enabled: missing.length > 0,
     staleTime: 5 * 60 * 1000,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select('id, order_code')
-        .in('id', missing);
+      let q = supabase.from('orders').select('id, order_code').in('id', missing);
+      if (doctorId) q = q.eq('doctor_id', doctorId);
+      const { data, error } = await q;
       // A parent hidden by RLS or deleted simply doesn't come back; the caller
       // renders the badge without a code rather than pretending the order isn't
       // a continuation.

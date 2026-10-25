@@ -12,6 +12,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { loadDraft, clearDraft } from '@/features/doctor/orderCreate/draftStorage';
+import { PURCHASE_PATHS, type BuyerMode } from '@/features/labBuying/buyerMode';
 
 /** `orderId` is absent for the patient-level "add new order" launch — see
  *  `startForPatient`. */
@@ -26,13 +27,16 @@ type Target = { labId: string; patientId: string; orderId?: string };
  * draft, continuing would silently clobber it on the next autosave — so we
  * first pop a warning modal and only discard + navigate on confirm. Render the
  * returned `modal` element somewhere in the page.
+ *
+ * `buyer` (a lab buying from a lab, 0048): the drafts are its buying
+ * profile's, and the lab's page is the one in its own marketplace.
  */
-export function useContinueProject() {
+export function useContinueProject({ buyer = null }: { buyer?: BuyerMode | null } = {}) {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const { t } = useTranslation('doctor');
   const { user } = useAuth();
-  const doctorId = user?.doctor_profile?.id;
+  const doctorId = buyer ? (buyer.profileId ?? undefined) : user?.doctor_profile?.id;
   // A doctor authors their own drafts, so the two ids are the same person —
   // but the key is (doctor, author) since 0023, so both are needed.
   const authorUserId = user?.id;
@@ -48,7 +52,8 @@ export function useContinueProject() {
   const [pending, setPending] = useState<Target | null>(null);
 
   const go = (target: Target) => {
-    const base = `/doctor/labs/${target.labId}?patient=${target.patientId}`;
+    const lab = buyer ? PURCHASE_PATHS.lab(target.labId) : `/doctor/labs/${target.labId}`;
+    const base = `${lab}?patient=${target.patientId}`;
     navigate(target.orderId ? `${base}&continues=${target.orderId}` : base);
   };
 

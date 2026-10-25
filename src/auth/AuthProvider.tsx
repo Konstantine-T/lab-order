@@ -23,6 +23,14 @@ export type AppUser = AppUserRow & {
   doctor_profile?: DoctorProfileRow | null;
   lab?: LabRow | null;
   clinic?: ClinicRow | null;
+  /**
+   * A lab owner's hidden "buying profile" (0048): the doctor_profiles row its
+   * orders to other labs are placed through. Kept apart from
+   * `doctor_profile` on purpose, so nothing that asks "is this a doctor"
+   * lights up for a lab. Null until the lab first opens its marketplace
+   * (ensure_lab_buyer_profile creates it).
+   */
+  buyer_profile?: DoctorProfileRow | null;
 };
 
 type AuthContextValue = {
@@ -68,6 +76,7 @@ async function loadAppUser(userId: string): Promise<AppUser | null> {
   let doctor_profile: DoctorProfileRow | null = null;
   let lab: LabRow | null = null;
   let clinic: ClinicRow | null = null;
+  let buyer_profile: DoctorProfileRow | null = null;
 
   if (role === 'DOCTOR') {
     const { data, error: e } = await supabase
@@ -85,6 +94,17 @@ async function loadAppUser(userId: string): Promise<AppUser | null> {
       .maybeSingle();
     if (e) console.error('[Auth] failed to load labs:', e);
     lab = (data ?? null) as LabRow | null;
+    if (lab) {
+      // By the lab, never by user_id: a lookup by owner is what the doctor
+      // branch does, and this row must not read as a doctor's profile.
+      const { data: buyer, error: be } = await supabase
+        .from('doctor_profiles')
+        .select('*')
+        .eq('buyer_lab_id', lab.id)
+        .maybeSingle();
+      if (be) console.error('[Auth] failed to load the lab buying profile:', be);
+      buyer_profile = (buyer ?? null) as DoctorProfileRow | null;
+    }
   } else if (role === 'CLINIC_ADMIN') {
     const { data, error: e } = await supabase
       .from('clinics')
@@ -95,7 +115,7 @@ async function loadAppUser(userId: string): Promise<AppUser | null> {
     clinic = (data ?? null) as ClinicRow | null;
   }
 
-  return { ...(userRow as AppUserRow), doctor_profile, lab, clinic };
+  return { ...(userRow as AppUserRow), doctor_profile, lab, clinic, buyer_profile };
 }
 
 export function AuthProvider({ children }: PropsWithChildren) {

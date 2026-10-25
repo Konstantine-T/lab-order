@@ -12,6 +12,12 @@ type Props = {
   basePath: string;
   /** Already-translated "Continues from" label (keeps this namespace-agnostic). */
   label: string;
+  /**
+   * Walk only this doctor's orders. The doctor-side screens pass the order's
+   * own doctor: a continuation always has its parent's doctor, and a lab
+   * owner viewing a purchase can also read the orders it receives (0048, B3).
+   */
+  doctorId?: string;
 };
 
 /**
@@ -19,9 +25,9 @@ type Props = {
  * "continues from" trail of clickable ancestor codes (root → … → parent), each
  * opening in a new tab. Renders nothing when the order has no parent.
  */
-export function OrderLineage({ orderId, basePath, label }: Props) {
+export function OrderLineage({ orderId, basePath, label, doctorId }: Props) {
   const { data: chain = [] } = useQuery({
-    queryKey: ['order-lineage', orderId],
+    queryKey: ['order-lineage', orderId, doctorId ?? null],
     enabled: !!orderId,
     queryFn: async () => {
       // Read this order's parent pointer, then hop upward. Cap the walk and
@@ -29,21 +35,20 @@ export function OrderLineage({ orderId, basePath, label }: Props) {
       const acc: LineageItem[] = [];
       const seen = new Set<string>([orderId!]);
 
-      const head = await supabase
-        .from('orders')
-        .select('continues_order_id')
-        .eq('id', orderId!)
-        .maybeSingle();
+      let headQuery = supabase.from('orders').select('continues_order_id').eq('id', orderId!);
+      if (doctorId) headQuery = headQuery.eq('doctor_id', doctorId);
+      const head = await headQuery.maybeSingle();
       let nextId = (head.data?.continues_order_id as string | null) ?? null;
 
       let hops = 0;
       while (nextId && hops < 20 && !seen.has(nextId)) {
         seen.add(nextId);
-        const { data } = await supabase
+        let hop = supabase
           .from('orders')
           .select('id, order_code, continues_order_id')
-          .eq('id', nextId)
-          .maybeSingle();
+          .eq('id', nextId);
+        if (doctorId) hop = hop.eq('doctor_id', doctorId);
+        const { data } = await hop.maybeSingle();
         if (!data) break;
         acc.push({ id: data.id as string, order_code: data.order_code as string });
         nextId = (data.continues_order_id as string | null) ?? null;

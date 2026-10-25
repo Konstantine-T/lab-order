@@ -31,6 +31,7 @@ export function WizardHeader({
   slot,
   backTo,
   ordersTo,
+  ordersLabel,
   lab,
   onChangeLabService,
   doctorChip,
@@ -40,6 +41,9 @@ export function WizardHeader({
   backTo: string;
   /** The breadcrumb's "Orders" link; plain text when there is no list. */
   ordersTo?: string;
+  /** The breadcrumb's label for that list: "Orders" unless said otherwise
+   *  (a lab buying from a lab: "My orders to labs"). */
+  ordersLabel?: string;
   /** `translations` is the lab's `public_translations` (0037), read with it. */
   lab?: { name: string; translations?: unknown; service: string };
   onChangeLabService: () => void;
@@ -117,10 +121,10 @@ export function WizardHeader({
                   '&:hover': { color: 'text.primary', textDecoration: 'underline' },
                 }}
               >
-                {t('nav.orders')}
+                {ordersLabel ?? t('nav.orders')}
               </Box>
             ) : (
-              t('nav.orders')
+              (ordersLabel ?? t('nav.orders'))
             )}
             {' / '}
             <span aria-current="page">{t('orderCreate.title')}</span>
@@ -201,7 +205,12 @@ export function WizardHeader({
     <Box
       sx={{
         position: { xs: 'static', sm: 'sticky' },
-        top: 'var(--page-header-top, 0px)',
+        // As `PageHeader`: under the lab shell's mobile bar below `md` (a lab
+        // buying from a lab, 0048); the public shell sets the variable to 0.
+        top: {
+          sm: `var(--page-header-top, ${layout.mobileBar}px)`,
+          md: 'var(--page-header-top, 0px)',
+        },
         zIndex: 40,
         mx: layout.gutterNeg,
         mt: { xs: -2.5, md: -3.25 },

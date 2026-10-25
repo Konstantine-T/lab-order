@@ -16,6 +16,15 @@ export type WizardState = {
      */
     force_new?: boolean;
   };
+  /**
+   * A lab buying from a lab only (0048): the order carries the patient above
+   * when true, and no patient otherwise (the default, so a doctor's draft or
+   * any older state reads as "no choice made"). Only buyer mode looks at it.
+   */
+  with_patient?: boolean;
+  /** A lab buying from a lab only (0048): its own free-text case reference,
+   *  sent with or without a patient. */
+  patient_reference?: string;
   // Step 2
   lab_id: string;
   lab_service_id: string;

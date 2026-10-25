@@ -46,6 +46,13 @@ import {
   useGuestDraftAutosave,
 } from '@/features/public/guestDraft';
 import { catalogPaths } from '@/features/public/publicRoutes';
+import {
+  PURCHASE_CATALOG_PATHS,
+  PURCHASE_PATHS,
+  useBuyerMode,
+} from '@/features/labBuying/buyerMode';
+import { buyerPatientPayload, labDeliveryLine, labInvoiceLine } from '@/features/labBuying/buyerOrder';
+import { buyerErrorText } from '@/features/labBuying/buyerErrors';
 import { useFocusedShell } from '@/layouts/shellFocus';
 import { useSections, type SectionEntry } from '@/features/orderForms/wizard/sectionRegistry';
 import { SectionRegistryProvider } from '@/features/orderForms/wizard/SectionRegistryProvider';
@@ -86,6 +93,12 @@ function effectiveRush(
  * the point: the clinic used to have a thinner parallel screen, and the two
  * drifted. `basePath` swaps the routes and the submit RPC; nothing else.
  *
+ * `buyer` is a lab ordering from another lab (0048), at `/lab/purchases/new`:
+ * the doctor is the lab's buying profile, the patient is optional (a free-text
+ * reference may stand in for it), and delivery and invoice are the lab's own,
+ * shown read-only. No acting-doctor chip, no clinic flows, and every link
+ * stays under `/lab/marketplace` and `/lab/purchases`.
+ *
  * `guest` is the third mode: no session at all. The form, the pricing and the
  * validation are exactly the doctor's — the lab's catalogue is readable
  * without an account (0034) — but there is no doctor to look patients up
@@ -102,24 +115,33 @@ function effectiveRush(
 export function OrderCreateWizard({
   basePath = '/doctor',
   guest = false,
+  buyer: buyerProp = false,
 }: {
   basePath?: string;
   guest?: boolean;
+  /** A lab buying from another lab (0048); set only by the lab's purchase route. */
+  buyer?: boolean;
 }) {
   const { t, i18n } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
+  const { t: tl } = useTranslation('lab');
+  const { t: te } = useTranslation('errors');
   const { user } = useAuth();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
 
-  const isClinic = !guest && basePath === '/clinic';
+  const buyer = useBuyerMode(!guest && buyerProp);
+  const isClinic = !guest && !buyer && basePath === '/clinic';
   // Who the order is FOR. The clinic admin picks this first; a doctor is
-  // always acting for themselves; a guest is nobody yet.
+  // always acting for themselves; a buying lab orders as its buying profile;
+  // a guest is nobody yet.
   const doctorId = guest
     ? undefined
-    : isClinic
-      ? params.get('doctor') || ''
-      : user?.doctor_profile?.id;
+    : buyer
+      ? (buyer.profileId ?? undefined)
+      : isClinic
+        ? params.get('doctor') || ''
+        : user?.doctor_profile?.id;
   // Who is DOING the ordering — the draft's owner, so a clinic admin's autosave
   // never lands on the draft its doctor is halfway through (0023).
   const authorUserId = user?.id;
@@ -146,6 +168,8 @@ export function OrderCreateWizard({
     ...(resumed ? resumed.state : initialState),
     lab_id: labParam,
     lab_service_id: serviceParam,
+    // A buying lab continuing a project carries its patient: never "no patient".
+    ...(buyer && patientParam ? { with_patient: true } : {}),
   }));
   const [error, setError] = useState<string | null>(null);
   const [submitAttempted, setSubmitAttempted] = useState(false);
@@ -186,7 +210,9 @@ export function OrderCreateWizard({
 
   // Where "change lab / service" and the initial bounce go. The acting doctor
   // rides along so the marketplace can keep ordering on their behalf.
-  const paths = catalogPaths(guest, basePath);
+  const paths = buyer ? PURCHASE_CATALOG_PATHS : catalogPaths(guest, basePath);
+  // The orders list: the role's own, or the lab's purchases.
+  const ordersPath = buyer ? PURCHASE_PATHS.orders : `${basePath}/orders`;
   const marketplacePath = isClinic
     ? `${paths.marketplace}${doctorId ? `?doctor=${doctorId}` : ''}`
     : paths.marketplace;
@@ -201,10 +227,11 @@ export function OrderCreateWizard({
       navigate(`${basePath}/orders/new${carry}`, { replace: true });
       return;
     }
-    if (!labParam || !serviceParam) {
+    // A lab cannot order from itself (the RPC refuses it too).
+    if (!labParam || !serviceParam || (buyer && labParam === buyer.lab.id)) {
       navigate(marketplacePath, { replace: true });
     }
-  }, [isClinic, doctorId, labParam, serviceParam, navigate, basePath, marketplacePath]);
+  }, [isClinic, doctorId, labParam, serviceParam, navigate, basePath, marketplacePath, buyer]);
 
   // Load draft from Supabase once.
   const { data: draftData, isSuccess: draftLoaded } = useQuery({
@@ -262,8 +289,9 @@ export function OrderCreateWizard({
         gender: continuePatientRow.gender ?? '',
         existing_id: continuePatientRow.id,
       },
+      ...(buyer ? { with_patient: true } : {}),
     });
-  }, [isContinuation, continuePatientRow]);
+  }, [isContinuation, continuePatientRow, buyer]);
 
   // ----- Data queries -------------------------------------------------------
   const { data: locations = [] } = useQuery({
@@ -415,6 +443,9 @@ export function OrderCreateWizard({
       // A guest has no locations by definition, and is told so in words; a
       // red field on top would be nagging about something they cannot do yet.
       noLocations: guest || locations.length === 0,
+      // A buying lab may leave the patient out, and never picks a location.
+      noPatient: !!buyer && !state.with_patient,
+      deliveryFixed: !!buyer,
     });
   // Once a submit has failed, keep the named problems in sync with what the
   // doctor is typing — a field they have just fixed must stop being red
@@ -532,13 +563,18 @@ export function OrderCreateWizard({
         ...(isClinic ? { p_doctor_id: doctorId } : {}),
         p_lab_id: state.lab_id,
         p_lab_service_id: state.lab_service_id,
-        p_doctor_work_location_id: state.doctor_work_location_id,
+        // A buying lab's delivery is its own synced location whatever is sent
+        // (0048); its one location rides along when loaded.
+        p_doctor_work_location_id: buyer
+          ? state.doctor_work_location_id || null
+          : state.doctor_work_location_id,
         // Normalized so the server's dedup guard sees the same string the
         // wizard's match lookup did — otherwise "გივი " and "გივი" become two
-        // patients.
-        p_patient: normalizePatientPayload(state.patient),
+        // patients. A buying lab's may be "no patient", with a reference.
+        p_patient: buyer ? buyerPatientPayload(state) : normalizePatientPayload(state.patient),
         p_lab_form_version_id: version.id,
-        p_invoice_recipient_type: state.invoice_recipient_type,
+        // Always the buying lab's own company (0048); the server enforces it.
+        p_invoice_recipient_type: buyer ? 'LAB' : state.invoice_recipient_type,
         p_requested_due_date: state.requested_due_date || null,
         // Optional. Null means "that day, any time" — the window only exists
         // when the doctor asked for one.
@@ -592,7 +628,12 @@ export function OrderCreateWizard({
       clearGuestDraft();
       setSubmittedOrderId(orderId);
     },
-    onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
+    // The 0048 codes in words; a buying lab never sees a raw message.
+    onError: (e) =>
+      setError(
+        buyerErrorText(e, te) ??
+          (buyer ? tc('errors.generic') : e instanceof Error ? e.message : 'Error'),
+      ),
   });
 
   // ----- Page chrome --------------------------------------------------------
@@ -668,7 +709,8 @@ export function OrderCreateWizard({
     [configuration, pricingConfig],
   );
   const patientDone =
-    !!state.patient.first_name.trim() && !!state.patient.last_name.trim() && !matchPending;
+    (!!buyer && !state.with_patient) ||
+    (!!state.patient.first_name.trim() && !!state.patient.last_name.trim() && !matchPending);
   const dueDone = !hasProblem(currentProblems, 'dueDate');
   const locationDone = !!state.doctor_work_location_id;
 
@@ -693,8 +735,8 @@ export function OrderCreateWizard({
           ? { name: t('orderCreate.progress.form'), valid: formValid, sections }
           : undefined,
       due: { name: t('orderCreate.progress.dueDate'), done: dueDone },
-      // A guest picks a location only after signing in.
-      location: guest
+      // A guest picks a location only after signing in; a buying lab never.
+      location: guest || buyer
         ? undefined
         : { name: t('orderCreate.progress.workLocation'), done: locationDone },
     });
@@ -734,12 +776,12 @@ export function OrderCreateWizard({
         <Stack direction="row" spacing={1.5} sx={{ pt: 1 }}>
           <Button
             variant="contained"
-            onClick={() => navigate(`${basePath}/orders/${submittedOrderId}`)}
+            onClick={() => navigate(`${ordersPath}/${submittedOrderId}`)}
           >
             {tc('actions.viewDetails')}
           </Button>
-          <Button variant="outlined" onClick={() => navigate(`${basePath}/orders`)}>
-            {t('nav.orders')}
+          <Button variant="outlined" onClick={() => navigate(ordersPath)}>
+            {buyer ? tl('nav.purchases') : t('nav.orders')}
           </Button>
         </Stack>
       </Stack>
@@ -749,7 +791,11 @@ export function OrderCreateWizard({
   // Selected work location — drives the clinic-code warning in the invoice card.
   const selectedLoc = locations.find((l) => l.id === state.doctor_work_location_id);
 
-  const patientName = `${state.patient.first_name} ${state.patient.last_name}`.trim();
+  // A buying lab without a patient: its reference, else "no patient".
+  const patientName =
+    buyer && !state.with_patient
+      ? state.patient_reference?.trim() || t('labBuyer.patient.noPatient')
+      : `${state.patient.first_name} ${state.patient.last_name}`.trim();
 
   // Nothing before the first write: "saved" before anything was typed would
   // be a claim about nothing.
@@ -772,7 +818,8 @@ export function OrderCreateWizard({
       <WizardHeader
         slot={headerSlot}
         backTo={marketplacePath}
-        ordersTo={guest ? undefined : `${basePath}/orders`}
+        ordersTo={guest ? undefined : ordersPath}
+        ordersLabel={buyer ? tl('nav.purchases') : undefined}
         lab={
           lab && selectedService
             ? {
@@ -818,9 +865,17 @@ export function OrderCreateWizard({
               showError={submitAttempted && !!error}
               onSubmit={handleSubmit}
               guest={guest}
-              sendDone={dueDone && (guest || locationDone)}
+              sendDone={dueDone && (guest || !!buyer || locationDone)}
               onAddLocation={
-                isClinic || guest ? undefined : () => setLocationDialogOpen(true)
+                isClinic || guest || buyer ? undefined : () => setLocationDialogOpen(true)
+              }
+              fixedDelivery={
+                buyer
+                  ? {
+                      deliveredTo: labDeliveryLine(buyer.lab),
+                      invoiceTo: labInvoiceLine(buyer.lab, t),
+                    }
+                  : undefined
               }
             />
           }
@@ -949,6 +1004,7 @@ export function OrderCreateWizard({
                 onContinueFrom={continueFrom}
                 onCancelContinuation={continuedInline ? cancelContinuation : undefined}
                 onMatchPendingChange={setMatchPending}
+                patientOptional={!!buyer}
               />
 
               {version && (
@@ -999,7 +1055,7 @@ export function OrderCreateWizard({
         />
       )}
 
-      {!guest && !isClinic && (
+      {!guest && !isClinic && !buyer && (
         <WorkLocationDialog
           open={locationDialogOpen}
           onClose={() => setLocationDialogOpen(false)}

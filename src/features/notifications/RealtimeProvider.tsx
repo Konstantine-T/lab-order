@@ -56,7 +56,7 @@ type Listener = {
 
 function listenersFor(
   role: UserRole,
-  ids: { userId: string; doctorId?: string; labId?: string },
+  ids: { userId: string; doctorId?: string; labId?: string; buyerProfileId?: string },
 ): Listener[] {
   const both: ('INSERT' | 'UPDATE')[] = ['INSERT', 'UPDATE'];
   const notifications: Listener = {
@@ -92,6 +92,22 @@ function listenersFor(
               { table: 'orders', filter: `lab_id=eq.${ids.labId}`, events: both } as Listener,
               { table: 'labs', filter: `id=eq.${ids.labId}`, events: both } as Listener,
               { table: 'lab_reviews', filter: `lab_id=eq.${ids.labId}`, events: both } as Listener,
+            ]
+          : []),
+        // Its orders to other labs (0048), through its buying profile, and its
+        // reviews of those labs: the doctor's two filtered listeners.
+        ...(ids.buyerProfileId
+          ? [
+              {
+                table: 'orders',
+                filter: `doctor_id=eq.${ids.buyerProfileId}`,
+                events: both,
+              } as Listener,
+              {
+                table: 'lab_reviews',
+                filter: `doctor_id=eq.${ids.buyerProfileId}`,
+                events: both,
+              } as Listener,
             ]
           : []),
         // RLS limits it to reports on the lab's own reviews.
@@ -136,6 +152,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
   const role = user?.role;
   const doctorId = user?.doctor_profile?.id;
   const labId = user?.lab?.id;
+  const buyerProfileId = user?.buyer_profile?.id;
 
   const [connected, setConnected] = useState(false);
   const [muted, setMutedState] = useState(readMuted);
@@ -203,7 +220,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
     // channel with the same topic would share the first one's bindings.
     const name = `live:${role}:${userId}:${Math.random().toString(36).slice(2, 10)}`;
     const channel = supabase.channel(name);
-    for (const l of listenersFor(role, { userId, doctorId, labId })) {
+    for (const l of listenersFor(role, { userId, doctorId, labId, buyerProfileId })) {
       for (const event of l.events) {
         channel.on(
           'postgres_changes',
@@ -250,7 +267,7 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       setRealtimeConnected(false);
       void supabase.removeChannel(channel);
     };
-  }, [userId, role, doctorId, labId, qc]);
+  }, [userId, role, doctorId, labId, buyerProfileId, qc]);
 
   // ── Tab title: "(3) Dentallabs.ge" while anything is unread ─────────────
   const baseTitleRef = useRef<string | null>(null);

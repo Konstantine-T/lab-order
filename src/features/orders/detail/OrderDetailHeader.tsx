@@ -6,7 +6,7 @@ import { Icon, StatusPill } from '@/components/design';
 import { statusTone } from '@/components/OrderStatusChip';
 import { motion } from '@/theme/tokens';
 import { shortDate } from './format';
-import { labNameOf, patientNameOf, serviceNameOf, type DetailOrder } from './types';
+import { labNameOf, patientLineOf, serviceNameOf, type DetailOrder } from './types';
 
 /**
  * The top of the order screen, as the redesign draws it: a breadcrumb back to
@@ -45,17 +45,28 @@ export function OrderDetailHeader({
 
   const labName = labNameOf(order);
   const service = serviceNameOf(order);
-  const patient = patientNameOf(order);
-  const doctor = [order.doctor_snapshot?.first_name, order.doctor_snapshot?.last_name]
-    .filter(Boolean)
-    .join(' ');
+  const patientLine = patientLineOf(order);
+  const patient = patientLine?.text ?? '';
+  // A lab's purchase (0048): the snapshot's "doctor" is the viewing lab itself,
+  // so it is not named, and the place is the address the work goes to.
+  const isPurchase = !!order.doctor_snapshot?.is_lab;
+  const doctor = isPurchase
+    ? ''
+    : [order.doctor_snapshot?.first_name, order.doctor_snapshot?.last_name]
+        .filter(Boolean)
+        .join(' ');
   const doctorLine = doctor ? t('orderDetail.header.doctor', { name: doctor }) : '';
   const loc = order.work_location_snapshot as {
     clinic_name?: string;
     branch_name?: string;
+    address?: string;
     city?: string;
   } | null;
-  const place = [loc?.clinic_name, loc?.branch_name, loc?.city].filter(Boolean).join(', ');
+  const place = (
+    isPurchase ? [loc?.address, loc?.city] : [loc?.clinic_name, loc?.branch_name, loc?.city]
+  )
+    .filter(Boolean)
+    .join(', ');
   const meta = [doctorLine, place, t('orderDetail.header.created', { date: shortDate(order.created_at) })]
     .filter(Boolean);
 
@@ -151,7 +162,9 @@ export function OrderDetailHeader({
           <Typography sx={{ mt: 0.75, fontSize: '0.875rem', color: 'text.secondary' }}>
             {patient && (
               <>
-                {t('orderDetail.patient')}{' '}
+                {patientLine?.kind === 'reference'
+                  ? t('labBuyer.patient.reference')
+                  : t('orderDetail.patient')}{' '}
                 <Box component="b" sx={{ color: 'text.primary', fontWeight: 600 }}>
                   {patient}
                 </Box>
