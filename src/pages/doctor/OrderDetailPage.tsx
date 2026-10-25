@@ -95,11 +95,12 @@ export function OrderDetailPage() {
       actions={
         <>
           <OrderCompletionActions orderId={order.id} status={order.status} size="medium" />
-          {order.status === 'COMPLETED' && (
+          {/* A lab's purchase may have no patient (0048): nothing to continue. */}
+          {order.status === 'COMPLETED' && order.patient_id && (
             <Button
               variant="contained"
               startIcon={<Icon name="add" size={16} />}
-              onClick={() => continueProject.start(order.lab_id, order.patient_id, order.id)}
+              onClick={() => continueProject.start(order.lab_id, order.patient_id!, order.id)}
             >
               {t('orders.continueProject')}
             </Button>
@@ -116,14 +117,16 @@ export function OrderDetailPage() {
               wait for this one to close before ordering it. `startForPatient`
               is the same launcher minus the lineage link, which is the only
               difference the two buttons have. */}
-          <Button
-            variant="outlined"
-            fullWidth
-            startIcon={<Icon name="add" size={16} />}
-            onClick={() => continueProject.startForPatient(order.lab_id, order.patient_id)}
-          >
-            {t('orders.addAnotherService')}
-          </Button>
+          {order.patient_id && (
+            <Button
+              variant="outlined"
+              fullWidth
+              startIcon={<Icon name="add" size={16} />}
+              onClick={() => continueProject.startForPatient(order.lab_id, order.patient_id!)}
+            >
+              {t('orders.addAnotherService')}
+            </Button>
+          )}
           {editable && <Callout tone="brand">{t('orderDetail.editHint')}</Callout>}
           <CancelOrderAction orderId={order.id} status={order.status} orderKey={['order', order.id]} />
         </Stack>

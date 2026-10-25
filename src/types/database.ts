@@ -52,7 +52,8 @@ export const COMPLETABLE_STATUSES = [
 
 export const canComplete = (status: OrderStatus): boolean =>
   (COMPLETABLE_STATUSES as readonly OrderStatus[]).includes(status);
-export type InvoiceRecipientType = 'DOCTOR' | 'CLINIC';
+/** 'LAB': a lab buying from another lab, always invoiced to its own LLC (0048). */
+export type InvoiceRecipientType = 'DOCTOR' | 'CLINIC' | 'LAB';
 export type RushType = 'NONE' | 'PERCENTAGE' | 'FIXED_AMOUNT';
 /**
  * How a service is priced.
@@ -105,7 +106,11 @@ export interface AppUserRow {
 export interface DoctorProfileRow {
   id: string;
   user_id: string;
-  personal_id_number: string;
+  /** Null only on a lab's buying profile (0048). */
+  personal_id_number: string | null;
+  /** Set on the one hidden "buying profile" a lab orders through (0048); null
+   *  on every real doctor. Written only by ensure_lab_buyer_profile(). */
+  buyer_lab_id: string | null;
   specialty: string | null;
   license_number: string | null;
   profile_photo_url: string | null;
@@ -447,7 +452,10 @@ export interface OrderRow {
   doctor_id: string;
   lab_id: string;
   doctor_work_location_id: string;
-  patient_id: string;
+  /** Null only on a lab's purchase order placed without a patient (0048). */
+  patient_id: string | null;
+  /** Free-text case reference a buying lab may give instead of a patient (0048). */
+  patient_reference: string | null;
   patient_case_id: string | null;
   parent_order_id: string | null;
   lab_service_id: string;
@@ -487,6 +495,11 @@ export interface OrderRow {
     last_name?: string;
     email?: string | null;
     phone?: string | null;
+    /** A lab's purchase order (0048): the snapshot describes the buying lab. */
+    is_lab?: boolean;
+    lab_id?: string;
+    legal_name?: string | null;
+    identification_code?: string | null;
   };
   /** Stamped by trigger on every cancel, by whatever route (0045). */
   cancelled_at: string | null;
@@ -503,6 +516,9 @@ export interface OrderRow {
   /** Who submitted it: the doctor, or the clinic admin acting for them. Stamped
    *  by trigger, never written by the client (0043); null before 0043. */
   placed_by_user_id: string | null;
+  /** The buying lab when this is a lab's purchase order, else null. Stamped by
+   *  submit_order, never written by the client (0048). */
+  buyer_lab_id: string | null;
   created_at: string;
   updated_at: string;
 }

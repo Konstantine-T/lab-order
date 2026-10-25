@@ -200,12 +200,15 @@ export function OrdersListPage() {
   const cardActions = (row: ListOrderRow, group: OrderGroupKey) => {
     if (row.status === 'CANCELLED') return undefined;
     if (row.status === 'COMPLETED') {
+      // A lab's purchase may have no patient (0048): nothing to continue.
+      const patientId = row.patient_id;
+      if (!patientId) return undefined;
       return (
         <Button
           size="small"
           variant="outlined"
           startIcon={<Icon name="add" size={16} />}
-          onClick={() => continueProject.start(row.lab_id, row.patient_id, row.id)}
+          onClick={() => continueProject.start(row.lab_id, patientId, row.id)}
         >
           {t('orders.continueProject')}
         </Button>
