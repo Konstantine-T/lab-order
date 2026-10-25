@@ -57,6 +57,9 @@ export type ListOrderRow = Pick<
   /** `doctor_snapshot` — who the order was placed for (the clinic list names them). */
   doctor_snapshot: { first_name?: string; last_name?: string } | null;
   patients: { first_name: string; last_name: string } | null;
+  /** A lab's purchase only (0048): its free-text case reference, which may
+   *  stand in for a patient. Selected only by the purchases list. */
+  patient_reference?: string | null;
   // The live joins stay as fallbacks for a snapshot written before the column
   // carried a name.
   labs: { public_name: string } | null;
@@ -96,6 +99,13 @@ export function shortName(first: string | undefined, last: string | undefined): 
 
 export const patientShortName = (row: ListOrderRow) =>
   row.patients ? shortName(row.patients.first_name, row.patients.last_name) : '';
+
+/**
+ * The card's patient: the short name, else a purchase's reference (0048),
+ * else "—" for an order placed with neither.
+ */
+export const patientOrReference = (row: ListOrderRow) =>
+  patientShortName(row) || row.patient_reference?.trim() || (row.patient_id ? '' : '—');
 
 // ===== Waiting on the doctor =================================================
 

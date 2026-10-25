@@ -198,7 +198,10 @@ export function PriceDueCard({
             >
               {recipient?.type === 'CLINIC'
                 ? t('orderDetail.price.invoiceToClinic', { name: recipientName })
-                : t('orderDetail.price.invoiceToDoctor', { name: recipientName })}
+                : recipient?.type === 'LAB'
+                  ? // A lab's purchase (0048): always the buying lab's company.
+                    t('orderDetail.price.invoiceToLab', { name: recipientName })
+                  : t('orderDetail.price.invoiceToDoctor', { name: recipientName })}
             </Typography>
           )}
         </Stack>

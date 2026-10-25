@@ -37,6 +37,13 @@ export type OrderProblemInput = {
    *  and one the page already explains with its own callout. */
   noLocations?: boolean;
   /**
+   * A lab buying from a lab (0048): the patient is optional (`noPatient` when
+   * it chose to leave it out) and the delivery address is its own, never
+   * picked, so neither can be missing.
+   */
+  noPatient?: boolean;
+  deliveryFixed?: boolean;
+  /**
    * False on the edit page, which shows the due date read-only. Without it an
    * old order's past due date would be reported as "too soon" every time the
    * doctor saved an edit.
@@ -57,7 +64,7 @@ export type OrderProblemInput = {
 export function collectOrderProblems(input: OrderProblemInput): OrderProblem[] {
   const problems: OrderProblem[] = [];
 
-  if (!input.patient.first_name.trim() || !input.patient.last_name.trim()) {
+  if (!input.noPatient && (!input.patient.first_name.trim() || !input.patient.last_name.trim())) {
     problems.push({ field: 'patientName' });
   }
 
@@ -79,7 +86,7 @@ export function collectOrderProblems(input: OrderProblemInput): OrderProblem[] {
   // A doctor with no locations at all is not "missing a selection" — the page
   // already tells them to add one, and marking the absent field red on top of
   // that says the same thing twice.
-  if (!input.doctor_work_location_id && !input.noLocations) {
+  if (!input.doctor_work_location_id && !input.noLocations && !input.deliveryFixed) {
     problems.push({ field: 'workLocation' });
   }
 

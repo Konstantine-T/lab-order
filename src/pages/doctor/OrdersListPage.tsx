@@ -42,18 +42,35 @@ import {
   type OrderGroupKey,
 } from '@/features/orders/list/orderListModel';
 import { PHONE_ADD_SX } from '@/features/orders/list/listStyles';
+import { PURCHASE_PATHS, useBuyerMode } from '@/features/labBuying/buyerMode';
 
-export function OrdersListPage() {
+/** A purchase may name no patient (0048): its reference stands in for search. */
+const purchaseSearchText = (row: ListOrderRow) => row.patient_reference ?? '';
+
+/**
+ * The doctor's orders, or with `buyer` a lab's orders to other labs (0048) at
+ * `/lab/purchases`: the same list, filtered to the lab's buying profile and
+ * linking only under `/lab/marketplace` and `/lab/purchases`.
+ */
+export function OrdersListPage({ buyer: buyerProp = false }: { buyer?: boolean } = {}) {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
+  const { t: tl } = useTranslation('lab');
   const { user } = useAuth();
-  const doctorId = user?.doctor_profile?.id;
+  const buyer = useBuyerMode(buyerProp);
+  // A buying lab's orders are its buying profile's. Every query below filters
+  // on this id explicitly: the lab owner can also read the orders it receives
+  // (the lab policy), and those must never show up here (0048, B3).
+  const doctorId = buyer ? (buyer.profileId ?? undefined) : user?.doctor_profile?.id;
   // Drafts are keyed by (doctor, author) since 0023.
   const authorUserId = user?.id;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const continueProject = useContinueProject();
-  const unseenInvoices = useUnacknowledgedInvoices({ doctorId });
+  const continueProject = useContinueProject({ buyer });
+  const unseenInvoices = useUnacknowledgedInvoices({ doctorId, enabled: !!doctorId });
+  const ordersPath = buyer ? PURCHASE_PATHS.orders : '/doctor/orders';
+  const marketplacePath = buyer ? PURCHASE_PATHS.marketplace : '/doctor/marketplace';
+  const orderNewPath = buyer ? PURCHASE_PATHS.orderNew : '/doctor/orders/new';
 
   const [draftModalOpen, setDraftModalOpen] = useState(false);
   const [draftSeen, setDraftSeen] = useState(false);
@@ -106,7 +123,9 @@ export function OrdersListPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select(LIST_ORDER_SELECT)
+        // The reference only where it can exist: the doctor's list keeps the
+        // select it had.
+        .select(buyer ? `${LIST_ORDER_SELECT}, patient_reference` : LIST_ORDER_SELECT)
         .eq('doctor_id', doctorId!)
         .order('created_at', { ascending: false });
       if (error) throw error;
@@ -119,7 +138,8 @@ export function OrdersListPage() {
   // and an edit there refreshes the line here.
   const { data: locations = [] } = useQuery({
     queryKey: ['doctor-work-locations', doctorId],
-    enabled: !!doctorId,
+    // A buying lab's one location is its own address; its subtitle names the lab.
+    enabled: !!doctorId && !buyer,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('doctor_work_locations')
@@ -134,17 +154,20 @@ export function OrdersListPage() {
   });
   const location = locations[0];
 
-  const filters = useOrderListFilters(orders, { sortArea: 'doctor' });
+  const filters = useOrderListFilters(orders, {
+    sortArea: 'doctor',
+    searchText: buyer ? purchaseSearchText : undefined,
+  });
 
   // Parent order codes for the continuation badges. Resolved from the rows
   // already loaded, with one batched query for any parent this page didn't
   // fetch — never a query per row.
-  const parentCodes = useParentOrderCodes(orders);
+  const parentCodes = useParentOrderCodes(orders, doctorId);
 
   const handleDraftContinue = () => {
     if (!draft) return;
     setDraftModalOpen(false);
-    navigate(`/doctor/orders/new?lab=${draft.state.lab_id}&service=${draft.state.lab_service_id}`);
+    navigate(`${orderNewPath}?lab=${draft.state.lab_id}&service=${draft.state.lab_service_id}`);
   };
 
   const handleDraftDiscard = async () => {
@@ -153,12 +176,21 @@ export function OrdersListPage() {
     setDraftModalOpen(false);
   };
 
+  // A buying lab's draft may have no patient: its reference stands in.
+  const draftNoPatient = !!buyer && !!draft && !draft.state.with_patient;
+  const draftReference = draft?.state.patient_reference?.trim() ?? '';
   const draftPatientName = draft
-    ? `${draft.state.patient.first_name} ${draft.state.patient.last_name}`.trim() || '—'
+    ? draftNoPatient
+      ? draftReference || t('labBuyer.patient.noPatient')
+      : `${draft.state.patient.first_name} ${draft.state.patient.last_name}`.trim() || '—'
     : '';
 
   const subtitle = [
-    user ? tc('orderList.doctorName', { name: `${user.first_name} ${user.last_name}` }) : null,
+    buyer
+      ? buyer.lab.public_name
+      : user
+        ? tc('orderList.doctorName', { name: `${user.first_name} ${user.last_name}` })
+        : null,
     location
       ? [location.clinic_name, location.branch_name].filter(Boolean).join(', ')
       : null,
@@ -178,7 +210,9 @@ export function OrdersListPage() {
               <DraftCard
                 serviceName={draft.serviceName}
                 meta={[
-                  shortName(draft.state.patient.first_name, draft.state.patient.last_name),
+                  draftNoPatient
+                    ? draftReference
+                    : shortName(draft.state.patient.first_name, draft.state.patient.last_name),
                   draft.labName,
                 ]
                   .filter(Boolean)
@@ -222,7 +256,7 @@ export function OrdersListPage() {
           variant="contained"
           size="small"
           startIcon={<Icon name="edit" size={16} />}
-          onClick={() => navigate(`/doctor/orders/${row.id}/edit`)}
+          onClick={() => navigate(`${ordersPath}/${row.id}/edit`)}
         >
           {t('orderDetail.clarification.editCta')}
         </Button>
@@ -232,7 +266,7 @@ export function OrdersListPage() {
       <Button
         size="small"
         startIcon={<Icon name="edit" size={16} />}
-        onClick={() => navigate(`/doctor/orders/${row.id}/edit`)}
+        onClick={() => navigate(`${ordersPath}/${row.id}/edit`)}
       >
         {t('orders.editButton')}
       </Button>
@@ -246,7 +280,7 @@ export function OrdersListPage() {
             sx={{ flex: 1 }}
             startIcon={<Icon name="forum" size={16} />}
             // The answer box lives in the clarification panel on the order.
-            onClick={() => navigate(`/doctor/orders/${row.id}`)}
+            onClick={() => navigate(`${ordersPath}/${row.id}`)}
           >
             {tc('orderList.reply')}
           </Button>
@@ -269,7 +303,7 @@ export function OrdersListPage() {
     <Button
       variant="contained"
       component={RouterLink}
-      to="/doctor/marketplace"
+      to={marketplacePath}
       startIcon={<Icon name="add" size={17} />}
     >
       {t('orders.newOrder')}
@@ -279,7 +313,7 @@ export function OrdersListPage() {
   return (
     <>
       <PageHeader
-        title={t('nav.orders')}
+        title={buyer ? tl('nav.purchases') : t('nav.orders')}
         subtitle={subtitle}
         actions={
           <>
@@ -300,11 +334,13 @@ export function OrdersListPage() {
             />
             {/* The top bar carries "New order" from `md` up; below it the bar
                 has none, so the page keeps its own — a square on a phone, so
-                the search beside it keeps room for its placeholder. */}
+                the search beside it keeps room for its placeholder. The lab's
+                sidebar has no such button, so a buying lab keeps it from `sm`
+                up. */}
             <Button
               variant="contained"
               component={RouterLink}
-              to="/doctor/marketplace"
+              to={marketplacePath}
               aria-label={t('orders.newOrder')}
               sx={PHONE_ADD_SX}
             >
@@ -313,9 +349,9 @@ export function OrdersListPage() {
             <Button
               variant="contained"
               component={RouterLink}
-              to="/doctor/marketplace"
+              to={marketplacePath}
               startIcon={<Icon name="add" size={17} />}
-              sx={{ display: { xs: 'none', sm: 'inline-flex', md: 'none' } }}
+              sx={{ display: { xs: 'none', sm: 'inline-flex', md: buyer ? 'inline-flex' : 'none' } }}
             >
               {t('orders.newOrder')}
             </Button>
@@ -386,7 +422,7 @@ export function OrdersListPage() {
               <OrderCard
                 row={row}
                 group={group}
-                href={`/doctor/orders/${row.id}`}
+                href={`${ordersPath}/${row.id}`}
                 invoiceUnseen={unseenInvoices.has(row.id)}
                 parentCode={parentCodes.get(row.continues_order_id ?? '')}
                 actions={cardActions(row, group)}

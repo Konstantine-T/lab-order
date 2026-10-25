@@ -138,6 +138,13 @@ export type OrderDetailViewProps = {
   chatLink: string | null;
   /** The role's route subtree: '/doctor' or '/clinic'. */
   basePath: string;
+  /**
+   * Overrides for a page whose links do not sit under `basePath`, as for a lab
+   * buying from a lab (0048): its list is `/lab/purchases`, the lab's page
+   * `/lab/marketplace/:id`.
+   */
+  ordersTo?: string;
+  labProfileTo?: string;
   /** The role's own "Orders" nav label, for the breadcrumb. */
   ordersLabel: string;
   /** Role-specific header buttons, placed between "edit" and "open chat". */
@@ -167,6 +174,8 @@ export function OrderDetailView({
   staff,
   chatLink,
   basePath,
+  ordersTo: ordersToProp,
+  labProfileTo,
   ordersLabel,
   actions,
   railFooter,
@@ -177,7 +186,7 @@ export function OrderDetailView({
   const { t } = useTranslation('doctor');
   const lang = useUiLang();
 
-  const ordersTo = `${basePath}/orders`;
+  const ordersTo = ordersToProp ?? `${basePath}/orders`;
   const editTo = `${ordersTo}/${order.id}/edit`;
   const editable = !isTerminal(order);
 
@@ -244,7 +253,12 @@ export function OrderDetailView({
           }}
         >
           <Slot order={1}>
-            <OrderLineage orderId={order.id} basePath={ordersTo} label={t('orders.lineage.continuesFrom')} />
+            <OrderLineage
+              orderId={order.id}
+              basePath={ordersTo}
+              label={t('orders.lineage.continuesFrom')}
+              doctorId={order.doctor_id}
+            />
           </Slot>
 
           {order.status === 'CANCELLED' && (
@@ -306,7 +320,11 @@ export function OrderDetailView({
             />
           </Slot>
           <Slot order={6}>
-            <LabCard order={order} staff={staff} profileTo={`${basePath}/labs/${order.lab_id}`} />
+            <LabCard
+              order={order}
+              staff={staff}
+              profileTo={labProfileTo ?? `${basePath}/labs/${order.lab_id}`}
+            />
           </Slot>
           {railFooter && <Slot order={11}>{railFooter}</Slot>}
         </Box>

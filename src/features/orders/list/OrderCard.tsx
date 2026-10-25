@@ -13,7 +13,7 @@ import {
   isEdited,
   labNameOf,
   openQuestion,
-  patientShortName,
+  patientOrReference,
   priceOf,
   serviceNameOf,
   type ListOrderRow,
@@ -78,7 +78,7 @@ export function OrderCard({
   const price = row.status === 'CANCELLED' ? null : priceOf(row);
   const stage = pipelineIndex(row.status);
   const service = serviceNameOf(row);
-  const who = [patientShortName(row), labNameOf(row)].filter(Boolean).join(' · ');
+  const who = [patientOrReference(row), labNameOf(row)].filter(Boolean).join(' · ');
 
   const due =
     row.status === 'COMPLETED'

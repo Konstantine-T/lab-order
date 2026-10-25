@@ -37,6 +37,8 @@ type Props = {
  * A doctor's confirmation opens in `CompletionDialogHost` instead (mounted by
  * DoctorLayout), which follows a successful completion with the review step
  * (0044). The clinic admin keeps this plain dialog: only the doctor reviews.
+ * A lab closing its own purchase from another lab (0048) reviews as a doctor
+ * does: its purchase screens mount the same host.
  */
 export function OrderCompletionActions({ orderId, status, size = 'small' }: Props) {
   const { t } = useTranslation('doctor');
@@ -92,7 +94,10 @@ export function OrderCompletionActions({ orderId, status, size = 'small' }: Prop
         size={size}
         startIcon={<Icon name="task_alt" size={16} />}
         onClick={() => {
-          if (user?.role === 'DOCTOR' && openCompletionDialog(orderId)) return;
+          // The lab's only completable orders are its purchases (it cannot
+          // complete an order it receives), whose screens mount the host.
+          const reviews = user?.role === 'DOCTOR' || user?.role === 'LAB_MAIN_ADMIN';
+          if (reviews && openCompletionDialog(orderId)) return;
           setConfirmOpen(true);
         }}
       >

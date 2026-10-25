@@ -99,9 +99,15 @@ function LabCardSkeleton() {
 export function MarketplacePage({
   basePath = '/doctor',
   guest = false,
+  paths: pathsOverride,
+  excludeLabId,
 }: {
   basePath?: string;
   guest?: boolean;
+  /** Where the links go, when not under `basePath` (a lab buying: `/lab/marketplace`). */
+  paths?: ReturnType<typeof catalogPaths>;
+  /** A lab looking for a lab to order from never lists itself (0048). */
+  excludeLabId?: string;
 }) {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
@@ -109,12 +115,16 @@ export function MarketplacePage({
   const [params] = useSearchParams();
   const doctorParam = params.get('doctor') ?? '';
   const isClinic = !guest && basePath === '/clinic';
-  const paths = catalogPaths(guest, basePath);
+  const paths = pathsOverride ?? catalogPaths(guest, basePath);
   const { filters, update, clear } = useCatalogueFilters();
   const [sheetOpen, setSheetOpen] = useState(false);
   const sidebar = useFitsWindow();
 
-  const { data: labs = [], isLoading, error } = useCatalogueLabs();
+  const { data: allLabs = [], isLoading, error } = useCatalogueLabs();
+  const labs = useMemo(
+    () => (excludeLabId ? allLabs.filter((l) => l.id !== excludeLabId) : allLabs),
+    [allLabs, excludeLabId],
+  );
   const loaded = !isLoading && !error;
 
   const materials = useMemo(() => buildMaterials(labs, lang), [labs, lang]);

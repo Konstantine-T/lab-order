@@ -36,6 +36,13 @@ import { ClarificationPanel } from '@/features/orders/clarifications/Clarificati
 import { DETAIL_ORDER_SELECT } from '@/features/orders/detail/types';
 import { LiveUpdateBanner } from '@/features/notifications/LiveSurfaces';
 import { useLiveFormSync } from '@/features/notifications/liveContext';
+import { useBuyerMode } from '@/features/labBuying/buyerMode';
+import {
+  buyerPatientPayload,
+  snapshotDeliveryLine,
+  snapshotInvoiceLine,
+} from '@/features/labBuying/buyerOrder';
+import { buyerErrorText } from '@/features/labBuying/buyerErrors';
 import type {
   DoctorWorkLocationRow,
   EditReasonCode,
@@ -64,12 +71,24 @@ const EDIT_REASONS: EditReasonCode[] = [
   'UNFORESEEN_EVENT',
 ];
 
-export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: string } = {}) {
+/**
+ * Change an order with a reason: the doctor's, the clinic's for one of its
+ * doctors (`basePath="/clinic/orders"`), or with `buyer` a lab's order to
+ * another lab (0048, `basePath="/lab/purchases"`): the patient optional with
+ * a reference, delivery and invoice read-only, everything read through the
+ * lab's buying profile.
+ */
+export function OrderEditPage({
+  basePath = '/doctor/orders',
+  buyer: buyerProp = false,
+}: { basePath?: string; buyer?: boolean } = {}) {
   const { orderId } = useParams<{ orderId: string }>();
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
+  const { t: te } = useTranslation('errors');
   const { user } = useAuth();
-  const authDoctorId = user?.doctor_profile?.id;
+  const buyer = useBuyerMode(buyerProp);
+  const authDoctorId = buyer ? (buyer.profileId ?? undefined) : user?.doctor_profile?.id;
   const navigate = useNavigate();
   const qc = useQueryClient();
 
@@ -83,20 +102,25 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['order', orderId],
-    enabled: !!orderId,
+    enabled: !!orderId && (!buyer || !!authDoctorId),
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from('orders')
         // The detail page's select, not a narrower one: both screens share
         // `['order', id]`, and saving here refetches it just as the detail
         // page mounts — which then keeps whatever this fetch returns.
         .select(DETAIL_ORDER_SELECT)
-        .eq('id', orderId!)
-        .maybeSingle();
+        .eq('id', orderId!);
+      // A buying lab's own purchase only, never an order it receives (0048,
+      // B3). The clinic cannot know the doctor before the order loads.
+      if (buyer) q = q.eq('doctor_id', authDoctorId!);
+      const { data, error } = await q.maybeSingle();
       if (error) throw error;
       return data as OrderDetail | null;
     },
   });
+  // A buying lab reads the rest only once the order has proved to be its own.
+  const orderReady = !buyer || !!order;
 
   // The order's doctor — the logged-in doctor for a doctor, or the target doctor
   // when a clinic admin edits on their behalf (edit_order authorizes via 0014).
@@ -104,7 +128,7 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
 
   const { data: answers = [], isSuccess: answersLoaded } = useQuery({
     queryKey: ['order-answers', orderId],
-    enabled: !!orderId,
+    enabled: !!orderId && orderReady,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('order_answers')
@@ -131,7 +155,8 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
 
   const { data: locations = [] } = useQuery({
     queryKey: ['doctor-locations-for-order', doctorId],
-    enabled: !!doctorId,
+    // A buying lab's delivery is not a choice (0048).
+    enabled: !!doctorId && !buyer,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('doctor_work_locations')
@@ -164,8 +189,11 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
         last_name: order.patients?.last_name ?? '',
         date_of_birth: order.patients?.date_of_birth ?? '',
         gender: order.patients?.gender ?? '',
-        existing_id: order.patient_id,
+        existing_id: order.patient_id ?? undefined,
       } as WizardState['patient'],
+      // A lab's purchase may have no patient, and its own reference (0048).
+      with_patient: !!order.patient_id,
+      patient_reference: order.patient_reference ?? '',
       answers: answersMap,
       doctor_work_location_id: order.doctor_work_location_id,
       requested_due_date: order.requested_due_date ?? '',
@@ -181,6 +209,8 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
       lab_id: state.lab_id,
       lab_service_id: state.lab_service_id,
       patient: state.patient,
+      with_patient: state.with_patient,
+      patient_reference: state.patient_reference,
       answers: state.answers,
       doctor_work_location_id: state.doctor_work_location_id,
       requested_due_date: state.requested_due_date,
@@ -214,9 +244,13 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
         p_order_id: orderId,
         // Same normalization as the wizard — edit_order carries its own copy
         // of the dedup guard, so a renamed patient must not mint a duplicate.
-        p_patient: normalizePatientPayload(state.patient),
-        p_doctor_work_location_id: state.doctor_work_location_id,
-        p_invoice_recipient_type: state.invoice_recipient_type,
+        // A buying lab's may be "no patient", with a reference (0048).
+        p_patient: buyer ? buyerPatientPayload(state) : normalizePatientPayload(state.patient),
+        // Ignored for a buying lab: its own address, its own company.
+        p_doctor_work_location_id: buyer
+          ? state.doctor_work_location_id || null
+          : state.doctor_work_location_id,
+        p_invoice_recipient_type: buyer ? 'LAB' : state.invoice_recipient_type,
         p_answers: state.answers,
         p_generated_total: generatedTotal,
         p_reason_code: reason,
@@ -247,7 +281,12 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
       qc.invalidateQueries({ queryKey: ['doctor-home-orders'] });
       navigate(`${basePath}/${orderId}`);
     },
-    onError: (e) => setError(e instanceof Error ? e.message : 'Error'),
+    // The 0048 codes in words; a buying lab never sees a raw message.
+    onError: (e) =>
+      setError(
+        buyerErrorText(e, te) ??
+          (buyer ? tc('errors.generic') : e instanceof Error ? e.message : 'Error'),
+      ),
   });
 
   const [problems, setProblems] = useState<OrderProblem[]>([]);
@@ -262,6 +301,8 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
     pricing: version?.pricing_configuration_json,
     minDays: 0,
     noLocations: locations.length === 0,
+    noPatient: !!buyer && !state.with_patient,
+    deliveryFixed: !!buyer,
     edit: { reasonCode: reason, comment, commentRequired },
   });
   // No locations at all is a different problem, and the callout says it.
@@ -282,6 +323,8 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
       pricing: version?.pricing_configuration_json,
       minDays: 0,
       noLocations: locations.length === 0,
+      noPatient: !!buyer && !state.with_patient,
+      deliveryFixed: !!buyer,
       edit: { reasonCode: reason, comment, commentRequired },
     });
 
@@ -448,51 +491,67 @@ export function OrderEditPage({ basePath = '/doctor/orders' }: { basePath?: stri
           update={update}
           doctorId={doctorId ?? ''}
           patientAttempted={attempted}
+          patientOptional={!!buyer}
         />
 
-        {/* Work location + invoice recipient */}
-        <SectionCard
-          icon="location_on"
-          title={t('orderCreate.filesAndDue.workLocation')}
-          // scrollToFirstError queries this; the field's own `error` supplies
-          // the aria-invalid the helper matches as a fallback.
-          data-form-error={locationError ? 'true' : undefined}
-        >
-          <Stack spacing={2.5}>
-            {locations.length === 0 ? (
-              <Callout tone="warning">{t('orderCreate.filesAndDue.noLocations')}</Callout>
-            ) : (
-              <TextField
-                select
-                value={state.doctor_work_location_id}
-                onChange={(e) => update({ doctor_work_location_id: e.target.value })}
-                error={locationError}
-                helperText={locationError ? t('orderCreate.problems.workLocation') : undefined}
-                fullWidth
-              >
-                {locations.map((l) => (
-                  <MenuItem key={l.id} value={l.id}>
-                    {l.clinic_name}
-                    {l.branch_name ? ` · ${l.branch_name}` : ''} — {l.city}
-                  </MenuItem>
-                ))}
-              </TextField>
-            )}
+        {buyer ? (
+          // A lab's purchase (0048): where it goes and who is invoiced are the
+          // lab's own, as the order was placed.
+          <SectionCard icon="location_on" title={t('labBuyer.fixedTitle')}>
+            <DetailList>
+              <DetailRow label={t('labBuyer.deliveredTo')} labelWidth={120}>
+                {snapshotDeliveryLine(order.work_location_snapshot) || '—'}
+              </DetailRow>
+              <DetailRow label={t('labBuyer.invoiceTo')} labelWidth={120}>
+                {snapshotInvoiceLine(order.invoice_recipient_snapshot, t) || '—'}
+              </DetailRow>
+            </DetailList>
+          </SectionCard>
+        ) : (
+          /* Work location + invoice recipient */
+          <SectionCard
+            icon="location_on"
+            title={t('orderCreate.filesAndDue.workLocation')}
+            // scrollToFirstError queries this; the field's own `error` supplies
+            // the aria-invalid the helper matches as a fallback.
+            data-form-error={locationError ? 'true' : undefined}
+          >
+            <Stack spacing={2.5}>
+              {locations.length === 0 ? (
+                <Callout tone="warning">{t('orderCreate.filesAndDue.noLocations')}</Callout>
+              ) : (
+                <TextField
+                  select
+                  value={state.doctor_work_location_id}
+                  onChange={(e) => update({ doctor_work_location_id: e.target.value })}
+                  error={locationError}
+                  helperText={locationError ? t('orderCreate.problems.workLocation') : undefined}
+                  fullWidth
+                >
+                  {locations.map((l) => (
+                    <MenuItem key={l.id} value={l.id}>
+                      {l.clinic_name}
+                      {l.branch_name ? ` · ${l.branch_name}` : ''} — {l.city}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
 
-            <Box>
-              <FieldLabel sx={{ mb: 0.75 }}>{t('orderCreate.review.invoiceRecipient')}</FieldLabel>
-              <Segmented
-                value={state.invoice_recipient_type}
-                onChange={(v) => update({ invoice_recipient_type: v })}
-                options={[
-                  { value: 'DOCTOR' as const, label: t('orderCreate.review.invoiceDoctor') },
-                  { value: 'CLINIC' as const, label: t('orderCreate.review.invoiceClinic') },
-                ]}
-                sx={{ maxWidth: 360 }}
-              />
-            </Box>
-          </Stack>
-        </SectionCard>
+              <Box>
+                <FieldLabel sx={{ mb: 0.75 }}>{t('orderCreate.review.invoiceRecipient')}</FieldLabel>
+                <Segmented
+                  value={state.invoice_recipient_type}
+                  onChange={(v) => update({ invoice_recipient_type: v })}
+                  options={[
+                    { value: 'DOCTOR' as const, label: t('orderCreate.review.invoiceDoctor') },
+                    { value: 'CLINIC' as const, label: t('orderCreate.review.invoiceClinic') },
+                  ]}
+                  sx={{ maxWidth: 360 }}
+                />
+              </Box>
+            </Stack>
+          </SectionCard>
+        )}
 
         {/* Dental form answers (editable) */}
         {version && (

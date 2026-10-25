@@ -42,7 +42,7 @@ export function OrderReviewCard({ order }: { order: OrderRow }) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
-  const { data: review, isLoading } = useOrderReview(order.id);
+  const { data: review, isLoading } = useOrderReview(order.id, order.doctor_id);
 
   const remove = useMutation({
     mutationFn: async (id: string) => {

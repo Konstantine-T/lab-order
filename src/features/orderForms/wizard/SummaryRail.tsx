@@ -60,6 +60,7 @@ export function SummaryRail({
   onAddLocation,
   guest,
   sendDone,
+  fixedDelivery,
 }: {
   state: WizardState;
   update: (p: Partial<WizardState>) => void;
@@ -83,6 +84,12 @@ export function SummaryRail({
   /** The navigator's "due date and send" dot: the date is valid (and, for a
    *  doctor, a work location is picked). */
   sendDone: boolean;
+  /**
+   * A lab buying from a lab (0048): delivery and invoice are not choices. The
+   * lab's working address and its company stand where the work location and
+   * the recipient toggle would, as read-only lines.
+   */
+  fixedDelivery?: { deliveredTo: string; invoiceTo: string };
 }) {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
@@ -134,7 +141,7 @@ export function SummaryRail({
 
   // Short fields side by side only when both are real inputs: a guest's
   // location is a sentence, and a doctor with none gets a callout.
-  const locationIsField = !guest && locations.length > 0;
+  const locationIsField = !guest && !fixedDelivery && locations.length > 0;
 
   return (
     <Box
@@ -257,8 +264,14 @@ export function SummaryRail({
             sx={{ minWidth: 0 }}
             data-form-error={locationError ? 'true' : undefined}
           >
-            <WizLabel>{t('orderCreate.filesAndDue.workLocation')}</WizLabel>
-            {guest ? (
+            <WizLabel>
+              {fixedDelivery
+                ? t('labBuyer.deliveredTo')
+                : t('orderCreate.filesAndDue.workLocation')}
+            </WizLabel>
+            {fixedDelivery ? (
+              <FixedLine>{fixedDelivery.deliveredTo}</FixedLine>
+            ) : guest ? (
               // Not the "you have none, add one" warning: a guest cannot add
               // one, and it is not a problem with their order.
               <Callout tone="neutral" icon="location_on">
@@ -303,26 +316,33 @@ export function SummaryRail({
           </Stack>
         </Box>
 
-        <Stack spacing={0.625}>
-          <WizLabel>{t('orderCreate.review.invoiceRecipient')}</WizLabel>
-          <InkSegmented
-            value={state.invoice_recipient_type}
-            onChange={(v) => v && update({ invoice_recipient_type: v })}
-            options={[
-              { value: 'DOCTOR' as const, label: t('orderCreate.review.invoiceDoctorShort') },
-              { value: 'CLINIC' as const, label: t('orderCreate.review.invoiceClinicShort') },
-            ]}
-            fullWidth
-            ariaLabel={t('orderCreate.review.invoiceRecipient')}
-          />
-          {state.invoice_recipient_type === 'CLINIC' &&
-            selectedLoc &&
-            !selectedLoc.clinic_identification_code && (
-              <Callout tone="warning" sx={{ mt: 0.5 }}>
-                {t('orderCreate.review.clinicCodeWarning')}
-              </Callout>
-            )}
-        </Stack>
+        {fixedDelivery ? (
+          <Stack spacing={0.625}>
+            <WizLabel>{t('labBuyer.invoiceTo')}</WizLabel>
+            <FixedLine>{fixedDelivery.invoiceTo}</FixedLine>
+          </Stack>
+        ) : (
+          <Stack spacing={0.625}>
+            <WizLabel>{t('orderCreate.review.invoiceRecipient')}</WizLabel>
+            <InkSegmented
+              value={state.invoice_recipient_type}
+              onChange={(v) => v && update({ invoice_recipient_type: v })}
+              options={[
+                { value: 'DOCTOR' as const, label: t('orderCreate.review.invoiceDoctorShort') },
+                { value: 'CLINIC' as const, label: t('orderCreate.review.invoiceClinicShort') },
+              ]}
+              fullWidth
+              ariaLabel={t('orderCreate.review.invoiceRecipient')}
+            />
+            {state.invoice_recipient_type === 'CLINIC' &&
+              selectedLoc &&
+              !selectedLoc.clinic_identification_code && (
+                <Callout tone="warning" sx={{ mt: 0.5 }}>
+                  {t('orderCreate.review.clinicCodeWarning')}
+                </Callout>
+              )}
+          </Stack>
+        )}
 
         {showError && <Callout tone="danger" title={t('orderCreate.review.missingFields')} />}
 
@@ -348,6 +368,23 @@ export function SummaryRail({
         </Typography>
       </Stack>
     </Box>
+  );
+}
+
+/** A value the buyer does not choose (0048): plain text in the field's place. */
+function FixedLine({ children }: { children: ReactNode }) {
+  return (
+    <Typography
+      sx={{
+        fontSize: '0.8125rem',
+        fontWeight: 600,
+        lineHeight: 1.5,
+        minWidth: 0,
+        overflowWrap: 'anywhere',
+      }}
+    >
+      {children || '—'}
+    </Typography>
   );
 }
 
