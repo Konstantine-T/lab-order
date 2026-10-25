@@ -48,8 +48,8 @@ import { recordPayment } from '@/features/lab/finances/financeApi';
 import { OrderForm } from '@/features/orderForms/OrderForm';
 import {
   diffStates,
-  patientDisplay,
   patientFullName,
+  patientOrReference,
   stateFromLive,
   stateFromSnapshot,
   type EditState,
@@ -81,6 +81,8 @@ import { LAB_SELECTABLE_STATUSES } from '@/types/database';
 import { LiveUpdateBanner } from '@/features/notifications/LiveSurfaces';
 import { useLiveFormSync } from '@/features/notifications/liveContext';
 import { FinalPriceNoteField } from '@/features/lab/orderSheet/FinalPriceNoteField';
+import { FromLabBadge } from '@/features/lab/orders/FromLabBadge';
+import { isLabPurchase, labCustomerIdentity } from '@/features/lab/orders/labCustomer';
 import {
   isNoteRequiredError,
   needsNoteConfirmation,
@@ -114,6 +116,7 @@ export function LabOrderSheetPage() {
   const { t } = useTranslation('lab');
   const { t: tc } = useTranslation('common');
   const { user } = useAuth();
+  const labId = user?.lab?.id;
   const qc = useQueryClient();
 
   const [finalPrice, setFinalPrice] = useState<string>('');
@@ -140,12 +143,18 @@ export function LabOrderSheetPage() {
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['lab-order', orderId],
-    enabled: !!orderId,
+    enabled: !!orderId && !!labId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
         .select('*, patients(first_name, last_name, date_of_birth)')
         .eq('id', orderId!)
+        // Only this lab's incoming orders. From 0048 the owner can also read
+        // its own purchases from other labs (as their buying profile); one
+        // opened here would get the seller's controls, and the sheet would
+        // quietly clear its edit flag as the buyer. It reads as not found,
+        // and the purchase lives under /lab/purchases instead.
+        .eq('lab_id', labId!)
         .maybeSingle();
       if (error) throw error;
       return data as DetailRow | null;
@@ -269,8 +278,12 @@ export function LabOrderSheetPage() {
 
   const update = useMutation({
     mutationFn: async (patch: Partial<OrderRow>) => {
-      if (!orderId) return;
-      const { error } = await supabase.from('orders').update(patch).eq('id', orderId);
+      if (!orderId || !labId) return;
+      const { error } = await supabase
+        .from('orders')
+        .update(patch)
+        .eq('id', orderId)
+        .eq('lab_id', labId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -285,8 +298,12 @@ export function LabOrderSheetPage() {
   // reads the note from the same row the price lands in (0046).
   const savePrice = useMutation({
     mutationFn: async (patch: Pick<OrderRow, 'final_total'> & Partial<Pick<OrderRow, 'final_price_note'>>) => {
-      if (!orderId) return;
-      const { error } = await supabase.from('orders').update(patch).eq('id', orderId);
+      if (!orderId || !labId) return;
+      const { error } = await supabase
+        .from('orders')
+        .update(patch)
+        .eq('id', orderId)
+        .eq('lab_id', labId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -320,11 +337,12 @@ export function LabOrderSheetPage() {
 
   const cancel = useMutation({
     mutationFn: async (reason: string) => {
-      if (!orderId) return;
+      if (!orderId || !labId) return;
       const { error } = await supabase
         .from('orders')
         .update({ status: 'CANCELLED', cancellation_reason: reason })
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .eq('lab_id', labId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -345,11 +363,12 @@ export function LabOrderSheetPage() {
   // only the list highlight + needs-attention count respond to the flag.
   const markReviewed = useMutation({
     mutationFn: async () => {
-      if (!orderId) return;
+      if (!orderId || !labId) return;
       const { error } = await supabase
         .from('orders')
         .update({ has_unreviewed_edits: false })
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .eq('lab_id', labId);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -405,6 +424,25 @@ export function LabOrderSheetPage() {
 
   const doctor = order.doctor_snapshot ?? {};
   const doctorFullName = [doctor.first_name, doctor.last_name].filter(Boolean).join(' ');
+  // Another lab bought this (0048): the snapshot already names the buying
+  // lab, so only the label, the badge and the LLC details differ.
+  const fromLab = isLabPurchase(order);
+  const labIdentity = fromLab ? labCustomerIdentity(order) : null;
+  const customerHint = labIdentity
+    ? [
+        labIdentity.legalName,
+        labIdentity.code ? t('orderSheet.labIdCode', { code: labIdentity.code }) : null,
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
+  // The invoice recipient's name, shown only for a lab: a purchase is always
+  // invoiced to the buying lab's LLC.
+  const recipient = order.invoice_recipient_snapshot as { name?: unknown } | null;
+  const recipientName =
+    order.invoice_recipient_type === 'LAB' && typeof recipient?.name === 'string'
+      ? recipient.name.trim()
+      : '';
   const serviceSnap = order.service_snapshot as { name?: string };
   const locSnap = order.work_location_snapshot as {
     clinic_name?: string;
@@ -421,6 +459,9 @@ export function LabOrderSheetPage() {
   const patientName = order.patients
     ? patientFullName(order.patients.first_name, order.patients.last_name)
     : '';
+  // A lab's purchase may carry a free-text case reference, with or without a
+  // patient (0048).
+  const patientReference = order.patient_reference?.trim() ?? '';
   // One open question at a time (the DB enforces it too) — until the doctor
   // answers, there is nothing new to ask.
   // Both asks write the same row and the DB allows one open per order, so
@@ -823,17 +864,58 @@ export function LabOrderSheetPage() {
                 label={t('orderSheet.patient')}
                 value={
                   <Box component="span" sx={{ overflowWrap: 'anywhere' }}>
-                    {patientName || '—'}
+                    {patientName || patientReference || '—'}
                   </Box>
                 }
                 hint={
-                  order.patients?.date_of_birth
-                    ? t('orderSheet.patientDob', { date: order.patients.date_of_birth })
-                    : undefined
+                  patientName
+                    ? [
+                        order.patients?.date_of_birth
+                          ? t('orderSheet.patientDob', { date: order.patients.date_of_birth })
+                          : null,
+                        patientReference
+                          ? t('orderSheet.patientReference', { ref: patientReference })
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(' · ') || undefined
+                    : patientReference
+                      ? t('orderSheet.referenceNoPatient')
+                      : undefined
                 }
               />
             </Box>
-            <FactCell label={t('orderSheet.doctor')} value={doctorFullName || '—'} hint={doctor.phone ?? undefined} />
+            <FactCell
+              label={fromLab ? t('orderSheet.laboratory') : t('orderSheet.doctor')}
+              value={
+                fromLab ? (
+                  <Box
+                    component="span"
+                    sx={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: 0.75 }}
+                  >
+                    <Box component="span" sx={{ overflowWrap: 'anywhere' }}>
+                      {doctorFullName || '—'}
+                    </Box>
+                    <FromLabBadge />
+                  </Box>
+                ) : (
+                  doctorFullName || '—'
+                )
+              }
+              hint={
+                fromLab ? (
+                  customerHint || doctor.phone ? (
+                    <>
+                      {customerHint}
+                      {customerHint && doctor.phone && <br />}
+                      {doctor.phone}
+                    </>
+                  ) : undefined
+                ) : (
+                  (doctor.phone ?? undefined)
+                )
+              }
+            />
             <FactCell label={t('orderSheet.service')} value={serviceSnap?.name ?? '—'} />
             <FactCell
               label={t('orderSheet.dueDate')}
@@ -856,7 +938,9 @@ export function LabOrderSheetPage() {
             <FactCell
               label={t('orderSheet.invoice')}
               value={t(`orderSheet.diff.invoice.${order.invoice_recipient_type}`)}
-              hint={tc(`paymentStatus.${order.payment_status}`)}
+              hint={[recipientName, tc(`paymentStatus.${order.payment_status}`)]
+                .filter(Boolean)
+                .join(' · ')}
             />
             <FactCell
               label={t('orderSheet.createdAt')}
@@ -916,14 +1000,14 @@ export function LabOrderSheetPage() {
                 <DiffRow
                   label={t('orderSheet.diff.fields.patient')}
                   changed={editReview.diff.patient}
-                  before={patientDisplay(editReview.before.patient)}
-                  after={patientDisplay(editReview.after.patient)}
+                  before={patientOrReference(editReview.before)}
+                  after={patientOrReference(editReview.after)}
                   // A switch to another patient with the same name and date
                   // of birth draws "A → A"; say why it is flagged.
                   note={
                     editReview.diff.patient &&
-                    patientDisplay(editReview.before.patient) ===
-                      patientDisplay(editReview.after.patient)
+                    patientOrReference(editReview.before) ===
+                      patientOrReference(editReview.after)
                       ? t('orderSheet.diff.patientRecordChanged')
                       : undefined
                   }

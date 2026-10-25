@@ -25,6 +25,8 @@ import {
   type OrderPreset,
   queueDates,
 } from '@/features/lab/orders/orderPresets';
+import { FromLabBadge } from '@/features/lab/orders/FromLabBadge';
+import { isLabPurchase, patientLabel } from '@/features/lab/orders/labCustomer';
 import {
   defaultReceivableFilters,
   fetchReceivablesByCustomer,
@@ -41,9 +43,12 @@ type DueRow = Pick<
   | 'generated_total'
   | 'requested_due_date'
   | 'confirmed_due_date'
+  | 'buyer_lab_id'
+  | 'patient_reference'
 > & {
   patients: { first_name: string; last_name: string } | null;
   service_snapshot: { name?: string } | null;
+  doctor_snapshot: { is_lab?: boolean } | null;
 };
 
 /**
@@ -71,8 +76,10 @@ export function LabDashboardPage() {
         .from('orders')
         .select(
           'id, order_code, status, payment_status, final_total, generated_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, service_snapshot, ' +
-            'patients(first_name, last_name)',
+            'buyer_lab_id, patient_reference, doctor_snapshot, patients(first_name, last_name)',
         )
+        // Not left to RLS: from 0048 the owner also reads its own purchases
+        // from other labs, which are not this lab's work.
         .eq('lab_id', labId!)
         // Every preset below needs a status outside these, so counting over
         // this subset equals counting over all of the lab's orders.
@@ -265,9 +272,7 @@ export function LabDashboardPage() {
                   stats.upcoming.map((o) => {
                     const due = (o.confirmed_due_date ?? o.requested_due_date)!;
                     const urgent = due <= dayPlus2;
-                    const patient = o.patients
-                      ? `${o.patients.first_name} ${o.patients.last_name}`
-                      : '—';
+                    const patient = patientLabel(o);
                     return (
                       <Stack
                         key={o.id}
@@ -311,9 +316,12 @@ export function LabDashboardPage() {
                           <Typography sx={{ fontSize: '0.8125rem', fontWeight: 700 }} noWrap>
                             {o.order_code} · {patient}
                           </Typography>
-                          <Typography variant="body2" color="text.secondary" noWrap>
-                            {o.service_snapshot?.name ?? ''}
-                          </Typography>
+                          <Stack direction="row" alignItems="center" spacing={0.75} sx={{ minWidth: 0 }}>
+                            <Typography variant="body2" color="text.secondary" noWrap sx={{ minWidth: 0 }}>
+                              {o.service_snapshot?.name ?? ''}
+                            </Typography>
+                            {isLabPurchase(o) && <FromLabBadge />}
+                          </Stack>
                         </Box>
                         <OrderStatusChip status={o.status} />
                       </Stack>

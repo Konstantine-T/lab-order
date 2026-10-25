@@ -18,6 +18,13 @@ export type EditPatient = {
 export type EditState = {
   /** null when this side carries no patient at all. */
   patient: EditPatient | null;
+  /**
+   * A buying lab's free-text case reference (0048), which may stand in for a
+   * patient. `undefined` when this side does not record one at all (a
+   * snapshot written without the key), which the diff reads as "unknown",
+   * never as a change.
+   */
+  patientReference?: string | null;
   workLocationDisplay: string;
   invoiceRecipientType: string;
   answers: Record<string, unknown>;
@@ -97,6 +104,14 @@ export function patientDisplay(p: EditPatient | null): string {
   return p.dateOfBirth ? `${p.name} · ${p.dateOfBirth}` : p.name;
 }
 
+/** The patient, else the purchase's case reference (0048), else ''. With
+ *  both, the reference follows the patient so a change to either shows. */
+export function patientOrReference(state: EditState): string {
+  const patient = patientDisplay(state.patient);
+  const ref = state.patientReference ?? '';
+  return patient && ref ? `${patient} · ${ref}` : patient || ref;
+}
+
 function patientFromSnapshot(raw: unknown): EditPatient | null {
   if (!raw || typeof raw !== 'object') return null;
   const p = raw as SnapshotPatient;
@@ -110,8 +125,11 @@ function patientFromSnapshot(raw: unknown): EditPatient | null {
 }
 
 export function stateFromSnapshot(s: OrderEditSnapshot): EditState {
+  // Read defensively: snapshots taken before 0048 have no such key.
+  const raw = s as OrderEditSnapshot & { patient_reference?: unknown };
   return {
     patient: patientFromSnapshot(s.patient),
+    patientReference: 'patient_reference' in raw ? str(raw.patient_reference) : undefined,
     workLocationDisplay: workLocationDisplay(s.work_location_snapshot),
     invoiceRecipientType: s.invoice_recipient_type,
     answers: s.answers ?? {},
@@ -134,6 +152,7 @@ export function stateFromLive(
       name: first || last ? patientFullName(first, last) : null,
       dateOfBirth: str(embed?.date_of_birth),
     },
+    patientReference: order.patient_reference === undefined ? undefined : str(order.patient_reference),
     workLocationDisplay: workLocationDisplay(order.work_location_snapshot),
     invoiceRecipientType: order.invoice_recipient_type,
     answers: answersMap,
@@ -157,9 +176,15 @@ export function patientChanged(before: EditPatient | null, after: EditPatient | 
   return before.name !== after.name || before.dateOfBirth !== after.dateOfBirth;
 }
 
+/** Both sides record a reference and they differ. */
+function referenceChanged(before: EditState, after: EditState): boolean {
+  if (before.patientReference === undefined || after.patientReference === undefined) return false;
+  return before.patientReference !== after.patientReference;
+}
+
 export function diffStates(before: EditState, after: EditState): EditDiff {
   return {
-    patient: patientChanged(before.patient, after.patient),
+    patient: patientChanged(before.patient, after.patient) || referenceChanged(before, after),
     workLocation: before.workLocationDisplay !== after.workLocationDisplay,
     invoiceRecipient: before.invoiceRecipientType !== after.invoiceRecipientType,
     answers: !valuesEqual(before.answers, after.answers),

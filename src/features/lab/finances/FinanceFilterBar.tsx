@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
 import type { InvoiceRecipientType, PaymentStatus } from '@/types/database';
 import {
+  CUSTOMER_TYPE_LABEL,
   RECEIVABLE_SORTS,
   type ReceivableFilters,
   type ReceivableSort,
@@ -75,8 +76,11 @@ export function FinanceFilterBar({
             input={<OutlinedInput label={t('finances.filters.recipientType')} />}
           >
             <MenuItem value="">{t('finances.filters.any')}</MenuItem>
-            <MenuItem value="DOCTOR">{t('finances.filters.doctor')}</MenuItem>
-            <MenuItem value="CLINIC">{t('finances.filters.clinic')}</MenuItem>
+            {(Object.keys(CUSTOMER_TYPE_LABEL) as InvoiceRecipientType[]).map((type) => (
+              <MenuItem key={type} value={type}>
+                {t(`finances.filters.${CUSTOMER_TYPE_LABEL[type]}`)}
+              </MenuItem>
+            ))}
           </Select>
         </FormControl>
 

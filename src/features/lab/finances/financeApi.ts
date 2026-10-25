@@ -36,6 +36,17 @@ export type ReceivableFilters = {
   maxAmount: number | null;
 };
 
+/**
+ * The `finances.filters.*` label for each customer type the receivables RPCs
+ * return. 'LAB' is another lab buying from this one (0048): customer_id is
+ * the buying lab, customer_name its LLC from the invoice recipient snapshot.
+ */
+export const CUSTOMER_TYPE_LABEL = {
+  DOCTOR: 'doctor',
+  CLINIC: 'clinic',
+  LAB: 'lab',
+} as const satisfies Record<InvoiceRecipientType, string>;
+
 /** Everything still owed: what the default view and the lab dashboard's
  *  "unpaid" square both show. */
 export const OWED_PAYMENT_STATUSES: readonly PaymentStatus[] = ['UNPAID', 'PARTIALLY_PAID'];

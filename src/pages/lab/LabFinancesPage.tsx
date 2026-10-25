@@ -32,6 +32,7 @@ import { RecordPaymentDialog } from '@/features/lab/finances/RecordPaymentDialog
 import { useFinanceLock } from '@/features/lab/finances/financeLockContext';
 import { FinanceFilterBar } from '@/features/lab/finances/FinanceFilterBar';
 import {
+  CUSTOMER_TYPE_LABEL,
   defaultReceivableFilters,
   fetchReceivablesByCustomer,
   fetchReceivablesList,
@@ -249,7 +250,7 @@ export function LabFinancesPage() {
                         {c.customer_name}
                       </Link>
                       <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                        {t(`finances.filters.${c.customer_type === 'CLINIC' ? 'clinic' : 'doctor'}`)}
+                        {t(`finances.filters.${CUSTOMER_TYPE_LABEL[c.customer_type] ?? 'doctor'}`)}
                       </Typography>
                     </Box>
                     <Typography sx={{ fontSize: '0.8125rem', textAlign: 'right' }}>
@@ -306,9 +307,18 @@ export function LabFinancesPage() {
                 >
                   {o.order_code}
                 </Typography>
-                <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }} noWrap>
-                  {o.customer_name}
-                </Typography>
+                {/* A laboratory customer (0048) says so under its name; doctors
+                    and clinics keep the single line they always had. */}
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }} noWrap>
+                    {o.customer_name}
+                  </Typography>
+                  {o.customer_type === 'LAB' && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }} noWrap>
+                      {t('finances.filters.lab')}
+                    </Typography>
+                  )}
+                </Box>
                 <Typography variant="body1" color="text.secondary" noWrap>
                   {o.service_name || '—'}
                 </Typography>
