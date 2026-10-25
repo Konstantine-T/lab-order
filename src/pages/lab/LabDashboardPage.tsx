@@ -48,7 +48,6 @@ type DueRow = Pick<
 > & {
   patients: { first_name: string; last_name: string } | null;
   service_snapshot: { name?: string } | null;
-  doctor_snapshot: { is_lab?: boolean } | null;
 };
 
 /**
@@ -76,7 +75,7 @@ export function LabDashboardPage() {
         .from('orders')
         .select(
           'id, order_code, status, payment_status, final_total, generated_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, service_snapshot, ' +
-            'buyer_lab_id, patient_reference, doctor_snapshot, patients(first_name, last_name)',
+            'buyer_lab_id, patient_reference, patients(first_name, last_name)',
         )
         // Not left to RLS: from 0048 the owner also reads its own purchases
         // from other labs, which are not this lab's work.

@@ -16,7 +16,8 @@ export type EditPatient = {
 // Normalized view of an order's editable fields. We diff two of these — a
 // "before" (older) and an "after" (newer) — to decide what the edit changed.
 export type EditState = {
-  /** null when this side carries no patient at all. */
+  /** null when this side's patient could not be read (see `noPatient` for a
+   *  purchase that has none). */
   patient: EditPatient | null;
   /**
    * A buying lab's free-text case reference (0048), which may stand in for a
@@ -25,6 +26,12 @@ export type EditState = {
    * never as a change.
    */
   patientReference?: string | null;
+  /**
+   * Known to carry no patient at all: a buying lab's purchase placed or
+   * edited "without a patient" (0048). Not the same as `patient: null`, which
+   * means the patient could not be read and never counts as a change.
+   */
+  noPatient?: boolean;
   workLocationDisplay: string;
   invoiceRecipientType: string;
   answers: Record<string, unknown>;
@@ -127,9 +134,15 @@ function patientFromSnapshot(raw: unknown): EditPatient | null {
 export function stateFromSnapshot(s: OrderEditSnapshot): EditState {
   // Read defensively: snapshots taken before 0048 have no such key.
   const raw = s as OrderEditSnapshot & { patient_reference?: unknown };
+  // edit_order writes the `patient_reference` key only into a purchase's
+  // snapshot (0048), and reads the patient as the definer, so on such a
+  // snapshot a null patient is "no patient", not "could not be read".
+  const isPurchaseSnapshot = 'patient_reference' in raw;
+  const patient = patientFromSnapshot(s.patient);
   return {
-    patient: patientFromSnapshot(s.patient),
-    patientReference: 'patient_reference' in raw ? str(raw.patient_reference) : undefined,
+    patient,
+    patientReference: isPurchaseSnapshot ? str(raw.patient_reference) : undefined,
+    noPatient: isPurchaseSnapshot && patient === null,
     workLocationDisplay: workLocationDisplay(s.work_location_snapshot),
     invoiceRecipientType: s.invoice_recipient_type,
     answers: s.answers ?? {},
@@ -153,6 +166,9 @@ export function stateFromLive(
       dateOfBirth: str(embed?.date_of_birth),
     },
     patientReference: order.patient_reference === undefined ? undefined : str(order.patient_reference),
+    // patient_id may be null only on a purchase (0048's CHECK); undefined
+    // means the column was not selected, which says nothing.
+    noPatient: order.patient_id === null,
     workLocationDisplay: workLocationDisplay(order.work_location_snapshot),
     invoiceRecipientType: order.invoice_recipient_type,
     answers: answersMap,
@@ -176,6 +192,16 @@ export function patientChanged(before: EditPatient | null, after: EditPatient | 
   return before.name !== after.name || before.dateOfBirth !== after.dateOfBirth;
 }
 
+/** A patient that is there: known by id or by name. */
+const hasPatient = (state: EditState): boolean =>
+  !state.noPatient && !!state.patient && (state.patient.id !== null || state.patient.name !== null);
+
+/** A purchase gained or lost its patient (0048): one side is known to have
+ *  none and the other has one. An unreadable side is still never a change. */
+function patientPresenceChanged(before: EditState, after: EditState): boolean {
+  return (!!before.noPatient && hasPatient(after)) || (!!after.noPatient && hasPatient(before));
+}
+
 /** Both sides record a reference and they differ. */
 function referenceChanged(before: EditState, after: EditState): boolean {
   if (before.patientReference === undefined || after.patientReference === undefined) return false;
@@ -184,7 +210,10 @@ function referenceChanged(before: EditState, after: EditState): boolean {
 
 export function diffStates(before: EditState, after: EditState): EditDiff {
   return {
-    patient: patientChanged(before.patient, after.patient) || referenceChanged(before, after),
+    patient:
+      patientChanged(before.patient, after.patient) ||
+      patientPresenceChanged(before, after) ||
+      referenceChanged(before, after),
     workLocation: before.workLocationDisplay !== after.workLocationDisplay,
     invoiceRecipient: before.invoiceRecipientType !== after.invoiceRecipientType,
     answers: !valuesEqual(before.answers, after.answers),

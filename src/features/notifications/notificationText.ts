@@ -121,6 +121,9 @@ const DOCTOR_SIDE_KINDS = new Set<string>([
   'lab_review_reply',
 ]);
 
+/** Sent to an order's doctor; for a lab owner, about one of its purchases (0048). */
+export const isDoctorSideKind = (kind: string): boolean => DOCTOR_SIDE_KINDS.has(kind);
+
 const AREA: Partial<Record<UserRole, string>> = {
   DOCTOR: '/doctor',
   LAB_MAIN_ADMIN: '/lab',

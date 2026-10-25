@@ -11,6 +11,45 @@ import { buyerErrorCode, buyerErrorText } from './buyerErrors';
 /** Sync once per visit, not once per screen: marketplace → lab → form is one visit. */
 const SYNC_FRESH_MS = 60_000;
 
+/** When `BuyerSessionRefresh` last reloaded the session (module-wide, per tab). */
+let lastSessionRefreshAt = 0;
+
+/**
+ * The purchases list, an order and its edit page (0048): they only read, so
+ * unlike `BuyerProfileGate` they never create a buying profile and never
+ * refuse a lab that may no longer buy (its old purchases stay readable).
+ *
+ * What they need is a session that knows the profile. One loaded before the
+ * lab's first purchase (made on another device, say) has none, and every
+ * query on these pages filters on its id, so the list would read empty and an
+ * order "not found" until a manual reload. So when the session lacks the
+ * profile (or the lab), it is reloaded silently once, at most once a minute,
+ * before the page renders.
+ */
+export function BuyerSessionRefresh({ children }: { children: ReactNode }) {
+  const { user, refreshUser } = useAuth();
+  const missing = user?.role === 'LAB_MAIN_ADMIN' && (!user.lab || !user.buyer_profile);
+  const [waiting, setWaiting] = useState(
+    () => missing && Date.now() - lastSessionRefreshAt > SYNC_FRESH_MS,
+  );
+  const startedRef = useRef(false);
+  useEffect(() => {
+    if (!waiting || startedRef.current) return;
+    startedRef.current = true;
+    lastSessionRefreshAt = Date.now();
+    void refreshUser({ silent: true }).finally(() => setWaiting(false));
+  }, [waiting, refreshUser]);
+
+  if (waiting) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+  return <>{children}</>;
+}
+
 /**
  * The entrance to a lab's buying screens: the marketplace, a lab's profile and
  * the order form (0048, C2).

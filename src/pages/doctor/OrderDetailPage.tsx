@@ -35,12 +35,15 @@ export function OrderDetailPage({ buyer: buyerProp = false }: { buyer?: boolean 
   const qc = useQueryClient();
   // Whose order this must be. Explicit, never left to RLS: a lab owner can
   // read the orders it receives too, and an incoming order opened at a
-  // purchase URL must read as not found (0048, B3).
-  const doctorId = buyer ? buyer.profileId : (user?.doctor_profile?.id ?? null);
+  // purchase URL must read as not found (0048, B3). Decided by the route's
+  // `buyer` prop, not by whether buyer mode resolved: a purchase route whose
+  // session has no lab or no buying profile loads nothing, and never falls
+  // back to reading the order unfiltered as a doctor would.
+  const doctorId = buyerProp ? (buyer?.profileId ?? null) : (user?.doctor_profile?.id ?? null);
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['order', orderId],
-    enabled: !!orderId && (!buyer || !!doctorId),
+    enabled: !!orderId && (!buyerProp || !!doctorId),
     queryFn: async () => {
       let q = supabase.from('orders').select(DETAIL_ORDER_SELECT).eq('id', orderId!);
       if (doctorId) q = q.eq('doctor_id', doctorId);
@@ -51,7 +54,7 @@ export function OrderDetailPage({ buyer: buyerProp = false }: { buyer?: boolean 
   });
 
   // A buying lab reads the rest only once the order has proved to be its own.
-  const orderReady = !buyer || !!order;
+  const orderReady = !buyerProp || !!order;
 
   const { data: answers = [] } = useQuery({
     queryKey: ['order-answers', orderId],

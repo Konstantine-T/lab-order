@@ -61,7 +61,8 @@ export function OrdersListPage({ buyer: buyerProp = false }: { buyer?: boolean }
   // A buying lab's orders are its buying profile's. Every query below filters
   // on this id explicitly: the lab owner can also read the orders it receives
   // (the lab policy), and those must never show up here (0048, B3).
-  const doctorId = buyer ? (buyer.profileId ?? undefined) : user?.doctor_profile?.id;
+  // By the route's prop: a purchase route without a buying profile lists nothing.
+  const doctorId = buyerProp ? (buyer?.profileId ?? undefined) : user?.doctor_profile?.id;
   // Drafts are keyed by (doctor, author) since 0023.
   const authorUserId = user?.id;
   const navigate = useNavigate();

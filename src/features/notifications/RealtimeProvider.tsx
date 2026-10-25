@@ -14,7 +14,7 @@ import {
   type LiveTable,
 } from './liveQueries';
 import { setRealtimeConnected } from './realtimeStatus';
-import { isKnownKind, notificationTarget } from './notificationText';
+import { isDoctorSideKind, isKnownKind, notificationTarget } from './notificationText';
 import {
   addLiveNotification,
   notificationsKey,
@@ -95,7 +95,12 @@ function listenersFor(
             ]
           : []),
         // Its orders to other labs (0048), through its buying profile, and its
-        // reviews of those labs: the doctor's two filtered listeners.
+        // reviews of those labs: the doctor's two filtered listeners. And the
+        // catalogue its marketplace shows, as for a doctor, so another lab's
+        // renamed or withdrawn service updates there too (the profile exists
+        // by the time the marketplace renders: BuyerProfileGate waits for it).
+        // The unfiltered `labs` listener overlaps the own-lab one above; the
+        // debounced invalidator folds the two.
         ...(ids.buyerProfileId
           ? [
               {
@@ -108,6 +113,7 @@ function listenersFor(
                 filter: `doctor_id=eq.${ids.buyerProfileId}`,
                 events: both,
               } as Listener,
+              ...marketplace,
             ]
           : []),
         // RLS limits it to reports on the lab's own reviews.
@@ -203,6 +209,12 @@ export function RealtimeProvider({ children }: { children: ReactNode }) {
       // The lab's status lives on the AppUser (sidebar card, profile page).
       // Silent: the profile page re-seeds only when the stored values change.
       if (LAB_STATUS_KINDS.has(row.kind)) void refreshUserRef.current({ silent: true });
+      // A purchase notification while this session predates the lab's buying
+      // profile (it was created on another device): reload the AppUser so the
+      // purchase badge, the doctor_id listener and the purchase pages see it.
+      else if (role === 'LAB_MAIN_ADMIN' && !buyerProfileId && isDoctorSideKind(row.kind)) {
+        void refreshUserRef.current({ silent: true });
+      }
       // A kind this build cannot word stays in the bell as "New notification"
       // and does not interrupt anyone.
       if (!isKnownKind(row.kind, i18nRef.current)) return;

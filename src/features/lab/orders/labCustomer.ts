@@ -9,20 +9,21 @@
  * sheet's "Laboratory" cell) and the patient-less purchase.
  */
 
-/** The columns a row needs to be told apart. Both optional, so a list that
- *  selects only one of them still type-checks. */
+/** The column a row needs to be told apart. Required, so a list that forgets
+ *  to select it fails to type-check instead of reading every order as a
+ *  doctor's. */
 export type CustomerSource = {
-  buyer_lab_id?: string | null;
-  doctor_snapshot?: { is_lab?: boolean } | null;
+  buyer_lab_id: string | null;
 };
 
 /**
- * Placed by another lab. `buyer_lab_id` is stamped by submit_order and frozen,
- * so it is the answer; the snapshot flag is the fallback for a row whose
- * column was not selected.
+ * Placed by another lab. Only `buyer_lab_id` answers this: submit_order
+ * stamps it and no client can change it. `doctor_snapshot.is_lab` says the
+ * same today, but a snapshot is the order's history, not its authority, and
+ * nothing here should trust it for "who is this customer" (0048 review).
  */
 export function isLabPurchase(row: CustomerSource): boolean {
-  return row.buyer_lab_id != null || row.doctor_snapshot?.is_lab === true;
+  return row.buyer_lab_id != null;
 }
 
 /** The lab orders list's "Customer" filter. */

@@ -88,7 +88,9 @@ export function OrderEditPage({
   const { t: te } = useTranslation('errors');
   const { user } = useAuth();
   const buyer = useBuyerMode(buyerProp);
-  const authDoctorId = buyer ? (buyer.profileId ?? undefined) : user?.doctor_profile?.id;
+  // By the route's `buyer` prop, not by whether buyer mode resolved: a
+  // purchase route never falls back to the doctor's unfiltered read (0048).
+  const authDoctorId = buyerProp ? (buyer?.profileId ?? undefined) : user?.doctor_profile?.id;
   const navigate = useNavigate();
   const qc = useQueryClient();
 
@@ -102,7 +104,7 @@ export function OrderEditPage({
 
   const { data: order, isLoading } = useQuery({
     queryKey: ['order', orderId],
-    enabled: !!orderId && (!buyer || !!authDoctorId),
+    enabled: !!orderId && (!buyerProp || !!authDoctorId),
     queryFn: async () => {
       let q = supabase
         .from('orders')
@@ -113,14 +115,14 @@ export function OrderEditPage({
         .eq('id', orderId!);
       // A buying lab's own purchase only, never an order it receives (0048,
       // B3). The clinic cannot know the doctor before the order loads.
-      if (buyer) q = q.eq('doctor_id', authDoctorId!);
+      if (buyerProp) q = q.eq('doctor_id', authDoctorId!);
       const { data, error } = await q.maybeSingle();
       if (error) throw error;
       return data as OrderDetail | null;
     },
   });
   // A buying lab reads the rest only once the order has proved to be its own.
-  const orderReady = !buyer || !!order;
+  const orderReady = !buyerProp || !!order;
 
   // The order's doctor — the logged-in doctor for a doctor, or the target doctor
   // when a clinic admin edits on their behalf (edit_order authorizes via 0014).

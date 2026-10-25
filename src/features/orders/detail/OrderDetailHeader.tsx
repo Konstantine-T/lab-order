@@ -49,7 +49,8 @@ export function OrderDetailHeader({
   const patient = patientLine?.text ?? '';
   // A lab's purchase (0048): the snapshot's "doctor" is the viewing lab itself,
   // so it is not named, and the place is the address the work goes to.
-  const isPurchase = !!order.doctor_snapshot?.is_lab;
+  // buyer_lab_id, not the snapshot's is_lab: the column is the authority.
+  const isPurchase = order.buyer_lab_id != null;
   const doctor = isPurchase
     ? ''
     : [order.doctor_snapshot?.first_name, order.doctor_snapshot?.last_name]

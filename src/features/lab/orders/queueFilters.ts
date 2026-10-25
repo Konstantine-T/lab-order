@@ -52,7 +52,7 @@ const tidy = (value: unknown): string =>
 type DoctorSource = CustomerSource & {
   doctor_id: string;
   created_at: string;
-  doctor_snapshot: { first_name?: string; last_name?: string; is_lab?: boolean } | null;
+  doctor_snapshot: { first_name?: string; last_name?: string } | null;
 };
 
 const doctorNameOf = (snap: DoctorSource['doctor_snapshot']): string =>

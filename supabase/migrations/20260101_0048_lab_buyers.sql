@@ -39,6 +39,20 @@
 --          (buyer_location_read_only). The owner decided "delivery: the lab's
 --          working address, no choice": the row is owned by the RPCs and
 --          re-synced from the lab on every ensure / submit / edit.
+--        * orders.lab_id, orders.doctor_id and orders.doctor_snapshot never
+--          change from a client (order_parties_read_only). From this file on
+--          one user can be both an order's doctor (its buying profile) and a
+--          lab's owner, and orders_doctor_update / orders_lab_update limit
+--          rows, not columns: without this a lab could move its purchase onto
+--          its own lab (the 0045 status guard then passes, as it owns
+--          NEW.lab_id), complete it and review itself, move it back onto a
+--          competitor and leave a review for work never done, or point a real
+--          doctor's incoming order at its own buying profile. doctor_snapshot
+--          is frozen too because is_lab / legal_name / identification_code in
+--          it now mean "this customer is a lab". No client writes any of the
+--          three; submit_order sets them and nothing changes them after.
+--      And save_lab_review (0044) refuses a reviewer who owns the reviewed
+--      lab (not_your_order), whatever path an order took to get there.
 --   4. ensure_lab_buyer_profile() → uuid. SECURITY DEFINER, authenticated
 --      only. lab_cannot_buy unless the caller is a LAB_MAIN_ADMIN owning an
 --      APPROVED_ACTIVE, is_active lab. Creates the profile once (a second
@@ -86,7 +100,9 @@
 --      it unchanged): customer_type 'LAB', customer_id = buyer_lab_id,
 --      customer_name = the recipient snapshot's name.
 --   8. _lab_reviewer_display (0044): the buying lab's public_name for a
---      buying profile, never the owner's "First L.".
+--      buying profile, never the owner's "First L.". save_lab_review (0044
+--      verbatim + one check): not_your_order when the caller owns the
+--      reviewed lab.
 --   9. my_clinic_invites / respond_clinic_invite (0013): real doctor
 --      profiles only. The lab owner sees no invites and accepting one says
 --      not_a_doctor (instead of tripping the no-clinic CHECK).
@@ -304,9 +320,33 @@ create trigger doctor_work_locations_buyer_read_only
   before insert or update or delete on public.doctor_work_locations
   for each row execute function public.tg_doctor_work_locations_buyer_read_only();
 
+-- 3d. Who an order is between never changes from a client (see the header).
+-- A same-value write passes (`is distinct from`), so a client PATCH that
+-- happens to resend a column unchanged is not refused.
+create or replace function public.tg_orders_parties_guard()
+returns trigger
+language plpgsql
+set search_path = public
+as $$
+begin
+  if current_user in ('anon', 'authenticated')
+     and (new.lab_id          is distinct from old.lab_id
+       or new.doctor_id       is distinct from old.doctor_id
+       or new.doctor_snapshot is distinct from old.doctor_snapshot) then
+    raise exception 'order_parties_read_only' using errcode = '42501';
+  end if;
+  return new;
+end $$;
+
+drop trigger if exists orders_parties_guard on public.orders;
+create trigger orders_parties_guard
+  before update of lab_id, doctor_id, doctor_snapshot on public.orders
+  for each row execute function public.tg_orders_parties_guard();
+
 revoke all on function public.tg_doctor_profiles_buyer_lab_guard()        from public, anon, authenticated;
 revoke all on function public.tg_orders_buyer_lab_guard()                 from public, anon, authenticated;
 revoke all on function public.tg_doctor_work_locations_buyer_read_only()  from public, anon, authenticated;
+revoke all on function public.tg_orders_parties_guard()                   from public, anon, authenticated;
 
 
 -- ── 4. Helpers (internal, not callable by clients) ───────────────────────
@@ -1064,6 +1104,98 @@ $$;
 revoke all on function public._lab_reviewer_display(uuid) from public, anon, authenticated;
 
 
+-- 0044 verbatim + the own-lab refusal. Same signature; the 0044 revoke /
+-- grant pair is repeated so this file stands alone.
+-- Create or update the caller's review of one order. Returns the review id.
+create or replace function public.save_lab_review(
+  p_order_id uuid,
+  p_rating   int,
+  p_comment  text
+)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_doctor  uuid := public.current_doctor_id();
+  v_order   public.orders%rowtype;
+  v_comment text := nullif(btrim(coalesce(p_comment, '')), '');
+  v_id      uuid;
+begin
+  -- Serialises two saves of the same order (a double click), so the second
+  -- one updates instead of hitting the unique index.
+  select * into v_order from public.orders where id = p_order_id for update;
+  -- The order's doctor only: not can_act_for_doctor, which would also admit
+  -- the clinic admin (owner: doctor only). An unknown order says the same, so
+  -- nothing about other orders leaks.
+  if v_order.id is null or v_doctor is null or v_order.doctor_id is distinct from v_doctor then
+    raise exception 'not_your_order' using errcode = '42501';
+  end if;
+  -- 0048: never a review of one's own lab. A lab owner is also the doctor of
+  -- its purchases; submit refuses ordering from itself and the parties guard
+  -- freezes lab_id / doctor_id, so this only backs those up. Same message as
+  -- a stranger's order, which the client already translates.
+  if public.current_user_owns_lab(v_order.lab_id) then
+    raise exception 'not_your_order' using errcode = '42501';
+  end if;
+
+  if p_rating is null or p_rating < 1 or p_rating > 5 then
+    raise exception 'invalid_rating' using errcode = '22023';
+  end if;
+  if v_comment is not null and char_length(v_comment) > 2000 then
+    raise exception 'comment_too_long' using errcode = '22023';
+  end if;
+  if p_rating <= 2 and v_comment is null then
+    raise exception 'comment_required' using errcode = '22023';
+  end if;
+
+  select id into v_id from public.lab_reviews where order_id = p_order_id for update;
+
+  if v_id is not null then
+    -- Edit: any time, any status (a reopened order keeps its review). Never
+    -- touches the reply or the moderation columns.
+    update public.lab_reviews
+       set rating           = p_rating,
+           comment          = v_comment,
+           reviewer_display = public._lab_reviewer_display(v_doctor),
+           updated_at       = now()
+     where id = v_id;
+    return v_id;
+  end if;
+
+  -- Create: completed, and within 30 days of completion (J1: a reopened and
+  -- re-completed order gets a fresh window).
+  if v_order.status <> 'COMPLETED' or v_order.completed_at is null then
+    raise exception 'order_not_completed' using errcode = '22023';
+  end if;
+  if now() > v_order.completed_at + interval '30 days' then
+    raise exception 'review_window_closed' using errcode = '22023';
+  end if;
+
+  insert into public.lab_reviews (
+    order_id, lab_id, doctor_id, rating, comment, reviewer_display,
+    service_name, service_translations
+  ) values (
+    v_order.id,
+    v_order.lab_id,
+    v_doctor,
+    p_rating,
+    v_comment,
+    public._lab_reviewer_display(v_doctor),
+    nullif(btrim(v_order.service_snapshot ->> 'name'), ''),
+    case when jsonb_typeof(v_order.service_snapshot -> 'translations') = 'object'
+         then v_order.service_snapshot -> 'translations'
+         else '{}'::jsonb end
+  )
+  returning id into v_id;
+  return v_id;
+end $$;
+
+revoke all on function public.save_lab_review(uuid, int, text) from public, anon, authenticated;
+grant execute on function public.save_lab_review(uuid, int, text) to authenticated;
+
+
 -- ── 11. Clinic invites are for real doctors only (0013) ──────────────────
 
 -- Doctor's own pending invites, with the inviting clinic's name (doctors have no
@@ -1160,12 +1292,14 @@ grant execute on function public.respond_clinic_invite(uuid, boolean) to authent
 --                      'orders_patient_reference_length', 'orders_patient_required_for_doctors');
 --
 --   -- 2. The guards exist once each and none is SECURITY DEFINER:
---   select count(*) = 3 from pg_trigger
+--   select count(*) = 4 from pg_trigger
 --    where tgname in ('doctor_profiles_buyer_lab_guard', 'orders_buyer_lab_guard',
---                     'doctor_work_locations_buyer_read_only');
+--                     'doctor_work_locations_buyer_read_only', 'orders_parties_guard');
 --   select bool_and(not prosecdef) from pg_proc
 --    where proname in ('tg_doctor_profiles_buyer_lab_guard', 'tg_orders_buyer_lab_guard',
---                      'tg_doctor_work_locations_buyer_read_only');
+--                      'tg_doctor_work_locations_buyer_read_only', 'tg_orders_parties_guard');
+--   select prosrc like '%current_user_owns_lab(v_order.lab_id)%'
+--     from pg_proc where proname = 'save_lab_review';
 --
 --   -- 3. Grants: the RPC to authenticated only; the helpers to nobody.
 --   select has_function_privilege('authenticated', 'public.ensure_lab_buyer_profile()', 'execute')
@@ -1206,6 +1340,8 @@ grant execute on function public.respond_clinic_invite(uuid, boolean) to authent
 --   --   select public.submit_order('<own lab>', ...);        -- cannot_order_from_own_lab
 --   --   update public.doctor_profiles set buyer_lab_id = null
 --   --    where user_id = auth.uid();                         -- buyer_lab_id_read_only
+--   --   update public.orders set lab_id = '<own lab>'
+--   --    where doctor_id = public.current_doctor_id();       -- order_parties_read_only
 --   --   select * from public.my_clinic_invites();            -- no rows
 --   --   rollback;
 -- ---------------------------------------------------------------------------

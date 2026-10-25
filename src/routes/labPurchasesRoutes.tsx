@@ -4,7 +4,7 @@ import { OrderCreateWizard } from '@/pages/doctor/OrderCreateWizard';
 import { OrderDetailPage } from '@/pages/doctor/OrderDetailPage';
 import { OrderEditPage } from '@/pages/doctor/OrderEditPage';
 import { CompletionDialogHost } from '@/features/orders/completion/CompletionDialogHost';
-import { BuyerProfileGate } from '@/features/labBuying/BuyerProfileGate';
+import { BuyerProfileGate, BuyerSessionRefresh } from '@/features/labBuying/BuyerProfileGate';
 import { PURCHASE_PATHS } from '@/features/labBuying/buyerMode';
 import { NotFoundPage } from '@/pages/public/NotFoundPage';
 
@@ -21,7 +21,16 @@ export default function LabPurchasesRoutes() {
   return (
     <>
       <Routes>
-        <Route index element={<OrdersListPage buyer />} />
+        {/* The read-only screens reload a session that predates the lab's
+            first purchase; only the form creates the profile. */}
+        <Route
+          index
+          element={
+            <BuyerSessionRefresh>
+              <OrdersListPage buyer />
+            </BuyerSessionRefresh>
+          }
+        />
         <Route
           path="new"
           element={
@@ -31,10 +40,21 @@ export default function LabPurchasesRoutes() {
             </BuyerProfileGate>
           }
         />
-        <Route path=":orderId" element={<OrderDetailPage buyer />} />
+        <Route
+          path=":orderId"
+          element={
+            <BuyerSessionRefresh>
+              <OrderDetailPage buyer />
+            </BuyerSessionRefresh>
+          }
+        />
         <Route
           path=":orderId/edit"
-          element={<OrderEditPage basePath={PURCHASE_PATHS.orders} buyer />}
+          element={
+            <BuyerSessionRefresh>
+              <OrderEditPage basePath={PURCHASE_PATHS.orders} buyer />
+            </BuyerSessionRefresh>
+          }
         />
         <Route path="*" element={<NotFoundPage />} />
       </Routes>
