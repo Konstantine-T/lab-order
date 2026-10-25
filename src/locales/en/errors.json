@@ -28,5 +28,11 @@
     "permission": "You do not have permission to do this.",
     "network": "No connection. Check the internet and try again.",
     "generic": "Something went wrong. Try again."
+  },
+  "labBuying": {
+    "lab_cannot_buy": "Only an approved, active lab can order from other labs.",
+    "cannot_order_from_own_lab": "A lab cannot order from itself. Choose another lab.",
+    "patient_required": "Enter the patient's first and last name.",
+    "invoice_recipient_not_allowed": "This invoice recipient is not available for this order. Choose the doctor or the clinic."
   }
 }

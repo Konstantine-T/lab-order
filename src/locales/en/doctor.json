@@ -413,7 +413,8 @@
       "requested": "Requested: {{date}}",
       "paid": "{{amount}} paid",
       "invoiceToClinic": "Invoiced to the clinic — {{name}}",
-      "invoiceToDoctor": "Invoiced to the doctor — {{name}}"
+      "invoiceToDoctor": "Invoiced to the doctor — {{name}}",
+      "invoiceToLab": "Invoiced to the laboratory: {{name}}"
     },
     "labCard": {
       "team": "Team: {{names}}",
@@ -568,5 +569,18 @@
       "placeholder": "Comment (optional)",
       "placeholderLow": "What went wrong?"
     }
+  },
+  "labBuyer": {
+    "patient": {
+      "noPatient": "No patient",
+      "withPatient": "With a patient",
+      "noPatientNote": "This order goes without a patient. Add your own reference below if it helps you find the case later.",
+      "reference": "Reference",
+      "referenceHint": "Optional, up to {{max}} characters. For example: Case 145"
+    },
+    "deliveredTo": "Delivered to",
+    "invoiceTo": "Invoice to",
+    "idCode": "ID {{code}}",
+    "fixedTitle": "Delivery and invoice"
   }
 }

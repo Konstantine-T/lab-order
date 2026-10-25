@@ -424,7 +424,8 @@
       "requested": "Желаемый: {{date}}",
       "paid": "Оплачено {{amount}}",
       "invoiceToClinic": "Счёт на клинику — {{name}}",
-      "invoiceToDoctor": "Счёт на врача — {{name}}"
+      "invoiceToDoctor": "Счёт на врача — {{name}}",
+      "invoiceToLab": "Счёт на лабораторию: {{name}}"
     },
     "labCard": {
       "team": "Команда: {{names}}",
@@ -585,5 +586,18 @@
     "ratedA11y_many": "Оценка {{average}} из 5, {{count}} отзывов",
     "starLabel_few": "{{count}} звезды",
     "starLabel_many": "{{count}} звёзд"
+  },
+  "labBuyer": {
+    "patient": {
+      "noPatient": "Без пациента",
+      "withPatient": "С пациентом",
+      "noPatientNote": "Заказ отправляется без пациента. При желании добавьте ниже свою пометку, чтобы потом легко найти этот случай.",
+      "reference": "Пометка",
+      "referenceHint": "Необязательно, до {{max}} символов. Например: Кейс 145"
+    },
+    "deliveredTo": "Доставка",
+    "invoiceTo": "Счёт",
+    "idCode": "ид. код {{code}}",
+    "fixedTitle": "Доставка и счёт"
   }
 }

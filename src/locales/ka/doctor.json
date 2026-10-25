@@ -412,7 +412,8 @@
       "requested": "სასურველი: {{date}}",
       "paid": "გადახდილია {{amount}}",
       "invoiceToClinic": "ინვოისი კლინიკაზე — {{name}}",
-      "invoiceToDoctor": "ინვოისი ექიმზე — {{name}}"
+      "invoiceToDoctor": "ინვოისი ექიმზე — {{name}}",
+      "invoiceToLab": "ინვოისი ლაბორატორიაზე: {{name}}"
     },
     "labCard": {
       "team": "ტექნიკოსი: {{names}}",
@@ -567,5 +568,18 @@
       "placeholder": "კომენტარი (არასავალდებულო)",
       "placeholderLow": "რა იყო არასწორად?"
     }
+  },
+  "labBuyer": {
+    "patient": {
+      "noPatient": "პაციენტის გარეშე",
+      "withPatient": "პაციენტით",
+      "noPatientNote": "შეკვეთა იგზავნება პაციენტის გარეშე. თუ გსურთ, ქვემოთ დაამატეთ საკუთარი მითითება, რომ ქეისი მოგვიანებით მარტივად იპოვოთ.",
+      "reference": "მითითება",
+      "referenceHint": "არასავალდებულო, მაქსიმუმ {{max}} სიმბოლო. მაგალითად: ქეისი 145"
+    },
+    "deliveredTo": "მიწოდება",
+    "invoiceTo": "ინვოისი",
+    "idCode": "ს/კ {{code}}",
+    "fixedTitle": "მიწოდება და ინვოისი"
   }
 }

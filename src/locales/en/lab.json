@@ -41,7 +41,9 @@
     "debts": "Debts",
     "platformBilling": "Platform billing",
     "staff": "Staff",
-    "reviews": "Reviews"
+    "reviews": "Reviews",
+    "marketplace": "Marketplace",
+    "purchases": "My orders to labs"
   },
   "finances": {
     "title": "Finances",
@@ -65,7 +67,8 @@
       "maxAmount": "Max owed",
       "overdueOnly": "Overdue only",
       "clear": "Clear filters",
-      "noResults": "No receivables match your filters."
+      "noResults": "No receivables match your filters.",
+      "lab": "Laboratory"
     },
     "sort": {
       "outstanding_desc": "Most owed",
@@ -476,7 +479,13 @@
       "noMatches": "No matches",
       "clearField": "Clear",
       "openList": "Open",
-      "noFinalPrice": "No final price"
+      "noFinalPrice": "No final price",
+      "customer": "Customer",
+      "customerKind": {
+        "all": "All",
+        "doctors": "Doctors",
+        "labs": "Laboratories"
+      }
     },
     "columns": {
       "code": "Order",
@@ -553,7 +562,8 @@
       },
       "invoice": {
         "DOCTOR": "Doctor",
-        "CLINIC": "Clinic"
+        "CLINIC": "Clinic",
+        "LAB": "Laboratory"
       },
       "whatChanged": "What the doctor changed",
       "otherAnswers": "Other answers",
@@ -631,7 +641,11 @@
       "priceChanged": "Check that the explanation matches the new price",
       "stillCorrect": "The explanation is still correct",
       "confirmRequired": "Update the explanation or confirm that it is still correct."
-    }
+    },
+    "laboratory": "Laboratory",
+    "labIdCode": "ID code {{code}}",
+    "patientReference": "Reference: {{ref}}",
+    "referenceNoPatient": "Reference only, no patient"
   },
   "approvalBanner": {
     "PENDING_APPROVAL": {
@@ -1184,5 +1198,8 @@
     "reportBody": "Tell the platform what is wrong with this review. An administrator will hide it or keep it.",
     "reportReason": "Reason",
     "reportSubmit": "Send report"
+  },
+  "customer": {
+    "fromLab": "From a lab"
   }
 }
