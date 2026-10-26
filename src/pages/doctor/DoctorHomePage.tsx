@@ -3,6 +3,7 @@ import { Box, Button, Stack, Typography } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { statusLabel } from '@/features/orders/statusLabel';
 import dayjs from 'dayjs';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -173,19 +174,19 @@ export function DoctorHomePage() {
           {/* A square reading 0 has nothing to open: no onClick. */}
           <StatCard
             dotColor="#F59E0B"
-            label={tc('orderStatus.SUBMITTED')}
+            label={statusLabel('SUBMITTED', tc)}
             value={stats.submitted.length}
             caption={t('home.stats.awaitingLab')}
             onClick={stats.submitted.length > 0 ? () => openPreset('submitted') : undefined}
-            ariaLabel={showLabel(tc('orderStatus.SUBMITTED'), stats.submitted.length)}
+            ariaLabel={showLabel(statusLabel('SUBMITTED', tc), stats.submitted.length)}
           />
           <StatCard
             dotColor="#9292FF"
-            label={tc('orderStatus.IN_PROGRESS')}
+            label={statusLabel('IN_PROGRESS', tc)}
             value={stats.open.length}
             caption={t('home.stats.openCases')}
             onClick={stats.open.length > 0 ? () => openPreset('open') : undefined}
-            ariaLabel={showLabel(tc('orderStatus.IN_PROGRESS'), stats.open.length)}
+            ariaLabel={showLabel(statusLabel('IN_PROGRESS', tc), stats.open.length)}
           />
           <StatCard
             dotColor="#DC2626"

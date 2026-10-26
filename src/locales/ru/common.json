@@ -55,11 +55,14 @@
     "IN_PROGRESS": "В работе",
     "READY_FOR_DELIVERY": "Готов к отправке",
     "SENT_TO_CLINIC": "Отправлен в клинику",
-    "RECEIVED_BY_CLINIC": "Получен клиникой",
+    "RECEIVED_BY_CLINIC": "Получено в клинике",
     "TRY_IN_PHASE": "Этап примерки",
     "COMPLETED": "Завершён",
     "CANCELLED": "Отменён",
-    "NEEDS_DOCTOR_INPUT": "Требует правок от врача"
+    "NEEDS_DOCTOR_INPUT": "Требует правок от врача",
+    "labSide": {
+      "SUBMITTED": "Отправлен"
+    }
   },
   "paymentStatus": {
     "UNPAID": "Не оплачено",
@@ -555,5 +558,20 @@
     "show": "Показать: {{label}} ({{value}})"
   },
   "clinicLabel": "Клиника: {{clinic}}",
-  "clinicsLabel": "Клиники: {{clinics}}"
+  "clinicsLabel": "Клиники: {{clinics}}",
+  "statusHistory": {
+    "show": "Показать историю статусов",
+    "title": "История статусов",
+    "empty": "Изменений статуса пока не записано.",
+    "reason": "Причина: {{reason}}",
+    "backfilled": "Изменения до {{date}} не записывались; известны только даты создания, завершения и отмены.",
+    "role": {
+      "LAB": "Лаборатория",
+      "DOCTOR": "Врач",
+      "BUYER_LAB": "Лаборатория",
+      "CLINIC": "Клиника",
+      "ADMIN": "Платформа",
+      "SYSTEM": "Автоматически"
+    }
+  }
 }

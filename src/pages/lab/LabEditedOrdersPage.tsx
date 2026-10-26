@@ -103,7 +103,7 @@ export function LabEditedOrdersPage() {
                     </>
                   ) : undefined
                 }
-                status={<OrderStatusChip status={row.status} />}
+                status={<OrderStatusChip status={row.status} side="lab" />}
                 total={total != null ? formatGEL(total) : '—'}
                 createdDate={pastDate(row.created_at, tc)}
                 dueDate={due}

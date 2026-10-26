@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers';
 import { useTranslation } from 'react-i18next';
+import { statusLabel } from '@/features/orders/statusLabel';
 import { ChoicePill, Icon } from '@/components/design';
 import { focusRing, motion, radii, surfaces, tone } from '@/theme/tokens';
 import type { OrderStatus } from '@/types/database';
@@ -433,13 +434,13 @@ export function OrdersFilterBar({
               onChange={(e) => filters.setStatuses(e.target.value as OrderStatus[])}
               input={<OutlinedInput label={t('doctor:orders.filters.status')} />}
               renderValue={(sel) =>
-                sel.length === 0 ? '' : sel.map((s) => t(`orderStatus.${s}`)).join(', ')
+                sel.length === 0 ? '' : sel.map((s) => statusLabel(s, t)).join(', ')
               }
             >
               {ALL_STATUSES.map((s) => (
                 <MenuItem key={s} value={s}>
                   <Checkbox checked={filters.statuses.includes(s)} size="small" />
-                  <ListItemText primary={t(`orderStatus.${s}`)} />
+                  <ListItemText primary={statusLabel(s, t)} />
                 </MenuItem>
               ))}
             </Select>

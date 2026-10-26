@@ -78,6 +78,8 @@ function listenersFor(
           : []),
         { table: 'order_clarifications', events: both },
         { table: 'order_files', events: both },
+        // Status history rows (0052): inserted only; RLS limits them to visible orders.
+        { table: 'order_status_history', events: ['INSERT'] },
         { table: 'clinic_doctor_invites', events: both },
         ...(ids.doctorId
           ? [
@@ -124,6 +126,8 @@ function listenersFor(
         { table: 'lab_review_reports', events: both },
         { table: 'order_clarifications', events: both },
         { table: 'order_files', events: both },
+        // Status history rows (0052): inserted only; RLS limits them to visible orders.
+        { table: 'order_status_history', events: ['INSERT'] },
       ];
     case 'CLINIC_ADMIN':
       return [
@@ -132,6 +136,8 @@ function listenersFor(
         { table: 'orders', events: both },
         { table: 'order_clarifications', events: both },
         { table: 'order_files', events: both },
+        // Status history rows (0052): inserted only; RLS limits them to visible orders.
+        { table: 'order_status_history', events: ['INSERT'] },
         { table: 'clinic_doctor_invites', events: both },
         // Its roster (0050); RLS limits it to the clinic's own rows.
         { table: 'clinic_memberships', events: both },

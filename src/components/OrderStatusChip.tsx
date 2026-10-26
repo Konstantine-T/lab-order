@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { StatusPill } from '@/components/design/StatusPill';
 import type { Tone } from '@/theme/tokens';
 import type { OrderStatus, PaymentStatus } from '@/types/database';
+import { statusLabel, type StatusSide } from '@/features/orders/statusLabel';
 
 // Tones follow the mockups: brand for work in progress, warning for anything
 // waiting on a human, sky for a case that has left the lab, green once it is
@@ -29,9 +30,16 @@ const PAYMENT_TONE: Record<PaymentStatus, Tone> = {
   PAID: 'success',
 };
 
-export function OrderStatusChip({ status }: { status: OrderStatus }) {
+export function OrderStatusChip({
+  status,
+  side = 'doctor',
+}: {
+  status: OrderStatus;
+  /** The lab's screens say "გამოგზავნილი" for a new order (see statusLabel). */
+  side?: StatusSide;
+}) {
   const { t } = useTranslation('common');
-  return <StatusPill tone={ORDER_TONE[status]}>{t(`orderStatus.${status}`)}</StatusPill>;
+  return <StatusPill tone={ORDER_TONE[status]}>{statusLabel(status, t, side)}</StatusPill>;
 }
 
 export function PaymentStatusChip({ status }: { status: PaymentStatus }) {

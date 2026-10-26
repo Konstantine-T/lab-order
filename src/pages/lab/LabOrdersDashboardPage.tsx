@@ -21,6 +21,7 @@ import { DatePicker } from '@mui/x-date-pickers';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { statusLabel } from '@/features/orders/statusLabel';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -413,14 +414,14 @@ export function LabOrdersDashboardPage() {
             icon="precision_manufacturing"
             tone="brand"
             value={stats.inProgress}
-            label={tc('orderStatus.IN_PROGRESS')}
+            label={statusLabel('IN_PROGRESS', tc, 'lab')}
             onClick={stats.inProgress > 0 ? showInProgress : undefined}
           />
           <StatTile
             icon="package_2"
             tone="success"
             value={stats.ready}
-            label={tc('orderStatus.READY_FOR_DELIVERY')}
+            label={statusLabel('READY_FOR_DELIVERY', tc, 'lab')}
             onClick={stats.ready > 0 ? showReady : undefined}
           />
         </StatGrid>
@@ -508,13 +509,13 @@ export function LabOrdersDashboardPage() {
                     onChange={(e) => setStatuses(e.target.value as OrderStatus[])}
                     input={<OutlinedInput label={t('ordersDashboard.filters.status')} />}
                     renderValue={(sel) =>
-                      sel.length === 0 ? '' : sel.map((s) => tc(`orderStatus.${s}`)).join(', ')
+                      sel.length === 0 ? '' : sel.map((s) => statusLabel(s, tc, 'lab')).join(', ')
                     }
                   >
                     {FILTERABLE_STATUSES.map((s) => (
                       <MenuItem key={s} value={s}>
                         <Checkbox checked={statuses.includes(s)} size="small" />
-                        <ListItemText primary={tc(`orderStatus.${s}`)} />
+                        <ListItemText primary={statusLabel(s, tc, 'lab')} />
                       </MenuItem>
                     ))}
                   </Select>
@@ -786,14 +787,14 @@ export function LabOrdersDashboardPage() {
                             })}
                           />
                           <Typography sx={{ fontSize: '0.71875rem', fontWeight: 600 }} noWrap>
-                            {tc(`orderStatus.${v as OrderStatus}`)}
+                            {statusLabel(v as OrderStatus, tc, 'lab')}
                           </Typography>
                         </Stack>
                       )}
                     >
                       {LAB_SELECTABLE_STATUSES.map((s) => (
                         <MenuItem key={s} value={s}>
-                          {tc(`orderStatus.${s}`)}
+                          {statusLabel(s, tc, 'lab')}
                         </MenuItem>
                       ))}
                     </Select>

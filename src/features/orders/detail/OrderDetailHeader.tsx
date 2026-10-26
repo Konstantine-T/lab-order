@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { Box, Link, Stack, Typography } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { statusLabel } from '@/features/orders/statusLabel';
 import { Icon, StatusPill } from '@/components/design';
 import { statusTone } from '@/components/OrderStatusChip';
 import { motion } from '@/theme/tokens';
@@ -73,7 +74,7 @@ export function OrderDetailHeader({
 
   const pill = (
     <StatusPill tone={statusTone(order.status)} dot sx={{ flexShrink: 0 }}>
-      {tc(`orderStatus.${order.status}`)}
+      {statusLabel(order.status, tc)}
     </StatusPill>
   );
 

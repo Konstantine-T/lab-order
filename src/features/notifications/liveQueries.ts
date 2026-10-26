@@ -29,7 +29,8 @@ export type LiveTable =
   | 'feedback'
   | 'lab_reviews'
   | 'lab_review_reports'
-  | 'clinic_memberships';
+  | 'clinic_memberships'
+  | 'order_status_history';
 
 type Row = Record<string, unknown>;
 
@@ -159,6 +160,11 @@ export function keysForRow(table: LiveTable, row: Row): QueryKey[] {
       // does not deliver; it shows on the next fetch, and the clinic hears of
       // it through its doctor_left notification.
       return [['my-clinic'], ['clinic-doctors'], ['acting-doctor'], ['clinic-order-count']];
+    case 'order_status_history': {
+      // The history dialog (0052); the order itself moves through `orders`.
+      const orderId = str(row.order_id);
+      return orderId ? [['order-status-history', orderId]] : [['order-status-history']];
+    }
     case 'feedback':
       return [['admin-feedback'], ['admin-feedback-count']];
     case 'lab_reviews': {
@@ -216,6 +222,7 @@ export const ALL_LIVE_KEYS: QueryKey[] = (() => {
     'lab_reviews',
     'lab_review_reports',
     'clinic_memberships',
+    'order_status_history',
   ];
   // A row with no ids yields the list keys; the per-id keys are covered by
   // their first element as a prefix.

@@ -212,6 +212,27 @@ export interface ClinicRow {
   updated_at: string;
 }
 
+/** Who made a status change (0052): `SYSTEM` is the SQL editor, a job, or unknown. */
+export type StatusActorRole = 'LAB' | 'DOCTOR' | 'BUYER_LAB' | 'CLINIC' | 'ADMIN' | 'SYSTEM';
+
+/** One row of `order_status_history` (0052), written only by triggers. */
+export interface OrderStatusHistoryRow {
+  id: string;
+  order_id: string;
+  /** Null on the first row (the order's creation) and on backfilled rows. */
+  from_status: OrderStatus | null;
+  to_status: OrderStatus;
+  changed_at: string;
+  changed_by_user_id: string | null;
+  actor_role: StatusActorRole;
+  /** The lab's, clinic's or doctor's name as it was at the time. */
+  actor_name: string | null;
+  /** The cancellation reason, on a CANCELLED row. */
+  note: string | null;
+  /** Reconstructed for an order placed before 0052: only the known dates. */
+  backfilled: boolean;
+}
+
 /** One row of `clinic_memberships` (0050): a doctor may be in several clinics. */
 export interface ClinicMembershipRow {
   clinic_id: string;

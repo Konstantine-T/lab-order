@@ -1,5 +1,8 @@
+import { Box } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { ProgressSteps, SectionCard, type Step } from '@/components/design';
+import { statusLabel } from '@/features/orders/statusLabel';
+import { StatusHistoryButton } from '@/features/orders/statusHistory/StatusHistoryButton';
 import { ORDER_PIPELINE, PIPELINE_ICONS, pipelineIndex } from '@/features/orders/pipeline';
 import { dueDateOf } from '@/features/orders/orderDates';
 import { formatGELShort } from '@/utils/pricing';
@@ -10,14 +13,14 @@ import type { DetailOrder } from './types';
 /**
  * The case tracker across the six pipeline stages.
  *
- * Every line under a stage is something the database actually holds. There is
- * no status history table, so a stage gets a timestamp only where a column
- * records one — `created_at` for sending, `completed_at` for closing — and the
- * rest carry facts instead: what the lab confirmed, who is on the case now,
- * and when it is due. The mockups' "expected on the 30th" has no source here
- * and is not drawn.
+ * Every line under a stage is something the order row holds: a stage gets a
+ * timestamp only where a column records one — `created_at` for sending,
+ * `completed_at` for closing — and the rest carry facts instead: what the lab
+ * confirmed, who is on the case now, and when it is due. The full timeline is
+ * behind "Show status history" (0052). The mockups' "expected on the 30th" has
+ * no source here and is not drawn.
  *
- * A cancelled order has no position on the pipeline and renders nothing.
+ * A cancelled order has no position on the pipeline: only the history button.
  */
 export function OrderStepperCard({
   order,
@@ -30,7 +33,11 @@ export function OrderStepperCard({
   const { t: tc } = useTranslation('common');
 
   const current = pipelineIndex(order.status);
-  if (current == null) return null;
+  // The doctor's side: a lab's own purchases (0048) are read here too.
+  const history = <StatusHistoryButton orderId={order.id} side="doctor" />;
+  if (current == null) {
+    return <SectionCard>{history}</SectionCard>;
+  }
 
   const complete = order.status === 'COMPLETED';
   const due = dueDateOf(order);
@@ -64,7 +71,12 @@ export function OrderStepperCard({
 
     return {
       key: stage,
-      label: tc(`orderStatus.${stage}`),
+      // "Received at clinic" sits on the hand-over stage (pipeline.ts) and is
+      // named there once the clinic has marked it (0052).
+      label:
+        stage === 'SENT_TO_CLINIC' && order.status === 'RECEIVED_BY_CLINIC'
+          ? statusLabel('RECEIVED_BY_CLINIC', tc)
+          : statusLabel(stage, tc),
       icon: PIPELINE_ICONS[stage],
       at,
       note: notes.length ? notes.join(' · ') : undefined,
@@ -80,6 +92,7 @@ export function OrderStepperCard({
         complete={complete}
         ariaLabel={t('orderDetail.caseProgress')}
       />
+      <Box sx={{ mt: 1.25 }}>{history}</Box>
     </SectionCard>
   );
 }

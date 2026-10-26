@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { alpha, Box, Stack, Typography, useTheme } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { statusLabel } from '@/features/orders/statusLabel';
 import dayjs, { type Dayjs } from 'dayjs';
 import { Icon, ProgressBar, StatusPill } from '@/components/design';
 import { LineageBadge } from '@/features/orders/LineageBadge';
@@ -365,7 +366,7 @@ function stateTag(row: ListOrderRow, group: OrderGroupKey, t: TranslateFn, now: 
         return { label: t('orderList.tag.needsChange'), tone: 'gold' };
       if (row.status === 'RECEIVED_BY_CLINIC')
         return { label: t('orderList.tag.readyToClose'), tone: 'gold' };
-      return { label: t(`orderStatus.${row.status}`), tone: 'gold' };
+      return { label: statusLabel(row.status, t), tone: 'gold' };
     case 'sent': {
       // "12 min ago", "today", "yesterday". Older than that it would only
       // repeat the creation date the header already shows beside the code.
@@ -376,7 +377,7 @@ function stateTag(row: ListOrderRow, group: OrderGroupKey, t: TranslateFn, now: 
       // Still NEEDS_CLARIFICATION but answered: the lab's move again.
       if (row.status === 'NEEDS_CLARIFICATION')
         return { label: t('orderList.tag.answered'), tone: 'muted' };
-      return { label: t(`orderStatus.${row.status}`), tone: 'muted' };
+      return { label: statusLabel(row.status, t), tone: 'muted' };
     case 'ready':
       return { label: t('orderList.tag.ready'), tone: 'aqua' };
     case 'delivered':
@@ -388,7 +389,7 @@ function stateTag(row: ListOrderRow, group: OrderGroupKey, t: TranslateFn, now: 
         };
       }
       return group === 'delivered'
-        ? { label: t(`orderStatus.${row.status}`), tone: 'muted' }
+        ? { label: statusLabel(row.status, t), tone: 'muted' }
         : null;
     default:
       return null;

@@ -21,6 +21,8 @@ import {
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { statusLabel } from '@/features/orders/statusLabel';
+import { StatusHistoryButton } from '@/features/orders/statusHistory/StatusHistoryButton';
 import { DatePicker, TimePicker } from '@mui/x-date-pickers';
 import { formatDueWindow } from '@/features/orders/orderDates';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -480,7 +482,7 @@ export function LabOrderSheetPage() {
         })}
         chips={
           <>
-            <OrderStatusChip status={order.status} />
+            <OrderStatusChip status={order.status} side="lab" />
             {edits.length > 0 && (
               <StatusPill tone="warning">
                 <Icon name="difference" size={14} />
@@ -507,7 +509,7 @@ export function LabOrderSheetPage() {
                     onClick={() => setPendingStatus(s)}
                     disabled={isTerminal}
                   >
-                    {tc(`orderStatus.${s}`)}
+                    {statusLabel(s, tc, 'lab')}
                   </ChoicePill>
                 ))}
               </PillRow>
@@ -555,6 +557,10 @@ export function LabOrderSheetPage() {
                   {statusDirty ? t('orderSheet.saveStatus') : t('orderSheet.statusSaved')}
                 </Button>
               </Stack>
+              {/* Every status the order has had, and who set it (0052). */}
+              <Box sx={{ mt: 1.25 }}>
+                <StatusHistoryButton orderId={order.id} side="lab" />
+              </Box>
             </SectionCard>
 
             {/* Final price + confirmed due date */}

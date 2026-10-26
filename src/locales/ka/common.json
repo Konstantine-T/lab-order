@@ -55,11 +55,14 @@
     "IN_PROGRESS": "მიმდინარე",
     "READY_FOR_DELIVERY": "მზადაა მიწოდებისთვის",
     "SENT_TO_CLINIC": "გაგზავნილი კლინიკაში",
-    "RECEIVED_BY_CLINIC": "მიიღო კლინიკამ",
+    "RECEIVED_BY_CLINIC": "კლინიკაში მიღებული",
     "TRY_IN_PHASE": "მოსინჯვის ეტაპი",
     "COMPLETED": "დასრულებული",
     "CANCELLED": "გაუქმებული",
-    "NEEDS_DOCTOR_INPUT": "საჭიროებს დაზუსტებას ექიმის მხრიდან"
+    "NEEDS_DOCTOR_INPUT": "საჭიროებს დაზუსტებას ექიმის მხრიდან",
+    "labSide": {
+      "SUBMITTED": "გამოგზავნილი"
+    }
   },
   "paymentStatus": {
     "UNPAID": "გადაუხდელი",
@@ -549,5 +552,20 @@
     "show": "ჩვენება: {{label}} ({{value}})"
   },
   "clinicLabel": "კლინიკა: {{clinic}}",
-  "clinicsLabel": "კლინიკები: {{clinics}}"
+  "clinicsLabel": "კლინიკები: {{clinics}}",
+  "statusHistory": {
+    "show": "სტატუსების ისტორიის ნახვა",
+    "title": "სტატუსების ისტორია",
+    "empty": "სტატუსის ცვლილებები ჯერ არ ჩაწერილა.",
+    "reason": "მიზეზი: {{reason}}",
+    "backfilled": "{{date}}-მდე ცვლილებები არ იწერებოდა; ცნობილია მხოლოდ შექმნის, დასრულებისა და გაუქმების თარიღები.",
+    "role": {
+      "LAB": "ლაბორატორია",
+      "DOCTOR": "ექიმი",
+      "BUYER_LAB": "ლაბორატორია",
+      "CLINIC": "კლინიკა",
+      "ADMIN": "პლატფორმა",
+      "SYSTEM": "ავტომატურად"
+    }
+  }
 }

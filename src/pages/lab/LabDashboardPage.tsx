@@ -3,6 +3,7 @@ import { Box, Button, Stack, Typography } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { statusLabel } from '@/features/orders/statusLabel';
 import dayjs from 'dayjs';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
@@ -214,11 +215,11 @@ export function LabDashboardPage() {
               />
               <StatCard
                 dotColor="#9292FF"
-                label={tc('orderStatus.IN_PROGRESS')}
+                label={statusLabel('IN_PROGRESS', tc, 'lab')}
                 value={stats.inProgress}
                 caption={t('dashboard.openOrders')}
                 onClick={stats.inProgress > 0 ? () => openPreset('inProgress') : undefined}
-                ariaLabel={showLabel(tc('orderStatus.IN_PROGRESS'), stats.inProgress)}
+                ariaLabel={showLabel(statusLabel('IN_PROGRESS', tc, 'lab'), stats.inProgress)}
               />
               <StatCard
                 dotColor="#DC2626"
@@ -322,7 +323,7 @@ export function LabDashboardPage() {
                             {isLabPurchase(o) && <FromLabBadge />}
                           </Stack>
                         </Box>
-                        <OrderStatusChip status={o.status} />
+                        <OrderStatusChip status={o.status} side="lab" />
                       </Stack>
                     );
                   })
