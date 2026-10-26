@@ -74,6 +74,7 @@ import {
   patientLabel,
 } from '@/features/lab/orders/labCustomer';
 import {
+  CLOSED_STATUSES,
   FILTERABLE_STATUSES,
   isOrderPreset,
   matchesPreset,
@@ -296,6 +297,9 @@ export function LabOrdersDashboardPage() {
       ready: open.filter((o) => o.status === 'READY_FOR_DELIVERY').length,
     };
   }, [orders]);
+
+  // For the rows' overdue pill: the same rule the "Overdue" tile counts by.
+  const rowDates = queueDates();
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visible = useMemo(
@@ -605,8 +609,14 @@ export function LabOrdersDashboardPage() {
               const total = row.final_total ?? row.generated_total;
               const dueRaw = dueDateOf(row);
               const daysOut = dueRaw ? dayjs(dueRaw).diff(dayjs(), 'day') : null;
-              const dueTone =
-                daysOut == null || row.status === 'COMPLETED'
+              // Red once the date has passed on a case still open: exactly the
+              // rows the "Overdue" preset finds, so the colour and the count
+              // agree. A closed case has no deadline left to miss.
+              const overdue = matchesPreset(row, 'overdue', rowDates);
+              const closed = (CLOSED_STATUSES as readonly OrderStatus[]).includes(row.status);
+              const dueTone = overdue
+                ? 'danger'
+                : daysOut == null || closed
                   ? 'neutral'
                   : daysOut <= 1
                     ? 'warning'
@@ -721,6 +731,7 @@ export function LabOrdersDashboardPage() {
                       which looks back, with its year when not this one's. */}
                   <Stack spacing={0.375} sx={{ minWidth: 0 }}>
                     <Box
+                      title={overdue ? t('dashboard.overdue') : undefined}
                       sx={(theme) => ({
                         textAlign: 'center',
                         py: 0.5,
