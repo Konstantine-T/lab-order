@@ -53,6 +53,14 @@ import {
 } from '@/features/labBuying/buyerMode';
 import { buyerPatientPayload, labDeliveryLine, labInvoiceLine } from '@/features/labBuying/buyerOrder';
 import { orderErrorText } from '@/features/labBuying/buyerErrors';
+import { useMyClinics } from '@/features/clinic/useMyClinic';
+import {
+  clinicDeliveryLine,
+  clinicForOrder,
+  clinicInvoiceLine,
+  PRIVATE_ORDER,
+  type ClinicForOrder,
+} from '@/features/clinic/clinicOrder';
 import { useFocusedShell } from '@/layouts/shellFocus';
 import { useSections, type SectionEntry } from '@/features/orderForms/wizard/sectionRegistry';
 import { SectionRegistryProvider } from '@/features/orderForms/wizard/SectionRegistryProvider';
@@ -293,10 +301,65 @@ export function OrderCreateWizard({
     });
   }, [isContinuation, continuePatientRow, buyer]);
 
+  // ----- Whom the order is for (0050) ---------------------------------------
+  // A doctor's order belongs to one of their clinics or is their private
+  // work; a clinic admin's is always for their own clinic. A clinic order is
+  // delivered to the clinic and invoiced to it: nothing to pick or type.
+  const doctorMode = !guest && !buyer && !isClinic;
+  const myClinicsQuery = useMyClinics();
+  const myClinics = useMemo(
+    () => (doctorMode ? (myClinicsQuery.data ?? []) : []),
+    [doctorMode, myClinicsQuery.data],
+  );
+  // Until it answers, a doctor could send what should have been a clinic's
+  // order as their own. A failed read leaves them with private orders only.
+  const clinicsPending = doctorMode && myClinicsQuery.isLoading;
+
+  // The default: the clinic of the doctor's latest order, else private.
+  const { data: lastClinicId, isSuccess: lastClinicLoaded } = useQuery({
+    queryKey: ['doctor-last-order-clinic', doctorId],
+    enabled: doctorMode && !!doctorId && myClinics.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('clinic_id')
+        .eq('doctor_id', doctorId!)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return ((data as { clinic_id: string | null } | null)?.clinic_id ?? null) as string | null;
+    },
+  });
+
+  useEffect(() => {
+    if (!doctorMode || myClinics.length === 0) return;
+    const choice = state.clinic_choice;
+    // A clinic left since the draft was saved is no longer a choice.
+    if (choice && choice !== PRIVATE_ORDER && !myClinics.some((c) => c.id === choice)) {
+      update({ clinic_choice: PRIVATE_ORDER });
+      return;
+    }
+    if (choice || !lastClinicLoaded) return;
+    const last = myClinics.find((c) => c.id === lastClinicId && c.workingAddress);
+    update({ clinic_choice: last ? last.id : PRIVATE_ORDER });
+  }, [doctorMode, myClinics, state.clinic_choice, lastClinicLoaded, lastClinicId]);
+
+  const chosenClinic: ClinicForOrder | null = isClinic
+    ? user?.clinic
+      ? clinicForOrder(user.clinic)
+      : null
+    : (myClinics.find((c) => c.id === state.clinic_choice) ?? null);
+  const clinicOrder = !!chosenClinic;
+  // Nobody can order for a clinic that has not said where to deliver (owner).
+  const clinicAddressMissing = !!chosenClinic && !chosenClinic.workingAddress;
+
   // ----- Data queries -------------------------------------------------------
   const { data: locations = [] } = useQuery({
     queryKey: ['doctor-locations-for-order', doctorId],
-    enabled: !!doctorId,
+    // A clinic admin orders for its own clinic, never from the doctor's own
+    // locations, which it can no longer read (0050).
+    enabled: !!doctorId && !isClinic,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('doctor_work_locations')
@@ -443,9 +506,10 @@ export function OrderCreateWizard({
       // A guest has no locations by definition, and is told so in words; a
       // red field on top would be nagging about something they cannot do yet.
       noLocations: guest || locations.length === 0,
-      // A buying lab may leave the patient out, and never picks a location.
+      // A buying lab may leave the patient out, and never picks a location;
+      // neither does an order for a clinic (0050).
       noPatient: !!buyer && !state.with_patient,
-      deliveryFixed: !!buyer,
+      deliveryFixed: !!buyer || clinicOrder,
     });
   // Once a submit has failed, keep the named problems in sync with what the
   // doctor is typing — a field they have just fixed must stop being red
@@ -556,25 +620,40 @@ export function OrderCreateWizard({
       if (!version) throw new Error('No form version');
       const submittedRush = rush ?? { type: 'NONE' as RushType, value: 0 };
       // clinic_submit_order (0014) re-checks the doctor-clinic link server-side
-      // and attributes the order to the doctor, not to the admin who typed it.
+      // and attributes the order to the doctor, not to the admin who typed it;
+      // the order is for the admin's own clinic (0050).
       const { data, error } = await supabase.rpc(
         isClinic ? 'clinic_submit_order' : 'submit_order',
         {
-        ...(isClinic ? { p_doctor_id: doctorId } : {}),
+        ...(isClinic
+          ? { p_doctor_id: doctorId }
+          : // Always explicit: a clinic's id, or private. Neither is what an
+            // old client sends, which the server reads as "as before 0050".
+            clinicOrder
+            ? { p_clinic_id: chosenClinic!.id }
+            : { p_private: true }),
         p_lab_id: state.lab_id,
         p_lab_service_id: state.lab_service_id,
         // A buying lab's delivery is its own synced location whatever is sent
-        // (0048); its one location rides along when loaded.
-        p_doctor_work_location_id: buyer
-          ? state.doctor_work_location_id || null
-          : state.doctor_work_location_id,
+        // (0048); its one location rides along when loaded. A clinic order
+        // goes to the clinic, whatever is sent (0050).
+        p_doctor_work_location_id: clinicOrder
+          ? null
+          : buyer
+            ? state.doctor_work_location_id || null
+            : state.doctor_work_location_id,
         // Normalized so the server's dedup guard sees the same string the
         // wizard's match lookup did — otherwise "გივი " and "გივი" become two
         // patients. A buying lab's may be "no patient", with a reference.
         p_patient: buyer ? buyerPatientPayload(state) : normalizePatientPayload(state.patient),
         p_lab_form_version_id: version.id,
-        // Always the buying lab's own company (0048); the server enforces it.
-        p_invoice_recipient_type: buyer ? 'LAB' : state.invoice_recipient_type,
+        // Always the buying lab's own company (0048), always the clinic for a
+        // clinic order (0050); the server enforces both.
+        p_invoice_recipient_type: buyer
+          ? 'LAB'
+          : clinicOrder
+            ? 'CLINIC'
+            : state.invoice_recipient_type,
         p_requested_due_date: state.requested_due_date || null,
         // Optional. Null means "that day, any time" — the window only exists
         // when the doctor asked for one.
@@ -713,7 +792,7 @@ export function OrderCreateWizard({
     (!!buyer && !state.with_patient) ||
     (!!state.patient.first_name.trim() && !!state.patient.last_name.trim() && !matchPending);
   const dueDone = !hasProblem(currentProblems, 'dueDate');
-  const locationDone = !!state.doctor_work_location_id;
+  const locationDone = !!state.doctor_work_location_id || (clinicOrder && !clinicAddressMissing);
 
   const resolveSection = useCallback(
     (e: SectionEntry) => {
@@ -736,8 +815,9 @@ export function OrderCreateWizard({
           ? { name: t('orderCreate.progress.form'), valid: formValid, sections }
           : undefined,
       due: { name: t('orderCreate.progress.dueDate'), done: dueDone },
-      // A guest picks a location only after signing in; a buying lab never.
-      location: guest || buyer
+      // A guest picks a location only after signing in; a buying lab never,
+      // nor anyone ordering for a clinic.
+      location: guest || buyer || clinicOrder
         ? undefined
         : { name: t('orderCreate.progress.workLocation'), done: locationDone },
     });
@@ -862,7 +942,7 @@ export function OrderCreateWizard({
               problems={liveProblems}
               patientName={patientName}
               submitting={submit.isPending}
-              disabled={isBroken}
+              disabled={isBroken || clinicAddressMissing || clinicsPending}
               showError={submitAttempted && !!error}
               onSubmit={handleSubmit}
               guest={guest}
@@ -875,6 +955,30 @@ export function OrderCreateWizard({
                   ? {
                       deliveredTo: labDeliveryLine(buyer.lab),
                       invoiceTo: labInvoiceLine(buyer.lab, t),
+                    }
+                  : chosenClinic
+                    ? {
+                        deliveredTo: clinicDeliveryLine(chosenClinic),
+                        invoiceTo: clinicInvoiceLine(chosenClinic, t),
+                      }
+                    : undefined
+              }
+              deliveryWarning={
+                clinicAddressMissing && chosenClinic
+                  ? isClinic
+                    ? t('orderCreate.forClinic.noAddressAdmin')
+                    : t('orderCreate.forClinic.noAddress', { clinic: chosenClinic.name })
+                  : undefined
+              }
+              forChoice={
+                myClinics.length > 0
+                  ? {
+                      value: state.clinic_choice ?? '',
+                      options: [
+                        ...myClinics.map((c) => ({ value: c.id, label: c.name })),
+                        { value: PRIVATE_ORDER, label: t('orderCreate.forClinic.private') },
+                      ],
+                      onChange: (clinic_choice) => update({ clinic_choice }),
                     }
                   : undefined
               }

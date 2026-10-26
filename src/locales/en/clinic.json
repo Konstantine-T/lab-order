@@ -3,7 +3,8 @@
     "home": "Home",
     "doctors": "Doctors",
     "orders": "Orders",
-    "finances": "Finances"
+    "finances": "Finances",
+    "profile": "Clinic profile"
   },
   "home": {
     "fallbackName": "Clinic",
@@ -12,7 +13,10 @@
       "orders": "Orders",
       "pendingInvites": "Pending invites"
     },
-    "subtitle": "Your doctors, their orders and pending invitations"
+    "subtitle": "Your doctors, their orders and pending invitations",
+    "noAddressTitle": "Add your delivery address",
+    "noAddressBody": "Your doctors cannot place orders for the clinic until it has a delivery address.",
+    "noAddressCta": "Add address"
   },
   "doctors": {
     "title": "Doctors",
@@ -20,7 +24,7 @@
     "empty": "No doctors have joined your clinic yet. Invite one above.",
     "invite": {
       "title": "Invite a doctor",
-      "hint": "Enter the email the doctor uses to sign in. They must accept the invitation before you can see their orders.",
+      "hint": "Enter the email the doctor uses to sign in. They must accept the invitation before you can place orders for them.",
       "emailLabel": "Doctor email",
       "action": "Send invite",
       "invalidEmail": "Enter a valid email address."
@@ -35,7 +39,7 @@
       "remove": "Remove from clinic",
       "removeAction": "Remove",
       "removeConfirmTitle": "Remove doctor?",
-      "removeConfirmBody": "Remove {{name}} from your clinic? You will immediately lose access to their orders."
+      "removeConfirmBody": "Remove {{name}} from your clinic? You will no longer be able to place orders for them. Orders already placed for the clinic stay with the clinic."
     }
   },
   "orders": {
@@ -132,6 +136,27 @@
       "outstanding_asc": "Least owed",
       "due_asc": "Due soonest",
       "due_desc": "Due latest"
+    }
+  },
+  "profile": {
+    "title": "Clinic profile",
+    "subtitle": "Orders placed for the clinic are delivered and invoiced with these details.",
+    "saved": "Saved.",
+    "delivery": "Delivery and contact",
+    "invoicing": "Invoicing",
+    "fields": {
+      "publicName": "Clinic name",
+      "workingAddress": "Delivery address",
+      "workingAddressHelp": "Where labs deliver the clinic's orders.",
+      "city": "City",
+      "phone": "Phone",
+      "email": "Email",
+      "legalName": "Legal name",
+      "legalNameHelp": "The company invoices are made out to. The clinic name is used when empty.",
+      "identificationCode": "Identification code",
+      "legalAddress": "Legal address",
+      "invoiceEmail": "Invoice email",
+      "invoiceEmailHelp": "Where invoices go. The email above is used when empty."
     }
   }
 }

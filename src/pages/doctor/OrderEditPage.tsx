@@ -128,6 +128,14 @@ export function OrderEditPage({
   // when a clinic admin edits on their behalf (edit_order authorizes via 0014).
   const doctorId = order?.doctor_id ?? authDoctorId;
 
+  // Delivery and invoice that cannot be changed here (0050): an order placed
+  // for a clinic keeps the clinic's (edit_order ignores what is sent), and a
+  // clinic admin cannot read the doctor's own locations to offer another. An
+  // order from before 0050 has the doctor's location even when it was
+  // backfilled to a clinic, and the doctor still edits it as before.
+  const clinicFixed = !!order?.clinic_id && !order.doctor_work_location_id && !order.buyer_lab_id;
+  const deliveryReadOnly = clinicFixed || user?.role === 'CLINIC_ADMIN';
+
   const { data: answers = [], isSuccess: answersLoaded } = useQuery({
     queryKey: ['order-answers', orderId],
     enabled: !!orderId && orderReady,
@@ -157,8 +165,9 @@ export function OrderEditPage({
 
   const { data: locations = [] } = useQuery({
     queryKey: ['doctor-locations-for-order', doctorId],
-    // A buying lab's delivery is not a choice (0048).
-    enabled: !!doctorId && !buyer,
+    // A buying lab's delivery is not a choice (0048), nor a clinic order's
+    // (0050); and it waits for the order, which decides the latter.
+    enabled: !!doctorId && !buyer && !!order && !deliveryReadOnly,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('doctor_work_locations')
@@ -197,7 +206,8 @@ export function OrderEditPage({
       with_patient: !!order.patient_id,
       patient_reference: order.patient_reference ?? '',
       answers: answersMap,
-      doctor_work_location_id: order.doctor_work_location_id,
+      // None on an order placed for a clinic (0050).
+      doctor_work_location_id: order.doctor_work_location_id ?? '',
       requested_due_date: order.requested_due_date ?? '',
       invoice_recipient_type: order.invoice_recipient_type as WizardState['invoice_recipient_type'],
     };
@@ -248,8 +258,10 @@ export function OrderEditPage({
         // of the dedup guard, so a renamed patient must not mint a duplicate.
         // A buying lab's may be "no patient", with a reference (0048).
         p_patient: buyer ? buyerPatientPayload(state) : normalizePatientPayload(state.patient),
-        // Ignored for a buying lab: its own address, its own company.
-        p_doctor_work_location_id: buyer
+        // Ignored for a buying lab (its own address, its own company) and for
+        // an order placed for a clinic (the clinic's). A clinic admin editing
+        // an older order sends the location it already has.
+        p_doctor_work_location_id: buyer || clinicFixed
           ? state.doctor_work_location_id || null
           : state.doctor_work_location_id,
         p_invoice_recipient_type: buyer ? 'LAB' : state.invoice_recipient_type,
@@ -305,7 +317,7 @@ export function OrderEditPage({
     minDays: 0,
     noLocations: locations.length === 0,
     noPatient: !!buyer && !state.with_patient,
-    deliveryFixed: !!buyer,
+    deliveryFixed: !!buyer || deliveryReadOnly,
     edit: { reasonCode: reason, comment, commentRequired },
   });
   // No locations at all is a different problem, and the callout says it.
@@ -327,7 +339,7 @@ export function OrderEditPage({
       minDays: 0,
       noLocations: locations.length === 0,
       noPatient: !!buyer && !state.with_patient,
-      deliveryFixed: !!buyer,
+      deliveryFixed: !!buyer || deliveryReadOnly,
       edit: { reasonCode: reason, comment, commentRequired },
     });
 
@@ -497,13 +509,20 @@ export function OrderEditPage({
           patientOptional={!!buyer}
         />
 
-        {buyer ? (
-          // A lab's purchase (0048): where it goes and who is invoiced are the
-          // lab's own, as the order was placed.
+        {buyer || deliveryReadOnly ? (
+          // A lab's purchase (0048), or an order for a clinic (0050): where it
+          // goes and who is invoiced are as the order was placed.
           <SectionCard icon="location_on" title={t('labBuyer.fixedTitle')}>
             <DetailList>
               <DetailRow label={t('labBuyer.deliveredTo')} labelWidth={120}>
-                {snapshotDeliveryLine(order.work_location_snapshot) || '—'}
+                {(buyer
+                  ? snapshotDeliveryLine(order.work_location_snapshot)
+                  : [
+                      (order.work_location_snapshot as { clinic_name?: string }).clinic_name,
+                      snapshotDeliveryLine(order.work_location_snapshot),
+                    ]
+                      .filter(Boolean)
+                      .join(', ')) || '—'}
               </DetailRow>
               <DetailRow label={t('labBuyer.invoiceTo')} labelWidth={120}>
                 {snapshotInvoiceLine(order.invoice_recipient_snapshot, t) || '—'}

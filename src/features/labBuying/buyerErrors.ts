@@ -48,6 +48,10 @@ const RPC_MESSAGES: Record<string, string> = {
   'you are not allowed to edit this order': 'notAllowed',
   'this order can no longer be edited': 'notEditable',
   patient_reference_too_long: 'referenceTooLong',
+  // 0050: ordering for a clinic.
+  not_in_clinic: 'notInClinic',
+  clinic_address_missing: 'clinicAddressMissing',
+  'this doctor is not in your clinic': 'doctorNotInClinic',
 };
 
 export function orderRpcErrorKey(err: unknown): string | null {

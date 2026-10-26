@@ -61,6 +61,8 @@ export function SummaryRail({
   guest,
   sendDone,
   fixedDelivery,
+  deliveryWarning,
+  forChoice,
 }: {
   state: WizardState;
   update: (p: Partial<WizardState>) => void;
@@ -85,11 +87,22 @@ export function SummaryRail({
    *  doctor, a work location is picked). */
   sendDone: boolean;
   /**
-   * A lab buying from a lab (0048): delivery and invoice are not choices. The
-   * lab's working address and its company stand where the work location and
-   * the recipient toggle would, as read-only lines.
+   * A lab buying from a lab (0048), or an order for a clinic (0050): delivery
+   * and invoice are not choices. The working address and the company stand
+   * where the work location and the recipient toggle would, as read-only lines.
    */
   fixedDelivery?: { deliveredTo: string; invoiceTo: string };
+  /** Under the fixed delivery line: why this order cannot be sent yet. */
+  deliveryWarning?: string;
+  /**
+   * A doctor in one or more clinics (0050): whom the order is for, each of
+   * their clinics or their own private work. Absent for everyone else.
+   */
+  forChoice?: {
+    value: string;
+    options: { value: string; label: string }[];
+    onChange: (value: string) => void;
+  };
 }) {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
@@ -159,6 +172,30 @@ export function SummaryRail({
       <Typography component="h2" sx={{ fontSize: '0.9375rem', fontWeight: 600, lineHeight: 1.35 }}>
         {t('orderCreate.summary')}
       </Typography>
+
+      {/* First: it decides where the order goes and who pays for it. */}
+      {forChoice && (
+        <Stack spacing={0.625}>
+          <WizLabel>{t('orderCreate.forClinic.label')}</WizLabel>
+          <TextField
+            select
+            size="small"
+            value={forChoice.value}
+            onChange={(e) => forChoice.onChange(e.target.value)}
+            fullWidth
+            inputProps={{ 'aria-label': t('orderCreate.forClinic.label') }}
+          >
+            {forChoice.options.map((o) => (
+              <MenuItem key={o.value} value={o.value}>
+                {o.label}
+              </MenuItem>
+            ))}
+          </TextField>
+          <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.45 }}>
+            {t('orderCreate.forClinic.hint')}
+          </Typography>
+        </Stack>
+      )}
 
       <PriceSummary
         state={state}
@@ -270,7 +307,14 @@ export function SummaryRail({
                 : t('orderCreate.filesAndDue.workLocation')}
             </WizLabel>
             {fixedDelivery ? (
-              <FixedLine>{fixedDelivery.deliveredTo}</FixedLine>
+              <>
+                <FixedLine>{fixedDelivery.deliveredTo}</FixedLine>
+                {deliveryWarning && (
+                  <Callout tone="warning" sx={{ mt: 0.5 }}>
+                    {deliveryWarning}
+                  </Callout>
+                )}
+              </>
             ) : guest ? (
               // Not the "you have none, add one" warning: a guest cannot add
               // one, and it is not a problem with their order.

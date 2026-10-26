@@ -203,8 +203,20 @@ export interface ClinicRow {
   contact_person_name: string | null;
   contact_phone: string | null;
   contact_email: string | null;
+  /** Where the clinic's orders are delivered (0050); required before anyone
+   *  can order for the clinic. */
+  working_address: string | null;
+  /** Where its invoices go (0050); `contact_email` when empty. */
+  invoice_email: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** One row of `clinic_memberships` (0050): a doctor may be in several clinics. */
+export interface ClinicMembershipRow {
+  clinic_id: string;
+  doctor_id: string;
+  joined_at: string;
 }
 
 export interface LabStaffRow {
@@ -451,7 +463,14 @@ export interface OrderRow {
   order_code: string;
   doctor_id: string;
   lab_id: string;
-  doctor_work_location_id: string;
+  /** The doctor's own location the order is delivered to; null on an order
+   *  placed for a clinic, which carries the clinic's address in
+   *  `work_location_snapshot` instead (0050). */
+  doctor_work_location_id: string | null;
+  /** The clinic the order is for, or null for the doctor's private work
+   *  (0050). Set once by the submit RPCs; a clinic admin sees exactly the
+   *  orders whose clinic is theirs. */
+  clinic_id: string | null;
   /** Null only on a lab's purchase order placed without a patient (0048). */
   patient_id: string | null;
   /** Free-text case reference a buying lab may give instead of a patient (0048). */
@@ -615,7 +634,7 @@ export interface OrderEditSnapshotPatient {
  * it; read it defensively (see features/lab/orderEdits/diff.ts). */
 export interface OrderEditSnapshot {
   patient?: OrderEditSnapshotPatient | null;
-  doctor_work_location_id: string;
+  doctor_work_location_id: string | null;
   work_location_snapshot: Record<string, unknown>;
   invoice_recipient_type: InvoiceRecipientType;
   invoice_recipient_snapshot: Record<string, unknown>;

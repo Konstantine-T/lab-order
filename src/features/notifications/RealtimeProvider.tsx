@@ -80,7 +80,11 @@ function listenersFor(
         { table: 'order_files', events: both },
         { table: 'clinic_doctor_invites', events: both },
         ...(ids.doctorId
-          ? [{ table: 'lab_reviews', filter: `doctor_id=eq.${ids.doctorId}`, events: both } as Listener]
+          ? [
+              { table: 'lab_reviews', filter: `doctor_id=eq.${ids.doctorId}`, events: both } as Listener,
+              // The clinics they belong to (0050).
+              { table: 'clinic_memberships', filter: `doctor_id=eq.${ids.doctorId}`, events: both } as Listener,
+            ]
           : []),
         ...marketplace,
       ];
@@ -124,11 +128,13 @@ function listenersFor(
     case 'CLINIC_ADMIN':
       return [
         notifications,
-        // RLS limits the clinic to its own doctors' orders.
+        // RLS limits the clinic to the orders placed for it (0050).
         { table: 'orders', events: both },
         { table: 'order_clarifications', events: both },
         { table: 'order_files', events: both },
         { table: 'clinic_doctor_invites', events: both },
+        // Its roster (0050); RLS limits it to the clinic's own rows.
+        { table: 'clinic_memberships', events: both },
         ...marketplace,
       ];
     case 'PLATFORM_ADMIN':

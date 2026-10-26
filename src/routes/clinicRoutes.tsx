@@ -7,6 +7,7 @@ import { ClinicOrdersPage } from '@/pages/clinic/ClinicOrdersPage';
 import { ClinicOrderDetailPage } from '@/pages/clinic/ClinicOrderDetailPage';
 import { ClinicOrderCreatePage } from '@/pages/clinic/ClinicOrderCreatePage';
 import { ClinicFinancesPage } from '@/pages/clinic/ClinicFinancesPage';
+import { ClinicProfilePage } from '@/pages/clinic/ClinicProfilePage';
 import { MarketplacePage } from '@/pages/doctor/MarketplacePage';
 import { LabPublicProfilePage } from '@/pages/doctor/LabPublicProfilePage';
 import { OrderEditPage } from '@/pages/doctor/OrderEditPage';
@@ -31,6 +32,7 @@ export default function ClinicRoutes() {
           <Route path="labs/:labId" element={<LabPublicProfilePage basePath="/clinic" />} />
           <Route path="orders" element={<ClinicOrdersPage />} />
           <Route path="finances" element={<ClinicFinancesPage />} />
+          <Route path="profile" element={<ClinicProfilePage />} />
           <Route path="orders/new" element={<ClinicOrderCreatePage />} />
           <Route path="orders/:orderId" element={<ClinicOrderDetailPage />} />
           <Route

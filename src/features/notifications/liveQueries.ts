@@ -28,7 +28,8 @@ export type LiveTable =
   | 'clinic_doctor_invites'
   | 'feedback'
   | 'lab_reviews'
-  | 'lab_review_reports';
+  | 'lab_review_reports'
+  | 'clinic_memberships';
 
 type Row = Record<string, unknown>;
 
@@ -153,6 +154,11 @@ export function keysForRow(table: LiveTable, row: Row): QueryKey[] {
         ['clinic-order-count'],
         ['my-clinic'],
       ];
+    case 'clinic_memberships':
+      // A doctor joined a clinic (0050). Leaving is a DELETE, which realtime
+      // does not deliver; it shows on the next fetch, and the clinic hears of
+      // it through its doctor_left notification.
+      return [['my-clinic'], ['clinic-doctors'], ['acting-doctor'], ['clinic-order-count']];
     case 'feedback':
       return [['admin-feedback'], ['admin-feedback-count']];
     case 'lab_reviews': {
@@ -184,7 +190,8 @@ export function keysForRow(table: LiveTable, row: Row): QueryKey[] {
 export function keysForNotification(kind: string): QueryKey[] {
   switch (kind) {
     case 'doctor_left':
-      // The clinic cannot read doctor_profiles (0015), so no row event tells it.
+      // Leaving deletes a clinic_memberships row, and realtime delivers no
+      // DELETE: this notification is how the clinic's roster hears of it.
       return [['clinic-doctors'], ['clinic-orders'], ['clinic-order-count'], ['nav-alerts']];
     case 'clinic_invite':
       return [['my-clinic-invites']];
@@ -208,6 +215,7 @@ export const ALL_LIVE_KEYS: QueryKey[] = (() => {
     'feedback',
     'lab_reviews',
     'lab_review_reports',
+    'clinic_memberships',
   ];
   // A row with no ids yields the list keys; the per-id keys are covered by
   // their first element as a prefix.

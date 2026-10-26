@@ -45,6 +45,9 @@
     "orderNotFound": "This order could not be found.",
     "notAllowed": "You are not allowed to edit this order.",
     "notEditable": "This order can no longer be edited.",
-    "referenceTooLong": "The reference can be at most 200 characters."
+    "referenceTooLong": "The reference can be at most 200 characters.",
+    "notInClinic": "You are not a member of this clinic any more. Choose another clinic or order for yourself.",
+    "clinicAddressMissing": "The clinic has not added its delivery address yet, so this order cannot be sent.",
+    "doctorNotInClinic": "This doctor is no longer in your clinic."
   }
 }

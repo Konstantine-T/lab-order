@@ -41,6 +41,13 @@ export type WizardState = {
   rush_requested: boolean;
   // Step 5
   invoice_recipient_type: InvoiceRecipientType;
+  /**
+   * A doctor in one or more clinics (0050): whom the order is for, a clinic's
+   * id or `'private'` (PRIVATE_ORDER). Unset until the wizard picks the default
+   * (the clinic of their latest order), so an older draft reads as "not
+   * chosen". Only the doctor's own wizard looks at it.
+   */
+  clinic_choice?: string;
 };
 
 export const initialState: WizardState = {

@@ -273,7 +273,14 @@
       "earliestNote": "{{date}} is the earliest date this lab can deliver",
       "timeShort": "Time (optional)"
     },
-    "sendNote": "Sent only to this lab. The lab confirms the final price and due date."
+    "sendNote": "Sent only to this lab. The lab confirms the final price and due date.",
+    "forClinic": {
+      "label": "Order for",
+      "private": "Myself (private)",
+      "hint": "A clinic sees, edits and pays for the orders placed for it. Delivery and invoice come from the clinic.",
+      "noAddress": "{{clinic}} has not added its delivery address yet, so orders for it cannot be sent. Ask the clinic to add it, or order for yourself.",
+      "noAddressAdmin": "Add your clinic's delivery address in the clinic profile before placing orders."
+    }
   },
   "orders": {
     "title": "My orders",
@@ -475,13 +482,13 @@
     },
     "saveSuccess": "Profile updated.",
     "clinic": {
-      "title": "Clinic",
-      "memberBody": "{{clinic}} can see your orders and can place and manage orders for you.",
+      "title": "Clinics",
+      "memberBody": "Each clinic sees the orders placed for it and can place and manage orders for you.",
       "none": "You are not part of a clinic.",
       "noneHint": "If a clinic invites you, the invitation appears on your home page.",
       "leave": "Leave clinic",
       "leaveTitle": "Leave {{clinic}}?",
-      "leaveBody": "The clinic will no longer see your orders or be able to place orders for you. To rejoin, the clinic has to invite you again.",
+      "leaveBody": "The clinic will no longer be able to place orders for you. Orders already placed for it stay with the clinic. To rejoin, the clinic has to invite you again.",
       "leaveConfirm": "Leave clinic"
     }
   },
@@ -536,8 +543,7 @@
     "title": "Clinic invitations",
     "body": "{{clinic}} invited you to join their clinic.",
     "accept": "Accept",
-    "decline": "Decline",
-    "alreadyInClinic": "You're already part of a clinic. Leave it before joining another."
+    "decline": "Decline"
   },
   "reviews": {
     "sectionTitle": "Reviews",

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { Icon, PageHeader, StatGrid, StatTile } from '@/components/design';
+import { Callout, Icon, PageHeader, StatGrid, StatTile } from '@/components/design';
 import type { ClinicDoctorRow } from '@/types/database';
 
 export function ClinicHomePage() {
@@ -63,6 +63,22 @@ export function ClinicHomePage() {
           </Button>
         }
       />
+
+      {/* Nobody can order for a clinic without a delivery address (0050). */}
+      {user?.clinic && !user.clinic.working_address?.trim() && (
+        <Callout
+          tone="warning"
+          title={t('home.noAddressTitle')}
+          sx={{ mb: 2 }}
+          action={
+            <Button component={RouterLink} to="/clinic/profile" size="small" variant="outlined">
+              {t('home.noAddressCta')}
+            </Button>
+          }
+        >
+          {t('home.noAddressBody')}
+        </Callout>
+      )}
 
       <StatGrid columns={3}>
         <StatTile

@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { NavEntry } from './AppShell';
+import type { MenuLink } from './AccountMenu';
 import { TopNavShell } from './TopNavShell';
 import { NavBadge } from '@/components/design';
 import { useAuth } from '@/auth/AuthProvider';
@@ -22,18 +23,20 @@ export function ClinicLayout() {
   };
 
   // The clinic's own sections, in the doctor's top-bar layout. Home is the
-  // wordmark; the clinic has no profile page, so its avatar menu holds only
-  // the shared controls.
+  // wordmark; its profile (0050: the delivery and invoice details its orders
+  // are filled from) sits in the avatar menu, as the doctor's does.
   const nav: NavEntry[] = [
     orders,
     { to: '/clinic/doctors', label: t('nav.doctors'), icon: 'groups' },
     { to: '/clinic/finances', label: t('nav.finances'), icon: 'payments' },
   ];
+  const menuLinks: MenuLink[] = [{ to: '/clinic/profile', label: t('nav.profile'), icon: 'apartment' }];
 
   return (
     <TopNavShell
       homeTo="/clinic"
       nav={nav}
+      menuLinks={menuLinks}
       tabs={[{ to: '/clinic', label: t('nav.home'), icon: 'home', end: true }, ...nav]}
       // Picks the doctor first, then walks the doctor's own path.
       newOrder={{ to: '/clinic/orders/new', label: t('orders.newOrder') }}

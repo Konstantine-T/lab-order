@@ -22,7 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { RHFTextField } from '@/components/RHFTextField';
-import { MY_CLINIC_KEY, useMyClinic } from '@/features/clinic/useMyClinic';
+import { MY_CLINIC_KEY, useMyClinics, type MyClinic } from '@/features/clinic/useMyClinic';
 import { useColorMode } from '@/theme/ColorModeProvider';
 import { LANGUAGES } from '@/i18n';
 
@@ -37,32 +37,30 @@ const schema = z.object({
 type FormValues = z.infer<typeof schema>;
 
 /**
- * Which clinic the doctor belongs to, and what that means: the clinic sees
- * their orders and can place and manage orders for them (0013, 0014). Nothing
- * while loading or when the read fails, so it never says "no clinic" wrongly.
+ * The clinics the doctor belongs to (0050: any number), and what that means:
+ * each sees the orders placed for it and can place and manage orders for the
+ * doctor. Nothing while loading or when the read fails, so it never says "no
+ * clinic" wrongly.
  *
- * "Leave clinic" is `leave_clinic()` (0013), behind a confirmation: the clinic
- * loses sight of every one of the doctor's orders at once, and only a new
- * invite brings the doctor back. The clinic admin is told (doctor_left, 0043).
+ * "Leave" is `leave_clinic(id)`, behind a confirmation: the clinic can no
+ * longer order for the doctor, the orders already placed for it stay its own,
+ * and only a new invite brings the doctor back. Its admin is told (doctor_left).
  */
 function ClinicCard() {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
-  const { refreshUser } = useAuth();
   const qc = useQueryClient();
-  const { data: clinic, isSuccess } = useMyClinic();
-  const [confirmOpen, setConfirmOpen] = useState(false);
+  const { data: clinics, isSuccess } = useMyClinics();
+  const [leaving, setLeaving] = useState<MyClinic | null>(null);
 
   const leave = useMutation({
-    mutationFn: async () => {
-      const { error } = await supabase.rpc('leave_clinic');
+    mutationFn: async (clinicId: string) => {
+      const { error } = await supabase.rpc('leave_clinic', { p_clinic_id: clinicId });
       if (error) throw error;
     },
     onSuccess: () => {
-      setConfirmOpen(false);
+      setLeaving(null);
       void qc.invalidateQueries({ queryKey: MY_CLINIC_KEY });
-      // The session's doctor_profile carries clinic_id too.
-      void refreshUser({ silent: true });
     },
   });
 
@@ -70,38 +68,51 @@ function ClinicCard() {
 
   return (
     <SectionCard icon="apartment" title={t('profile.clinic.title')}>
-      {clinic ? (
-        <Stack spacing={0.75}>
-          <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, overflowWrap: 'anywhere' }}>
-            {clinic.name}
-          </Typography>
-          {clinic.city && (
-            <Typography variant="body1" color="text.secondary">
-              {clinic.city}
-            </Typography>
-          )}
+      {clinics.length > 0 ? (
+        <Stack spacing={1.5}>
           <Typography variant="body1" color="text.secondary">
-            {t('profile.clinic.memberBody', { clinic: clinic.name })}
+            {t('profile.clinic.memberBody')}
           </Typography>
-          <Box sx={{ pt: 1 }}>
-            <Button
-              variant="outlined"
-              color="error"
-              startIcon={<Icon name="logout" size={16} />}
-              onClick={() => setConfirmOpen(true)}
+          {clinics.map((c) => (
+            <Stack
+              key={c.id}
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={1}
+              alignItems={{ sm: 'center' }}
+              justifyContent="space-between"
+              sx={{ pt: 1.5, borderTop: 1, borderColor: 'divider' }}
             >
-              {t('profile.clinic.leave')}
-            </Button>
-          </Box>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, overflowWrap: 'anywhere' }}>
+                  {c.name}
+                </Typography>
+                {(c.workingAddress || c.city) && (
+                  <Typography variant="body1" color="text.secondary" sx={{ overflowWrap: 'anywhere' }}>
+                    {[c.workingAddress, c.city].filter(Boolean).join(', ')}
+                  </Typography>
+                )}
+              </Box>
+              <Box sx={{ flexShrink: 0 }}>
+                <Button
+                  size="small"
+                  color="error"
+                  startIcon={<Icon name="logout" size={16} />}
+                  onClick={() => setLeaving(c)}
+                >
+                  {t('profile.clinic.leave')}
+                </Button>
+              </Box>
+            </Stack>
+          ))}
 
           <Dialog
-            open={confirmOpen}
-            onClose={() => !leave.isPending && setConfirmOpen(false)}
+            open={!!leaving}
+            onClose={() => !leave.isPending && setLeaving(null)}
             maxWidth="xs"
             fullWidth
             TransitionProps={{ onExited: () => leave.reset() }}
           >
-            <DialogTitle>{t('profile.clinic.leaveTitle', { clinic: clinic.name })}</DialogTitle>
+            <DialogTitle>{t('profile.clinic.leaveTitle', { clinic: leaving?.name ?? '' })}</DialogTitle>
             <DialogContent>
               <DialogContentText>{t('profile.clinic.leaveBody')}</DialogContentText>
               {leave.isError && (
@@ -111,14 +122,14 @@ function ClinicCard() {
               )}
             </DialogContent>
             <DialogActions>
-              <Button onClick={() => setConfirmOpen(false)} disabled={leave.isPending}>
+              <Button onClick={() => setLeaving(null)} disabled={leave.isPending}>
                 {tc('actions.cancel')}
               </Button>
               <Button
                 variant="contained"
                 color="error"
-                disabled={leave.isPending}
-                onClick={() => leave.mutate()}
+                disabled={leave.isPending || !leaving}
+                onClick={() => leaving && leave.mutate(leaving.id)}
               >
                 {t('profile.clinic.leaveConfirm')}
               </Button>

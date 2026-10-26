@@ -47,15 +47,8 @@ export function ClinicInvitesCard() {
       // An accepted invite is the doctor joining: the clinic shown elsewhere changes.
       void qc.invalidateQueries({ queryKey: MY_CLINIC_KEY });
     },
-    onError: (e: unknown) => {
-      const msg = (e as { message?: string })?.message ?? '';
-      // The RPC raises 'already_in_clinic' when the doctor is already linked.
-      setErrorMsg(
-        msg.includes('already_in_clinic')
-          ? t('clinicInvites.alreadyInClinic')
-          : tc('errors.generic'),
-      );
-    },
+    // A doctor may be in several clinics (0050), so accepting never conflicts.
+    onError: () => setErrorMsg(tc('errors.generic')),
   });
 
   if (invites.length === 0) return null;
