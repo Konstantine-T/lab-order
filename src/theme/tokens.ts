@@ -45,28 +45,28 @@ const DASHED = '#C9D0EA'; // not-yet-done
 const SEC = '#5B6478';
 const MUTED = '#9AA3BD';
 
-// Dark mode v2: graphite ground, softened text, half-chroma accents.
+// Dark mode v2 (Dusk): violet-plum ground, raised text contrast, mid-chroma accents.
 // Exported for the few dark-only branches outside the theme.
 export const DARK = {
-  ground: '#18191E',
-  surface: '#1F2026',
-  raised: '#282A31',
-  line: '#373941',
-  dashed: '#52555E',
-  text: '#D4D5DB',
-  text2: '#B0B2BA',
-  muted: '#8E909A',
-  peri: '#9BA3DA',
-  periLight: '#ACB4E4',
-  periDark: '#828AC6',
-  periText: '#B4BBE5',
-  onPrimary: '#181A24',
-  aqua: '#7EBCD1',
-  aquaText: '#9DCDDE',
-  gold: '#D5BA82',
-  goldText: '#E0C896',
-  rose: '#CE7E84',
-  roseText: '#E3A0A4',
+  ground: '#1B1723',
+  surface: '#231F2C',
+  raised: '#2E2938',
+  line: '#3F3A49',
+  dashed: '#5D5866',
+  text: '#EFEDF5',
+  text2: '#CAC6D3',
+  muted: '#A8A3B2',
+  peri: '#ABAAFB',
+  periLight: '#BFBFFF',
+  periDark: '#928FE9',
+  periText: '#CACBFF',
+  onPrimary: '#18182C',
+  aqua: '#66CEEC',
+  aquaText: '#9CE0F7',
+  gold: '#F0C871',
+  goldText: '#F4D895',
+  rose: '#F0828C',
+  roseText: '#FDB4B9',
 } as const;
 
 // The names the rest of the codebase already reads. BRAND is the periwinkle
@@ -177,11 +177,11 @@ const LIGHT_TONES: Record<Tone, ToneStyle> = {
 // Dark tones follow the pattern the mockups' dark surfaces establish: a light
 // foreground on a ~12% fill with a ~30% border.
 const DARK_TONES: Record<Tone, ToneStyle> = {
-  brand:   { fg: DARK.periText, bg: alpha(DARK.peri, 0.12), border: alpha(DARK.peri, 0.28), dot: DARK.peri },
-  success: { fg: DARK.aquaText, bg: alpha(DARK.aqua, 0.11), border: alpha(DARK.aqua, 0.26), dot: DARK.aqua },
-  warning: { fg: DARK.goldText, bg: alpha(DARK.gold, 0.11), border: alpha(DARK.gold, 0.26), dot: DARK.gold },
-  danger:  { fg: DARK.roseText, bg: alpha(DARK.rose, 0.12), border: alpha(DARK.rose, 0.28), dot: DARK.rose },
-  info:    { fg: DARK.periText, bg: alpha(DARK.peri, 0.10), border: alpha(DARK.peri, 0.24), dot: DARK.periLight },
+  brand:   { fg: DARK.periText, bg: alpha(DARK.peri, 0.14), border: alpha(DARK.peri, 0.32), dot: DARK.peri },
+  success: { fg: DARK.aquaText, bg: alpha(DARK.aqua, 0.13), border: alpha(DARK.aqua, 0.3), dot: DARK.aqua },
+  warning: { fg: DARK.goldText, bg: alpha(DARK.gold, 0.13), border: alpha(DARK.gold, 0.3), dot: DARK.gold },
+  danger:  { fg: DARK.roseText, bg: alpha(DARK.rose, 0.14), border: alpha(DARK.rose, 0.32), dot: DARK.rose },
+  info:    { fg: DARK.periText, bg: alpha(DARK.peri, 0.11), border: alpha(DARK.peri, 0.26), dot: DARK.periLight },
   neutral: { fg: DARK.text2, bg: DARK.raised, border: DARK.line, dot: DARK.muted },
 };
 
@@ -281,8 +281,8 @@ const tokens = (mode: PaletteMode) => {
         : { primary: DARK.text, secondary: DARK.text2, disabled: DARK.dashed },
       divider,
       action: {
-        hover: light ? alpha(INK, 0.045) : alpha(DARK.peri, 0.07),
-        selected: light ? alpha(PERI, 0.12) : alpha(DARK.peri, 0.14),
+        hover: light ? alpha(INK, 0.045) : alpha(DARK.peri, 0.08),
+        selected: light ? alpha(PERI, 0.12) : alpha(DARK.peri, 0.16),
         focus: alpha(light ? PERI : DARK.peri, 0.22),
       },
     },
@@ -303,8 +303,9 @@ const tokens = (mode: PaletteMode) => {
       h6: { fontSize: '0.8125rem', fontWeight: 700, lineHeight: 1.45 },
       subtitle1: { fontSize: '0.84375rem', fontWeight: 600, lineHeight: 1.45 },
       subtitle2: { fontSize: '0.78125rem', fontWeight: 600, lineHeight: 1.45 },
-      body1: { fontSize: '0.8125rem', lineHeight: 1.55 },
-      body2: { fontSize: '0.75rem', lineHeight: 1.5 },
+      // Light text on a dark ground reads thinner: a touch heavier there.
+      body1: { fontSize: '0.8125rem', lineHeight: 1.55, fontWeight: light ? 400 : 450 },
+      body2: { fontSize: '0.75rem', lineHeight: 1.5, fontWeight: light ? 400 : 450 },
       caption: { fontSize: '0.71875rem', fontWeight: 500, lineHeight: 1.4 },
       overline: {
         fontSize: '0.6875rem',
@@ -473,7 +474,7 @@ const tokens = (mode: PaletteMode) => {
             // The mockups' focus treatment: brand border plus a soft ring,
             // rather than MUI's default border thickening.
             '&.Mui-focused': {
-              boxShadow: light ? focusRing.boxShadow : `0 0 0 3px ${alpha(DARK.peri, 0.2)}`,
+              boxShadow: light ? focusRing.boxShadow : `0 0 0 3px ${alpha(DARK.peri, 0.22)}`,
             },
             '&.Mui-focused fieldset': { borderWidth: 1, borderColor: light ? BRAND : DARK.peri },
           },
@@ -488,7 +489,7 @@ const tokens = (mode: PaletteMode) => {
         styleOverrides: {
           root: { borderRadius: radii.tile, fontSize: '0.8125rem' },
           standardInfo: {
-            backgroundColor: light ? alpha(BRAND, 0.08) : alpha(DARK.peri, 0.12),
+            backgroundColor: light ? alpha(BRAND, 0.08) : alpha(DARK.peri, 0.13),
             color: light ? '#3B3BAE' : DARK.periText,
             '& .MuiAlert-icon': { color: light ? BRAND : DARK.peri },
           },
