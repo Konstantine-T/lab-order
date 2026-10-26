@@ -173,19 +173,21 @@ end $$;
 -- submit RPCs, and the backfill above should a first run of this file have
 -- stopped half way), then frozen (0043's placed_by_user_id pattern). The
 -- FK's ON DELETE SET NULL arrives as an ordinary UPDATE once the clinic row is
--- gone: that one passes.
+-- gone, run as the table owner: that one passes. The client refusal comes
+-- FIRST: the existence check runs as the caller, and a doctor or lab cannot
+-- read `clinics`, so checked first it let them detach any order (0051).
 create or replace function public.tg_orders_clinic_frozen()
 returns trigger
 language plpgsql
 set search_path = public
 as $$
 begin
+  if current_user in ('anon', 'authenticated') then
+    raise exception 'order_parties_read_only' using errcode = '42501';
+  end if;
   if new.clinic_id is null
      and not exists (select 1 from public.clinics c where c.id = old.clinic_id) then
     return new;
-  end if;
-  if current_user in ('anon', 'authenticated') then
-    raise exception 'order_parties_read_only' using errcode = '42501';
   end if;
   if old.clinic_id is null then
     return new;
