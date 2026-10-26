@@ -55,7 +55,8 @@ export function PatientOrdersPage() {
         .select(
           'id, order_code, status, payment_status, generated_total, final_total, ' +
             'requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, service_snapshot, lab_id, continues_order_id, ' +
-            'labs(public_name), lab_services(name)',
+            // The lab's key, by name: orders has a second one to labs (0048).
+            'labs!orders_lab_id_fkey(public_name), lab_services(name)',
         )
         .eq('doctor_id', doctorId!)
         .eq('patient_id', patientId!)

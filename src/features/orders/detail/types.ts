@@ -27,9 +27,14 @@ export type DetailOrder = OrderRow & {
  * narrower select on either would reach the other too — saving an edit
  * refetches the key just as the detail page mounts, and the detail page then
  * keeps that result, lab phone and logo missing.
+ *
+ * `labs!orders_lab_id_fkey`, never a bare `labs(...)`: since 0048 `orders`
+ * has a second key to `labs` (`buyer_lab_id`), and PostgREST refuses an
+ * ambiguous embed (PGRST201), failing the whole read.
  */
 export const DETAIL_ORDER_SELECT =
-  '*, patients(first_name, last_name, date_of_birth, gender), labs(contact_email, contact_phone, logo_url)';
+  '*, patients(first_name, last_name, date_of_birth, gender), ' +
+  'labs!orders_lab_id_fkey(contact_email, contact_phone, logo_url)';
 
 export const labNameOf = (order: OrderRow) =>
   (order.lab_snapshot as { public_name?: string } | null)?.public_name ?? '';

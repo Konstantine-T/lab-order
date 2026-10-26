@@ -84,7 +84,8 @@ export function DoctorHomePage() {
         .from('orders')
         .select(
           'id, order_code, status, payment_status, final_total, generated_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, service_snapshot, ' +
-            'patients(first_name, last_name), labs(public_name), ' +
+            // The lab's key, by name: orders has a second one to labs (0048).
+            'patients(first_name, last_name), labs!orders_lab_id_fkey(public_name), ' +
             'order_clarifications(question, answered_at, resolved_by_edit_at, needs_edit)',
         )
         .eq('doctor_id', doctorId!)

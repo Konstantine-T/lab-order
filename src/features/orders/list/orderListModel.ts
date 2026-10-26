@@ -70,13 +70,17 @@ export type ListOrderRow = Pick<
 /**
  * The columns both lists read. JSON paths rather than whole snapshots: the lab
  * snapshot is the full `labs` row, and a list of hundreds only needs its name.
+ *
+ * `labs!orders_lab_id_fkey`, never a bare `labs(...)`: since 0048 `orders`
+ * has a second key to `labs` (`buyer_lab_id`), and PostgREST refuses an
+ * ambiguous embed (PGRST201), failing the whole list.
  */
 export const LIST_ORDER_SELECT =
   'id, order_code, doctor_id, lab_id, patient_id, status, payment_status, generated_total, final_total, final_price_note, ' +
   'requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, completed_at, cancelled_at, ' +
   'has_unreviewed_edits, edit_count, last_edited_at, continues_order_id, ' +
   'service_name:service_snapshot->>name, lab_name:lab_snapshot->>public_name, doctor_snapshot, ' +
-  'patients(first_name, last_name), labs(public_name), lab_services(name), ' +
+  'patients(first_name, last_name), labs!orders_lab_id_fkey(public_name), lab_services(name), ' +
   'order_clarifications(question, asked_at, needs_edit, answered_at, resolved_by_edit_at)';
 
 // ===== Names =================================================================
