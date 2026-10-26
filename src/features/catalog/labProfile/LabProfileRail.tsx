@@ -3,14 +3,14 @@ import { Box, Button, Link, Stack, Typography, type Theme } from '@mui/material'
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
 import { whatsappUrl } from '@/features/labs/whatsapp';
-import { brand, palette2026, surfaces } from '@/theme/tokens';
+import { DARK, palette2026, surfaces } from '@/theme/tokens';
 import { mapsUrl, panelSx, telHref } from './format';
 import type { ProfileLab } from './useLabProfile';
 
 const linkSx = {
   fontWeight: 600,
   color: (theme: Theme) =>
-    theme.palette.mode === 'light' ? palette2026.periText : brand.soft,
+    theme.palette.mode === 'light' ? palette2026.periText : DARK.periLight,
 } as const;
 
 /**

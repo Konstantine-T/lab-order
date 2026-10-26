@@ -10,7 +10,7 @@ import {
   sortCategories,
   type ServiceCategory,
 } from '@/features/catalog/serviceCategory';
-import { brand, palette2026 } from '@/theme/tokens';
+import { DARK, palette2026 } from '@/theme/tokens';
 import { panelSx, rushText, turnaroundText, type TranslateFn } from './format';
 import type { PriceDisplay } from './priceDisplay';
 import type { ProfileService } from './useLabProfile';
@@ -243,7 +243,7 @@ export const ServicesPriceCard = forwardRef<
               fontSize: '0.8125rem',
               fontWeight: 600,
               color: (theme) =>
-                theme.palette.mode === 'light' ? palette2026.periText : brand.soft,
+                theme.palette.mode === 'light' ? palette2026.periText : DARK.periLight,
               whiteSpace: 'nowrap',
               flexShrink: 0,
             }}

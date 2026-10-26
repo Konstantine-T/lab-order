@@ -1,7 +1,7 @@
 import { alpha, Box, Stack, Typography, useTheme } from '@mui/material';
 import type { ReactNode } from 'react';
 import { Icon } from '@/components/design/Icon';
-import { palette2026, surfaces, tone } from '@/theme/tokens';
+import { DARK, palette2026, surfaces, tone } from '@/theme/tokens';
 
 export type Step = {
   key: string;
@@ -47,7 +47,7 @@ export function ProgressSteps({
   }
   // "Not yet" is dashed grey; the current stage's label reads in aqua text.
   const dashedColor = surfaces[mode].dashed;
-  const activeText = mode === 'light' ? palette2026.aquaText : '#7FDCFB';
+  const activeText = mode === 'light' ? palette2026.aquaText : DARK.aquaText;
   return (
     <Stack
       direction={{ xs: 'column', sm: 'row' }}

@@ -1,6 +1,6 @@
 import { alpha, Box, Typography, useTheme, type SxProps, type Theme } from '@mui/material';
 import type { ReactNode } from 'react';
-import { brand, motion, palette2026, radii, surfaces } from '@/theme/tokens';
+import { brand, DARK, motion, palette2026, radii, surfaces } from '@/theme/tokens';
 import { RequiredMark } from '../primitives';
 
 /**
@@ -128,7 +128,7 @@ export function InkSegmented<T extends string>({
                     ? theme.palette.primary.contrastText
                     : light
                       ? palette2026.periText
-                      : brand.soft
+                      : DARK.periLight
                 }`,
               },
             }}
@@ -175,11 +175,11 @@ export function PeriLink({
           fontWeight: 600,
           lineHeight: 'inherit',
           cursor: 'pointer',
-          color: light ? palette2026.periText : brand.soft,
+          color: light ? palette2026.periText : DARK.periLight,
           '&:hover': { textDecoration: 'underline' },
           // The link's own colour, at full strength: a half-alpha ring is ~1.7:1.
           '&:focus-visible': {
-            outline: `2px solid ${light ? palette2026.periText : brand.soft}`,
+            outline: `2px solid ${light ? palette2026.periText : DARK.periLight}`,
             outlineOffset: 2,
           },
         },

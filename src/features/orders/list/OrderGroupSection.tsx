@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { Box, Button, Stack, Typography, useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
-import { brand, palette2026, surfaces, tone } from '@/theme/tokens';
+import { brand, DARK, palette2026, surfaces, tone } from '@/theme/tokens';
 import type { OrderGroupKey } from './orderListModel';
 
 export type GroupKey = OrderGroupKey | 'drafts';
@@ -119,7 +119,7 @@ export function OrderGroupSection<T>({
               size="small"
               onClick={() => setShown((n) => n + STEP)}
               endIcon={<Icon name="arrow_downward" size={15} />}
-              sx={{ fontWeight: 600, color: mode === 'light' ? palette2026.periText : brand.soft }}
+              sx={{ fontWeight: 600, color: mode === 'light' ? palette2026.periText : DARK.periLight }}
             >
               {t('orderList.showMore', { count: Math.min(remaining, STEP) })}
             </Button>

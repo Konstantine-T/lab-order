@@ -50,7 +50,7 @@ export function ColorModeProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', mode === 'light' ? '#F7F9FF' : '#171B2E');
+    if (meta) meta.setAttribute('content', mode === 'light' ? '#F7F9FF' : '#18191E');
   }, [mode]);
 
   const value = useMemo<ColorModeContextValue>(

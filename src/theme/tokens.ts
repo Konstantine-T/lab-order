@@ -45,6 +45,30 @@ const DASHED = '#C9D0EA'; // not-yet-done
 const SEC = '#5B6478';
 const MUTED = '#9AA3BD';
 
+// Dark mode v2: graphite ground, softened text, half-chroma accents.
+// Exported for the few dark-only branches outside the theme.
+export const DARK = {
+  ground: '#18191E',
+  surface: '#1F2026',
+  raised: '#282A31',
+  line: '#373941',
+  dashed: '#52555E',
+  text: '#D4D5DB',
+  text2: '#B0B2BA',
+  muted: '#8E909A',
+  peri: '#9BA3DA',
+  periLight: '#ACB4E4',
+  periDark: '#828AC6',
+  periText: '#B4BBE5',
+  onPrimary: '#181A24',
+  aqua: '#7EBCD1',
+  aquaText: '#9DCDDE',
+  gold: '#D5BA82',
+  goldText: '#E0C896',
+  rose: '#CE7E84',
+  roseText: '#E3A0A4',
+} as const;
+
 // The names the rest of the codebase already reads. BRAND is the periwinkle
 // accent, not the primary colour — primary is ink now.
 const BRAND = PERI;
@@ -153,12 +177,12 @@ const LIGHT_TONES: Record<Tone, ToneStyle> = {
 // Dark tones follow the pattern the mockups' dark surfaces establish: a light
 // foreground on a ~12% fill with a ~30% border.
 const DARK_TONES: Record<Tone, ToneStyle> = {
-  brand: { fg: PERI_L, bg: alpha(PERI, 0.16), border: alpha(PERI, 0.36), dot: PERI },
-  success: { fg: '#7FDCFB', bg: alpha(AQUA, 0.14), border: alpha(AQUA, 0.34), dot: AQUA },
-  warning: { fg: '#FCD877', bg: alpha(GOLD, 0.13), border: alpha(GOLD, 0.32), dot: GOLD },
-  danger: { fg: '#F58A9C', bg: 'rgba(224,72,95,0.14)', border: 'rgba(224,72,95,0.34)', dot: '#E0485F' },
-  info: { fg: '#AEB9FF', bg: alpha(PERI, 0.13), border: alpha(PERI, 0.3), dot: PERI_L },
-  neutral: { fg: INK_MUTED, bg: alpha('#FFFFFF', 0.04), border: INK_LINE, dot: INK_MUTED },
+  brand:   { fg: DARK.periText, bg: alpha(DARK.peri, 0.12), border: alpha(DARK.peri, 0.28), dot: DARK.peri },
+  success: { fg: DARK.aquaText, bg: alpha(DARK.aqua, 0.11), border: alpha(DARK.aqua, 0.26), dot: DARK.aqua },
+  warning: { fg: DARK.goldText, bg: alpha(DARK.gold, 0.11), border: alpha(DARK.gold, 0.26), dot: DARK.gold },
+  danger:  { fg: DARK.roseText, bg: alpha(DARK.rose, 0.12), border: alpha(DARK.rose, 0.28), dot: DARK.rose },
+  info:    { fg: DARK.periText, bg: alpha(DARK.peri, 0.10), border: alpha(DARK.peri, 0.24), dot: DARK.periLight },
+  neutral: { fg: DARK.text2, bg: DARK.raised, border: DARK.line, dot: DARK.muted },
 };
 
 /** Tinted status colours — the fill/text pairing behind pills and alert rows. */
@@ -190,13 +214,13 @@ export const surfaces = {
   },
   dark: {
     subtle: 'rgba(255,255,255,0.03)',
-    borderSolid: INK_LINE,
-    textMuted: INK_MUTED,
-    sidebar: INK,
-    chip: alpha('#FFFFFF', 0.06),
-    chipText: INK_TEXT,
-    control: INK_LINE,
-    dashed: '#4A5277',
+    borderSolid: DARK.line,
+    textMuted: DARK.muted,
+    sidebar: DARK.surface,
+    chip: DARK.raised,
+    chipText: DARK.text2,
+    control: DARK.line,
+    dashed: DARK.dashed,
   },
 } as const;
 
@@ -211,6 +235,11 @@ export const brand = {
 export const palette2026 = {
   ink: INK,
   ink2: INK_2,
+  // Text and lines on the landing's ink bands (the labs card, the footer),
+  // which are ink in both themes; not the dark theme's surfaces.
+  inkText: INK_TEXT,
+  inkMuted: INK_MUTED,
+  inkLine: INK_LINE,
   peri: PERI,
   periText: PERI_TEXT,
   aqua: AQUA,
@@ -223,39 +252,38 @@ export const palette2026 = {
 
 const tokens = (mode: PaletteMode) => {
   const light = mode === 'light';
-  const divider = light ? HAIR : INK_LINE;
+  const divider = light ? HAIR : DARK.line;
 
   return {
     palette: {
       mode,
       // Ink, not periwinkle: the redesign draws every primary action and every
       // selected control in ink. On dark, ink would vanish into the ground, so
-      // primary lifts to the light periwinkle there.
+      // primary lifts to the soft periwinkle there.
       primary: {
-        main: light ? INK : PERI_L,
-        light: light ? INK_2 : '#B3BEFF',
-        dark: light ? '#151A2C' : PERI,
-        contrastText: light ? '#FFFFFF' : INK,
+        main: light ? INK : DARK.peri,
+        light: light ? INK_2 : DARK.periLight,
+        dark: light ? '#151A2C' : DARK.periDark,
+        contrastText: light ? '#FFFFFF' : DARK.onPrimary,
       },
       // Periwinkle as a palette slot, so `color="secondary"` reaches the brand.
-      secondary: { main: light ? PERI : PERI_L, contrastText: '#FFFFFF' },
-      error: { main: light ? '#E0485F' : '#F58A9C' },
-      warning: { main: GOLD, contrastText: GOLD_TEXT },
-      success: { main: AQUA, contrastText: light ? AQUA_TEXT : INK },
-      info: { main: light ? PERI : PERI_L },
+      secondary: { main: light ? PERI : DARK.peri, contrastText: light ? '#FFFFFF' : DARK.onPrimary },
+      error: { main: light ? '#E0485F' : DARK.roseText },
+      warning: { main: light ? GOLD : DARK.gold, contrastText: light ? GOLD_TEXT : DARK.onPrimary },
+      success: { main: light ? AQUA : DARK.aqua, contrastText: light ? AQUA_TEXT : DARK.onPrimary },
+      info: { main: light ? PERI : DARK.peri },
       background: light
         ? { default: MIST, paper: '#FFFFFF' }
-        : // Built from the design's own ink-side tokens (its dark labs panel):
-          // the ground sits below ink so ink-coloured cards separate from it.
-          { default: '#171B2E', paper: INK },
+        : // Dark mode v2: a graphite ground with cards one step lighter.
+          { default: DARK.ground, paper: DARK.surface },
       text: light
         ? { primary: INK, secondary: SEC, disabled: DASHED }
-        : { primary: '#EEF1FB', secondary: INK_TEXT, disabled: '#4A5277' },
+        : { primary: DARK.text, secondary: DARK.text2, disabled: DARK.dashed },
       divider,
       action: {
-        hover: alpha(light ? INK : PERI_L, light ? 0.045 : 0.08),
-        selected: alpha(light ? PERI : PERI_L, light ? 0.12 : 0.16),
-        focus: alpha(PERI, 0.22),
+        hover: light ? alpha(INK, 0.045) : alpha(DARK.peri, 0.07),
+        selected: light ? alpha(PERI, 0.12) : alpha(DARK.peri, 0.14),
+        focus: alpha(light ? PERI : DARK.peri, 0.22),
       },
     },
 
@@ -369,23 +397,27 @@ const tokens = (mode: PaletteMode) => {
           contained: {
             fontWeight: 700,
             boxShadow: 'none',
-            '&:hover': { boxShadow: `0 6px 16px ${alpha(INK, light ? 0.2 : 0.45)}` },
+            '&:hover': {
+              boxShadow: light
+                ? `0 6px 16px ${alpha(INK, 0.2)}`
+                : `0 6px 16px ${alpha('#000000', 0.35)}`,
+            },
           },
           // Only primary gets a fixed hover colour. This used to sit on
           // `contained`, which forced every contained button — an error-red
           // "discard", say — to periwinkle on hover.
           containedPrimary: {
-            '&:hover': { backgroundColor: light ? INK_2 : '#B3BEFF' },
+            '&:hover': { backgroundColor: light ? INK_2 : DARK.periLight },
           },
           // The redesign's secondary action: white, a control-coloured hairline,
           // ink text; the edge turns periwinkle on hover.
           outlined: {
             backgroundColor: light ? '#FFFFFF' : alpha('#FFFFFF', 0.03),
-            borderColor: light ? CTRL : INK_LINE,
-            color: light ? INK : '#EEF1FB',
+            borderColor: light ? CTRL : DARK.line,
+            color: light ? INK : DARK.text,
             '&:hover': {
-              borderColor: BRAND,
-              backgroundColor: alpha(BRAND, light ? 0.04 : 0.08),
+              borderColor: light ? BRAND : DARK.peri,
+              backgroundColor: alpha(light ? BRAND : DARK.peri, light ? 0.04 : 0.08),
             },
           },
           text: {
@@ -433,15 +465,17 @@ const tokens = (mode: PaletteMode) => {
           root: {
             borderRadius: radii.control,
             fontSize: '0.8125rem',
-            backgroundColor: light ? '#FFFFFF' : alpha('#FFFFFF', 0.02),
+            backgroundColor: light ? '#FFFFFF' : DARK.ground,
             transition: `border-color ${motion.base}, box-shadow ${motion.base}`,
             // The design's control edge, a touch stronger than a card's.
-            '& fieldset': { borderColor: light ? CTRL : INK_LINE },
-            '&:hover fieldset': { borderColor: alpha(BRAND, 0.5) },
+            '& fieldset': { borderColor: light ? CTRL : DARK.line },
+            '&:hover fieldset': { borderColor: alpha(light ? BRAND : DARK.peri, 0.5) },
             // The mockups' focus treatment: brand border plus a soft ring,
             // rather than MUI's default border thickening.
-            '&.Mui-focused': { boxShadow: focusRing.boxShadow },
-            '&.Mui-focused fieldset': { borderWidth: 1, borderColor: BRAND },
+            '&.Mui-focused': {
+              boxShadow: light ? focusRing.boxShadow : `0 0 0 3px ${alpha(DARK.peri, 0.2)}`,
+            },
+            '&.Mui-focused fieldset': { borderWidth: 1, borderColor: light ? BRAND : DARK.peri },
           },
           input: { padding: '10px 13px' },
           inputSizeSmall: { padding: '8px 12px' },
@@ -454,9 +488,9 @@ const tokens = (mode: PaletteMode) => {
         styleOverrides: {
           root: { borderRadius: radii.tile, fontSize: '0.8125rem' },
           standardInfo: {
-            backgroundColor: alpha(BRAND, light ? 0.08 : 0.14),
-            color: light ? '#3B3BAE' : '#D0D0FF',
-            '& .MuiAlert-icon': { color: light ? BRAND : BRAND_SOFT },
+            backgroundColor: light ? alpha(BRAND, 0.08) : alpha(DARK.peri, 0.12),
+            color: light ? '#3B3BAE' : DARK.periText,
+            '& .MuiAlert-icon': { color: light ? BRAND : DARK.peri },
           },
         },
       },
@@ -470,7 +504,7 @@ const tokens = (mode: PaletteMode) => {
             paddingInline: 10,
             paddingBlock: 6,
             borderRadius: 8,
-            backgroundColor: light ? INK : '#2B3357',
+            backgroundColor: light ? INK : DARK.raised,
           },
         },
       },
@@ -513,10 +547,10 @@ const tokens = (mode: PaletteMode) => {
         defaultProps: { underline: 'hover' as const },
         styleOverrides: {
           root: {
-            color: light ? BRAND_LINK : BRAND_SOFT,
+            color: light ? BRAND_LINK : DARK.periLight,
             fontWeight: 600,
             transition: `color ${motion.fast}`,
-            '&:hover': { color: light ? BRAND_STRONG : '#D0D0FF' },
+            '&:hover': { color: light ? BRAND_STRONG : DARK.periText },
           },
         },
       },
@@ -587,7 +621,7 @@ const tokens = (mode: PaletteMode) => {
               },
               '&.Mui-checked': {
                 transform: 'translateX(18px)',
-                '& + .MuiSwitch-track': { opacity: 1, backgroundColor: BRAND },
+                '& + .MuiSwitch-track': { opacity: 1, backgroundColor: light ? BRAND : DARK.peri },
                 '& .MuiSwitch-thumb': {
                   backgroundColor: '#FFFFFF',
                   boxShadow: '0 2px 6px rgba(15, 23, 42, 0.22), 0 1px 1px rgba(15, 23, 42, 0.08)',

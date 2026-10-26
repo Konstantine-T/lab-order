@@ -11,7 +11,7 @@ import {
 } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { ChoicePill, Icon } from '@/components/design';
-import { brand, motion, palette2026, surfaces } from '@/theme/tokens';
+import { brand, DARK, motion, palette2026, surfaces } from '@/theme/tokens';
 import { serviceCategoryLabelKey, type ServiceCategory } from './serviceCategory';
 import {
   TURNAROUND_BUCKETS,
@@ -29,7 +29,7 @@ const ALL = '__all__';
 /** Periwinkle small text at AA contrast — links in the panel. */
 function useLinkColor() {
   const theme = useTheme();
-  return theme.palette.mode === 'light' ? palette2026.periText : brand.soft;
+  return theme.palette.mode === 'light' ? palette2026.periText : DARK.periLight;
 }
 
 /** A text link that is a button: "clear · 3", "all materials · 19". */

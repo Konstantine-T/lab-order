@@ -14,7 +14,7 @@ import {
 } from '@/features/catalog/catalogue';
 import { priceLabel, rushNote } from '@/features/catalog/catalogueText';
 import { LabRatingBadge } from '@/features/reviews/LabRatingBadge';
-import { avatarColor, brand, initialsOf, lift, palette2026, radii, surfaces } from '@/theme/tokens';
+import { avatarColor, brand, DARK, initialsOf, lift, palette2026, radii, surfaces } from '@/theme/tokens';
 
 /** Days-old threshold for the NEW badge. */
 const NEW_FOR_DAYS = 30;
@@ -112,7 +112,7 @@ export function LabCard({
   const theme = useTheme();
   const s = surfaces[theme.palette.mode];
   const light = theme.palette.mode === 'light';
-  const linkColor = light ? palette2026.periText : brand.soft;
+  const linkColor = light ? palette2026.periText : DARK.periLight;
 
   const name = labText(lab, 'public_name');
   const description = labText(lab, 'short_description');

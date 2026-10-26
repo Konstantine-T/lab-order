@@ -1,7 +1,7 @@
 import { Box, Button, Stack, Typography, useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
-import { brand, palette2026, radii, surfaces, tone } from '@/theme/tokens';
+import { DARK, palette2026, radii, surfaces, tone } from '@/theme/tokens';
 
 type Props = {
   /** Service picked in the draft, if it got that far. */
@@ -121,7 +121,7 @@ export function DraftCard({
               px: 1,
               minWidth: 0,
               fontWeight: 600,
-              color: mode === 'light' ? palette2026.periText : brand.soft,
+              color: mode === 'light' ? palette2026.periText : DARK.periLight,
             }}
           >
             {t('doctor:orders.draft.resume')}

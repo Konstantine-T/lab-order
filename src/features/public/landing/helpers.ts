@@ -2,7 +2,7 @@ import { useEffect, type MouseEvent } from 'react';
 import { useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES, type LanguageCode } from '@/i18n';
-import { brand, palette2026, surfaces, tone } from '@/theme/tokens';
+import { DARK, palette2026, surfaces, tone } from '@/theme/tokens';
 
 /**
  * Colours the landing design names, resolved for the current theme.
@@ -33,17 +33,17 @@ export function useLandingTones() {
     chipText: s.chipText,
     muted: s.textMuted,
     /** Periwinkle for the headline accent and other large type; lifted on dark. */
-    accent: light ? palette2026.peri : brand.soft,
+    accent: light ? palette2026.peri : DARK.periLight,
     /** Periwinkle for small text — eyebrows, links, step numbers — at AA contrast. */
-    accentText: light ? palette2026.periText : brand.soft,
+    accentText: light ? palette2026.periText : DARK.periLight,
     accentTextHover: tone('info', mode).fg,
     /** Aqua is "done / confirmed": the check circles and the icon tiles. */
     done: tone('success', mode),
     // The ink surfaces and the text that sits on them — the same in both themes.
     ink: palette2026.ink,
-    inkText: surfaces.dark.chipText,
-    inkMuted: surfaces.dark.textMuted,
-    inkLine: surfaces.dark.borderSolid,
+    inkText: palette2026.inkText,
+    inkMuted: palette2026.inkMuted,
+    inkLine: palette2026.inkLine,
   };
 }
 
