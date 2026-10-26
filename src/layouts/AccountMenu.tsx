@@ -18,6 +18,7 @@ import { Icon } from '@/components/design/Icon';
 import { FeedbackFlow } from '@/components/FeedbackButton';
 import { useCanSendFeedback } from '@/components/useCanSendFeedback';
 import { useAuth } from '@/auth/AuthProvider';
+import { useMyClinic } from '@/features/clinic/useMyClinic';
 import { LANGUAGES } from '@/i18n';
 import { useColorMode } from '@/theme/ColorModeProvider';
 import { tone } from '@/theme/tokens';
@@ -85,6 +86,8 @@ export function AccountMenu({
   const { mode, toggle } = useColorMode();
   const canSendFeedback = useCanSendFeedback();
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  // Doctors only; the clinic admin's own clinic is `user.clinic` above.
+  const { data: doctorClinic } = useMyClinic();
 
   const currentLang = i18n.resolvedLanguage ?? i18n.language;
 
@@ -109,6 +112,12 @@ export function AccountMenu({
           {user?.clinic && (
             <Typography variant="caption" color="text.secondary" display="block" noWrap>
               {user.clinic.public_name}
+            </Typography>
+          )}
+          {/* A doctor's own clinic, the one that sees and places their orders. */}
+          {doctorClinic && (
+            <Typography variant="caption" color="text.secondary" display="block" noWrap>
+              {t('clinicLabel', { clinic: doctorClinic.name })}
             </Typography>
           )}
         </Box>

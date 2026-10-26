@@ -473,7 +473,17 @@
       "dark": "Dark",
       "system": "System"
     },
-    "saveSuccess": "Profile updated."
+    "saveSuccess": "Profile updated.",
+    "clinic": {
+      "title": "Clinic",
+      "memberBody": "{{clinic}} can see your orders and can place and manage orders for you.",
+      "none": "You are not part of a clinic.",
+      "noneHint": "If a clinic invites you, the invitation appears on your home page.",
+      "leave": "Leave clinic",
+      "leaveTitle": "Leave {{clinic}}?",
+      "leaveBody": "The clinic will no longer see your orders or be able to place orders for you. To rejoin, the clinic has to invite you again.",
+      "leaveConfirm": "Leave clinic"
+    }
   },
   "patients": {
     "title": "Patients",

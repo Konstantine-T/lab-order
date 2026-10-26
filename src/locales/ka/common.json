@@ -547,5 +547,6 @@
   },
   "statCard": {
     "show": "ჩვენება: {{label}} ({{value}})"
-  }
+  },
+  "clinicLabel": "კლინიკა: {{clinic}}"
 }

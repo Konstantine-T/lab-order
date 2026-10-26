@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '@/lib/supabase';
 import { SectionCard } from '@/components/design';
+import { MY_CLINIC_KEY } from './useMyClinic';
 
 type MyInvite = {
   invite_id: string;
@@ -41,7 +42,11 @@ export function ClinicInvitesCard() {
       });
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['my-clinic-invites'] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['my-clinic-invites'] });
+      // An accepted invite is the doctor joining: the clinic shown elsewhere changes.
+      void qc.invalidateQueries({ queryKey: MY_CLINIC_KEY });
+    },
     onError: (e: unknown) => {
       const msg = (e as { message?: string })?.message ?? '';
       // The RPC raises 'already_in_clinic' when the doctor is already linked.

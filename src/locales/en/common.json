@@ -547,5 +547,6 @@
   },
   "statCard": {
     "show": "Show {{label}} ({{value}})"
-  }
+  },
+  "clinicLabel": "Clinic: {{clinic}}"
 }

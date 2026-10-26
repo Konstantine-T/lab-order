@@ -7,6 +7,7 @@ import dayjs from 'dayjs';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { ClinicInvitesCard } from '@/features/clinic/ClinicInvitesCard';
+import { useMyClinic } from '@/features/clinic/useMyClinic';
 import { OrderStatusChip } from '@/components/OrderStatusChip';
 import {
   Callout,
@@ -73,6 +74,7 @@ export function DoctorHomePage() {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
   const { user } = useAuth();
+  const { data: myClinic } = useMyClinic();
   const navigate = useNavigate();
   const doctorId = user?.doctor_profile?.id;
 
@@ -140,7 +142,13 @@ export function DoctorHomePage() {
         title={t('home.welcome', {
           name: user ? `${user.first_name} ${user.last_name}` : '',
         })}
-        subtitle={dayjs().format('dddd, MMMM D')}
+        // The clinic beside the date: who else sees and places these orders.
+        subtitle={[
+          dayjs().format('dddd, MMMM D'),
+          myClinic ? tc('clinicLabel', { clinic: myClinic.name }) : null,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
         actions={
           <>
             <Button component={RouterLink} to="/doctor/orders" variant="outlined">

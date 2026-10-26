@@ -1,6 +1,20 @@
 import { useEffect, useState } from 'react';
-import { Alert, Box, Button, MenuItem, Stack, TextField } from '@mui/material';
-import { CardStack, PageHeader, SectionCard } from '@/components/design';
+import {
+  Alert,
+  Box,
+  Button,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
+  MenuItem,
+  Stack,
+  TextField,
+  Typography,
+} from '@mui/material';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { CardStack, Icon, PageHeader, SectionCard } from '@/components/design';
 import { FormProvider, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,6 +22,7 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { RHFTextField } from '@/components/RHFTextField';
+import { MY_CLINIC_KEY, useMyClinic } from '@/features/clinic/useMyClinic';
 import { useColorMode } from '@/theme/ColorModeProvider';
 import { LANGUAGES } from '@/i18n';
 
@@ -20,6 +35,107 @@ const schema = z.object({
   license_number: z.string().optional().or(z.literal('')),
 });
 type FormValues = z.infer<typeof schema>;
+
+/**
+ * Which clinic the doctor belongs to, and what that means: the clinic sees
+ * their orders and can place and manage orders for them (0013, 0014). Nothing
+ * while loading or when the read fails, so it never says "no clinic" wrongly.
+ *
+ * "Leave clinic" is `leave_clinic()` (0013), behind a confirmation: the clinic
+ * loses sight of every one of the doctor's orders at once, and only a new
+ * invite brings the doctor back. The clinic admin is told (doctor_left, 0043).
+ */
+function ClinicCard() {
+  const { t } = useTranslation('doctor');
+  const { t: tc } = useTranslation('common');
+  const { refreshUser } = useAuth();
+  const qc = useQueryClient();
+  const { data: clinic, isSuccess } = useMyClinic();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const leave = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.rpc('leave_clinic');
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      setConfirmOpen(false);
+      void qc.invalidateQueries({ queryKey: MY_CLINIC_KEY });
+      // The session's doctor_profile carries clinic_id too.
+      void refreshUser({ silent: true });
+    },
+  });
+
+  if (!isSuccess) return null;
+
+  return (
+    <SectionCard icon="apartment" title={t('profile.clinic.title')}>
+      {clinic ? (
+        <Stack spacing={0.75}>
+          <Typography sx={{ fontSize: '0.9375rem', fontWeight: 700, overflowWrap: 'anywhere' }}>
+            {clinic.name}
+          </Typography>
+          {clinic.city && (
+            <Typography variant="body1" color="text.secondary">
+              {clinic.city}
+            </Typography>
+          )}
+          <Typography variant="body1" color="text.secondary">
+            {t('profile.clinic.memberBody', { clinic: clinic.name })}
+          </Typography>
+          <Box sx={{ pt: 1 }}>
+            <Button
+              variant="outlined"
+              color="error"
+              startIcon={<Icon name="logout" size={16} />}
+              onClick={() => setConfirmOpen(true)}
+            >
+              {t('profile.clinic.leave')}
+            </Button>
+          </Box>
+
+          <Dialog
+            open={confirmOpen}
+            onClose={() => !leave.isPending && setConfirmOpen(false)}
+            maxWidth="xs"
+            fullWidth
+            TransitionProps={{ onExited: () => leave.reset() }}
+          >
+            <DialogTitle>{t('profile.clinic.leaveTitle', { clinic: clinic.name })}</DialogTitle>
+            <DialogContent>
+              <DialogContentText>{t('profile.clinic.leaveBody')}</DialogContentText>
+              {leave.isError && (
+                <Alert severity="error" sx={{ mt: 2 }}>
+                  {tc('errors.generic')}
+                </Alert>
+              )}
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setConfirmOpen(false)} disabled={leave.isPending}>
+                {tc('actions.cancel')}
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                disabled={leave.isPending}
+                onClick={() => leave.mutate()}
+              >
+                {t('profile.clinic.leaveConfirm')}
+              </Button>
+            </DialogActions>
+          </Dialog>
+        </Stack>
+      ) : (
+        <Stack spacing={0.5}>
+          <Typography sx={{ fontWeight: 600 }}>{t('profile.clinic.none')}</Typography>
+          <Typography variant="body1" color="text.secondary">
+            {t('profile.clinic.noneHint')}
+          </Typography>
+        </Stack>
+      )}
+    </SectionCard>
+  );
+}
 
 export function DoctorProfilePage() {
   const { t, i18n } = useTranslation('doctor');
@@ -145,6 +261,8 @@ export function DoctorProfilePage() {
             </FormProvider>
           </Stack>
         </SectionCard>
+
+        <ClinicCard />
 
         <SectionCard icon="tune" title={t('profile.preferences')}>
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>

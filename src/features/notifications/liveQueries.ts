@@ -147,9 +147,11 @@ export function keysForRow(table: LiveTable, row: Row): QueryKey[] {
         ['my-clinic-invites'],
         ['clinic-invites'],
         ['clinic-pending-invites'],
-        // An accepted invite is how a doctor joins: the clinic's lists grow.
+        // An accepted invite is how a doctor joins: the clinic's lists grow,
+        // and the doctor's own "Clinic: …" changes (0049).
         ['clinic-doctors'],
         ['clinic-order-count'],
+        ['my-clinic'],
       ];
     case 'feedback':
       return [['admin-feedback'], ['admin-feedback-count']];

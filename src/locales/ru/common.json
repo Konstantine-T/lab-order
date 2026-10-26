@@ -553,5 +553,6 @@
   },
   "statCard": {
     "show": "Показать: {{label}} ({{value}})"
-  }
+  },
+  "clinicLabel": "Клиника: {{clinic}}"
 }
