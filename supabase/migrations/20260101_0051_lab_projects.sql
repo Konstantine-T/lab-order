@@ -1,5 +1,5 @@
 -- ---------------------------------------------------------------------------
--- 0051 — "Projects" for the lab: the history of each patient's orders.
+-- 0051: "Projects" for the lab, the history of each patient's orders.
 --
 -- Trello 5XVmpHyN. Owner decisions: a project is ONE patient record, i.e. one
 -- patient of one doctor. The same person sent by two doctors is two projects
