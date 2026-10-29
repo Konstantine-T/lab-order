@@ -29,6 +29,8 @@ export function LabLayout() {
       // has answered and nobody has acted on (0029).
       badge: badge(alerts.orders + alerts.answeredClarifications),
     },
+    // Each patient's orders with this lab, one project per patient record.
+    { to: '/lab/projects', label: t('nav.projects'), icon: 'folder_shared' },
     { to: '/lab/finances', label: t('nav.finances'), icon: 'payments' },
     {
       to: '/lab/edited-orders',

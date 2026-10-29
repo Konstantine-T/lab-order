@@ -12,13 +12,14 @@ import {
   FormControl,
   InputAdornment,
   InputLabel,
+  Link,
   MenuItem,
   Select,
   Stack,
   TextField,
   Typography,
 } from '@mui/material';
-import { useParams } from 'react-router-dom';
+import { Link as RouterLink, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { DatePicker, TimePicker } from '@mui/x-date-pickers';
@@ -864,7 +865,21 @@ export function LabOrderSheetPage() {
                 label={t('orderSheet.patient')}
                 value={
                   <Box component="span" sx={{ overflowWrap: 'anywhere' }}>
-                    {patientName || patientReference || '—'}
+                    {/* The patient's project (5XVmpHyN): every order this lab
+                        has for them. No patient (a lab's purchase, 0048), no
+                        project, no link. */}
+                    {order.patient_id && patientName ? (
+                      <Link
+                        component={RouterLink}
+                        to={`/lab/projects/${order.patient_id}`}
+                        underline="hover"
+                        title={t('orderSheet.openProject')}
+                      >
+                        {patientName}
+                      </Link>
+                    ) : (
+                      patientName || patientReference || '—'
+                    )}
                   </Box>
                 }
                 hint={

@@ -28,11 +28,22 @@ export type LiveTable =
   | 'clinic_doctor_invites'
   | 'feedback'
   | 'lab_reviews'
-  | 'lab_review_reports';
+  | 'lab_review_reports'
+  | 'order_trash';
 
 type Row = Record<string, unknown>;
 
 const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : null);
+
+/**
+ * The lab's projects (5XVmpHyN): the list (`lab_projects`, 0051), one
+ * project's header and its orders. An order's insert or change moves all
+ * three, and so does the lab trashing one (0050, order_trash): a project
+ * counts only the orders not in the lab's trash. A restore deletes its row,
+ * and realtime does not deliver DELETEs (RealtimeProvider), so the restoring
+ * mutation invalidates these keys itself.
+ */
+const LAB_PROJECTS: QueryKey[] = [['lab-projects'], ['lab-project'], ['lab-project-orders']];
 
 /** Everything an order change can move: lists, tiles, badges, finances. */
 const ORDER_LISTS: QueryKey[] = [
@@ -45,6 +56,7 @@ const ORDER_LISTS: QueryKey[] = [
   ['lab-edited-orders'],
   ['lab-receivables-list'],
   ['lab-receivables-by-customer'],
+  ...LAB_PROJECTS,
   // doctor, and a lab's purchases from other labs (0048): the purchase pages
   // are the doctor's own, under the same keys scoped by the buying profile's
   // id (`['doctor-orders', id]`, `['order', id]`, `['nav-alerts', 'doctor', id]`),
@@ -175,6 +187,11 @@ export function keysForRow(table: LiveTable, row: Row): QueryKey[] {
     case 'lab_review_reports':
       // A report carries only its review's id: refresh the lab's page whole.
       return [['admin-review-reports'], ['admin-reviews'], ['nav-alerts'], ['lab-reviews']];
+    case 'order_trash':
+      // RLS (0050) delivers a side only its own rows; on the lab's side a
+      // trashed order (a row inserted, or its purge_after moved) leaves its
+      // project.
+      return [...LAB_PROJECTS];
   }
 }
 
@@ -206,6 +223,7 @@ export const ALL_LIVE_KEYS: QueryKey[] = (() => {
     'feedback',
     'lab_reviews',
     'lab_review_reports',
+    'order_trash',
   ];
   // A row with no ids yields the list keys; the per-id keys are covered by
   // their first element as a prefix.
