@@ -536,8 +536,6 @@
     "confirmDue": "Confirm due date",
     "setFinalPrice": "Set final price",
     "finalPriceLabel": "Final total (GEL)",
-    "finalPriceMin": "Minimum allowed: {{min}} (50% of estimate)",
-    "finalPriceTooLow": "Final price cannot be lower than {{min}} (50% of the estimated total).",
     "save": "Save",
     "statusTitle": "Order status",
     "statusHelp": "Pick the new status and click Save. The doctor sees the change immediately.",

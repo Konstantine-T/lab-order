@@ -637,15 +637,6 @@ export function LabOrderSheetPage() {
                           setPriceError(t('orderSheet.finalPriceInvalid'));
                           return;
                         }
-                        if (order.generated_total != null) {
-                          const floor = order.generated_total * 0.5;
-                          if (amount < floor) {
-                            setPriceError(
-                              t('orderSheet.finalPriceTooLow', { min: formatGEL(floor) }),
-                            );
-                            return;
-                          }
-                        }
                         // Every price carries its explanation (0046 refuses one
                         // without), and a changed price needs the text updated
                         // or confirmed as still correct.
@@ -667,13 +658,6 @@ export function LabOrderSheetPage() {
                       {t('orderSheet.setFinalPrice')}
                     </Button>
                   </Stack>
-                  {order.generated_total != null && !priceError && (
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.625, display: 'block' }}>
-                      {t('orderSheet.finalPriceMin', {
-                        min: formatGEL(order.generated_total * 0.5),
-                      })}
-                    </Typography>
-                  )}
                 </Box>
 
                 {/* Directly under the price: this is where the lab is standing
