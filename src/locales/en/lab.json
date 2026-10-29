@@ -43,7 +43,8 @@
     "staff": "Staff",
     "reviews": "Reviews",
     "marketplace": "Marketplace",
-    "purchases": "My orders to labs"
+    "purchases": "My orders to labs",
+    "projects": "Projects"
   },
   "finances": {
     "title": "Finances",
@@ -643,7 +644,8 @@
     "laboratory": "Laboratory",
     "labIdCode": "ID code {{code}}",
     "patientReference": "Reference: {{ref}}",
-    "referenceNoPatient": "Reference only, no patient"
+    "referenceNoPatient": "Reference only, no patient",
+    "openProject": "Open this patient's project"
   },
   "approvalBanner": {
     "PENDING_APPROVAL": {
@@ -1204,5 +1206,28 @@
   },
   "customer": {
     "fromLab": "From a lab"
+  },
+  "projects": {
+    "title": "Projects",
+    "subtitle": "Every patient's orders with your lab, one project per patient",
+    "search": "Search by patient, doctor, clinic or order…",
+    "columns": {
+      "patient": "Patient",
+      "doctor": "Doctor",
+      "orders": "Orders",
+      "lastOrder": "Last order"
+    },
+    "orders_one": "{{count}} order",
+    "orders_other": "{{count}} orders",
+    "open_one": "{{count}} open",
+    "open_other": "{{count}} open",
+    "lastOrderOn": "Last order: {{date}}",
+    "empty": "No projects yet",
+    "emptyBody": "Projects appear here when doctors send orders for their patients.",
+    "noResults": "No projects match your search.",
+    "notFound": "Project not found",
+    "notFoundBody": "This patient has no orders with your lab.",
+    "back": "Back to projects",
+    "breadcrumbA11y": "Breadcrumb"
   }
 }

@@ -43,7 +43,8 @@
     "staff": "Сотрудники",
     "reviews": "Отзывы",
     "marketplace": "Маркетплейс",
-    "purchases": "Мои заказы в лабораториях"
+    "purchases": "Мои заказы в лабораториях",
+    "projects": "Проекты"
   },
   "finances": {
     "title": "Финансы",
@@ -652,7 +653,8 @@
     "laboratory": "Лаборатория",
     "labIdCode": "Ид. код {{code}}",
     "patientReference": "Пометка: {{ref}}",
-    "referenceNoPatient": "Только пометка, без пациента"
+    "referenceNoPatient": "Только пометка, без пациента",
+    "openProject": "Открыть проект пациента"
   },
   "approvalBanner": {
     "PENDING_APPROVAL": {
@@ -1215,5 +1217,32 @@
   },
   "customer": {
     "fromLab": "От лаборатории"
+  },
+  "projects": {
+    "title": "Проекты",
+    "subtitle": "Заказы каждого пациента в вашей лаборатории, один проект на пациента",
+    "search": "Поиск по пациенту, врачу, клинике или заказу…",
+    "columns": {
+      "patient": "Пациент",
+      "doctor": "Врач",
+      "orders": "Заказы",
+      "lastOrder": "Последний заказ"
+    },
+    "orders_one": "{{count}} заказ",
+    "orders_few": "{{count}} заказа",
+    "orders_many": "{{count}} заказов",
+    "orders_other": "{{count}} заказа",
+    "open_one": "{{count}} открытый",
+    "open_few": "{{count}} открытых",
+    "open_many": "{{count}} открытых",
+    "open_other": "{{count}} открытых",
+    "lastOrderOn": "Последний заказ: {{date}}",
+    "empty": "Проектов пока нет",
+    "emptyBody": "Проекты появятся здесь, когда врачи пришлют заказы для своих пациентов.",
+    "noResults": "По вашему запросу проектов не найдено.",
+    "notFound": "Проект не найден",
+    "notFoundBody": "У этого пациента нет заказов в вашей лаборатории.",
+    "back": "Назад к проектам",
+    "breadcrumbA11y": "Навигационная цепочка"
   }
 }

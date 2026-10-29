@@ -567,5 +567,93 @@
       "ADMIN": "Platform",
       "SYSTEM": "Automatic"
     }
+  },
+  "trash": {
+    "moveToTrash": "Move to trash",
+    "confirm": {
+      "titleSingle": "Move this order to the trash?",
+      "titleMany_one": "Move {{count}} order to the trash?",
+      "titleMany_other": "Move {{count}} orders to the trash?",
+      "bodySingle": "It will be deleted from your list in 14 days.",
+      "bodyMany": "They will be deleted from your list in 14 days."
+    },
+    "keeps": {
+      "lab": {
+        "single": "The lab keeps it.",
+        "many": "The labs keep them."
+      },
+      "doctor": {
+        "single": "The doctor keeps it.",
+        "many": "The doctors keep them."
+      },
+      "buyerLab": {
+        "single": "The lab that ordered it keeps it.",
+        "many": "The labs that ordered them keep them."
+      },
+      "customers": {
+        "single": "The doctor or lab that ordered it keeps it.",
+        "many": "The doctors and labs that ordered them keep them."
+      }
+    },
+    "toast": {
+      "movedSingle": "Moved to the trash",
+      "movedMany_one": "{{count}} order moved to the trash",
+      "movedMany_other": "{{count}} orders moved to the trash",
+      "undo": "Undo",
+      "restoredSingle": "Restored",
+      "restoredMany_one": "{{count}} order restored",
+      "restoredMany_other": "{{count}} orders restored"
+    },
+    "link": "Trash ({{n}})",
+    "page": {
+      "title": "Trash",
+      "subtitle": "Deleted orders stay here for 14 days, then they are gone from your list for good."
+    },
+    "deletedIn_one": "Deleted in {{count}} day",
+    "deletedIn_other": "Deleted in {{count}} days",
+    "restore": "Restore",
+    "deleteNow": "Delete now",
+    "emptyTrash": "Empty trash",
+    "deleteNowConfirm": {
+      "title": "Delete now?",
+      "body": "It can't be restored."
+    },
+    "emptyConfirm": {
+      "title": "Empty the trash?",
+      "body_one": "{{count}} order will be deleted from your list. It can't be restored.",
+      "body_other": "{{count}} orders will be deleted from your list. They can't be restored."
+    },
+    "empty": {
+      "title": "The trash is empty.",
+      "description": "Deleted orders stay here for 14 days."
+    },
+    "backToOrders": "Back to orders",
+    "banner": {
+      "inTrash": "This order is in the trash. It will be deleted from your list on {{date}}."
+    },
+    "gone": {
+      "title": "This order was deleted from your list",
+      "description": "It spent 14 days in your trash or was deleted from it, so it is no longer shown to you."
+    },
+    "readOnly": "In the trash, read-only",
+    "select": {
+      "start": "Select",
+      "barLabel": "Selected orders",
+      "count_one": "{{count}} selected",
+      "count_other": "{{count}} selected",
+      "hint": "Only completed and cancelled orders can be selected.",
+      "all_one": "Select all ({{count}})",
+      "all_other": "Select all ({{count}})",
+      "none": "Clear selection",
+      "move_one": "Move to trash ({{count}})",
+      "move_other": "Move to trash ({{count}})"
+    },
+    "errors": {
+      "order_not_finished": "Only completed or cancelled orders can be moved to the trash.",
+      "not_your_order": "You can only delete orders from your own list.",
+      "trash_expired": "This order has already been deleted from your list and can't be restored.",
+      "tooMany": "Too many orders at once. Try again with fewer.",
+      "generic": "Something went wrong. Please try again."
+    }
   }
 }
