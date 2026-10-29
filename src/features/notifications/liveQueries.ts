@@ -41,9 +41,10 @@ const str = (v: unknown): string | null => (typeof v === 'string' && v ? v : nul
  * The lab's projects (5XVmpHyN): the list (`lab_projects`, 0055), one
  * project's header and its orders. An order's insert or change moves all
  * three, and so does the lab trashing one (0054, order_trash): a project
- * counts only the orders not in the lab's trash. A restore deletes its row,
- * and realtime does not deliver DELETEs (RealtimeProvider), so the restoring
- * mutation invalidates these keys itself (through keysForTrashChange).
+ * counts only the orders not in the lab's trash. A restore clears its row, an
+ * UPDATE that RLS lets no one read, so realtime delivers it to no one; the
+ * restoring mutation invalidates these keys itself (through
+ * keysForTrashChange).
  */
 const LAB_PROJECTS: QueryKey[] = [['lab-projects'], ['lab-project'], ['lab-project-orders']];
 
@@ -110,6 +111,8 @@ const TRASH_LISTS: Record<'LAB' | 'DOCTOR', QueryKey[]> = {
   ],
 };
 
+/** `orderId` null = orders not known one by one ("Empty trash"): every open
+ *  order page of either side, whose banner may now say "deleted". */
 export function keysForTrashChange(side: unknown, orderId: string | null): QueryKey[] {
   const lists =
     side === 'LAB' || side === 'DOCTOR'
@@ -124,7 +127,7 @@ export function keysForTrashChange(side: unknown, orderId: string | null): Query
           ['lab-order', orderId],
           ['order', orderId],
         ]
-      : []),
+      : [['lab-order'], ['order']]),
   ];
 }
 
@@ -252,7 +255,9 @@ export function keysForRow(table: LiveTable, row: Row): QueryKey[] {
       // A report carries only its review's id: refresh the lab's page whole.
       return [['admin-review-reports'], ['admin-reviews'], ['nav-alerts'], ['lab-reviews']];
     case 'order_trash':
-      // RLS delivers only the subscriber's own side's rows.
+      // RLS delivers only the subscriber's own side's rows, and never a
+      // cleared one (a restore or a reopen reaches no one; 0054 never
+      // deletes a row, since realtime would send a DELETE to anyone).
       return keysForTrashChange(row.side, str(row.order_id));
   }
 }

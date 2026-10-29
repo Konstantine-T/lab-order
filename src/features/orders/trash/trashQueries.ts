@@ -1,27 +1,37 @@
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import type { OrderStatus } from '@/types/database';
 import { trashCountKey, trashListKey, type TrashScope } from './trashApi';
 
 /**
- * A side's trash: its orders whose `order_trash` row is still before
- * `purge_after`.
+ * A side's trash: its `order_trash` rows still in the trash, with their
+ * orders.
  *
- * Read from `orders`, scoped like every other list of that side: the lab's
+ * Read from `order_trash`, with the order embedded (`orders!inner`), so the
+ * server sorts by `deleted_at` and pages: PostgREST's row cap can never cut
+ * the list, and the pager and "Empty trash" count with `useTrashCount`, over
+ * every row, not over one page.
+ *
+ * Scoped on the embedded order like every other list of that side: the lab's
  * incoming orders by `lab_id`, the doctor's or a buying lab's by `doctor_id`
- * (the 0048 rule: a lab owner reads both through RLS). `order_trash!inner`
- * keeps only the orders with a row the caller can read, and RLS shows a
- * caller only its own side's rows, so with that scope the row is this side's.
- * The side is filtered too, to say so.
+ * (the 0048 rule: a lab owner reads both through RLS). RLS shows a caller
+ * only its own side's rows, and no cleared (restored or reopened) one; the
+ * side is filtered too, to say so.
  *
- * "Now" is the browser's clock. A row the server already counts as gone can
- * show for as long as the clocks disagree; Restore on it then says
+ * "Still in the trash" = not purged, and `purge_after` ahead of this clock.
+ * `purged_at` takes "Delete now" / "Empty trash" off at once, even in a
+ * browser whose clock runs behind the server's (purge_after is then the
+ * server's now(), which that clock has not reached yet). Only the 14 days
+ * running out by themselves are judged by this clock: such a row can show
+ * for as long as the clocks disagree, and Restore on it then says
  * `trash_expired`, translated, and the list refetches.
  */
+export const TRASH_PAGE_SIZE = 25;
+
 const scopeFilter = (scope: TrashScope) =>
   scope.side === 'LAB'
-    ? { column: 'lab_id', value: scope.labId }
-    : { column: 'doctor_id', value: scope.doctorId };
+    ? { column: 'orders.lab_id', value: scope.labId }
+    : { column: 'orders.doctor_id', value: scope.doctorId };
 
 export type TrashListRow = {
   /** The trash row's id. */
@@ -43,48 +53,41 @@ export type TrashListRow = {
   };
 };
 
-type OrderWithTrash = TrashListRow['orders'] & {
-  order_trash: { id: string; deleted_at: string; purge_after: string }[];
-};
-
 const LIST_SELECT =
-  'id, order_code, status, buyer_lab_id, patient_id, patient_reference, doctor_snapshot, ' +
+  'id, order_id, deleted_at, purge_after, ' +
+  'orders!inner(id, order_code, status, buyer_lab_id, patient_id, patient_reference, doctor_snapshot, ' +
   'lab_name:lab_snapshot->>public_name, service_name:service_snapshot->>name, ' +
-  'patients(first_name, last_name), order_trash!inner(id, deleted_at, purge_after)';
+  'patients(first_name, last_name))';
 
-export function useTrashList(scope: TrashScope | null) {
+/** One page (0-based) of the trash, most recently deleted first. */
+export function useTrashList(scope: TrashScope | null, page: number) {
   return useQuery({
-    queryKey: scope ? trashListKey(scope) : ['order-trash', 'none'],
+    queryKey: scope ? [...trashListKey(scope), page] : ['order-trash', 'none'],
     enabled: !!scope,
+    // The previous page stays up while the next one loads.
+    placeholderData: keepPreviousData,
     queryFn: async () => {
       const f = scopeFilter(scope!);
+      const from = page * TRASH_PAGE_SIZE;
       const { data, error } = await supabase
-        .from('orders')
+        .from('order_trash')
         .select(LIST_SELECT)
+        .eq('side', scope!.side)
         .eq(f.column, f.value)
-        .eq('order_trash.side', scope!.side)
-        .gt('order_trash.purge_after', new Date().toISOString());
+        .is('purged_at', null)
+        .gt('purge_after', new Date().toISOString())
+        .order('deleted_at', { ascending: false })
+        .order('id')
+        // No count on this request: past the end PostgREST would answer 416.
+        .range(from, from + TRASH_PAGE_SIZE - 1);
       if (error) throw error;
-      const rows: TrashListRow[] = [];
-      for (const o of (data ?? []) as unknown as OrderWithTrash[]) {
-        const t = o.order_trash?.[0];
-        if (!t) continue;
-        rows.push({
-          id: t.id,
-          order_id: o.id,
-          deleted_at: t.deleted_at,
-          purge_after: t.purge_after,
-          orders: o,
-        });
-      }
-      // Most recently deleted first. Not `.order()`: PostgREST cannot sort
-      // the orders by a column of their to-many `order_trash` embed.
-      return rows.sort((a, b) => b.deleted_at.localeCompare(a.deleted_at));
+      return ((data ?? []) as unknown as TrashListRow[]).filter((r) => r.orders);
     },
   });
 }
 
-/** "Trash (N)": counted, no rows on the wire. Fails soft to 0. */
+/** "Trash (N)", the trash page's pager and "Empty trash": counted over the
+ *  whole trash, no rows on the wire. Fails soft to 0. */
 export function useTrashCount(scope: TrashScope | null) {
   const { data = 0 } = useQuery({
     queryKey: scope ? trashCountKey(scope) : ['order-trash-count', 'none'],
@@ -92,11 +95,12 @@ export function useTrashCount(scope: TrashScope | null) {
     queryFn: async () => {
       const f = scopeFilter(scope!);
       const { count, error } = await supabase
-        .from('orders')
-        .select('id, order_trash!inner(id)', { count: 'exact', head: true })
+        .from('order_trash')
+        .select('id, orders!inner(id)', { count: 'exact', head: true })
+        .eq('side', scope!.side)
         .eq(f.column, f.value)
-        .eq('order_trash.side', scope!.side)
-        .gt('order_trash.purge_after', new Date().toISOString());
+        .is('purged_at', null)
+        .gt('purge_after', new Date().toISOString());
       if (error) return 0;
       return count ?? 0;
     },

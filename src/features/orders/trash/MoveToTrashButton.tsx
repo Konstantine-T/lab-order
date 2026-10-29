@@ -39,7 +39,8 @@ export function MoveToTrashButton({
 
   const trash = useMutation({
     mutationFn: () => trashOrdersTracked([orderId]),
-    onSuccess: (trashedIds) => {
+    // One id is one call: it moves, or it throws.
+    onSuccess: ({ trashedIds }) => {
       invalidateAfterTrashChange(qc, side, [orderId]);
       setOpen(false);
       // Empty when another tab had already deleted it for good: no toast,

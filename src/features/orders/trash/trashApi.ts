@@ -2,6 +2,7 @@ import type { QueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { keysForTrashChange } from '@/features/notifications/liveQueries';
 import type { OrderTrashSide } from '@/types/database';
+import type { OrderTrashStateEmbed } from './trashFilter';
 
 /**
  * The 14-day trash of finished orders (0054, Trello SLXFiKPX).
@@ -46,16 +47,23 @@ export type TrashState =
   | { kind: 'gone' };
 
 /**
- * From the order page's `order_trash(purge_after)` embed. RLS returns this
- * side's row only, so at most one; a missing embed (an older cache entry)
- * reads as not trashed.
+ * From the order page's `order_trash(purge_after, purged_at)` embed. RLS
+ * returns this side's row only, so at most one, and never a cleared one (a
+ * restored or reopened order); a missing embed (an older cache entry) reads
+ * as not trashed.
+ *
+ * `purged_at` ("Delete now" / "Empty trash") is gone whatever this clock
+ * says: purge_after is then the server's now(), which a browser clock running
+ * behind has not reached yet. Only the 14 days running out are judged by the
+ * browser's clock.
  */
 export function trashStateOf(
-  rows: { purge_after: string }[] | null | undefined,
+  rows: OrderTrashStateEmbed | null | undefined,
   now: number = Date.now(),
 ): TrashState {
   const row = rows?.[0];
   if (!row) return { kind: 'none' };
+  if (row.purged_at) return { kind: 'gone' };
   return new Date(row.purge_after).getTime() > now
     ? { kind: 'inTrash', purgeAfter: row.purge_after }
     : { kind: 'gone' };
@@ -81,54 +89,99 @@ function chunks<T>(items: T[], size = TRASH_BATCH): T[][] {
  * way, so what shows is what the database holds.
  */
 async function callBatched(
-  fn: 'trash_orders' | 'restore_orders' | 'purge_trashed_orders',
+  fn: 'restore_orders' | 'purge_trashed_orders',
   ids: string[],
+  side?: OrderTrashSide,
 ): Promise<number> {
   let total = 0;
   for (const batch of chunks([...new Set(ids)])) {
-    const { data, error } = await supabase.rpc(fn, { p_order_ids: batch });
+    const { data, error } = await supabase.rpc(fn, {
+      p_order_ids: batch,
+      ...(side ? { p_side: side } : {}),
+    });
     if (error) throw error;
     total += typeof data === 'number' ? data : 0;
   }
   return total;
 }
 
-export const trashOrders = (ids: string[]) => callBatched('trash_orders', ids);
-
-/**
- * `trash_orders`, returning the ids this call actually put (or kept) in the
- * caller's trash: what the toast counts and what its Undo restores. An id
- * already gone on this side stays gone and is not counted (A3); restoring it
- * would raise `trash_expired` for the whole Undo, so it must not be handed
- * on. Each id the RPC touched counts once, so only a short count needs the
- * extra read of this side's rows (RLS shows no other side's).
- */
-export async function trashOrdersTracked(ids: string[]): Promise<string[]> {
-  const unique = [...new Set(ids)];
-  const count = await trashOrders(unique);
-  if (count >= unique.length) return unique;
-  if (count === 0) return [];
+/** Which of `batch` are in this side's trash now (RLS shows no other side's
+ *  row, and no cleared one). */
+async function inTrashNow(batch: string[]): Promise<string[]> {
   // A row trashed now has purge_after = server now + 14 days; a gone one,
   // at most server now. A day ahead of this clock tells them apart however
   // far the browser's clock is off (within a day).
   const cutoff = new Date(Date.now() + 86_400_000).toISOString();
   const kept = new Set<string>();
-  for (const batch of chunks(unique, 100)) {
+  for (const part of chunks(batch, 100)) {
     const { data, error } = await supabase
       .from('order_trash')
       .select('order_id')
-      .in('order_id', batch)
+      .in('order_id', part)
       .gt('purge_after', cutoff);
     if (error) throw error;
     for (const row of (data ?? []) as { order_id: string }[]) kept.add(row.order_id);
   }
-  return unique.filter((id) => kept.has(id));
+  return batch.filter((id) => kept.has(id));
+}
+
+/** What a trash of several orders did: the ids it moved, and the refusal (or
+ *  failure) that stopped it part way, if one did. */
+export type TrashOutcome = { trashedIds: string[]; error: unknown };
+
+/**
+ * `trash_orders`, returning the ids this call actually put (or kept) in the
+ * caller's trash: what the toast counts and what its Undo restores.
+ *
+ * An id already gone on this side stays gone and is not counted (A3);
+ * restoring it would raise `trash_expired` for the whole Undo, so it must not
+ * be handed on. Each id the RPC touched counts once, so only a batch with a
+ * short count needs the extra read of this side's rows.
+ *
+ * Over 200 ids is several calls, each its own transaction. When a later one
+ * is refused (an order reopened meanwhile, `order_not_finished`) or fails,
+ * the earlier ones have already moved their orders: they come back as
+ * `trashedIds` beside the `error`, so the list can still toast them with
+ * Undo and say that the rest did not move. When nothing moved, it throws,
+ * as one call does.
+ */
+export async function trashOrdersTracked(ids: string[]): Promise<TrashOutcome> {
+  const trashedIds: string[] = [];
+  for (const batch of chunks([...new Set(ids)])) {
+    try {
+      const { data, error } = await supabase.rpc('trash_orders', { p_order_ids: batch });
+      if (error) throw error;
+      const count = typeof data === 'number' ? data : 0;
+      if (count >= batch.length) trashedIds.push(...batch);
+      else if (count > 0) trashedIds.push(...(await inTrashNow(batch)));
+    } catch (error) {
+      if (trashedIds.length === 0) throw error;
+      return { trashedIds, error };
+    }
+  }
+  return { trashedIds, error: null };
 }
 
 export const restoreOrders = (ids: string[]) => callBatched('restore_orders', ids);
-/** Always with ids: a lab owner who also buys has two trashes, and `null`
- *  would empty both. */
-export const purgeTrashedOrders = (ids: string[]) => callBatched('purge_trashed_orders', ids);
+
+/** "Delete now": with this trash's side, so an id from the other trash of a
+ *  lab that also buys is refused (`not_your_order`), never purged. */
+export const purgeTrashedOrders = (ids: string[], side: OrderTrashSide) =>
+  callBatched('purge_trashed_orders', ids, side);
+
+/**
+ * "Empty trash": every row of this side's trash in one call, however many
+ * and whether the page loaded them or not (the list is paged), and never the
+ * caller's other trash (a lab owner who also buys has two).
+ */
+export async function emptyTrash(side: OrderTrashSide): Promise<number> {
+  const { data, error } = await supabase.rpc('purge_trashed_orders', {
+    p_order_ids: null,
+    p_side: side,
+  });
+  if (error) throw error;
+  return typeof data === 'number' ? data : 0;
+}
 
 // ===== Errors ================================================================
 

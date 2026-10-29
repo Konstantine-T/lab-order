@@ -42,10 +42,13 @@
 --       total_count    projects matching the search, before limit / offset
 --     "Latest" = created_at desc, then id desc (a total order, so two orders
 --     created in the same instant cannot flip between refetches).
---   * THE TRASH (0054, order_trash): an order with ANY 'LAB' row (still in
---     the trash or gone for good) is left out, of the counts as well; a
---     project whose orders are all trashed disappears. A 'DOCTOR' row hides
---     the order from the doctor only and changes nothing here.
+--   * THE TRASH (0054, order_trash): an order with a 'LAB' row that is not
+--     cleared (still in the trash or gone for good) is left out, of the
+--     counts as well; a project whose orders are all trashed disappears. A
+--     cleared row (restored, or the order reopened) hides nothing: this
+--     function is SECURITY DEFINER, so it says cleared_at is null itself
+--     where the clients get it from RLS. A 'DOCTOR' row hides the order from
+--     the doctor only and changes nothing here.
 --   * Search: p_search trimmed, internal whitespace collapsed; blank = no
 --     filter. Case-insensitive substring (ilike, with %, _ and \ in the
 --     search taken literally) over the patient's "first last" and
@@ -129,11 +132,12 @@ as $$
       from public.orders o
       join my_lab on my_lab.id = o.lab_id
      where o.patient_id is not null
-       -- Hidden from the lab: in its trash or gone (0054). Any 'LAB' row of
-       -- this order is the lab's own: side LAB means the order's lab.
+       -- Hidden from the lab: in its trash or gone (0054), not cleared. Any
+       -- 'LAB' row of this order is the lab's own: side LAB means the
+       -- order's lab.
        and not exists (
          select 1 from public.order_trash t
-          where t.order_id = o.id and t.side = 'LAB'
+          where t.order_id = o.id and t.side = 'LAB' and t.cleared_at is null
        )
   ),
   projects as (
@@ -221,7 +225,8 @@ grant execute on function public.lab_projects(text, integer, integer) to authent
 --   select count(*) = 1 from pg_proc where proname = 'lab_projects';
 --   select has_function_privilege('authenticated', 'public.lab_projects(text,integer,integer)', 'execute')
 --      and not has_function_privilege('anon', 'public.lab_projects(text,integer,integer)', 'execute');
---   select prosrc like '%order_trash%' and prosrc like '%patient_id is not null%'
+--   select prosrc like '%order_trash%' and prosrc like '%cleared_at is null%'
+--      and prosrc like '%patient_id is not null%'
 --     from pg_proc where proname = 'lab_projects';
 --
 --   -- As a lab owner, in a transaction you roll back:

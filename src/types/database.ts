@@ -65,9 +65,13 @@ export const canTrash = (status: OrderStatus): boolean =>
 /**
  * `order_trash` (0054): one side's "hide" of a finished order. 'LAB' is the
  * order's lab, 'DOCTOR' its doctor or a buying lab's buying profile (0048).
- * `purge_after > now()` = in the trash; otherwise gone from that side for good.
- * Each side reads only its own rows (RLS); written only by trash_orders /
- * restore_orders / purge_trashed_orders and the reopen trigger.
+ * `purge_after > now()` and no `purged_at` = in the trash; otherwise gone from
+ * that side for good (`purged_at` set when "Delete now" / "Empty trash" ended
+ * it early). A restore or a reopen sets `cleared_at` instead of deleting the
+ * row (realtime would send a DELETE to every subscriber past RLS); RLS shows
+ * a cleared row to no one, so a client never sees `cleared_at` set. Each side
+ * reads only its own rows; written only by trash_orders / restore_orders /
+ * purge_trashed_orders and the reopen trigger.
  */
 export type OrderTrashSide = 'LAB' | 'DOCTOR';
 export interface OrderTrashRow {
@@ -77,6 +81,9 @@ export interface OrderTrashRow {
   deleted_at: string;
   purge_after: string;
   deleted_by_user_id: string | null;
+  /** Always null for a client (RLS hides cleared rows). */
+  cleared_at: string | null;
+  purged_at: string | null;
 }
 
 /** 'LAB': a lab buying from another lab, always invoiced to its own LLC (0048). */

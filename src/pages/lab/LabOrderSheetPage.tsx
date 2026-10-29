@@ -90,7 +90,10 @@ import {
   isNoteRequiredError,
   needsNoteConfirmation,
 } from '@/features/lab/orderSheet/finalPriceNote';
-import { ORDER_TRASH_STATE_EMBED } from '@/features/orders/trash/trashFilter';
+import {
+  ORDER_TRASH_STATE_EMBED,
+  type OrderTrashStateEmbed,
+} from '@/features/orders/trash/trashFilter';
 import { trashStateOf } from '@/features/orders/trash/trashApi';
 import { MoveToTrashButton } from '@/features/orders/trash/MoveToTrashButton';
 import { OrderGoneNotice, TrashedOrderBanner } from '@/features/orders/trash/TrashedOrderNotices';
@@ -102,7 +105,7 @@ import { TrashedSheetRail } from '@/features/lab/orderSheet/TrashedSheetRail';
 type DetailRow = OrderRow & {
   patients: LivePatientEmbed | null;
   /** This lab's trash row, if any (0054; RLS embeds no other side's). */
-  order_trash?: { purge_after: string }[];
+  order_trash?: OrderTrashStateEmbed;
 };
 
 /**

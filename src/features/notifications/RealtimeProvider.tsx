@@ -81,7 +81,8 @@ function listenersFor(
         // Status history rows (0052): inserted only; RLS limits them to visible orders.
         { table: 'order_status_history', events: ['INSERT'] },
         // Its own trash (0054), from another tab or device: RLS delivers only
-        // the doctor's own rows. A restore is a DELETE, heard on next refetch.
+        // the doctor's own rows. A restore clears its row, which RLS shows to
+        // no one, so it is heard on the next refetch.
         { table: 'order_trash', events: both },
         { table: 'clinic_doctor_invites', events: both },
         ...(ids.doctorId

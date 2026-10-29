@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Alert, Button, Snackbar } from '@mui/material';
+import { Alert, Box, Button, Snackbar } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -20,7 +20,8 @@ const trashedIdsOf = (state: unknown): string[] | null => {
 };
 
 type Toast =
-  | { kind: 'moved'; ids: string[] }
+  /** `restErrorKey`: a large selection stopped part way; `ids` moved. */
+  | { kind: 'moved'; ids: string[]; restErrorKey?: string | null }
   | { kind: 'restored'; count: number }
   | { kind: 'error'; key: string };
 
@@ -43,8 +44,8 @@ export function useTrashToast(side: OrderTrashSide) {
   }, []);
 
   const show = useCallback(
-    (ids: string[]) => {
-      if (ids.length) setToast({ kind: 'moved', ids });
+    (ids: string[], restErrorKey?: string | null) => {
+      if (ids.length) setToast({ kind: 'moved', ids, restErrorKey });
     },
     [setToast],
   );
@@ -71,12 +72,28 @@ export function useTrashToast(side: OrderTrashSide) {
     setToast(null);
   };
 
+  // A large selection that stopped part way also says why the rest did not move.
+  const restKey = toast?.kind === 'moved' ? toast.restErrorKey : null;
+  const text =
+    toast?.kind === 'moved'
+      ? restKey
+        ? t('trash.toast.movedPartial', { count: toast.ids.length })
+        : toast.ids.length === 1
+          ? t('trash.toast.movedSingle')
+          : t('trash.toast.movedMany', { count: toast.ids.length })
+      : toast?.kind === 'restored'
+        ? toast.count === 1
+          ? t('trash.toast.restoredSingle')
+          : t('trash.toast.restoredMany', { count: toast.count })
+        : '';
+
   const node = (
     <Snackbar
       open={open}
       // Keyed so a second trash restarts the timer instead of inheriting it.
       key={toast?.kind === 'moved' ? toast.ids.join(',') : toast?.kind}
-      autoHideDuration={toast?.kind === 'moved' ? 8000 : 4000}
+      // A partial move stays longer: it also says what did not happen.
+      autoHideDuration={toast?.kind === 'moved' ? (restKey ? 15000 : 8000) : 4000}
       onClose={close}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
     >
@@ -86,7 +103,7 @@ export function useTrashToast(side: OrderTrashSide) {
         </Alert>
       ) : (
         <Alert
-          severity="success"
+          severity={restKey ? 'warning' : 'success'}
           variant="filled"
           icon={false}
           onClose={toast?.kind === 'restored' ? () => setToast(null) : undefined}
@@ -104,15 +121,12 @@ export function useTrashToast(side: OrderTrashSide) {
             ) : undefined
           }
         >
-          {toast?.kind === 'moved'
-            ? toast.ids.length === 1
-              ? t('trash.toast.movedSingle')
-              : t('trash.toast.movedMany', { count: toast.ids.length })
-            : toast?.kind === 'restored'
-              ? toast.count === 1
-                ? t('trash.toast.restoredSingle')
-                : t('trash.toast.restoredMany', { count: toast.count })
-              : ''}
+          {text}
+          {restKey && (
+            <Box component="span" sx={{ display: 'block', mt: 0.5, opacity: 0.9 }}>
+              {t(restKey)}
+            </Box>
+          )}
         </Alert>
       )}
     </Snackbar>

@@ -16,12 +16,28 @@
 --   1. public.order_trash: one row per (order, side). side 'LAB' = the
 --      order's lab, side 'DOCTOR' = the order's doctor profile, which also
 --      covers a buying lab's purchases (0048: its buying profile is the
---      order's doctor).
---        * In the trash = a row with purge_after > now().
---        * Gone for good = a row with purge_after <= now().
---      No scheduled job: time alone moves a row from the trash to gone, and
---      "Delete now" only sets purge_after = now(). "Hidden from a side" is
---      ANY row of that side, in the trash or gone.
+--      order's doctor). A row is in one of four states:
+--        * In the trash   = purge_after > now(), cleared_at and purged_at null.
+--        * Gone for good  = purge_after <= now(), cleared_at null: the 14
+--          days ran out (purged_at null), or "Delete now" / "Empty trash"
+--          ended them early (purge_after = purged_at = that moment).
+--        * Cleared        = cleared_at set: restored, or the order was
+--          reopened (4). It counts for nothing and nobody can read it (2);
+--          trashing the order again revives the same row.
+--      No scheduled job: time alone moves a row from the trash to gone.
+--      "Hidden from a side" is any row of that side that is not cleared, in
+--      the trash or gone.
+--      purged_at exists for the clients: they cut "in the trash" with the
+--      browser's clock, which can run behind the server's. A row purged a
+--      moment ago would still read purge_after > now() there; purged_at says
+--      it is gone whatever the clock.
+--      A row is never DELETEd, only cleared (restore, reopen) or revived
+--      (trash again). Realtime delivers a DELETE to every subscriber of the
+--      table without RLS (only the primary key, under the transaction's
+--      commit timestamp), so a reopen deleting the other side's rows would
+--      tell the reopener that the other side had hidden the order. A clear
+--      is an UPDATE, which Realtime filters through RLS, and no one may read
+--      a cleared row, so no one is told.
 --      A table and not orders.lab_deleted_at / doctor_deleted_at: the other
 --      side never learns that you deleted it (RLS below; a column would ride
 --      along in every orders read and realtime event to the other party);
@@ -30,12 +46,13 @@
 --      to see); and the doctors' column-blind UPDATE policy on orders cannot
 --      reach it.
 --
---   2. RLS: each side reads only its own rows (the lab its 'LAB' rows of
---      orders it owns, the doctor or buying profile its 'DOCTOR' rows of its
---      own orders). The clinic admin reads none, the platform admin needs no
---      policy (no admin tooling yet). No client writes at all: no INSERT /
---      UPDATE / DELETE grant and no write policy; the RPCs below are the only
---      writers.
+--   2. RLS: each side reads only its own rows that are not cleared (the lab
+--      its 'LAB' rows of orders it owns, the doctor or buying profile its
+--      'DOCTOR' rows of its own orders). So the clients' list filter (an
+--      empty order_trash embed) treats a cleared row as no row. The clinic
+--      admin reads none, the platform admin needs no policy (no admin
+--      tooling yet). No client writes at all: no INSERT / UPDATE / DELETE
+--      grant and no write policy; the RPCs below are the only writers.
 --      An order is never both a lab's incoming order and its own purchase
 --      (0048 refuses ordering from yourself and freezes lab_id / doctor_id),
 --      so for any one order a caller sees at most one side's row. That is why
@@ -55,32 +72,39 @@
 --      statement rolls back).
 --
 --      trash_orders(ids) -> integer: every order must be COMPLETED or
---        CANCELLED (order_not_finished). Inserts the side's row, or refreshes
---        one still in the trash (deleted_at = now(), purge_after = now() +
---        14 days, deleted_by_user_id = auth.uid()). A row already gone stays
+--        CANCELLED (order_not_finished). Inserts the side's row, refreshes
+--        one still in the trash, or revives a cleared one (deleted_at =
+--        now(), purge_after = now() + 14 days, deleted_by_user_id =
+--        auth.uid(), cleared_at and purged_at null). A row already gone stays
 --        gone: trashing never revives a deleted order. Returns the rows
---        inserted or refreshed. The orders are read FOR SHARE, so a reopen
---        racing it either commits first (then the order reads as unfinished)
---        or waits and then clears the new row (4).
---      restore_orders(ids) -> integer: deletes the side's rows still in the
---        trash. A gone row raises trash_expired. An order with no row is
---        skipped (Undo twice, two tabs). Returns the rows deleted.
---      purge_trashed_orders(ids default null) -> integer ("Delete now" /
---        "Empty trash"): sets purge_after = now() on the side's rows still in
---        the trash; ids not in the trash are skipped. With null: every row in
---        the trash of EVERY side the caller holds. A lab owner who also buys
---        has two trashes (incoming orders, purchases), so the app always
---        passes the ids of the one trash it shows; null is for a caller with
---        one side.
+--        inserted, refreshed or revived. The orders are read FOR SHARE, so a
+--        reopen racing it either commits first (then the order reads as
+--        unfinished) or waits and then clears the new row (4).
+--      restore_orders(ids) -> integer: clears the side's rows still in the
+--        trash (cleared_at = now()). A gone row raises trash_expired. An
+--        order with no row, or a cleared one, is skipped (Undo twice, two
+--        tabs). Returns the rows cleared.
+--      purge_trashed_orders(ids default null, side default null) -> integer
+--        ("Delete now" / "Empty trash"): sets purge_after = purged_at =
+--        now() on the caller's rows still in the trash; ids not in the trash
+--        are skipped. side ('LAB' / 'DOCTOR', else invalid_side) limits the
+--        call to that one trash: with ids, an order on the caller's other
+--        side raises not_your_order. With null ids: every row in that
+--        side's trash, or with no side in the trash of EVERY side the caller
+--        holds. A lab owner who also buys has two trashes (incoming orders,
+--        purchases), so the app always names the side: "Empty trash" is
+--        (null, side), and so empties the whole trash, not only the rows
+--        the page has loaded.
 --
 --   4. An order that comes back to life. reopen_order (or a lab, or an admin)
 --      can make a COMPLETED / CANCELLED order active again, and an active
 --      order must never be hidden from the lab working on it or from its
 --      doctor. AFTER UPDATE OF status, on the way out of COMPLETED /
 --      CANCELLED into any other status, every order_trash row of the order
---      is deleted, both sides, gone ones too. SECURITY DEFINER (the caller
---      has no DELETE grant), and wrapped in an exception block that only
---      raises a WARNING: a trash problem never breaks the reopen.
+--      is cleared, both sides, gone ones too (cleared, not deleted: see 1).
+--      SECURITY DEFINER (the caller has no UPDATE grant), and wrapped in an
+--      exception block that only raises a WARNING: a trash problem never
+--      breaks the reopen.
 --      It sits beside 0052's orders_status_history_update (also AFTER UPDATE
 --      OF status, also warning-only). The two touch different tables and
 --      neither reads the other's, so their order does not matter and a
@@ -88,9 +112,12 @@
 --
 --   5. Realtime: order_trash joins the supabase_realtime publication (the
 --      0043 block). Realtime applies the RLS above per subscriber to INSERT
---      and UPDATE, so a side hears only its own trash and restore-by-purge;
---      the client does not subscribe to DELETE (0043, J3), so a restore made
---      in another tab shows on that tab's next refetch.
+--      and UPDATE, so a side hears only its own trash, re-trash and purge.
+--      A restore or a reopen clears rows, an UPDATE whose new row no one may
+--      read, so it reaches no one: a restore made in another tab shows on
+--      that tab's next refetch, and a reopen reaches every list through its
+--      orders UPDATE. Nothing here ever DELETEs a row, and Realtime would
+--      send a DELETE to anyone who subscribes to it, RLS or not (see 1).
 --
 -- Finances read orders through their own RPCs (_lab_receivables_rows,
 -- clinic_payables_*), which know nothing of this table: unchanged. So are
@@ -111,14 +138,28 @@ create table if not exists public.order_trash (
   deleted_at timestamptz not null default now(),
   purge_after timestamptz not null default now() + interval '14 days',
   deleted_by_user_id uuid references public.users(id) on delete set null,
+  -- Restored or reopened: the row counts for nothing and no one reads it.
+  cleared_at timestamptz,
+  -- Ended early by "Delete now" / "Empty trash" (= purge_after then).
+  purged_at timestamptz,
   unique (order_id, side)
 );
+-- For a replay over a draft of this file that had no such columns.
+alter table public.order_trash add column if not exists cleared_at timestamptz;
+alter table public.order_trash add column if not exists purged_at timestamptz;
 create index if not exists order_trash_order_idx on public.order_trash (order_id);
 
 comment on table public.order_trash is
   'A side''s deleted orders (0054): side LAB = the order''s lab, DOCTOR = its doctor or buying profile. '
-  'purge_after > now() = in the trash, else gone from that side for good. The order itself is never removed. '
+  'Not cleared and purge_after > now() = in the trash, else gone from that side for good (purged_at set when '
+  'ended early). cleared_at set = restored or reopened: counts for nothing, unreadable. Rows are never deleted '
+  '(realtime would broadcast a DELETE past RLS). The order itself is never removed. '
   'Written only by trash_orders / restore_orders / purge_trashed_orders and the reopen trigger.';
+comment on column public.order_trash.cleared_at is
+  'Restored (restore_orders) or the order reopened (orders_trash_clear_on_reopen): the row hides nothing, '
+  'RLS shows it to no one, trash_orders revives it.';
+comment on column public.order_trash.purged_at is
+  'Set with purge_after = now() by purge_trashed_orders: gone for good, whatever a client''s clock says.';
 
 
 -- ── 2. Who can read it ───────────────────────────────────────────────────
@@ -127,12 +168,12 @@ alter table public.order_trash enable row level security;
 
 drop policy if exists order_trash_lab_read on public.order_trash;
 create policy order_trash_lab_read on public.order_trash for select to authenticated
-  using (side = 'LAB' and exists (select 1 from public.orders o
+  using (side = 'LAB' and cleared_at is null and exists (select 1 from public.orders o
          where o.id = order_id and public.current_user_owns_lab(o.lab_id)));
 
 drop policy if exists order_trash_doctor_read on public.order_trash;
 create policy order_trash_doctor_read on public.order_trash for select to authenticated
-  using (side = 'DOCTOR' and exists (select 1 from public.orders o
+  using (side = 'DOCTOR' and cleared_at is null and exists (select 1 from public.orders o
          where o.id = order_id and o.doctor_id = public.current_doctor_id()));
 
 -- Supabase's default privileges grant every new table to anon and
@@ -207,9 +248,12 @@ begin
     on conflict (order_id, side) do update
        set deleted_at         = excluded.deleted_at,
            purge_after        = excluded.purge_after,
-           deleted_by_user_id = excluded.deleted_by_user_id
-     -- A gone row stays gone.
-     where t.purge_after > now();
+           deleted_by_user_id = excluded.deleted_by_user_id,
+           cleared_at         = null,
+           purged_at          = null
+     -- A cleared row (restored, reopened) is revived; one in the trash is
+     -- refreshed; a gone row stays gone.
+     where t.cleared_at is not null or t.purge_after > now();
     get diagnostics v_rows = row_count;
     v_n := v_n + v_rows;
   end loop;
@@ -265,7 +309,7 @@ begin
 
     select t.purge_after into v_purge
       from public.order_trash t
-     where t.order_id = v_order.id and t.side = v_side
+     where t.order_id = v_order.id and t.side = v_side and t.cleared_at is null
        for update;
     if not found then
       continue;  -- not in the trash: restored already
@@ -274,8 +318,11 @@ begin
       raise exception 'trash_expired' using errcode = '22023';
     end if;
 
-    delete from public.order_trash t
-     where t.order_id = v_order.id and t.side = v_side and t.purge_after > now();
+    -- Cleared, never deleted (1): realtime would hand a DELETE to anyone.
+    update public.order_trash t
+       set cleared_at = now()
+     where t.order_id = v_order.id and t.side = v_side
+       and t.cleared_at is null and t.purge_after > now();
     get diagnostics v_rows = row_count;
     v_n := v_n + v_rows;
   end loop;
@@ -291,7 +338,14 @@ revoke all on function public.restore_orders(uuid[]) from public, anon;
 grant execute on function public.restore_orders(uuid[]) to authenticated;
 
 
-create or replace function public.purge_trashed_orders(p_order_ids uuid[] default null)
+-- A draft of this file had a one-argument version; two overloads would make
+-- a call with p_order_ids alone ambiguous.
+drop function if exists public.purge_trashed_orders(uuid[]);
+
+create or replace function public.purge_trashed_orders(
+  p_order_ids uuid[] default null,
+  p_side      text   default null
+)
 returns integer
 language plpgsql
 security definer
@@ -305,11 +359,19 @@ declare
   v_rows  integer;
   v_n     integer := 0;
 begin
-  -- Null: everything in the caller's trash, on every side it holds.
+  if p_side is not null and p_side not in ('LAB', 'DOCTOR') then
+    raise exception 'invalid_side' using errcode = '22023';
+  end if;
+
+  -- Null ids: everything in that side's trash ("Empty trash"), or with no
+  -- side in the caller's trash on every side it holds.
   if p_order_ids is null then
     update public.order_trash t
-       set purge_after = now()
-     where t.purge_after > now()
+       set purge_after = now(),
+           purged_at   = now()
+     where t.cleared_at is null
+       and t.purge_after > now()
+       and (p_side is null or t.side = p_side)
        and exists (
          select 1 from public.orders o
           where o.id = t.order_id
@@ -337,13 +399,16 @@ begin
   loop
     v_seen := v_seen + 1;
     v_side := public._order_trash_side(v_order.lab_id, v_order.doctor_id);
-    if v_side is null then
+    -- Not the caller's, or not in the trash this call names.
+    if v_side is null or v_side <> coalesce(p_side, v_side) then
       raise exception 'not_your_order' using errcode = '42501';
     end if;
 
     update public.order_trash t
-       set purge_after = now()
-     where t.order_id = v_order.id and t.side = v_side and t.purge_after > now();
+       set purge_after = now(),
+           purged_at   = now()
+     where t.order_id = v_order.id and t.side = v_side
+       and t.cleared_at is null and t.purge_after > now();
     get diagnostics v_rows = row_count;
     v_n := v_n + v_rows;
   end loop;
@@ -355,8 +420,8 @@ begin
 end;
 $$;
 
-revoke all on function public.purge_trashed_orders(uuid[]) from public, anon;
-grant execute on function public.purge_trashed_orders(uuid[]) to authenticated;
+revoke all on function public.purge_trashed_orders(uuid[], text) from public, anon;
+grant execute on function public.purge_trashed_orders(uuid[], text) to authenticated;
 
 
 -- ── 4. A reopened order leaves both trashes ──────────────────────────────
@@ -369,10 +434,15 @@ set search_path = public
 as $$
 begin
   begin
-    delete from public.order_trash where order_id = new.id;
+    -- Cleared, never deleted (1): a DELETE here would reach every realtime
+    -- subscriber of order_trash beside this orders UPDATE, and tell the
+    -- reopener which other side had hidden the order.
+    update public.order_trash
+       set cleared_at = now()
+     where order_id = new.id and cleared_at is null;
   exception when others then
     -- Never break the reopen; the order then stays hidden from a side until
-    -- the row is removed by hand, which the warning says.
+    -- the row is cleared by hand, which the warning says.
     raise warning 'order_trash: could not clear the trash of reopened order % (% %)',
       new.id, sqlstate, sqlerrm;
   end;
@@ -416,6 +486,9 @@ end $$;
 --   select relrowsecurity from pg_class where oid = 'public.order_trash'::regclass;
 --   select count(*) = 2 from pg_policies
 --    where schemaname = 'public' and tablename = 'order_trash' and cmd = 'SELECT';
+--   -- both hide cleared rows:
+--   select bool_and(qual like '%cleared_at IS NULL%') from pg_policies
+--    where schemaname = 'public' and tablename = 'order_trash';
 --   select has_table_privilege('authenticated', 'public.order_trash', 'select')
 --      and not has_table_privilege('authenticated', 'public.order_trash', 'insert')
 --      and not has_table_privilege('authenticated', 'public.order_trash', 'update')
@@ -424,13 +497,14 @@ end $$;
 --   select bool_and(prosecdef) and count(*) = 3 from pg_proc
 --    where oid in ('public.trash_orders(uuid[])'::regprocedure,
 --                  'public.restore_orders(uuid[])'::regprocedure,
---                  'public.purge_trashed_orders(uuid[])'::regprocedure);
+--                  'public.purge_trashed_orders(uuid[],text)'::regprocedure);
+--   select to_regprocedure('public.purge_trashed_orders(uuid[])') is null;   -- no 1-arg overload
 --   select has_function_privilege('authenticated', 'public.trash_orders(uuid[])', 'execute')
 --      and not has_function_privilege('anon', 'public.trash_orders(uuid[])', 'execute')
 --      and has_function_privilege('authenticated', 'public.restore_orders(uuid[])', 'execute')
 --      and not has_function_privilege('anon', 'public.restore_orders(uuid[])', 'execute')
---      and has_function_privilege('authenticated', 'public.purge_trashed_orders(uuid[])', 'execute')
---      and not has_function_privilege('anon', 'public.purge_trashed_orders(uuid[])', 'execute')
+--      and has_function_privilege('authenticated', 'public.purge_trashed_orders(uuid[],text)', 'execute')
+--      and not has_function_privilege('anon', 'public.purge_trashed_orders(uuid[],text)', 'execute')
 --      and not has_function_privilege('authenticated', 'public._order_trash_side(uuid,uuid)', 'execute')
 --      and not has_function_privilege('authenticated', 'public.tg_order_trash_clear_on_reopen()', 'execute');
 --   select count(*) = 1 from pg_trigger
@@ -453,8 +527,10 @@ end $$;
 --   --   select count(*) from public.orders o where o.lab_id = '<its lab>'
 --   --      and not exists (select 1 from public.order_trash t where t.order_id = o.id);
 --   --                                    -- one fewer than before the trash call
---   --   select public.purge_trashed_orders(array['<its COMPLETED order>']::uuid[]); -- 1
+--   --   select public.purge_trashed_orders(array['<its COMPLETED order>']::uuid[], 'LAB'); -- 1
 --   --   select public.restore_orders(array['<its COMPLETED order>']::uuid[]);       -- trash_expired
+--   --   select public.purge_trashed_orders(null, 'LAB');  -- "Empty trash": the rest of the lab's
+--   --                                    -- trash, however many, and none of its purchases
 --   --   rollback;
 --   -- As that order's doctor, the same order is still in their list:
 --   --   select count(*) from public.order_trash;   -- 0 rows of the lab's are readable

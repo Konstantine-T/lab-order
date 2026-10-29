@@ -599,6 +599,8 @@
       "movedSingle": "Moved to the trash",
       "movedMany_one": "{{count}} order moved to the trash",
       "movedMany_other": "{{count}} orders moved to the trash",
+      "movedPartial_one": "{{count}} order moved to the trash. The others were not moved.",
+      "movedPartial_other": "{{count}} orders moved to the trash. The others were not moved.",
       "undo": "Undo",
       "restoredSingle": "Restored",
       "restoredMany_one": "{{count}} order restored",

@@ -328,9 +328,14 @@ export function LabOrdersDashboardPage() {
   const columns = selection.active ? [SELECT_COLUMN, ...COLUMNS] : COLUMNS;
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  // The list can shrink under a later page without a filter changing: a bulk
+  // trash here (or in another tab, through the realtime refetch), a status
+  // moving out of the filter. Show the last page left, never an empty table
+  // with no pager to go back with.
+  const current = Math.min(page, pageCount);
   const visible = useMemo(
-    () => filtered.slice((page - 1) * pageSize, page * pageSize),
-    [filtered, page, pageSize],
+    () => filtered.slice((current - 1) * pageSize, current * pageSize),
+    [filtered, current, pageSize],
   );
 
   // Back to page 1 whenever what the list shows, or its order, changes.
@@ -631,7 +636,11 @@ export function LabOrdersDashboardPage() {
                   })}
                 </Typography>
                 <Box sx={{ ml: 'auto' }}>
-                  <Pager page={page - 1} pageCount={pageCount} onChange={(p) => setPage(p + 1)} />
+                  <Pager
+                    page={current - 1}
+                    pageCount={pageCount}
+                    onChange={(p) => setPage(p + 1)}
+                  />
                 </Box>
               </>
             }

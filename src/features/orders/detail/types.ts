@@ -1,5 +1,8 @@
 import type { OrderRow } from '@/types/database';
-import { ORDER_TRASH_STATE_EMBED } from '@/features/orders/trash/trashFilter';
+import {
+  ORDER_TRASH_STATE_EMBED,
+  type OrderTrashStateEmbed,
+} from '@/features/orders/trash/trashFilter';
 
 /**
  * The order row as both detail screens load it.
@@ -22,7 +25,7 @@ export type DetailOrder = OrderRow & {
   } | null;
   /** The doctor side's trash row, if any (0054). Only `DOCTOR_DETAIL_ORDER_SELECT`
    *  embeds it; the clinic's select leaves it out. */
-  order_trash?: { purge_after: string }[];
+  order_trash?: OrderTrashStateEmbed;
 };
 
 /**

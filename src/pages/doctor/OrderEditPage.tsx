@@ -35,6 +35,7 @@ import { LabContactLine } from '@/features/orders/orderFiles/LabContactLine';
 import { ClarificationPanel } from '@/features/orders/clarifications/ClarificationPanel';
 import { DOCTOR_DETAIL_ORDER_SELECT } from '@/features/orders/detail/types';
 import { trashStateOf } from '@/features/orders/trash/trashApi';
+import type { OrderTrashStateEmbed } from '@/features/orders/trash/trashFilter';
 import { OrderGoneNotice } from '@/features/orders/trash/TrashedOrderNotices';
 import { LiveUpdateBanner } from '@/features/notifications/LiveSurfaces';
 import { useLiveFormSync } from '@/features/notifications/liveContext';
@@ -63,7 +64,7 @@ type OrderDetail = OrderRow & {
   /** Live, not the snapshot: you email a lab at the address it has now. */
   labs: { contact_email: string | null } | null;
   /** This side's trash row, if any (0054; the clinic's RLS reads none). */
-  order_trash?: { purge_after: string }[];
+  order_trash?: OrderTrashStateEmbed;
 };
 
 const EDIT_REASONS: EditReasonCode[] = [
