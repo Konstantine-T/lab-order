@@ -5,7 +5,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
 import { canTrash, type OrderStatus, type OrderTrashSide } from '@/types/database';
-import { invalidateAfterTrashChange, trashErrorKey, trashOrders } from './trashApi';
+import { invalidateAfterTrashChange, trashErrorKey, trashOrdersTracked } from './trashApi';
 import { TrashConfirmDialog } from './TrashConfirmDialog';
 import type { TrashKeeper } from './trashKeeper';
 import type { TrashedState } from './useTrashToast';
@@ -38,11 +38,13 @@ export function MoveToTrashButton({
   const [open, setOpen] = useState(false);
 
   const trash = useMutation({
-    mutationFn: () => trashOrders([orderId]),
-    onSuccess: () => {
+    mutationFn: () => trashOrdersTracked([orderId]),
+    onSuccess: (trashedIds) => {
       invalidateAfterTrashChange(qc, side, [orderId]);
       setOpen(false);
-      const state: TrashedState = { trashedOrderIds: [orderId] };
+      // Empty when another tab had already deleted it for good: no toast,
+      // since there is nothing for Undo to bring back.
+      const state: TrashedState = { trashedOrderIds: trashedIds };
       navigate(listPath, { state });
     },
   });

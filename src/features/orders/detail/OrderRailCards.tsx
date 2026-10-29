@@ -81,11 +81,14 @@ export function PriceDueCard({
   answers,
   version,
   onInvoiceAcknowledged,
+  invoiceReadOnly = false,
 }: {
   order: DetailOrder;
   answers: Record<string, unknown>;
   version: LabFormVersionRow | null | undefined;
   onInvoiceAcknowledged: () => void;
+  /** No acknowledge button (an order in the trash, 0054 C3). */
+  invoiceReadOnly?: boolean;
 }) {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
@@ -214,6 +217,7 @@ export function PriceDueCard({
             orderId={order.id}
             acknowledgedAt={order.invoice_acknowledged_at}
             onAcknowledged={onInvoiceAcknowledged}
+            readOnly={invoiceReadOnly}
           />
         </Box>
       </Stack>

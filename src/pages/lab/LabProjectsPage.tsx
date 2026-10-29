@@ -157,7 +157,12 @@ export function LabProjectsPage() {
         <Stack spacing={1.5}>
           <SectionCard dense>
             {rows.map((row, i) => (
-              <ProjectCard key={row.patient_id} row={row} first={i === 0} onOpen={() => open(row)} />
+              <ProjectCard
+                key={row.patient_id}
+                row={row}
+                first={i === 0}
+                onOpen={() => open(row)}
+              />
             ))}
           </SectionCard>
           {/* Wraps: the count and five page buttons do not fit one line at
@@ -191,7 +196,7 @@ export function LabProjectsPage() {
                 <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary' }} noWrap>
                   {pastDate(row.last_order_at, tc)}
                 </Typography>
-                <OrderStatusChip status={row.last_status} />
+                <OrderStatusChip status={row.last_status} side="lab" />
               </Stack>
               <Icon name="chevron_right" size={17} sx={{ color: 'text.disabled' }} />
             </DataRow>
@@ -337,7 +342,7 @@ function ProjectCard({
           <Typography variant="caption" color="text.secondary">
             {t('projects.lastOrderOn', { date: pastDate(row.last_order_at, tc) })}
           </Typography>
-          <OrderStatusChip status={row.last_status} />
+          <OrderStatusChip status={row.last_status} side="lab" />
         </Stack>
       </Box>
       <Icon name="chevron_right" size={17} sx={{ color: 'text.disabled', alignSelf: 'center' }} />

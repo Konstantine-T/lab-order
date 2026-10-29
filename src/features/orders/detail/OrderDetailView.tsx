@@ -153,6 +153,9 @@ export type OrderDetailViewProps = {
   railFooter?: ReactNode;
   /** Refresh the order row the invoice acknowledgement just changed. */
   onInvoiceAcknowledged: () => void;
+  /** Show the invoice without its acknowledge button (an order in the
+   *  doctor's trash is read-only, 0054 C3). */
+  invoiceReadOnly?: boolean;
   /** Clinic: name the doctor in the phone header as well. */
   doctorOnPhone?: boolean;
   /** Dialogs and other overlays the page owns. */
@@ -180,6 +183,7 @@ export function OrderDetailView({
   actions,
   railFooter,
   onInvoiceAcknowledged,
+  invoiceReadOnly,
   doctorOnPhone,
   children,
 }: OrderDetailViewProps) {
@@ -317,6 +321,7 @@ export function OrderDetailView({
               answers={answers}
               version={version}
               onInvoiceAcknowledged={onInvoiceAcknowledged}
+              invoiceReadOnly={invoiceReadOnly}
             />
           </Slot>
           <Slot order={6}>

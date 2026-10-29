@@ -126,6 +126,7 @@ export function OrderDetailPage({ buyer: buyerProp = false }: { buyer?: boolean 
       labProfileTo={buyer ? PURCHASE_PATHS.lab(order.lab_id) : undefined}
       ordersLabel={ordersLabel}
       onInvoiceAcknowledged={() => qc.invalidateQueries({ queryKey: ['order', order.id] })}
+      invoiceReadOnly={inTrash}
       actions={
         inTrash ? undefined : (
         <>

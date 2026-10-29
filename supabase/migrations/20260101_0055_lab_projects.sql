@@ -31,7 +31,10 @@
 --                      (buyer_lab_id, never the snapshot's is_lab)
 --       clinic_name, branch_name, city   the latest order's
 --                      work_location_snapshot (the clinic can differ between
---                      orders; the latest is shown)
+--                      orders; the latest is shown). An order placed for a
+--                      clinic (0050: clinic_id set, no work location) has a
+--                      location row's keys: the clinic's public_name, branch
+--                      null, its city or '' (read as null)
 --       order_count    all of the patient's orders at this lab
 --       open_count     those not COMPLETED / CANCELLED
 --       first_order_at, last_order_at    min / max(created_at)

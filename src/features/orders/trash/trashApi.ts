@@ -94,6 +94,37 @@ async function callBatched(
 }
 
 export const trashOrders = (ids: string[]) => callBatched('trash_orders', ids);
+
+/**
+ * `trash_orders`, returning the ids this call actually put (or kept) in the
+ * caller's trash: what the toast counts and what its Undo restores. An id
+ * already gone on this side stays gone and is not counted (A3); restoring it
+ * would raise `trash_expired` for the whole Undo, so it must not be handed
+ * on. Each id the RPC touched counts once, so only a short count needs the
+ * extra read of this side's rows (RLS shows no other side's).
+ */
+export async function trashOrdersTracked(ids: string[]): Promise<string[]> {
+  const unique = [...new Set(ids)];
+  const count = await trashOrders(unique);
+  if (count >= unique.length) return unique;
+  if (count === 0) return [];
+  // A row trashed now has purge_after = server now + 14 days; a gone one,
+  // at most server now. A day ahead of this clock tells them apart however
+  // far the browser's clock is off (within a day).
+  const cutoff = new Date(Date.now() + 86_400_000).toISOString();
+  const kept = new Set<string>();
+  for (const batch of chunks(unique, 100)) {
+    const { data, error } = await supabase
+      .from('order_trash')
+      .select('order_id')
+      .in('order_id', batch)
+      .gt('purge_after', cutoff);
+    if (error) throw error;
+    for (const row of (data ?? []) as { order_id: string }[]) kept.add(row.order_id);
+  }
+  return unique.filter((id) => kept.has(id));
+}
+
 export const restoreOrders = (ids: string[]) => callBatched('restore_orders', ids);
 /** Always with ids: a lab owner who also buys has two trashes, and `null`
  *  would empty both. */

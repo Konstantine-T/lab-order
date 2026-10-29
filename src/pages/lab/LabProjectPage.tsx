@@ -169,7 +169,7 @@ export function LabProjectPage() {
               key={row.id}
               code={row.order_code}
               primary={serviceName || '—'}
-              status={<OrderStatusChip status={row.status} />}
+              status={<OrderStatusChip status={row.status} side="lab" />}
               total={row.final_total != null ? formatGEL(row.final_total) : '—'}
               createdDate={pastDate(row.created_at, tc)}
               dueDate={dueRaw ? appendDueWindow(shortDate(dueRaw, tc), dueTimeOf(row), tc) : '—'}

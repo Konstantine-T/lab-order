@@ -241,11 +241,15 @@ export function DoctorInvoiceBlock({
   orderId,
   acknowledgedAt,
   onAcknowledged,
+  readOnly = false,
 }: {
   orderId: string;
   acknowledgedAt: string | null | undefined;
   /** Lets the page refresh the order row the acknowledgement just changed. */
   onAcknowledged?: () => void;
+  /** Show the invoice without the acknowledge button (an order in the
+   *  doctor's trash is read-only, 0054 C3). */
+  readOnly?: boolean;
 }) {
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
@@ -273,7 +277,7 @@ export function DoctorInvoiceBlock({
 
   if (!hasInvoice || !invoice) return null;
 
-  if (!isUnacknowledged) {
+  if (!isUnacknowledged || readOnly) {
     return (
       <Stack spacing={0.75}>
         <Typography variant="caption" color="text.secondary">

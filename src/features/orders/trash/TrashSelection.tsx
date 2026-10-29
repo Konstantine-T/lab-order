@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
 import { lift, radii } from '@/theme/tokens';
 import type { OrderTrashSide } from '@/types/database';
-import { invalidateAfterTrashChange, trashErrorKey, trashOrders } from './trashApi';
+import { invalidateAfterTrashChange, trashErrorKey, trashOrdersTracked } from './trashApi';
 import { TrashConfirmDialog } from './TrashConfirmDialog';
 import type { TrashKeeper } from './trashKeeper';
 import type { OrderSelection } from './useOrderSelection';
@@ -52,7 +52,8 @@ export function TrashSelectionBar({
   selectableIds: string[];
   /** Who keeps the picked orders, for the confirm text. */
   keeperOf: (ids: string[]) => TrashKeeper;
-  /** After a successful trash: the page shows its toast with Undo. */
+  /** After a successful trash, the ids it really trashed (an order already
+   *  gone on this side is not one): the page shows its toast with Undo. */
   onTrashed: (ids: string[]) => void;
 }) {
   const { t } = useTranslation('common');
@@ -68,11 +69,11 @@ export function TrashSelectionBar({
   const allPicked = picked.length > 0 && picked.length === selectableIds.length;
 
   const trash = useMutation({
-    mutationFn: (ids: string[]) => trashOrders(ids),
-    onSuccess: (_count, ids) => {
+    mutationFn: (ids: string[]) => trashOrdersTracked(ids),
+    onSuccess: (trashedIds) => {
       setConfirmOpen(false);
       selection.stop();
-      onTrashed(ids);
+      onTrashed(trashedIds);
     },
     // A batch may have landed before a refusal: refresh either way.
     onSettled: (_data, _err, ids) => invalidateAfterTrashChange(qc, side, ids),

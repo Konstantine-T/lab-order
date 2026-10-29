@@ -119,7 +119,12 @@ export function keysForTrashChange(side: unknown, orderId: string | null): Query
     ...lists,
     ['order-trash'],
     ['order-trash-count'],
-    ...(orderId ? [['lab-order', orderId], ['order', orderId]] : []),
+    ...(orderId
+      ? [
+          ['lab-order', orderId],
+          ['order', orderId],
+        ]
+      : []),
   ];
 }
 
