@@ -590,6 +590,36 @@ export interface OrderRow {
   updated_at: string;
 }
 
+// ===== Lab projects (0055) =================================================
+
+/**
+ * One project from lab_projects (0055): a patient record with orders at the
+ * caller's lab, and what its latest (not trashed) order says. Orders without a
+ * patient have no project; LAB-trashed orders (0054) are not counted.
+ */
+export interface LabProjectRow {
+  patient_id: string;
+  first_name: string;
+  last_name: string;
+  date_of_birth: string | null;
+  /** The latest order's doctor_snapshot name; a buying lab's name for a purchase. */
+  doctor_name: string | null;
+  /** The latest order was placed by another lab (its buyer_lab_id, 0048). */
+  from_lab: boolean;
+  /** The latest order's work_location_snapshot. */
+  clinic_name: string | null;
+  branch_name: string | null;
+  city: string | null;
+  order_count: number;
+  /** Orders not COMPLETED / CANCELLED. */
+  open_count: number;
+  first_order_at: string;
+  last_order_at: string;
+  last_status: OrderStatus;
+  /** Projects matching the search, for pagination (the same on every row). */
+  total_count: number;
+}
+
 // ===== Lab finances / receivables (server-aggregated RPCs) ==================
 // Returned by the lab_receivables_* RPCs. Numeric columns may arrive as
 // strings from PostgREST — coerce with Number() before formatting.

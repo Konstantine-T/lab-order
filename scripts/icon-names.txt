@@ -59,6 +59,7 @@ feedback
 filter_alt_off
 flag
 folder_open
+folder_shared
 forum
 grid_on
 group_add
