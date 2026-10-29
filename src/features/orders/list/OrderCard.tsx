@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { alpha, Box, Stack, Typography, useTheme } from '@mui/material';
+import { alpha, Box, Checkbox, Stack, Typography, useTheme, type SxProps, type Theme } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { statusLabel } from '@/features/orders/statusLabel';
@@ -48,7 +48,15 @@ type Props = {
   actions?: ReactNode;
   /** "Now", for a fixture preview; the live list leaves it out. */
   now?: Dayjs;
+  /**
+   * Select mode (0054, the bulk "Move to trash"): a pickable card toggles
+   * instead of opening; `'off'` is a card that cannot be picked (not
+   * finished), dimmed and inert until select mode ends.
+   */
+  select?: CardSelect;
 };
+
+export type CardSelect = { checked: boolean; onToggle: () => void } | 'off';
 
 /**
  * One order in the doctor's and the clinic's grouped lists, built to the
@@ -67,6 +75,7 @@ export function OrderCard({
   parentCode,
   actions,
   now = dayjs(),
+  select,
 }: Props) {
   const { t } = useTranslation('common');
   const mode = useTheme().palette.mode;
@@ -110,11 +119,14 @@ export function OrderCard({
         borderRadius: `${radii.card}px`,
         border: 1,
         borderColor:
-          group === 'needsYou'
-            ? gold.border
-            : group === 'ready'
-              ? aqua.border
-              : surfaces[mode].borderSolid,
+          select && select !== 'off' && select.checked
+            ? brand.main
+            : group === 'needsYou'
+              ? gold.border
+              : group === 'ready'
+                ? aqua.border
+                : surfaces[mode].borderSolid,
+        opacity: select === 'off' ? 0.5 : 1,
         bgcolor:
           group === 'ready'
             ? alpha(palette2026.aqua, mode === 'light' ? 0.06 : 0.08)
@@ -122,31 +134,29 @@ export function OrderCard({
         overflow: 'hidden',
         transition: `border-color ${motion.base}, box-shadow ${motion.base}`,
         '&:hover': { borderColor: alpha(brand.main, 0.6), boxShadow: lift.card },
-        '&:has(a:focus-visible)': {
+        '&:has(a:focus-visible), &:has(button:focus-visible)': {
           borderColor: brand.main,
           boxShadow: `0 0 0 3px ${alpha(brand.main, 0.28)}`,
         },
       }}
     >
-      <Box
-        component={RouterLink}
-        to={href}
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 1,
-          px: 2,
-          py: 1.75,
-          color: 'inherit',
-          textDecoration: 'none',
-          outline: 'none',
-          minWidth: 0,
-        }}
-      >
+      <CardBody href={href} select={select}>
         <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={1}>
+          {select && select !== 'off' && (
+            // The whole body is the toggle; this only shows its state.
+            <Checkbox
+              checked={select.checked}
+              size="small"
+              tabIndex={-1}
+              disableRipple
+              inputProps={{ 'aria-hidden': true }}
+              sx={{ p: 0, mr: -0.25, pointerEvents: 'none' }}
+            />
+          )}
           <Typography
-            sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary', flexShrink: 0 }}
+            // `mr: auto` keeps the code beside the select-mode checkbox and the
+            // tag at the far end, with or without the checkbox.
+            sx={{ fontSize: '0.75rem', fontWeight: 600, color: 'text.secondary', flexShrink: 0, mr: 'auto' }}
           >
             {row.order_code}
             {' · '}
@@ -332,7 +342,7 @@ export function OrderCard({
             )}
           </Stack>
         )}
-      </Box>
+      </CardBody>
 
       {actions && (
         <Stack
@@ -343,6 +353,57 @@ export function OrderCard({
           {actions}
         </Stack>
       )}
+    </Box>
+  );
+}
+
+const BODY_SX: SxProps<Theme> = {
+  flex: 1,
+  display: 'flex',
+  flexDirection: 'column',
+  gap: 1,
+  px: 2,
+  py: 1.75,
+  color: 'inherit',
+  textDecoration: 'none',
+  outline: 'none',
+  minWidth: 0,
+};
+
+/** The card's body: the link to the order, or in select mode the toggle. */
+function CardBody({ href, select, children }: { href: string; select?: CardSelect; children: ReactNode }) {
+  if (!select) {
+    return (
+      <Box component={RouterLink} to={href} sx={BODY_SX}>
+        {children}
+      </Box>
+    );
+  }
+  if (select === 'off') {
+    return (
+      <Box aria-disabled sx={BODY_SX}>
+        {children}
+      </Box>
+    );
+  }
+  return (
+    <Box
+      component="button"
+      type="button"
+      role="checkbox"
+      aria-checked={select.checked}
+      onClick={select.onToggle}
+      sx={{
+        ...BODY_SX,
+        font: 'inherit',
+        textAlign: 'left',
+        border: 0,
+        bgcolor: 'transparent',
+        cursor: 'pointer',
+        width: '100%',
+      }}
+    >
+      {children}
     </Box>
   );
 }

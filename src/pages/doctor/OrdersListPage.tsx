@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
+  Box,
   Button,
   Dialog,
   DialogActions,
@@ -20,7 +21,7 @@ import { Icon, PageHeader } from '@/components/design';
 import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { OrderCompletionActions } from '@/features/orders/completion/OrderCompletionActions';
-import { canComplete } from '@/types/database';
+import { canComplete, canTrash } from '@/types/database';
 import type { DoctorWorkLocationRow } from '@/types/database';
 import {
   loadDraft,
@@ -43,6 +44,11 @@ import {
 } from '@/features/orders/list/orderListModel';
 import { PHONE_ADD_SX } from '@/features/orders/list/listStyles';
 import { PURCHASE_PATHS, useBuyerMode } from '@/features/labBuying/buyerMode';
+import { ORDER_TRASH_EMBED } from '@/features/orders/trash/trashFilter';
+import { SelectModeButton, TrashSelectionBar } from '@/features/orders/trash/TrashSelection';
+import { useOrderSelection } from '@/features/orders/trash/useOrderSelection';
+import { TrashLink } from '@/features/orders/trash/TrashLink';
+import { useTrashToast } from '@/features/orders/trash/useTrashToast';
 
 /** A purchase may name no patient (0048): its reference stands in for search. */
 const purchaseSearchText = (row: ListOrderRow) => row.patient_reference ?? '';
@@ -72,6 +78,10 @@ export function OrdersListPage({ buyer: buyerProp = false }: { buyer?: boolean }
   const ordersPath = buyer ? PURCHASE_PATHS.orders : '/doctor/orders';
   const marketplacePath = buyer ? PURCHASE_PATHS.marketplace : '/doctor/marketplace';
   const orderNewPath = buyer ? PURCHASE_PATHS.orderNew : '/doctor/orders/new';
+  const trashPath = buyer ? PURCHASE_PATHS.trash : '/doctor/trash';
+  // The doctor's (or the buying profile's) side of the trash (0054).
+  const selection = useOrderSelection();
+  const trashToast = useTrashToast('DOCTOR');
 
   const [draftModalOpen, setDraftModalOpen] = useState(false);
   const [draftSeen, setDraftSeen] = useState(false);
@@ -126,8 +136,12 @@ export function OrdersListPage({ buyer: buyerProp = false }: { buyer?: boolean }
         .from('orders')
         // The reference only where it can exist: the doctor's list keeps the
         // select it had.
-        .select(buyer ? `${LIST_ORDER_SELECT}, patient_reference` : LIST_ORDER_SELECT)
+        .select(
+          `${buyer ? `${LIST_ORDER_SELECT}, patient_reference` : LIST_ORDER_SELECT}, ${ORDER_TRASH_EMBED}`,
+        )
         .eq('doctor_id', doctorId!)
+        // Not what this side deleted (0054), in the trash or gone.
+        .is('order_trash', null)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as ListOrderRow[];
@@ -164,6 +178,13 @@ export function OrdersListPage({ buyer: buyerProp = false }: { buyer?: boolean }
   // already loaded, with one batched query for any parent this page didn't
   // fetch — never a query per row.
   const parentCodes = useParentOrderCodes(orders, doctorId);
+
+  // Select mode picks finished orders only, among the ones the filters show.
+  const finishedCount = useMemo(() => orders.filter((o) => canTrash(o.status)).length, [orders]);
+  const selectableIds = useMemo(
+    () => filters.filtered.filter((o) => canTrash(o.status)).map((o) => o.id),
+    [filters.filtered],
+  );
 
   const handleDraftContinue = () => {
     if (!draft) return;
@@ -398,6 +419,11 @@ export function OrdersListPage({ buyer: buyerProp = false }: { buyer?: boolean }
 
       <Stack spacing={2.5}>
         {!isLoading && orders.length > 0 && <OrdersFilterBar filters={filters} />}
+        {!isLoading && finishedCount > 0 && !selection.active && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: -1 }}>
+            <SelectModeButton selection={selection} available={finishedCount} />
+          </Box>
+        )}
 
         {isLoading ? (
           <OrderListSkeleton />
@@ -426,13 +452,30 @@ export function OrdersListPage({ buyer: buyerProp = false }: { buyer?: boolean }
                 href={`${ordersPath}/${row.id}`}
                 invoiceUnseen={unseenInvoices.has(row.id)}
                 parentCode={parentCodes.get(row.continues_order_id ?? '')}
-                actions={cardActions(row, group)}
+                // Select mode hides the card's own buttons: one action at a time.
+                actions={selection.active ? undefined : cardActions(row, group)}
+                select={
+                  !selection.active
+                    ? undefined
+                    : canTrash(row.status)
+                      ? { checked: selection.ids.has(row.id), onToggle: () => selection.toggle(row.id) }
+                      : 'off'
+                }
               />
             )}
           />
         )}
+        <TrashSelectionBar
+          selection={selection}
+          side="DOCTOR"
+          selectableIds={selectableIds}
+          keeperOf={() => 'lab'}
+          onTrashed={trashToast.show}
+        />
+        {!isLoading && <TrashLink scope={doctorId ? { side: 'DOCTOR', doctorId } : null} to={trashPath} />}
       </Stack>
       {continueProject.modal}
+      {trashToast.node}
     </>
   );
 }

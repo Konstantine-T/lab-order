@@ -9,8 +9,14 @@ import { EmptyState, Icon, InitialsAvatar, PageHeader, SectionCard } from '@/com
 import type { PatientRow } from '@/types/database';
 
 type PatientWithCount = PatientRow & {
-  orders: { count: number }[];
+  /** Each order with this doctor's trash row, if any (0054; RLS embeds only
+   *  the doctor's own side). Counted here rather than with `orders(count)`,
+   *  so an order the doctor deleted stops counting, as on every list. */
+  orders: { id: string; order_trash: { id: string }[] | null }[];
 };
+
+const listedOrderCount = (p: PatientWithCount) =>
+  (p.orders ?? []).filter((o) => !o.order_trash?.length).length;
 
 export function PatientsPage() {
   const { t } = useTranslation('doctor');
@@ -26,7 +32,7 @@ export function PatientsPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('patients')
-        .select('*, orders(count)')
+        .select('*, orders(id, order_trash(id))')
         .eq('doctor_id', doctorId!)
         .order('last_name')
         .order('first_name');
@@ -77,7 +83,7 @@ export function PatientsPage() {
       ) : (
         <SectionCard dense>
           {filtered.map((p, i) => {
-            const orderCount = p.orders?.[0]?.count ?? 0;
+            const orderCount = listedOrderCount(p);
             const name = `${p.first_name} ${p.last_name}`;
             return (
               <Stack

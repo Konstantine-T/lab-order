@@ -52,6 +52,33 @@ export const COMPLETABLE_STATUSES = [
 
 export const canComplete = (status: OrderStatus): boolean =>
   (COMPLETABLE_STATUSES as readonly OrderStatus[]).includes(status);
+
+/** Only a finished order can go to a side's trash (0054, `order_not_finished`). */
+export const TRASHABLE_STATUSES = [
+  'COMPLETED',
+  'CANCELLED',
+] as const satisfies readonly OrderStatus[];
+
+export const canTrash = (status: OrderStatus): boolean =>
+  (TRASHABLE_STATUSES as readonly OrderStatus[]).includes(status);
+
+/**
+ * `order_trash` (0054): one side's "hide" of a finished order. 'LAB' is the
+ * order's lab, 'DOCTOR' its doctor or a buying lab's buying profile (0048).
+ * `purge_after > now()` = in the trash; otherwise gone from that side for good.
+ * Each side reads only its own rows (RLS); written only by trash_orders /
+ * restore_orders / purge_trashed_orders and the reopen trigger.
+ */
+export type OrderTrashSide = 'LAB' | 'DOCTOR';
+export interface OrderTrashRow {
+  id: string;
+  order_id: string;
+  side: OrderTrashSide;
+  deleted_at: string;
+  purge_after: string;
+  deleted_by_user_id: string | null;
+}
+
 /** 'LAB': a lab buying from another lab, always invoiced to its own LLC (0048). */
 export type InvoiceRecipientType = 'DOCTOR' | 'CLINIC' | 'LAB';
 export type RushType = 'NONE' | 'PERCENTAGE' | 'FIXED_AMOUNT';

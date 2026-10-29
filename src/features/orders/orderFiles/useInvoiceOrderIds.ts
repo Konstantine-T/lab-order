@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { ORDER_TRASH_EMBED } from '@/features/orders/trash/trashFilter';
 
 const EMPTY: ReadonlySet<string> = new Set<string>();
 
@@ -49,13 +50,18 @@ export function useInvoiceOrderIds(scope: {
     enabled,
     staleTime: 30_000,
     queryFn: async () => {
+      const select: string = `id, invoice_acknowledged_at, order_files!inner(created_at)${labId || doctorId ? `, ${ORDER_TRASH_EMBED}` : ''}`;
       let q = supabase
         .from('orders')
         // `!inner` narrows to orders that have an invoice.
-        .select('id, invoice_acknowledged_at, order_files!inner(created_at)')
+        .select(select)
         .eq('order_files.file_source', 'INVOICE');
       if (labId) q = q.eq('lab_id', labId);
       if (doctorId) q = q.eq('doctor_id', doctorId);
+      // The lab's and the doctor's lists leave out their side's trash (0054),
+      // and this set has to be cut at the same rows they are. The clinic's
+      // list is unfiltered, and RLS gives it no trash rows anyway.
+      if (labId || doctorId) q = q.is('order_trash', null);
       // Newest first, like the list queries. Past PostgREST's row cap both are
       // cut at the same end, so every invoiced order among the rows a list
       // shows is still in this set.
@@ -63,7 +69,7 @@ export function useInvoiceOrderIds(scope: {
       // A badge is not worth breaking the list over.
       if (error) return EMPTY;
 
-      const rows = (data ?? []) as {
+      const rows = (data ?? []) as unknown as {
         id: string;
         invoice_acknowledged_at: string | null;
         order_files: { created_at: string }[];

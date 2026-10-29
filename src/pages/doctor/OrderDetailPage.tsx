@@ -13,10 +13,13 @@ import { OrderDetailView } from '@/features/orders/detail/OrderDetailView';
 import { OrderReviewCard } from '@/features/reviews/OrderReviewCard';
 import { useOrderContacts } from '@/features/orders/detail/useOrderContacts';
 import {
-  DETAIL_ORDER_SELECT,
+  DOCTOR_DETAIL_ORDER_SELECT,
   isTerminal,
   type DetailOrder,
 } from '@/features/orders/detail/types';
+import { trashStateOf } from '@/features/orders/trash/trashApi';
+import { MoveToTrashButton } from '@/features/orders/trash/MoveToTrashButton';
+import { OrderGoneNotice, TrashedOrderBanner } from '@/features/orders/trash/TrashedOrderNotices';
 import type { LabFormVersionRow, OrderAnswerRow } from '@/types/database';
 
 /**
@@ -45,7 +48,7 @@ export function OrderDetailPage({ buyer: buyerProp = false }: { buyer?: boolean 
     queryKey: ['order', orderId],
     enabled: !!orderId && (!buyerProp || !!doctorId),
     queryFn: async () => {
-      let q = supabase.from('orders').select(DETAIL_ORDER_SELECT).eq('id', orderId!);
+      let q = supabase.from('orders').select(DOCTOR_DETAIL_ORDER_SELECT).eq('id', orderId!);
       if (doctorId) q = q.eq('doctor_id', doctorId);
       const { data, error } = await q.maybeSingle();
       if (error) throw error;
@@ -95,12 +98,23 @@ export function OrderDetailPage({ buyer: buyerProp = false }: { buyer?: boolean 
   }
   if (!order) return <Alert severity="error">{tc('errors.notFound')}</Alert>;
 
+  const ordersPath = buyer ? PURCHASE_PATHS.orders : '/doctor/orders';
+  const ordersLabel = buyer ? tl('nav.purchases') : t('nav.orders');
+
+  // Deleted from this side's list (0054, C3): gone is not shown at all; in
+  // the trash the order is read-only under a banner with Restore.
+  const trash = trashStateOf(order.order_trash);
+  if (trash.kind === 'gone') return <OrderGoneNotice ordersPath={ordersPath} ordersLabel={ordersLabel} />;
+  const inTrash = trash.kind === 'inTrash';
+
   const answersMap: Record<string, unknown> = {};
   for (const a of answers) answersMap[a.field_code] = a.answer_json;
 
   const editable = !isTerminal(order);
 
   return (
+    <>
+    {inTrash && <TrashedOrderBanner orderId={order.id} side="DOCTOR" purgeAfter={trash.purgeAfter} />}
     <OrderDetailView
       order={order}
       answers={answersMap}
@@ -110,9 +124,10 @@ export function OrderDetailPage({ buyer: buyerProp = false }: { buyer?: boolean 
       basePath="/doctor"
       ordersTo={buyer ? PURCHASE_PATHS.orders : undefined}
       labProfileTo={buyer ? PURCHASE_PATHS.lab(order.lab_id) : undefined}
-      ordersLabel={buyer ? tl('nav.purchases') : t('nav.orders')}
+      ordersLabel={ordersLabel}
       onInvoiceAcknowledged={() => qc.invalidateQueries({ queryKey: ['order', order.id] })}
       actions={
+        inTrash ? undefined : (
         <>
           <OrderCompletionActions orderId={order.id} status={order.status} size="medium" />
           {/* A lab's purchase may have no patient (0048): nothing to continue. */}
@@ -125,9 +140,19 @@ export function OrderDetailPage({ buyer: buyerProp = false }: { buyer?: boolean 
               {t('orders.continueProject')}
             </Button>
           )}
+          {/* A finished order can leave this list (0054); the lab keeps it. */}
+          <MoveToTrashButton
+            orderId={order.id}
+            status={order.status}
+            side="DOCTOR"
+            keeper="lab"
+            listPath={ordersPath}
+          />
         </>
+        )
       }
       railFooter={
+        inTrash ? undefined : (
         <Stack spacing={1.5}>
           {/* Rate the lab once the case is closed (0044). */}
           <OrderReviewCard order={order} />
@@ -150,9 +175,11 @@ export function OrderDetailPage({ buyer: buyerProp = false }: { buyer?: boolean 
           {editable && <Callout tone="brand">{t('orderDetail.editHint')}</Callout>}
           <CancelOrderAction orderId={order.id} status={order.status} orderKey={['order', order.id]} />
         </Stack>
+        )
       }
     >
       {continueProject.modal}
     </OrderDetailView>
+    </>
   );
 }

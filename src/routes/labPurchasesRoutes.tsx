@@ -3,6 +3,7 @@ import { OrdersListPage } from '@/pages/doctor/OrdersListPage';
 import { OrderCreateWizard } from '@/pages/doctor/OrderCreateWizard';
 import { OrderDetailPage } from '@/pages/doctor/OrderDetailPage';
 import { OrderEditPage } from '@/pages/doctor/OrderEditPage';
+import { DoctorTrashPage } from '@/pages/doctor/DoctorTrashPage';
 import { CompletionDialogHost } from '@/features/orders/completion/CompletionDialogHost';
 import { BuyerProfileGate, BuyerSessionRefresh } from '@/features/labBuying/BuyerProfileGate';
 import { PURCHASE_PATHS } from '@/features/labBuying/buyerMode';
@@ -38,6 +39,16 @@ export default function LabPurchasesRoutes() {
             <BuyerProfileGate>
               <OrderCreateWizard buyer />
             </BuyerProfileGate>
+          }
+        />
+        {/* The purchases this lab deleted (0054). A static segment, so it
+            outranks :orderId below. */}
+        <Route
+          path="trash"
+          element={
+            <BuyerSessionRefresh>
+              <DoctorTrashPage buyer />
+            </BuyerSessionRefresh>
           }
         />
         <Route

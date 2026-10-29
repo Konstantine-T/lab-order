@@ -18,6 +18,8 @@ export const PURCHASE_PATHS = {
   orderNew: '/lab/purchases/new',
   /** The purchases list; an order is `${orders}/${id}`, its edit page `/edit` below it. */
   orders: '/lab/purchases',
+  /** The purchases this lab deleted (0054). */
+  trash: '/lab/purchases/trash',
 } as const;
 
 /** The shape `catalogPaths()` returns, which the catalogue pages accept as an override. */

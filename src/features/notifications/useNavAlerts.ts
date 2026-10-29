@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { ORDER_TRASH_EMBED } from '@/features/orders/trash/trashFilter';
 import type { OrderStatus } from '@/types/database';
 import { useRealtimeConnected } from './realtimeStatus';
 
@@ -49,6 +50,17 @@ const AWAITING_DOCTOR: OrderStatus[] = [
 const orderCount = () => supabase.from('orders').select('id', { count: 'exact', head: true });
 
 /**
+ * The same, leaving out the caller's side's trash (0054): the lab's and the
+ * doctor's badges count the orders their lists show. RLS embeds only the
+ * caller's own side's rows. The clinic's badge keeps `orderCount`.
+ */
+const visibleOrderCount = () =>
+  supabase
+    .from('orders')
+    .select(`id, ${ORDER_TRASH_EMBED}`, { count: 'exact', head: true })
+    .is('order_trash', null);
+
+/**
  * Orders still sitting in NEEDS_CLARIFICATION whose question has been answered
  * — the doctor has replied and it is the lab's move again (0029).
  *
@@ -64,14 +76,17 @@ const orderCount = () => supabase.from('orders').select('id', { count: 'exact', 
 async function answeredClarificationCount(
   scope: { column: 'lab_id' | 'doctor_id'; value: string } | null,
 ): Promise<number> {
+  // A lab's or a doctor's count leaves out its side's trash (0054); the
+  // clinic's (no scope) is unchanged.
+  const select: string = `id, order_clarifications!inner(id)${scope ? `, ${ORDER_TRASH_EMBED}` : ''}`;
   const build = () => {
     const q = supabase
       .from('orders')
       // `!inner` filters the orders down to those that have clarifications; the
       // count stays a count of orders, not of clarification rows.
-      .select('id, order_clarifications!inner(id)', { count: 'exact', head: true })
+      .select(select, { count: 'exact', head: true })
       .eq('status', 'NEEDS_CLARIFICATION');
-    return scope ? q.eq(scope.column, scope.value) : q;
+    return scope ? q.eq(scope.column, scope.value).is('order_trash', null) : q;
   };
 
   const [withAny, stillOpen] = await Promise.all([
@@ -97,14 +112,15 @@ async function answeredClarificationCount(
 async function unacknowledgedInvoiceCount(
   scope: { column: 'doctor_id'; value: string } | null,
 ): Promise<number> {
-  const q = supabase
-    .from('orders')
-    .select('id, invoice_acknowledged_at, order_files!inner(created_at)')
-    .eq('order_files.file_source', 'INVOICE');
-  const { data, error } = await (scope ? q.eq(scope.column, scope.value) : q);
+  // The doctor's count leaves out its trash (0054); the clinic's is unchanged.
+  const select: string = `id, invoice_acknowledged_at, order_files!inner(created_at)${scope ? `, ${ORDER_TRASH_EMBED}` : ''}`;
+  const q = supabase.from('orders').select(select).eq('order_files.file_source', 'INVOICE');
+  const { data, error } = await (scope
+    ? q.eq(scope.column, scope.value).is('order_trash', null)
+    : q);
   if (error) return 0;
 
-  const rows = (data ?? []) as {
+  const rows = (data ?? []) as unknown as {
     invoice_acknowledged_at: string | null;
     order_files: { created_at: string }[];
   }[];
@@ -124,8 +140,8 @@ export function useLabNavAlerts(labId: string | undefined) {
     ...shared,
     queryFn: async () => {
       const [arrived, edited, answered] = await Promise.all([
-        orderCount().eq('lab_id', labId!).eq('status', 'SUBMITTED'),
-        orderCount().eq('lab_id', labId!).eq('has_unreviewed_edits', true),
+        visibleOrderCount().eq('lab_id', labId!).eq('status', 'SUBMITTED'),
+        visibleOrderCount().eq('lab_id', labId!).eq('has_unreviewed_edits', true),
         answeredClarificationCount({ column: 'lab_id', value: labId! }),
       ]);
       return {
@@ -147,7 +163,7 @@ export function useDoctorNavAlerts(doctorId: string | undefined) {
     ...shared,
     queryFn: async () => {
       const [waiting, answered, invoices] = await Promise.all([
-        orderCount().eq('doctor_id', doctorId!).in('status', AWAITING_DOCTOR),
+        visibleOrderCount().eq('doctor_id', doctorId!).in('status', AWAITING_DOCTOR),
         answeredClarificationCount({ column: 'doctor_id', value: doctorId! }),
         unacknowledgedInvoiceCount({ column: 'doctor_id', value: doctorId! }),
       ]);

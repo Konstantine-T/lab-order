@@ -9,6 +9,7 @@ import { LabServiceEditPage } from '@/pages/lab/LabServiceEditPage';
 import { LabOrdersDashboardPage } from '@/pages/lab/LabOrdersDashboardPage';
 import { LabEditedOrdersPage } from '@/pages/lab/LabEditedOrdersPage';
 import { LabOrderSheetPage } from '@/pages/lab/LabOrderSheetPage';
+import { LabTrashPage } from '@/pages/lab/LabTrashPage';
 import { LabFinancesPage } from '@/pages/lab/LabFinancesPage';
 import { FinanceLockGate } from '@/features/lab/finances/FinanceLockGate';
 import { LabStaffPage } from '@/pages/lab/LabStaffPage';
@@ -52,6 +53,9 @@ export default function LabRoutes() {
           />
           <Route path="edited-orders" element={<LabEditedOrdersPage />} />
           <Route path="orders/:orderId" element={<LabOrderSheetPage />} />
+          {/* The incoming orders this lab deleted (0054); its purchases'
+              trash is purchases/trash. */}
+          <Route path="trash" element={<LabTrashPage />} />
           <Route path="staff" element={<LabStaffPage />} />
           <Route path="reviews" element={<LabReviewsPage />} />
           <Route path="marketplace" element={<LabMarketplacePage />} />

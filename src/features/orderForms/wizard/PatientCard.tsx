@@ -22,6 +22,7 @@ import type { PatientRow } from '@/types/database';
 import type { WizardState } from '@/features/doctor/orderCreate/types';
 import { normalizeName } from '@/features/doctor/orderCreate/patientName';
 import { PATIENT_REFERENCE_MAX } from '@/features/labBuying/buyerOrder';
+import { ORDER_TRASH_EMBED } from '@/features/orders/trash/trashFilter';
 import { SectionBadge, SectionCardShell } from '../primitives';
 import { useRegisterSection } from './sectionRegistry';
 import { InkSegmented, PeriLink, WizLabel } from './ui';
@@ -179,11 +180,13 @@ export function PatientStep({
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('id, order_code, status, lab_id, service_snapshot')
+        .select(`id, order_code, status, lab_id, service_snapshot, ${ORDER_TRASH_EMBED}`)
         .eq('patient_id', match!.id)
         // Explicit, not left to RLS: a lab owner buying from a lab can also
         // read the orders it receives (0048, B3).
         .eq('doctor_id', doctorId)
+        // The latest order the doctor still lists, not one it deleted (0054).
+        .is('order_trash', null)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();

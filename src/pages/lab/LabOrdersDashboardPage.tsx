@@ -40,6 +40,12 @@ import {
   StatTile,
 } from '@/components/design';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
+import { ORDER_TRASH_EMBED } from '@/features/orders/trash/trashFilter';
+import { TrashSelectionBar } from '@/features/orders/trash/TrashSelection';
+import { useOrderSelection } from '@/features/orders/trash/useOrderSelection';
+import { labSideKeeper } from '@/features/orders/trash/trashKeeper';
+import { TrashLink } from '@/features/orders/trash/TrashLink';
+import { useTrashToast } from '@/features/orders/trash/useTrashToast';
 import {
   appendDueWindow,
   dueDateOf,
@@ -54,7 +60,7 @@ import { ClarificationAskDialog } from '@/features/orders/clarifications/Clarifi
 import { formatGEL } from '@/utils/pricing';
 import { radii, tone } from '@/theme/tokens';
 import type { OrderRow, OrderStatus } from '@/types/database';
-import { LAB_SELECTABLE_STATUSES } from '@/types/database';
+import { canTrash, LAB_SELECTABLE_STATUSES } from '@/types/database';
 import { useInvoiceOrderIds } from '@/features/orders/orderFiles/useInvoiceOrderIds';
 import {
   DESTINATION_SELECT,
@@ -109,6 +115,9 @@ const isAnswered = (row: Row) =>
     (c) => c.answered_at !== null || c.resolved_by_edit_at !== null,
   );
 
+/** Select mode's checkbox column (0054), in front of the rest. */
+const SELECT_COLUMN: Column = { key: 'select', width: '28px' };
+
 const COLUMNS: Column[] = [
   { key: 'code', width: '92px' },
   { key: 'patient', width: 'minmax(0, 1.25fr)' },
@@ -145,6 +154,11 @@ export function LabOrdersDashboardPage() {
   const [askOrderId, setAskOrderId] = useState<string | null>(null);
   const [askKind, setAskKind] = useState<'ANSWER' | 'EDIT'>('ANSWER');
 
+  // The lab's side of the trash (0054): bulk select on finished rows, and the
+  // toast with Undo after a trash here or on the order sheet.
+  const selection = useOrderSelection();
+  const trashToast = useTrashToast('LAB');
+
   const [page, setPage] = useState(1);
   const [pageSize] = useState(25);
 
@@ -178,12 +192,16 @@ export function LabOrdersDashboardPage() {
         .select(
           'id, order_code, doctor_id, buyer_lab_id, patient_reference, status, generated_total, final_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, service_snapshot, doctor_snapshot, has_unreviewed_edits, ' +
             `${DESTINATION_SELECT}, ` +
-            'lab_services(name), patients(first_name, last_name), order_clarifications(answered_at, resolved_by_edit_at)',
+            'lab_services(name), patients(first_name, last_name), order_clarifications(answered_at, resolved_by_edit_at), ' +
+            ORDER_TRASH_EMBED,
         )
         // Not left to RLS: from 0048 the lab's owner also reads its own
         // purchases from other labs (as their buying profile), and those
         // belong under "My orders to labs", never in this queue.
         .eq('lab_id', labId!)
+        // Not the ones this lab deleted (0054), in its trash or gone. Server-
+        // side, so every count, tile and page below is over the same rows.
+        .is('order_trash', null)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as Row[];
@@ -301,6 +319,13 @@ export function LabOrdersDashboardPage() {
 
   // For the rows' overdue pill: the same rule the "Overdue" tile counts by.
   const rowDates = queueDates();
+
+  const finishedCount = useMemo(() => orders.filter((o) => canTrash(o.status)).length, [orders]);
+  const selectableIds = useMemo(
+    () => filtered.filter((o) => canTrash(o.status)).map((o) => o.id),
+    [filtered],
+  );
+  const columns = selection.active ? [SELECT_COLUMN, ...COLUMNS] : COLUMNS;
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   const visible = useMemo(
@@ -475,6 +500,16 @@ export function LabOrdersDashboardPage() {
                 <Icon name="tune" size={15} />
                 {t('ordersDashboard.moreFilters')}
               </ChoicePill>
+              {/* Bulk "Move to trash" (0054), on finished orders only. */}
+              {finishedCount > 0 && (
+                <ChoicePill
+                  selected={selection.active}
+                  onClick={selection.active ? selection.stop : selection.start}
+                >
+                  <Icon name="checklist" size={15} />
+                  {tc('trash.select.start')}
+                </ChoicePill>
+              )}
             </PillRow>
 
             {/* Preset-only filters, shown with the active filters so the lab
@@ -582,8 +617,8 @@ export function LabOrdersDashboardPage() {
           <OrdersEmptyState icon="filter_alt_off" title={t('ordersDashboard.filters.noResults')} />
         ) : (
           <DataTable
-            columns={COLUMNS.map((c) =>
-              c.key === 'go'
+            columns={columns.map((c) =>
+              c.key === 'go' || c.key === 'select'
                 ? c
                 : { ...c, label: t(`ordersDashboard.columns.${c.key}` as const) },
             )}
@@ -627,14 +662,34 @@ export function LabOrdersDashboardPage() {
 
               const answered = isAnswered(row);
               const place = destinationLabelOf(row);
+              const pickable = canTrash(row.status);
+              const picked = selection.active && selection.ids.has(row.id);
 
               return (
                 <DataRow
                   key={row.id}
-                  columns={COLUMNS}
-                  highlight={row.has_unreviewed_edits || answered}
-                  onClick={() => navigate(`/lab/orders/${row.id}`)}
+                  columns={columns}
+                  highlight={picked || row.has_unreviewed_edits || answered}
+                  // In select mode a finished row toggles; the rest wait.
+                  onClick={
+                    !selection.active
+                      ? () => navigate(`/lab/orders/${row.id}`)
+                      : pickable
+                        ? () => selection.toggle(row.id)
+                        : undefined
+                  }
                 >
+                  {selection.active && (
+                    <Checkbox
+                      checked={picked}
+                      disabled={!pickable}
+                      size="small"
+                      tabIndex={-1}
+                      disableRipple
+                      inputProps={{ 'aria-label': row.order_code }}
+                      sx={{ p: 0, pointerEvents: 'none' }}
+                    />
+                  )}
                   <Typography
                     sx={{ fontSize: '0.78125rem', fontWeight: 700, color: 'primary.dark' }}
                     noWrap
@@ -810,7 +865,16 @@ export function LabOrdersDashboardPage() {
             })}
           </DataTable>
         )}
+        <TrashSelectionBar
+          selection={selection}
+          side="LAB"
+          selectableIds={selectableIds}
+          keeperOf={(ids) => labSideKeeper(orders.filter((o) => ids.includes(o.id)))}
+          onTrashed={trashToast.show}
+        />
+        {!isLoading && <TrashLink scope={labId ? { side: 'LAB', labId } : null} to="/lab/trash" />}
       </Stack>
+      {trashToast.node}
 
       <ClarificationAskDialog
         orderId={askOrderId}

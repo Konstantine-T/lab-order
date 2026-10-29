@@ -33,7 +33,9 @@ import { normalizePatientPayload } from '@/features/doctor/orderCreate/patientNa
 import { OrderFilesField } from '@/features/orders/orderFiles/OrderFilesField';
 import { LabContactLine } from '@/features/orders/orderFiles/LabContactLine';
 import { ClarificationPanel } from '@/features/orders/clarifications/ClarificationPanel';
-import { DETAIL_ORDER_SELECT } from '@/features/orders/detail/types';
+import { DOCTOR_DETAIL_ORDER_SELECT } from '@/features/orders/detail/types';
+import { trashStateOf } from '@/features/orders/trash/trashApi';
+import { OrderGoneNotice } from '@/features/orders/trash/TrashedOrderNotices';
 import { LiveUpdateBanner } from '@/features/notifications/LiveSurfaces';
 import { useLiveFormSync } from '@/features/notifications/liveContext';
 import { useBuyerMode } from '@/features/labBuying/buyerMode';
@@ -60,6 +62,8 @@ type OrderDetail = OrderRow & {
   } | null;
   /** Live, not the snapshot: you email a lab at the address it has now. */
   labs: { contact_email: string | null } | null;
+  /** This side's trash row, if any (0054; the clinic's RLS reads none). */
+  order_trash?: { purge_after: string }[];
 };
 
 const EDIT_REASONS: EditReasonCode[] = [
@@ -86,6 +90,7 @@ export function OrderEditPage({
   const { t } = useTranslation('doctor');
   const { t: tc } = useTranslation('common');
   const { t: te } = useTranslation('errors');
+  const { t: tl } = useTranslation('lab');
   const { user } = useAuth();
   const buyer = useBuyerMode(buyerProp);
   // By the route's `buyer` prop, not by whether buyer mode resolved: a
@@ -111,7 +116,7 @@ export function OrderEditPage({
         // The detail page's select, not a narrower one: both screens share
         // `['order', id]`, and saving here refetches it just as the detail
         // page mounts — which then keeps whatever this fetch returns.
-        .select(DETAIL_ORDER_SELECT)
+        .select(DOCTOR_DETAIL_ORDER_SELECT)
         .eq('id', orderId!);
       // A buying lab's own purchase only, never an order it receives (0048,
       // B3). The clinic cannot know the doctor before the order loads.
@@ -362,6 +367,17 @@ export function OrderEditPage({
     );
   }
   if (!order) return <Alert severity="error">{tc('errors.notFound')}</Alert>;
+
+  // Deleted from this side's list for good (0054, C3): not even its code. An
+  // order in the trash is finished, so it falls to "not editable" below.
+  if (trashStateOf(order.order_trash).kind === 'gone') {
+    return (
+      <OrderGoneNotice
+        ordersPath={basePath}
+        ordersLabel={buyerProp ? tl('nav.purchases') : t('nav.orders')}
+      />
+    );
+  }
 
   const isTerminal = order.status === 'COMPLETED' || order.status === 'CANCELLED';
   if (isTerminal) {

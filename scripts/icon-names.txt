@@ -35,6 +35,8 @@ dark_mode
 dashboard
 dashboard_customize
 delete
+delete_forever
+delete_sweep
 dentistry
 deployed_code
 description
@@ -103,6 +105,7 @@ receipt_long
 remove
 repeat
 restart_alt
+restore_from_trash
 reviews
 savings
 schedule

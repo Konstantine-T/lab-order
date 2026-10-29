@@ -10,6 +10,7 @@ import { OrderCreateWizard } from '@/pages/doctor/OrderCreateWizard';
 import { OrdersListPage } from '@/pages/doctor/OrdersListPage';
 import { OrderDetailPage } from '@/pages/doctor/OrderDetailPage';
 import { OrderEditPage } from '@/pages/doctor/OrderEditPage';
+import { DoctorTrashPage } from '@/pages/doctor/DoctorTrashPage';
 import { PatientsPage } from '@/pages/doctor/PatientsPage';
 import { PatientOrdersPage } from '@/pages/doctor/PatientOrdersPage';
 import { UnderDevelopmentPage } from '@/pages/common/UnderDevelopmentPage';
@@ -35,6 +36,7 @@ export default function DoctorRoutes() {
           <Route path="orders/new" element={<OrderCreateWizard />} />
           <Route path="orders/:orderId" element={<OrderDetailPage />} />
           <Route path="orders/:orderId/edit" element={<OrderEditPage />} />
+          <Route path="trash" element={<DoctorTrashPage />} />
           <Route path="patients" element={<PatientsPage />} />
           <Route path="patients/:patientId" element={<PatientOrdersPage />} />
           <Route path="invoices" element={<UnderDevelopmentPage featureKey="invoices" />} />

@@ -21,6 +21,7 @@ import {
   StatGrid,
 } from '@/components/design';
 import { formatGEL } from '@/utils/pricing';
+import { ORDER_TRASH_EMBED } from '@/features/orders/trash/trashFilter';
 import type { OrderRow } from '@/types/database';
 import {
   type HomePreset,
@@ -49,6 +50,8 @@ type Row = Pick<
     resolved_by_edit_at: string | null;
     needs_edit: boolean;
   }[];
+  /** This doctor's own trash row, if any (0054; RLS embeds no other side's). */
+  order_trash?: { id: string }[];
 };
 
 /**
@@ -89,7 +92,11 @@ export function DoctorHomePage() {
           'id, order_code, status, payment_status, final_total, generated_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, service_snapshot, ' +
             // The lab's key, by name: orders has a second one to labs (0048).
             'patients(first_name, last_name), labs!orders_lab_id_fkey(public_name), ' +
-            'order_clarifications(question, answered_at, resolved_by_edit_at, needs_edit)',
+            'order_clarifications(question, answered_at, resolved_by_edit_at, needs_edit), ' +
+            // Embedded, not filtered: every count and list below leaves out
+            // what the doctor deleted (0054), but the unpaid money figure
+            // does not (owner decision: the trash never changes the money).
+            ORDER_TRASH_EMBED,
         )
         .eq('doctor_id', doctorId!)
         .order('created_at', { ascending: false });
@@ -102,10 +109,11 @@ export function DoctorHomePage() {
   // (homePresets), so the number is the number of rows they open onto.
   const stats = useMemo(() => {
     const now = dayjs();
-    const submitted = orders.filter((o) => matchesHomePreset(o, 'submitted', now));
-    const open = orders.filter((o) => matchesHomePreset(o, 'open', now));
-    const dueThisWeek = orders.filter((o) => matchesHomePreset(o, 'dueThisWeek', now));
-    const needsAction = orders.filter(
+    const listed = orders.filter((o) => !o.order_trash?.length);
+    const submitted = listed.filter((o) => matchesHomePreset(o, 'submitted', now));
+    const open = listed.filter((o) => matchesHomePreset(o, 'open', now));
+    const dueThisWeek = listed.filter((o) => matchesHomePreset(o, 'dueThisWeek', now));
+    const needsAction = listed.filter(
       (o) =>
         o.status === 'TRY_IN_PHASE' ||
         (o.status === 'NEEDS_CLARIFICATION' && awaitsDoctorAnswer(o)),
@@ -113,7 +121,8 @@ export function DoctorHomePage() {
     // Its own list, not a line in `needsAction`: this one names a change the
     // lab is blocked on, so the doctor has to see the request itself, not a
     // count that sends them hunting through the order list.
-    const needsChange = orders.filter((o) => o.status === 'NEEDS_DOCTOR_INPUT');
+    const needsChange = listed.filter((o) => o.status === 'NEEDS_DOCTOR_INPUT');
+    // Over every order, trashed ones included.
     const unpaid = orders
       .filter((o) => o.payment_status !== 'PAID' && o.status !== 'CANCELLED')
       .reduce((sum, o) => sum + (o.final_total ?? o.generated_total ?? 0), 0);

@@ -14,6 +14,7 @@ import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
 import { formatGEL } from '@/utils/pricing';
+import { ORDER_TRASH_EMBED } from '@/features/orders/trash/trashFilter';
 import type { OrderRow, PatientRow } from '@/types/database';
 
 type OrderRow_ = OrderRow & {
@@ -56,10 +57,13 @@ export function PatientOrdersPage() {
           'id, order_code, status, payment_status, generated_total, final_total, ' +
             'requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, service_snapshot, lab_id, continues_order_id, ' +
             // The lab's key, by name: orders has a second one to labs (0048).
-            'labs!orders_lab_id_fkey(public_name), lab_services(name)',
+            'labs!orders_lab_id_fkey(public_name), lab_services(name), ' +
+            ORDER_TRASH_EMBED,
         )
         .eq('doctor_id', doctorId!)
         .eq('patient_id', patientId!)
+        // Not what the doctor deleted (0054).
+        .is('order_trash', null)
         .order('created_at', { ascending: false });
       if (error) throw error;
       return (data ?? []) as unknown as OrderRow_[];

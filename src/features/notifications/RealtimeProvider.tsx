@@ -80,6 +80,9 @@ function listenersFor(
         { table: 'order_files', events: both },
         // Status history rows (0052): inserted only; RLS limits them to visible orders.
         { table: 'order_status_history', events: ['INSERT'] },
+        // Its own trash (0054), from another tab or device: RLS delivers only
+        // the doctor's own rows. A restore is a DELETE, heard on next refetch.
+        { table: 'order_trash', events: both },
         { table: 'clinic_doctor_invites', events: both },
         ...(ids.doctorId
           ? [
@@ -128,6 +131,9 @@ function listenersFor(
         { table: 'order_files', events: both },
         // Status history rows (0052): inserted only; RLS limits them to visible orders.
         { table: 'order_status_history', events: ['INSERT'] },
+        // Both its trashes (0054), incoming and purchases: RLS delivers only
+        // its own rows, and each carries its side.
+        { table: 'order_trash', events: both },
       ];
     case 'CLINIC_ADMIN':
       return [

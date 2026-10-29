@@ -28,6 +28,7 @@ import {
 } from '@/features/lab/orders/orderPresets';
 import { FromLabBadge } from '@/features/lab/orders/FromLabBadge';
 import { isLabPurchase, patientLabel } from '@/features/lab/orders/labCustomer';
+import { ORDER_TRASH_EMBED } from '@/features/orders/trash/trashFilter';
 import {
   defaultReceivableFilters,
   fetchReceivablesByCustomer,
@@ -76,11 +77,16 @@ export function LabDashboardPage() {
         .from('orders')
         .select(
           'id, order_code, status, payment_status, final_total, generated_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, service_snapshot, ' +
-            'buyer_lab_id, patient_reference, patients(first_name, last_name)',
+            'buyer_lab_id, patient_reference, patients(first_name, last_name), ' +
+            ORDER_TRASH_EMBED,
         )
         // Not left to RLS: from 0048 the owner also reads its own purchases
         // from other labs, which are not this lab's work.
         .eq('lab_id', labId!)
+        // Nor what it deleted (0054). Only a finished order can be in the
+        // trash and this list is open orders, so it changes nothing today;
+        // it keeps the rule the same on every lab list.
+        .is('order_trash', null)
         // Every preset below needs a status outside these, so counting over
         // this subset equals counting over all of the lab's orders.
         .not('status', 'in', `(${CLOSED_STATUSES.join(',')})`);
@@ -115,9 +121,10 @@ export function LabDashboardPage() {
     queryFn: async () => {
       const { count, error } = await supabase
         .from('orders')
-        .select('*', { count: 'exact', head: true })
+        .select(`id, ${ORDER_TRASH_EMBED}`, { count: 'exact', head: true })
         .eq('lab_id', labId!)
-        .eq('has_unreviewed_edits', true);
+        .eq('has_unreviewed_edits', true)
+        .is('order_trash', null);
       if (error) throw error;
       return count ?? 0;
     },

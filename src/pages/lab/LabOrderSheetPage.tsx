@@ -89,11 +89,20 @@ import {
   isNoteRequiredError,
   needsNoteConfirmation,
 } from '@/features/lab/orderSheet/finalPriceNote';
+import { ORDER_TRASH_STATE_EMBED } from '@/features/orders/trash/trashFilter';
+import { trashStateOf } from '@/features/orders/trash/trashApi';
+import { MoveToTrashButton } from '@/features/orders/trash/MoveToTrashButton';
+import { OrderGoneNotice, TrashedOrderBanner } from '@/features/orders/trash/TrashedOrderNotices';
+import { TrashedSheetRail } from '@/features/lab/orderSheet/TrashedSheetRail';
 
 // The patient is embedded so the sheet can show who the case is for; the lab
 // reads it under patients_lab_via_order (0009), the same grant its order lists
 // already use.
-type DetailRow = OrderRow & { patients: LivePatientEmbed | null };
+type DetailRow = OrderRow & {
+  patients: LivePatientEmbed | null;
+  /** This lab's trash row, if any (0054; RLS embeds no other side's). */
+  order_trash?: { purge_after: string }[];
+};
 
 /**
  * Read a money field the way a person types one.
@@ -149,7 +158,7 @@ export function LabOrderSheetPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select('*, patients(first_name, last_name, date_of_birth)')
+        .select(`*, patients(first_name, last_name, date_of_birth), ${ORDER_TRASH_STATE_EMBED}`)
         .eq('id', orderId!)
         // Only this lab's incoming orders. From 0048 the owner can also read
         // its own purchases from other labs (as their buying profile); one
@@ -419,6 +428,13 @@ export function LabOrderSheetPage() {
   }
   if (!order) return <Alert severity="error">{tc('errors.notFound')}</Alert>;
 
+  // Deleted from this lab's list (0054, C3): gone is not shown at all; in the
+  // trash the sheet is read-only under a banner with Restore.
+  const trash = trashStateOf(order.order_trash);
+  if (trash.kind === 'gone') {
+    return <OrderGoneNotice ordersPath="/lab/orders" ordersLabel={t('ordersDashboard.title')} />;
+  }
+
   const isTerminal = order.status === 'COMPLETED' || order.status === 'CANCELLED';
 
   const answersMap: Record<string, unknown> = {};
@@ -491,13 +507,30 @@ export function LabOrderSheetPage() {
             )}
           </>
         }
+        actions={
+          isTerminal && trash.kind === 'none' ? (
+            <MoveToTrashButton
+              orderId={order.id}
+              status={order.status}
+              side="LAB"
+              keeper={fromLab ? 'buyerLab' : 'doctor'}
+              listPath="/lab/orders"
+            />
+          ) : undefined
+        }
       />
 
       {/* The order moved while the lab had unsaved input: keep the input. */}
       {live.stale && <LiveUpdateBanner onReload={live.reload} />}
+      {trash.kind === 'inTrash' && (
+        <TrashedOrderBanner orderId={order.id} side="LAB" purgeAfter={trash.purgeAfter} />
+      )}
 
       <SplitLayout
         rail={
+          trash.kind === 'inTrash' ? (
+            <TrashedSheetRail order={order} />
+          ) : (
           <>
             {/* Status switcher */}
             <SectionCard title={t('orderSheet.statusTitle')} meta={t('orderSheet.statusHelp')}>
@@ -817,6 +850,7 @@ export function LabOrderSheetPage() {
 
             <OrderTeamSection orderId={order.id} labId={order.lab_id} disabled={isTerminal} />
           </>
+          )
         }
       >
         {success && (
@@ -1069,8 +1103,8 @@ export function LabOrderSheetPage() {
           <OrderFilesField
             orderId={order.id}
             labId={order.lab_id}
-            canUpload
-            canRemove={(f) => f.uploaded_by_user_id === user?.id}
+            canUpload={trash.kind === 'none'}
+            canRemove={(f) => trash.kind === 'none' && f.uploaded_by_user_id === user?.id}
           />
         </SectionCard>
       </SplitLayout>

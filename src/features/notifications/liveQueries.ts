@@ -30,7 +30,8 @@ export type LiveTable =
   | 'lab_reviews'
   | 'lab_review_reports'
   | 'clinic_memberships'
-  | 'order_status_history';
+  | 'order_status_history'
+  | 'order_trash';
 
 type Row = Record<string, unknown>;
 
@@ -64,7 +65,55 @@ const ORDER_LISTS: QueryKey[] = [
   ['clinic-payable-labs'],
   // invoice chips on every list
   ['unacknowledged-invoices'],
+  // a side's trash (0054) lists each order's status, and a reopen empties it
+  ['order-trash'],
+  ['order-trash-count'],
 ];
+
+/**
+ * What one side's trash change moves (0054): that side's order lists, counts
+ * and badges (each excludes the side's `order_trash` rows), the trash itself,
+ * and the order's own page (its banner). Never the other side's keys, never
+ * finances: neither changes when a side hides an order.
+ */
+const TRASH_LISTS: Record<'LAB' | 'DOCTOR', QueryKey[]> = {
+  LAB: [
+    ['nav-alerts'],
+    ['lab-orders'],
+    ['lab-dashboard-open'],
+    ['lab-unreviewed-edits-count'],
+    ['lab-edited-orders'],
+    ['unacknowledged-invoices'],
+    // The projects screens (Trello 5XVmpHyN, 0055) leave out what the lab
+    // trashed too; a key nobody has loaded costs nothing.
+    ['lab-projects'],
+    ['lab-project'],
+    ['lab-project-orders'],
+  ],
+  // Also a buying lab's purchase pages, under the same doctor keys.
+  DOCTOR: [
+    ['nav-alerts'],
+    ['doctor-orders'],
+    ['doctor-home-orders'],
+    ['doctor-patient-orders'],
+    ['doctor-patients'],
+    ['patient-latest-order'],
+    ['unacknowledged-invoices'],
+  ],
+};
+
+export function keysForTrashChange(side: unknown, orderId: string | null): QueryKey[] {
+  const lists =
+    side === 'LAB' || side === 'DOCTOR'
+      ? TRASH_LISTS[side]
+      : [...TRASH_LISTS.LAB, ...TRASH_LISTS.DOCTOR];
+  return [
+    ...lists,
+    ['order-trash'],
+    ['order-trash-count'],
+    ...(orderId ? [['lab-order', orderId], ['order', orderId]] : []),
+  ];
+}
 
 /** One open order, on whichever role's page it is open. */
 const orderPage = (orderId: string): QueryKey[] => [
@@ -189,6 +238,9 @@ export function keysForRow(table: LiveTable, row: Row): QueryKey[] {
     case 'lab_review_reports':
       // A report carries only its review's id: refresh the lab's page whole.
       return [['admin-review-reports'], ['admin-reviews'], ['nav-alerts'], ['lab-reviews']];
+    case 'order_trash':
+      // RLS delivers only the subscriber's own side's rows.
+      return keysForTrashChange(row.side, str(row.order_id));
   }
 }
 
@@ -223,6 +275,7 @@ export const ALL_LIVE_KEYS: QueryKey[] = (() => {
     'lab_review_reports',
     'clinic_memberships',
     'order_status_history',
+    'order_trash',
   ];
   // A row with no ids yields the list keys; the per-id keys are covered by
   // their first element as a prefix.

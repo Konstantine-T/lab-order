@@ -1,4 +1,5 @@
 import type { OrderRow } from '@/types/database';
+import { ORDER_TRASH_STATE_EMBED } from '@/features/orders/trash/trashFilter';
 
 /**
  * The order row as both detail screens load it.
@@ -19,6 +20,9 @@ export type DetailOrder = OrderRow & {
     contact_phone?: string | null;
     logo_url?: string | null;
   } | null;
+  /** The doctor side's trash row, if any (0054). Only `DOCTOR_DETAIL_ORDER_SELECT`
+   *  embeds it; the clinic's select leaves it out. */
+  order_trash?: { purge_after: string }[];
 };
 
 /**
@@ -35,6 +39,13 @@ export type DetailOrder = OrderRow & {
 export const DETAIL_ORDER_SELECT =
   '*, patients(first_name, last_name, date_of_birth, gender), ' +
   'labs!orders_lab_id_fkey(contact_email, contact_phone, logo_url)';
+
+/**
+ * The doctor's (and a buying lab's) `['order', id]` select: the above plus the
+ * side's trash row (0054, C3). Both screens on that key, the detail page and
+ * the edit page, must use this one, for the reason above.
+ */
+export const DOCTOR_DETAIL_ORDER_SELECT = `${DETAIL_ORDER_SELECT}, ${ORDER_TRASH_STATE_EMBED}`;
 
 export const labNameOf = (order: OrderRow) =>
   (order.lab_snapshot as { public_name?: string } | null)?.public_name ?? '';
