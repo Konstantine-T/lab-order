@@ -55,8 +55,10 @@ export function TrashSelectionBar({
   /** After a trash, the ids it really trashed (an order already gone on this
    *  side is not one): the page shows its toast with Undo. With `restErrorKey`
    *  when a later batch of a large selection was refused or failed: the ids
-   *  are what moved before it, and the toast says the rest did not. */
-  onTrashed: (ids: string[], restErrorKey?: string | null) => void;
+   *  are what moved before it, and the toast says the rest did not. `unsure`:
+   *  orders that moved but could not be named (TrashOutcome), which the
+   *  toast counts and sends to the trash page for restoring. */
+  onTrashed: (ids: string[], restErrorKey?: string | null, unsure?: number) => void;
 }) {
   const { t } = useTranslation('common');
   const qc = useQueryClient();
@@ -75,10 +77,10 @@ export function TrashSelectionBar({
     // A refusal before anything moved throws, and the dialog shows it. Part
     // of a large selection moved: those get the toast and its Undo, and the
     // toast says why the rest did not.
-    onSuccess: ({ trashedIds, error }) => {
+    onSuccess: ({ trashedIds, unsure, error }) => {
       setConfirmOpen(false);
       selection.stop();
-      onTrashed(trashedIds, error ? trashErrorKey(error) : null);
+      onTrashed(trashedIds, error ? trashErrorKey(error) : null, unsure);
     },
     // A batch may have landed before a refusal: refresh either way.
     onSettled: (_data, _err, ids) => invalidateAfterTrashChange(qc, side, ids),

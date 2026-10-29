@@ -9,7 +9,7 @@ import { trashCountKey, trashListKey, type TrashScope } from './trashApi';
  *
  * Read from `order_trash`, with the order embedded (`orders!inner`), so the
  * server sorts by `deleted_at` and pages: PostgREST's row cap can never cut
- * the list, and the pager and "Empty trash" count with `useTrashCount`, over
+ * the list, and the pager and "Empty trash" count with `useTrashTotal`, over
  * every row, not over one page.
  *
  * Scoped on the embedded order like every other list of that side: the lab's
@@ -86,10 +86,11 @@ export function useTrashList(scope: TrashScope | null, page: number) {
   });
 }
 
-/** "Trash (N)", the trash page's pager and "Empty trash": counted over the
- *  whole trash, no rows on the wire. Fails soft to 0. */
-export function useTrashCount(scope: TrashScope | null) {
-  const { data = 0 } = useQuery({
+/** The size of the whole trash, no rows on the wire. A failed count is an
+ *  error (and retried), never a cached 0: the trash page pages and confirms
+ *  "Empty trash" by it. */
+function useTrashCountQuery(scope: TrashScope | null) {
+  return useQuery({
     queryKey: scope ? trashCountKey(scope) : ['order-trash-count', 'none'],
     enabled: !!scope,
     queryFn: async () => {
@@ -101,9 +102,23 @@ export function useTrashCount(scope: TrashScope | null) {
         .eq(f.column, f.value)
         .is('purged_at', null)
         .gt('purge_after', new Date().toISOString());
-      if (error) return 0;
+      if (error) throw error;
       return count ?? 0;
     },
   });
-  return data;
+}
+
+/** "Trash (N)" at the foot of a list: fails soft to 0. */
+export function useTrashCount(scope: TrashScope | null): number {
+  return useTrashCountQuery(scope).data ?? 0;
+}
+
+/** The trash page's count: `total` is null while it is unknown (still
+ *  loading, or `failed`), so the page never pages or confirms by a guess. */
+export function useTrashTotal(scope: TrashScope | null): {
+  total: number | null;
+  failed: boolean;
+} {
+  const q = useTrashCountQuery(scope);
+  return { total: q.status === 'success' ? q.data : null, failed: q.status === 'error' };
 }

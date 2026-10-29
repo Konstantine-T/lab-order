@@ -20,8 +20,9 @@ const trashedIdsOf = (state: unknown): string[] | null => {
 };
 
 type Toast =
-  /** `restErrorKey`: a large selection stopped part way; `ids` moved. */
-  | { kind: 'moved'; ids: string[]; restErrorKey?: string | null }
+  /** `restErrorKey`: a large selection stopped part way; `ids` moved.
+   *  `unsure`: more orders moved that Undo cannot name (TrashOutcome). */
+  | { kind: 'moved'; ids: string[]; restErrorKey?: string | null; unsure?: number }
   | { kind: 'restored'; count: number }
   | { kind: 'error'; key: string };
 
@@ -44,8 +45,8 @@ export function useTrashToast(side: OrderTrashSide) {
   }, []);
 
   const show = useCallback(
-    (ids: string[], restErrorKey?: string | null) => {
-      if (ids.length) setToast({ kind: 'moved', ids, restErrorKey });
+    (ids: string[], restErrorKey?: string | null, unsure = 0) => {
+      if (ids.length || unsure > 0) setToast({ kind: 'moved', ids, restErrorKey, unsure });
     },
     [setToast],
   );
@@ -74,13 +75,25 @@ export function useTrashToast(side: OrderTrashSide) {
 
   // A large selection that stopped part way also says why the rest did not move.
   const restKey = toast?.kind === 'moved' ? toast.restErrorKey : null;
+  const unsure = toast?.kind === 'moved' ? (toast.unsure ?? 0) : 0;
+  // Undo brings back what it can name; orders it cannot, the trash page can.
+  const canUndo = toast?.kind === 'moved' && toast.ids.length > 0;
+  const moved = toast?.kind === 'moved' ? toast.ids.length + unsure : 0;
+  const unsureText =
+    unsure === 0
+      ? null
+      : canUndo
+        ? t('trash.toast.unsureSome')
+        : moved === 1
+          ? t('trash.toast.unsureAllSingle')
+          : t('trash.toast.unsureAllMany');
   const text =
     toast?.kind === 'moved'
       ? restKey
-        ? t('trash.toast.movedPartial', { count: toast.ids.length })
-        : toast.ids.length === 1
+        ? t('trash.toast.movedPartial', { count: moved })
+        : moved === 1
           ? t('trash.toast.movedSingle')
-          : t('trash.toast.movedMany', { count: toast.ids.length })
+          : t('trash.toast.movedMany', { count: moved })
       : toast?.kind === 'restored'
         ? toast.count === 1
           ? t('trash.toast.restoredSingle')
@@ -91,9 +104,9 @@ export function useTrashToast(side: OrderTrashSide) {
     <Snackbar
       open={open}
       // Keyed so a second trash restarts the timer instead of inheriting it.
-      key={toast?.kind === 'moved' ? toast.ids.join(',') : toast?.kind}
+      key={toast?.kind === 'moved' ? `${toast.ids.join(',')}+${unsure}` : toast?.kind}
       // A partial move stays longer: it also says what did not happen.
-      autoHideDuration={toast?.kind === 'moved' ? (restKey ? 15000 : 8000) : 4000}
+      autoHideDuration={toast?.kind === 'moved' ? (restKey || unsure ? 15000 : 8000) : 4000}
       onClose={close}
       anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
     >
@@ -103,12 +116,12 @@ export function useTrashToast(side: OrderTrashSide) {
         </Alert>
       ) : (
         <Alert
-          severity={restKey ? 'warning' : 'success'}
+          severity={restKey || unsure ? 'warning' : 'success'}
           variant="filled"
           icon={false}
-          onClose={toast?.kind === 'restored' ? () => setToast(null) : undefined}
+          onClose={toast?.kind === 'moved' && canUndo ? undefined : () => setToast(null)}
           action={
-            toast?.kind === 'moved' ? (
+            toast?.kind === 'moved' && canUndo ? (
               <Button
                 color="inherit"
                 size="small"
@@ -122,6 +135,11 @@ export function useTrashToast(side: OrderTrashSide) {
           }
         >
           {text}
+          {unsureText && (
+            <Box component="span" sx={{ display: 'block', mt: 0.5, opacity: 0.9 }}>
+              {unsureText}
+            </Box>
+          )}
           {restKey && (
             <Box component="span" sx={{ display: 'block', mt: 0.5, opacity: 0.9 }}>
               {t(restKey)}

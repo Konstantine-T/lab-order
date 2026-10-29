@@ -1,7 +1,12 @@
 import { useState } from 'react';
 import { Alert, Box, Button, CircularProgress, Snackbar, Stack, Typography } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import {
+  notifyManager,
+  useMutation,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { EmptyState, Icon, PageHeader, Pager } from '@/components/design';
 import { OrderStatusChip } from '@/components/OrderStatusChip';
@@ -13,11 +18,13 @@ import {
   invalidateAfterTrashChange,
   purgeTrashedOrders,
   restoreOrders,
+  trashCountKey,
   trashErrorKey,
+  trashListKey,
   type TrashScope,
 } from './trashApi';
 import { PurgeConfirmDialog } from './TrashConfirmDialog';
-import { TRASH_PAGE_SIZE, useTrashCount, useTrashList, type TrashListRow } from './trashQueries';
+import { TRASH_PAGE_SIZE, useTrashList, useTrashTotal, type TrashListRow } from './trashQueries';
 
 /** Who an order is with, seen from this side: the doctor or buying lab for a
  *  lab, the lab for a doctor or buying lab. */
@@ -25,6 +32,15 @@ function otherPartyOf(row: TrashListRow, side: TrashScope['side']): string {
   if (side === 'DOCTOR') return row.orders.lab_name?.trim() || '—';
   const d = row.orders.doctor_snapshot ?? {};
   return [d.first_name, d.last_name].filter(Boolean).join(' ').trim() || '—';
+}
+
+/** `n` rows left the trash: count them off at once, so the pager clamps
+ *  before the refetch lands instead of showing a page past the end. Only a
+ *  count the page trusts (a failed one stays unknown). */
+function shrinkTrashCount(qc: QueryClient, scope: TrashScope, n: number) {
+  const key = trashCountKey(scope);
+  if (n <= 0 || qc.getQueryState(key)?.status !== 'success') return;
+  qc.setQueryData<number>(key, (c) => (c === undefined ? c : Math.max(0, c - n)));
 }
 
 function patientOf(row: TrashListRow): string {
@@ -41,7 +57,9 @@ function patientOf(row: TrashListRow): string {
  *
  * Paged on the server (trashQueries.ts): the pager and "Empty trash" go by
  * the count of the whole trash, and "Empty trash" empties all of this side's
- * trash in one call, not only the page on screen.
+ * trash in one call, not only the page on screen. While that count is
+ * unknown (loading, or it failed) the page stays where it is and "Empty
+ * trash" names no number; when it failed, a full page also offers the next.
  */
 export function TrashPage({
   scope,
@@ -56,23 +74,33 @@ export function TrashPage({
   const qc = useQueryClient();
   const side = scope?.side ?? 'DOCTOR';
   const [page, setPage] = useState(0);
-  const total = useTrashCount(scope);
+  // `total` is null while unknown: loading, or the count failed.
+  const { total, failed: countFailed } = useTrashTotal(scope);
+  const knownPages = total === null ? null : Math.max(1, Math.ceil(total / TRASH_PAGE_SIZE));
   // A restore or a purge can empty the last page: show the last one left.
-  const pageCount = Math.max(1, Math.ceil(total / TRASH_PAGE_SIZE));
-  const current = Math.min(page, pageCount - 1);
+  const current = knownPages === null ? page : Math.min(page, knownPages - 1);
   const { data: rows = [], isLoading } = useTrashList(scope, current);
+  // With no count to go by (it failed), a full page may have more after it:
+  // offer the next one, so no row is out of reach.
+  const pageCount =
+    knownPages ?? current + (countFailed && rows.length === TRASH_PAGE_SIZE ? 2 : 1);
   const [purgeTarget, setPurgeTarget] = useState<'all' | string | null>(null);
   const [errorKey, setErrorKey] = useState<string | null>(null);
   const [restored, setRestored] = useState(false);
-  // What "Empty trash" deletes: the whole trash (a failed count reads 0, so
-  // never less than the page on screen).
-  const trashSize = Math.max(total, current * TRASH_PAGE_SIZE + rows.length);
+  // What "Empty trash" deletes: the whole trash, never less than the pages
+  // up to this one; null (no number in the confirm) while the count is
+  // unknown, since the call empties all of it whatever the page knows.
+  const trashSize =
+    total === null ? null : Math.max(total, current * TRASH_PAGE_SIZE + rows.length);
   const empty = rows.length === 0 && (total === 0 || current === 0);
 
   const restore = useMutation({
     mutationFn: (ids: string[]) => restoreOrders(ids),
     onMutate: () => setErrorKey(null),
-    onSuccess: () => setRestored(true),
+    onSuccess: (n) => {
+      setRestored(true);
+      if (scope) shrinkTrashCount(qc, scope, n);
+    },
     onError: (err) => setErrorKey(trashErrorKey(err)),
     onSettled: (_d, _e, ids) => invalidateAfterTrashChange(qc, side, ids),
   });
@@ -83,7 +111,24 @@ export function TrashPage({
     mutationFn: (target: 'all' | string) =>
       target === 'all' ? emptyTrash(side) : purgeTrashedOrders([target], side),
     onMutate: () => setErrorKey(null),
-    onSuccess: () => setPurgeTarget(null),
+    onSuccess: (n, target) => {
+      setPurgeTarget(null);
+      if (!scope) return;
+      if (target === 'all') {
+        // All of it is gone. Every cached page reads empty at once, before
+        // the invalidation below refetches: otherwise the clamp to an
+        // earlier page would show its cached rows, all just purged, until
+        // its refetch landed (a page off screen is not refetched, only
+        // marked stale). One batch, so no render sees one without the other.
+        notifyManager.batch(() => {
+          qc.setQueriesData<TrashListRow[]>({ queryKey: trashListKey(scope) }, []);
+          qc.setQueryData<number>(trashCountKey(scope), 0);
+        });
+        setPage(0);
+      } else {
+        shrinkTrashCount(qc, scope, n);
+      }
+    },
     onSettled: (_d, _e, target) =>
       invalidateAfterTrashChange(qc, side, target === 'all' ? [] : [target]),
   });

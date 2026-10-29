@@ -82,7 +82,9 @@ export function PurgeConfirmDialog({
   onClose,
 }: {
   open: boolean;
-  count: number;
+  /** How many "Empty trash" deletes; null when the page does not know
+   *  (loading, or the count failed): the text then names no number. */
+  count: number | null;
   /** Empty trash rather than one order. */
   all: boolean;
   pending: boolean;
@@ -99,7 +101,11 @@ export function PurgeConfirmDialog({
       <DialogContent>
         <Stack spacing={1.5}>
           <DialogContentText>
-            {all ? t('trash.emptyConfirm.body', { count }) : t('trash.deleteNowConfirm.body')}
+            {!all
+              ? t('trash.deleteNowConfirm.body')
+              : count === null
+                ? t('trash.emptyConfirm.bodyAll')
+                : t('trash.emptyConfirm.body', { count })}
           </DialogContentText>
           {errorKey && <Alert severity="error">{t(errorKey)}</Alert>}
         </Stack>

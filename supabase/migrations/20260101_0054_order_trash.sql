@@ -18,19 +18,23 @@
 --      covers a buying lab's purchases (0048: its buying profile is the
 --      order's doctor). A row is in one of four states:
 --        * In the trash   = purge_after > now(), cleared_at and purged_at null.
---        * Gone for good  = purge_after <= now(), cleared_at null: the 14
---          days ran out (purged_at null), or "Delete now" / "Empty trash"
---          ended them early (purge_after = purged_at = that moment).
+--        * Gone for good  = cleared_at null, and purged_at set or
+--          purge_after <= now(): the 14 days ran out (purged_at null), or
+--          "Delete now" / "Empty trash" ended them early (purge_after =
+--          purged_at = that moment).
 --        * Cleared        = cleared_at set: restored, or the order was
 --          reopened (4). It counts for nothing and nobody can read it (2);
 --          trashing the order again revives the same row.
 --      No scheduled job: time alone moves a row from the trash to gone.
 --      "Hidden from a side" is any row of that side that is not cleared, in
 --      the trash or gone.
---      purged_at exists for the clients: they cut "in the trash" with the
---      browser's clock, which can run behind the server's. A row purged a
---      moment ago would still read purge_after > now() there; purged_at says
---      it is gone whatever the clock.
+--      purged_at says gone whatever a clock says, and both the clients and
+--      the RPCs below check it. The clients cut "in the trash" with the
+--      browser's clock, which can run behind the server's: a row purged a
+--      moment ago would still read purge_after > now() there. The server's
+--      now() is the start of the caller's transaction: an RPC that began
+--      before a purge committed (waiting on a row lock, say) and reaches the
+--      row after it would also read the purged row as still in the trash.
 --      A row is never DELETEd, only cleared (restore, reopen) or revived
 --      (trash again). Realtime delivers a DELETE to every subscriber of the
 --      table without RLS (only the primary key, under the transaction's
@@ -76,24 +80,29 @@
 --        one still in the trash, or revives a cleared one (deleted_at =
 --        now(), purge_after = now() + 14 days, deleted_by_user_id =
 --        auth.uid(), cleared_at and purged_at null). A row already gone stays
---        gone: trashing never revives a deleted order. Returns the rows
---        inserted, refreshed or revived. The orders are read FOR SHARE, so a
---        reopen racing it either commits first (then the order reads as
+--        gone: trashing never revives a deleted order, nor one a purge ended
+--        after this call's transaction began (purged_at set). Returns the
+--        rows inserted, refreshed or revived. The orders are read FOR SHARE,
+--        so a reopen racing it either commits first (then the order reads as
 --        unfinished) or waits and then clears the new row (4).
 --      restore_orders(ids) -> integer: clears the side's rows still in the
 --        trash (cleared_at = now()). A gone row raises trash_expired. An
 --        order with no row, or a cleared one, is skipped (Undo twice, two
---        tabs). Returns the rows cleared.
+--        tabs). Returns the rows cleared. A restore that began before a
+--        purge of the same row committed still clears it, as if it had run
+--        first (the Undo was the earlier click): the row then carries both
+--        purged_at and cleared_at, and cleared wins (it hides nothing).
 --      purge_trashed_orders(ids default null, side default null) -> integer
 --        ("Delete now" / "Empty trash"): sets purge_after = purged_at =
---        now() on the caller's rows still in the trash; ids not in the trash
---        are skipped. side ('LAB' / 'DOCTOR', else invalid_side) limits the
---        call to that one trash: with ids, an order on the caller's other
---        side raises not_your_order. With null ids: every row in that
---        side's trash, or with no side in the trash of EVERY side the caller
---        holds. A lab owner who also buys has two trashes (incoming orders,
---        purchases), so the app always names the side: "Empty trash" is
---        (null, side), and so empties the whole trash, not only the rows
+--        now() on the caller's rows still in the trash (not purged); ids not
+--        in the trash are skipped, so a row is purged once and keeps the
+--        first purge's stamp. side ('LAB' / 'DOCTOR', else invalid_side)
+--        limits the call to that one trash: with ids, an order on the
+--        caller's other side raises not_your_order. With null ids: every row
+--        in that side's trash, or with no side in the trash of EVERY side the
+--        caller holds. A lab owner who also buys has two trashes (incoming
+--        orders, purchases), so the app always names the side: "Empty trash"
+--        is (null, side), and so empties the whole trash, not only the rows
 --        the page has loaded.
 --
 --   4. An order that comes back to life. reopen_order (or a lab, or an admin)
@@ -151,15 +160,16 @@ create index if not exists order_trash_order_idx on public.order_trash (order_id
 
 comment on table public.order_trash is
   'A side''s deleted orders (0054): side LAB = the order''s lab, DOCTOR = its doctor or buying profile. '
-  'Not cleared and purge_after > now() = in the trash, else gone from that side for good (purged_at set when '
-  'ended early). cleared_at set = restored or reopened: counts for nothing, unreadable. Rows are never deleted '
+  'Not cleared, not purged and purge_after > now() = in the trash, else gone from that side for good (purged_at '
+  'set when ended early). cleared_at set = restored or reopened: counts for nothing, unreadable. Rows are never deleted '
   '(realtime would broadcast a DELETE past RLS). The order itself is never removed. '
   'Written only by trash_orders / restore_orders / purge_trashed_orders and the reopen trigger.';
 comment on column public.order_trash.cleared_at is
   'Restored (restore_orders) or the order reopened (orders_trash_clear_on_reopen): the row hides nothing, '
   'RLS shows it to no one, trash_orders revives it.';
 comment on column public.order_trash.purged_at is
-  'Set with purge_after = now() by purge_trashed_orders: gone for good, whatever a client''s clock says.';
+  'Set with purge_after = now() by purge_trashed_orders: gone for good, whatever a clock says (a client''s, '
+  'or the now() of a transaction that began before the purge).';
 
 
 -- ── 2. Who can read it ───────────────────────────────────────────────────
@@ -252,8 +262,11 @@ begin
            cleared_at         = null,
            purged_at          = null
      -- A cleared row (restored, reopened) is revived; one in the trash is
-     -- refreshed; a gone row stays gone.
-     where t.cleared_at is not null or t.purge_after > now();
+     -- refreshed; a gone row stays gone. purged_at decides, not the clock
+     -- alone: a purge that committed after this transaction began set
+     -- purge_after to ITS now(), which is later than ours.
+     where t.cleared_at is not null
+        or (t.purged_at is null and t.purge_after > now());
     get diagnostics v_rows = row_count;
     v_n := v_n + v_rows;
   end loop;
@@ -370,6 +383,7 @@ begin
        set purge_after = now(),
            purged_at   = now()
      where t.cleared_at is null
+       and t.purged_at is null
        and t.purge_after > now()
        and (p_side is null or t.side = p_side)
        and exists (
@@ -408,7 +422,7 @@ begin
        set purge_after = now(),
            purged_at   = now()
      where t.order_id = v_order.id and t.side = v_side
-       and t.cleared_at is null and t.purge_after > now();
+       and t.cleared_at is null and t.purged_at is null and t.purge_after > now();
     get diagnostics v_rows = row_count;
     v_n := v_n + v_rows;
   end loop;

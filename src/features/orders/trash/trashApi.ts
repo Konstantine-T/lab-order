@@ -125,9 +125,10 @@ async function inTrashNow(batch: string[]): Promise<string[]> {
   return batch.filter((id) => kept.has(id));
 }
 
-/** What a trash of several orders did: the ids it moved, and the refusal (or
- *  failure) that stopped it part way, if one did. */
-export type TrashOutcome = { trashedIds: string[]; error: unknown };
+/** What a trash of several orders did: the ids it moved; how many more it
+ *  moved without being able to say which (`unsure`, see below); and the
+ *  refusal (or failure) that stopped it part way, if one did. */
+export type TrashOutcome = { trashedIds: string[]; unsure: number; error: unknown };
 
 /**
  * `trash_orders`, returning the ids this call actually put (or kept) in the
@@ -144,22 +145,38 @@ export type TrashOutcome = { trashedIds: string[]; error: unknown };
  * `trashedIds` beside the `error`, so the list can still toast them with
  * Undo and say that the rest did not move. When nothing moved, it throws,
  * as one call does.
+ *
+ * The extra read comes after its batch has committed, so its failure is not
+ * the batch's: the read is tried twice, and if both fail the batch's moved
+ * orders still count, as `unsure` (the RPC said how many, not which). Undo
+ * cannot name them, and handing it the whole batch would hit the gone ids
+ * (`trash_expired`), so the toast points to the trash for those instead.
  */
 export async function trashOrdersTracked(ids: string[]): Promise<TrashOutcome> {
   const trashedIds: string[] = [];
+  let unsure = 0;
   for (const batch of chunks([...new Set(ids)])) {
+    let count: number;
     try {
       const { data, error } = await supabase.rpc('trash_orders', { p_order_ids: batch });
       if (error) throw error;
-      const count = typeof data === 'number' ? data : 0;
-      if (count >= batch.length) trashedIds.push(...batch);
-      else if (count > 0) trashedIds.push(...(await inTrashNow(batch)));
+      count = typeof data === 'number' ? data : 0;
     } catch (error) {
-      if (trashedIds.length === 0) throw error;
-      return { trashedIds, error };
+      // This batch rolled back; the earlier ones stand.
+      if (trashedIds.length === 0 && unsure === 0) throw error;
+      return { trashedIds, unsure, error };
+    }
+    if (count >= batch.length) {
+      trashedIds.push(...batch);
+    } else if (count > 0) {
+      const moved = await inTrashNow(batch)
+        .catch(() => inTrashNow(batch))
+        .catch(() => null);
+      if (moved) trashedIds.push(...moved);
+      else unsure += count;
     }
   }
-  return { trashedIds, error: null };
+  return { trashedIds, unsure, error: null };
 }
 
 export const restoreOrders = (ids: string[]) => callBatched('restore_orders', ids);

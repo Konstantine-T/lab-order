@@ -604,7 +604,10 @@
       "undo": "Undo",
       "restoredSingle": "Restored",
       "restoredMany_one": "{{count}} order restored",
-      "restoredMany_other": "{{count}} orders restored"
+      "restoredMany_other": "{{count}} orders restored",
+      "unsureSome": "Undo can't bring back all of them. Restore the rest from the trash.",
+      "unsureAllSingle": "To bring it back, restore it from the trash.",
+      "unsureAllMany": "To bring them back, restore them from the trash."
     },
     "link": "Trash ({{n}})",
     "page": {
@@ -623,7 +626,8 @@
     "emptyConfirm": {
       "title": "Empty the trash?",
       "body_one": "{{count}} order will be deleted from your list. It can't be restored.",
-      "body_other": "{{count}} orders will be deleted from your list. They can't be restored."
+      "body_other": "{{count}} orders will be deleted from your list. They can't be restored.",
+      "bodyAll": "Every order in your trash will be deleted from your list. They can't be restored."
     },
     "empty": {
       "title": "The trash is empty.",
