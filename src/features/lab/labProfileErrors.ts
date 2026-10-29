@@ -4,11 +4,14 @@
  * raw Postgres message: it is English-only and names triggers and SQL at the
  * user.
  *
- *   locked      — `lab_identity_locked` (0040): the name, legal, contact or
- *                 bank details of a lab that is no longer in review. Reached
- *                 from a page opened before an admin approved (or rejected,
- *                 or suspended) the lab. Also 0003's refusal of an approval
- *                 status change, which a resubmit from such a page meets.
+ *   locked      — `lab_identity_locked` (0040, 0053): the name, legal or
+ *                 bank details of a lab that is no longer in review, and its
+ *                 contact details too unless it is approved. Reached from a
+ *                 page opened before an admin approved (or rejected, or
+ *                 suspended) the lab, and by an approved lab's contact save
+ *                 against a database without 0053. Also 0003's refusal of an
+ *                 approval status change, which a resubmit from such a page
+ *                 meets.
  *   reload      — `public_translations_rpc_only` / `price_lists_rpc_only`
  *                 (0037 / 0038): a direct write to a column that only its RPC
  *                 may set. Only an outdated client sends one.

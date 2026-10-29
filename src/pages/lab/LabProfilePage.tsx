@@ -22,7 +22,12 @@ import {
   coercePublicTranslations,
 } from '@/features/lab/labText';
 import { isLabProfileComplete, labProfileSchema } from '@/features/lab/labProfileSchema';
-import type { LabPublicTranslations, LabRow, LabTextLang } from '@/types/database';
+import type {
+  LabApprovalStatus,
+  LabPublicTranslations,
+  LabRow,
+  LabTextLang,
+} from '@/types/database';
 
 // One translation slot. Optional throughout: a blank field falls back to the
 // base text, so nothing here is ever required.
@@ -77,6 +82,14 @@ const fromSlots = (slots: TranslationSlots): LabPublicTranslations => {
 
 const hasText = (slot: { public_name: string; short_description: string } | undefined) =>
   !!slot && (slot.public_name.trim() !== '' || slot.short_description.trim() !== '');
+
+/** The contact card's fields: what an approved lab saves on its own (0053). */
+const CONTACT_FIELDS = ['contact_person_name', 'contact_phone', 'contact_email'] as const;
+const pickContact = (v: PageInput) => ({
+  contact_person_name: v.contact_person_name,
+  contact_phone: v.contact_phone,
+  contact_email: v.contact_email,
+});
 
 const empty: PageInput = {
   public_name: '',
@@ -144,6 +157,7 @@ export function LabProfilePage() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<TextTab>('base');
   const [savingTranslations, setSavingTranslations] = useState(false);
+  const [savingContact, setSavingContact] = useState(false);
   // An input to focus once its tab has rendered (see revealError).
   const [focusField, setFocusField] = useState<string | null>(null);
 
@@ -162,17 +176,26 @@ export function LabProfilePage() {
   const seeded = useRef<PageInput | null>(null);
   useEffect(() => {
     if (!storedKey) return;
-    const [, next] = JSON.parse(storedKey) as [string, PageInput];
+    const [status, next] = JSON.parse(storedKey) as [LabApprovalStatus, PageInput];
     const prev = seeded.current;
     seeded.current = next;
-    // Translation slots the lab typed survive a re-seed that did not change
-    // the stored ones — the status moving under an open page (see onWriteError):
-    // an approved lab can still save them, and they are not the locked part.
-    const keepTyped =
-      !!prev && JSON.stringify(prev.public_translations) === JSON.stringify(next.public_translations);
-    methods.reset(
-      keepTyped ? { ...next, public_translations: methods.getValues('public_translations') } : next,
-    );
+    // What the lab typed survives a re-seed that did not change its stored
+    // value (the status moving under an open page, see onWriteError, or the
+    // other part's own save) for the two parts an approved lab saves on its
+    // own: the translation slots, which are not the locked part, and, for a
+    // lab that is approved now, the contact details (0053). A lab in review
+    // re-seeds them with the rest, as before; one suspended or rejected under
+    // the page gets what is on file.
+    const unchanged = (pick: (v: PageInput) => unknown) =>
+      !!prev && JSON.stringify(pick(prev)) === JSON.stringify(pick(next));
+    const typed = methods.getValues();
+    methods.reset({
+      ...next,
+      ...(unchanged((v) => v.public_translations) && {
+        public_translations: typed.public_translations,
+      }),
+      ...(status === 'APPROVED_ACTIVE' && unchanged(pickContact) && pickContact(typed)),
+    });
   }, [storedKey, methods]);
 
   // A field on a tab that was not showing gets focus once its tab is drawn:
@@ -189,21 +212,26 @@ export function LabProfilePage() {
 
   const editable =
     lab.approval_status === 'PENDING_APPROVAL' || lab.approval_status === 'CHANGES_REQUESTED';
-  // Owner decision: an approved lab keeps its name, legal, contact and bank
-  // details locked as before, but may translate its public profile without a
-  // new review. `set_lab_public_translations` (0037) is that write path.
+  // Owner decision: an approved lab keeps its name, legal and bank details
+  // locked as before, but may translate its public profile without a new
+  // review (`set_lab_public_translations`, 0037) and change its contact
+  // details (J1, w8a0mZRc: 0053 opens the three columns to an approved lab).
+  // A suspended or rejected lab stays fully locked.
   const approved = lab.approval_status === 'APPROVED_ACTIVE';
   const locked = !editable;
   const canTranslate = editable || approved;
+  const canEditContact = editable || approved;
   const showResubmit = lab.approval_status === 'CHANGES_REQUESTED';
 
   const watched = methods.watch();
   const isComplete = isLabProfileComplete(watched);
+  const contactChanged = CONTACT_FIELDS.some((k) => watched[k] !== (lab[k] ?? ''));
 
   const done = async (message: string) => {
     leaveNotice(NOTICE, message);
     setSuccess(message);
-    // The catalogue surfaces that show this lab's name and description.
+    // The catalogue surfaces that show this lab's name, description and
+    // contact details (the order wizard's files card shows its email).
     for (const key of [
       ['marketplace-labs'],
       ['public-lab', lab.id],
@@ -227,7 +255,8 @@ export function LabProfilePage() {
     setError(kind === 'generic' ? fallback : t(`profile.errors.${kind}`));
     // The page was opened before an admin decided on the lab. Reload the lab
     // so the page shows its real status — locked fields back to what is on
-    // file; typed translations kept (see the re-seed above).
+    // file; typed translations, and an approved lab's typed contact details,
+    // kept (see the re-seed above).
     if (kind === 'locked') await refreshUser({ silent: true });
   };
 
@@ -317,6 +346,41 @@ export function LabProfilePage() {
       }
     } finally {
       setSavingTranslations(false);
+    }
+  };
+
+  /**
+   * An approved lab: the contact details alone (0053), with no new review.
+   * Only these three columns are sent, so the locked ones cannot go along;
+   * a lab still in review saves them with everything else (persist).
+   */
+  const handleSaveContact = async () => {
+    setError(null);
+    setSuccess(null);
+    clearNotice(NOTICE);
+    // Validate only the contact fields, with the profile schema's rules: a
+    // locked field the lab cannot change must not block the part it can.
+    const valid = await methods.trigger([...CONTACT_FIELDS]);
+    if (!valid) {
+      // Each field shows its own error; focus the first (see revealError).
+      const field = CONTACT_FIELDS.find((name) => methods.getFieldState(name).invalid);
+      if (field) setFocusField(field);
+      return;
+    }
+    setSavingContact(true);
+    try {
+      const { error: e } = await supabase
+        .from('labs')
+        .update(pickContact(methods.getValues()))
+        .eq('id', lab.id);
+      if (e) {
+        // A database without 0053 still answers lab_identity_locked here.
+        await onWriteError(e, t('profile.contact.saveFailed'));
+        return;
+      }
+      await done(t('profile.contact.saved'));
+    } finally {
+      setSavingContact(false);
     }
   };
 
@@ -532,23 +596,36 @@ export function LabProfilePage() {
                     name="contact_person_name"
                     label={t('profile.fields.contactPersonName')}
                     required
-                    disabled={locked}
+                    disabled={!canEditContact}
                   />
                   <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                     <RHFTextField
                       name="contact_phone"
                       label={t('profile.fields.contactPhone')}
                       required
-                      disabled={locked}
+                      disabled={!canEditContact}
                     />
                     <RHFTextField
                       name="contact_email"
                       type="email"
                       label={t('profile.fields.contactEmail')}
                       required
-                      disabled={locked}
+                      disabled={!canEditContact}
                     />
                   </Stack>
+
+                  {approved && (
+                    <Stack direction="row" justifyContent="flex-end">
+                      <Button
+                        type="button"
+                        variant="contained"
+                        onClick={() => void handleSaveContact()}
+                        disabled={savingContact || !contactChanged}
+                      >
+                        {t('profile.contact.save')}
+                      </Button>
+                    </Stack>
+                  )}
                 </Stack>
             </SectionCard>
 
@@ -577,8 +654,9 @@ export function LabProfilePage() {
                 </Stack>
             </SectionCard>
 
-            {/* An approved lab saves its translations inside the card above;
-                nothing else on this form is its to change. */}
+            {/* An approved lab saves its translations and its contact details
+                inside their own cards; nothing else on this form is its to
+                change, so it never sends the locked columns. */}
             {!approved && (
               <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
                 <Button

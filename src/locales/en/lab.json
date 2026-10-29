@@ -697,9 +697,9 @@
     "submitSuccess": "Submitted for approval.",
     "incompleteWarning": "All fields are required before submitting for approval.",
     "approvalNote": "Note from platform admin",
-    "lockedAfterApproval": "Your laboratory is approved. Its name, description, legal, contact and bank details are locked — to change them, contact the platform team. You can still add translations, manage price lists and update your own account details.",
+    "lockedAfterApproval": "Your laboratory is approved. Its name, description, legal and bank details are locked. To change them, contact the platform team. Contact details, logo, price lists, translations and your own account details can be changed at any time.",
     "errors": {
-      "locked": "Your laboratory's review status changed while this page was open, so its name, legal, contact and bank details can no longer be edited here. The page now shows the details on file — to change them, contact the platform team.",
+      "locked": "Your laboratory's review status changed while this page was open, so some of its details can no longer be edited here. The page now shows the details on file. To change them, contact the platform team.",
       "reload": "This page is out of date. Reload it and try again.",
       "permission": "You don't have permission to change this laboratory's profile.",
       "invalid": "Some of the text can't be saved as it is. Check the fields and try again.",
@@ -755,6 +755,11 @@
         "wrong-type": "Upload a PNG, JPG or WebP",
         "failed": "The upload failed. Please try again"
       }
+    },
+    "contact": {
+      "save": "Save contact details",
+      "saved": "Contact details saved.",
+      "saveFailed": "Couldn't save the contact details. Please try again."
     }
   },
   "espForm": {
