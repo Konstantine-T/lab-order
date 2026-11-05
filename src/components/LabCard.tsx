@@ -1,9 +1,8 @@
-import { useState } from 'react';
-import { alpha, Box, Button, Card, Stack, Typography, useTheme } from '@mui/material';
+import { useState, type ReactNode } from 'react';
+import { alpha, Box, Button, Card, Typography, useTheme } from '@mui/material';
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design/Icon';
-import { StatusPill } from '@/components/design/StatusPill';
 import { pickText, useLabText } from '@/features/lab/labText';
 import { pickPriceList, priceListUrl } from '@/features/lab/priceList/priceListApi';
 import {
@@ -12,37 +11,108 @@ import {
   type CatalogueLab,
   type CatalogueService,
 } from '@/features/catalog/catalogue';
-import { priceLabel, rushNote } from '@/features/catalog/catalogueText';
-import { LabRatingBadge } from '@/features/reviews/LabRatingBadge';
-import { avatarColor, brand, DARK, initialsOf, lift, palette2026, radii, surfaces } from '@/theme/tokens';
-
-/** Days-old threshold for the NEW badge. */
-const NEW_FOR_DAYS = 30;
+import { priceLabel } from '@/features/catalog/catalogueText';
+import { LiveDot, VerifiedMark } from '@/features/catalog/labDesign';
+import { isNewLab, pillActionSx, pillSize, tiltSurfaceSx } from '@/features/catalog/labStyles';
+import { useCardTilt } from '@/features/catalog/useCardTilt';
+import { formatAverage, ratingOf, shownRating } from '@/features/reviews/rating';
+import { DARK, labCardMotion, lift, palette2026, radii, surfaces, tone, initialsOf } from '@/theme/tokens';
 
 /** Service chips before "+N". */
 const CHIPS_SHOWN = 4;
 
 const NO_MATERIALS: readonly string[] = [];
 
-/** Below this card width the price column drops under the body. */
-const WIDE = '@container (min-width: 640px)';
+/** Below this card width the stats stack 2×2 and the action takes its own row. */
+const NARROW = '@container (max-width: 400px)';
 
-/** The lab's logo, or its initials on a tile coloured from its base name
- *  (also when the logo fails to load). */
-function LabTile({ lab, name }: { lab: CatalogueLab; name: string }) {
+/** A one-column card can be 700px wide; its cover stays a banner. */
+const COVER_MAX_HEIGHT = 240;
+
+/** Raised above the stretched profile link, so these win clicks in their area. */
+const ABOVE = { position: 'relative', zIndex: 1 } as const;
+
+/** The cover: the lab's picture, else its band with a tooth. */
+function LabCover({ src, badge }: { src: string | null; badge?: ReactNode }) {
+  // The URL that failed, not a flag: a new picture gets its own chance to load.
+  const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
+  const showImage = !!src && brokenSrc !== src;
+  return (
+    <Box
+      sx={{
+        position: 'relative',
+        aspectRatio: '16 / 8',
+        maxHeight: COVER_MAX_HEIGHT,
+        flexShrink: 0,
+        overflow: 'hidden',
+        display: 'grid',
+        placeItems: 'center',
+        background: `linear-gradient(135deg, ${palette2026.ink}, ${palette2026.ink2})`,
+      }}
+    >
+      {showImage ? (
+        <Box
+          component="img"
+          data-lab-cover
+          src={src}
+          alt=""
+          loading="lazy"
+          onError={() => setBrokenSrc(src)}
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            transition: `transform ${labCardMotion.zoom}`,
+          }}
+        />
+      ) : (
+        <Icon name="dentistry" size={44} sx={{ color: alpha(palette2026.inkText, 0.45) }} />
+      )}
+      {badge && (
+        <Box
+          component="span"
+          sx={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            display: 'inline-flex',
+            alignItems: 'center',
+            height: 22,
+            px: 1,
+            borderRadius: '6px',
+            bgcolor: alpha(palette2026.ink, 0.7),
+            color: 'common.white',
+            fontSize: '0.65625rem',
+            fontWeight: 800,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+          }}
+        >
+          {badge}
+        </Box>
+      )}
+    </Box>
+  );
+}
+
+/** The lab's logo, or its initials (also when the logo fails to load), over the cover. */
+function LabTile({ logo, name }: { logo: string | null; name: string }) {
   const theme = useTheme();
-  // The URL that failed, not a flag: a new logo gets its own chance to load.
+  const s = surfaces[theme.palette.mode];
   const [brokenSrc, setBrokenSrc] = useState<string | null>(null);
   const sx = {
-    width: 52,
-    height: 52,
-    [WIDE]: { width: 72, height: 72, borderRadius: '14px', fontSize: '1.125rem' },
+    // Positioned, or the positioned cover it overlaps would paint over it.
+    position: 'relative',
+    width: 56,
+    height: 56,
+    mt: '-10px',
     flexShrink: 0,
-    borderRadius: `${radii.card}px`,
-    gridArea: 'tile',
-    alignSelf: 'start',
+    borderRadius: `${radii.labLogo}px`,
+    border: '3px solid',
+    borderColor: 'background.paper',
   } as const;
-  const logo = lab.logo_url;
   if (logo && brokenSrc !== logo) {
     return (
       <Box
@@ -52,12 +122,7 @@ function LabTile({ lab, name }: { lab: CatalogueLab; name: string }) {
         loading="lazy"
         onError={() => setBrokenSrc(logo)}
         // `contain`: a wide logo shows whole instead of losing its edges.
-        sx={{
-          ...sx,
-          objectFit: 'contain',
-          p: '6px',
-          bgcolor: surfaces[theme.palette.mode].chip,
-        }}
+        sx={{ ...sx, display: 'block', objectFit: 'contain', p: '5px', bgcolor: s.chip }}
       />
     );
   }
@@ -68,13 +133,10 @@ function LabTile({ lab, name }: { lab: CatalogueLab; name: string }) {
         ...sx,
         display: 'grid',
         placeItems: 'center',
-        // Keyed to the base name so a lab keeps its colour in every language;
-        // the initials follow the name the reader sees.
-        bgcolor: avatarColor(lab.public_name),
-        color: '#fff',
-        fontSize: '0.9375rem',
+        bgcolor: theme.palette.mode === 'light' ? palette2026.ink : s.chip,
+        color: 'common.white',
+        fontSize: '1.0625rem',
         fontWeight: 800,
-        letterSpacing: '0.01em',
       }}
     >
       {initialsOf(name)}
@@ -82,16 +144,68 @@ function LabTile({ lab, name }: { lab: CatalogueLab; name: string }) {
   );
 }
 
+type StatProps = {
+  value: ReactNode;
+  /** Small, straight after the number: a rating's "/5", a price's "/ tooth". */
+  unit?: string;
+  label: string;
+  /** A lab's own text, of any length: it clips to its figure's column, never widens it. */
+  longLabel?: boolean;
+};
+
+/** One figure of the row under the name: a number, and what it counts. */
+function Stat({ value, unit, label, longLabel }: StatProps) {
+  const oneLine = { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' } as const;
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
+      <Box
+        component="b"
+        sx={{
+          ...oneLine,
+          fontSize: '1rem',
+          fontWeight: 700,
+          letterSpacing: '-0.02em',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {value}
+        {unit && (
+          <Box component="small" sx={{ fontSize: '0.6875rem', fontWeight: 600, color: 'text.secondary' }}>
+            {unit}
+          </Box>
+        )}
+      </Box>
+      <Box
+        component="span"
+        sx={{
+          ...oneLine,
+          fontSize: '0.6875rem',
+          color: 'text.secondary',
+          ...(longLabel && { width: 0, minWidth: '100%' }),
+        }}
+      >
+        {label}
+      </Box>
+    </Box>
+  );
+}
+
 /**
- * A lab in the catalogue, laid out as the redesign's horizontal card: tile,
- * name and facts, service chips with prices, and a right-hand column with the
- * featured price and the two actions. Below 640px of card width (a phone, or
- * a tablet with the filter column open) the price column moves under the body.
+ * A lab in the catalogue, as in the labs.html mockup: a cover with the logo
+ * overlapping it, the name and place, a row of figures, the services with their
+ * prices, and a footer with the action. Below 400px of card width (a phone) the
+ * figures stack 2×2 and the action takes a full row.
  *
- * The card is a container, not a link: the "Profile" button stretches over
- * the whole card (its ::after), so a click anywhere opens the lab — with
- * ctrl/middle-click intact — while the order button, the price-list button
- * and "+N" sit above it as sibling links, never nested in it.
+ * Every figure is real: the mockup's orders, on-time and reply-time figures have
+ * no data behind them yet, so the row carries the rating, the featured price, the
+ * turnaround and the service count, and leaves out whatever a lab cannot show —
+ * the rating until three reviews (J3), never a "no reviews" that would mark
+ * a new lab down.
+ *
+ * The card is a container, not a link: the name stretches over the whole card
+ * (its ::after), so a click anywhere opens the lab — with ctrl/middle-click
+ * intact — while the action, the price list and "+N" sit above it as sibling
+ * links, never nested in it.
  */
 export function LabCard({
   lab,
@@ -113,9 +227,9 @@ export function LabCard({
   const s = surfaces[theme.palette.mode];
   const light = theme.palette.mode === 'light';
   const linkColor = light ? palette2026.periText : DARK.periLight;
+  const tiltRef = useCardTilt<HTMLDivElement>();
 
   const name = labText(lab, 'public_name');
-  const description = labText(lab, 'short_description');
   const priceList = pickPriceList(lab.price_lists, lang);
   // A service's name in the reader's language (0042), else the lab's own.
   const serviceName = (x: CatalogueService) => pickText(x.name, x.translations, 'name', lang);
@@ -124,10 +238,7 @@ export function LabCard({
   // The order button opens the lab's services to pick from, never the
   // featured one: that price is information, not a pre-chosen order.
   const orderable = lab.services.some((x) => x.orderable);
-
-  const isNew =
-    !!lab.created_at &&
-    Date.now() - new Date(lab.created_at).getTime() < NEW_FOR_DAYS * 24 * 60 * 60 * 1000;
+  const rating = shownRating(ratingOf(lab.ratingSummary));
 
   const turnaround = !lab.turnaround
     ? null
@@ -145,335 +256,262 @@ export function LabCard({
 
   const where = [lab.city, lab.working_address].filter(Boolean).join(' · ');
 
-  // Raised above the stretched profile link, so these win clicks in their area.
-  const above = { position: 'relative', zIndex: 1 } as const;
+  const stats: (StatProps & { key: string })[] = [];
+  if (rating) {
+    stats.push({
+      key: 'rating',
+      value: formatAverage(rating.average ?? 0, lang),
+      unit: '/5',
+      label: t('reviews.count', { count: rating.count }),
+    });
+  }
+  if (featured && featuredPrice) {
+    stats.push({
+      key: 'price',
+      value: featuredPrice,
+      unit: featured.price.per === 'order' ? undefined : ` ${t(`marketplace.per.${featured.price.per}`)}`,
+      // With a material filter on, the price is that material's: say which.
+      label: featured.price.material ?? serviceName(featured.service),
+      longLabel: true,
+    });
+  }
+  if (turnaround) {
+    stats.push({ key: 'turnaround', value: turnaround, label: t('marketplace.card.turnaround') });
+  }
+  if (lab.services.length > 0) {
+    stats.push({
+      key: 'services',
+      value: lab.services.length,
+      label: t('marketplace.card.servicesLabel', { count: lab.services.length }),
+    });
+  }
 
-  // Labelled, not an icon alone: the card has to say "price list" (XNhSe8D6),
-  // and a tooltip never shows on touch. A text button on its own row keeps it
-  // lighter than the two actions above it.
-  const priceListButton = priceList && (
-    <Button
-      component="a"
-      href={priceListUrl(priceList)}
-      target="_blank"
-      rel="noopener noreferrer"
-      size="small"
-      startIcon={<Icon name="receipt_long" size={16} />}
-      aria-label={t('marketplace.priceListFor', { name })}
-      sx={{ ...above, flex: '1 1 100%', [WIDE]: { flex: 'none' } }}
-    >
-      {t('marketplace.priceList')}
-    </Button>
-  );
+  const chipSx = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+    maxWidth: '100%',
+    height: 28,
+    px: '9px',
+    borderRadius: `${radii.chipSm}px`,
+    bgcolor: s.chip,
+    fontSize: '0.78125rem',
+    fontWeight: 600,
+  } as const;
+  const linkChipSx = {
+    ...chipSx,
+    ...ABOVE,
+    color: linkColor,
+    textDecoration: 'none',
+    whiteSpace: 'nowrap',
+    '&:hover': { textDecoration: 'underline' },
+  } as const;
 
   return (
     <Card
+      ref={tiltRef}
       component="article"
       aria-label={name}
       sx={{
         position: 'relative',
         containerType: 'inline-size',
-        p: { xs: 2, sm: 2.5 },
+        display: 'flex',
+        flexDirection: 'column',
+        borderRadius: `${radii.labCard}px`,
         color: 'text.primary',
-        '&:hover': { borderColor: alpha(palette2026.peri, 0.6), boxShadow: lift.card },
+        boxShadow: lift.labCard,
+        ...tiltSurfaceSx,
+        '@media (hover: hover)': {
+          '&:hover': { boxShadow: lift.labCardHover },
+          '&:hover [data-lab-cover]': { transform: 'scale(1.05)' },
+        },
+        '@media (prefers-reduced-motion: reduce)': {
+          transform: 'none',
+          '& [data-lab-cover]': { transform: 'none !important', transition: 'none' },
+        },
       }}
     >
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: '52px minmax(0, 1fr)',
-          gridTemplateAreas: '"tile head" "body body" "side side"',
-          columnGap: 1.75,
-          rowGap: 1.5,
-          [WIDE]: {
-            gridTemplateColumns: '72px minmax(0, 1fr) 196px',
-            gridTemplateRows: 'auto 1fr',
-            gridTemplateAreas: '"tile head side" "tile body side"',
-            columnGap: 2.5,
-            rowGap: 1.25,
-          },
-        }}
-      >
-        <LabTile lab={lab} name={name} />
+      <LabCover src={lab.cover} badge={isNewLab(lab.created_at) ? t('marketplace.new') : undefined} />
 
-        {/* Name, badge and where it is. */}
-        <Box sx={{ gridArea: 'head', minWidth: 0, alignSelf: 'center' }}>
-          <Stack direction="row" alignItems="center" sx={{ flexWrap: 'wrap', columnGap: 1, rowGap: 0.5 }}>
+      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 1.5, px: 2.25, pb: 2.25 }}>
+        {/* Logo, name and where it is. */}
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
+          <LabTile logo={lab.logo_url} name={name} />
+          <Box sx={{ minWidth: 0, flex: 1, pt: '3px', pb: '2px' }}>
             <Typography
               component="h2"
               sx={{
-                fontSize: { xs: '1rem', sm: '1.125rem' },
-                fontWeight: 600,
-                lineHeight: 1.35,
-                letterSpacing: '-0.005em',
-                minWidth: 0,
-                overflowWrap: 'anywhere',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                fontSize: '1.0625rem',
+                fontWeight: 700,
+                lineHeight: 1.4,
               }}
             >
-              {name}
+              <Box
+                component={RouterLink}
+                to={profileTo}
+                aria-label={t('marketplace.card.profileA11y', { name })}
+                sx={{
+                  minWidth: 0,
+                  color: 'inherit',
+                  textDecoration: 'none',
+                  overflowWrap: 'anywhere',
+                  // Two lines, not the mockup's one: a Georgian lab's name is
+                  // often long, and it is the one thing here that must not clip.
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  // Stretched over the whole card: a click anywhere opens the
+                  // lab, and it stays a real link for ctrl/middle-click.
+                  '&::after': { content: '""', position: 'absolute', inset: 0 },
+                  '&:focus-visible': { outline: 'none' },
+                  '&:focus-visible::after': {
+                    outline: `3px solid ${tone('success', theme.palette.mode).dot}`,
+                    outlineOffset: '-3px',
+                    borderRadius: `${radii.labCard}px`,
+                  },
+                }}
+              >
+                {name}
+              </Box>
+              <VerifiedMark />
             </Typography>
-            {isNew && <StatusPill tone="neutral">{t('marketplace.new')}</StatusPill>}
-            {/* "★ 4.7 (12)" from three visible reviews on (0044). */}
-            <LabRatingBadge summary={lab.ratingSummary} />
-          </Stack>
-          {where && (
-            <Typography
-              sx={{ mt: 0.375, fontSize: '0.8125rem', color: 'text.secondary', overflowWrap: 'anywhere' }}
-            >
-              {where}
-            </Typography>
-          )}
+            {where && (
+              <Box
+                component="span"
+                sx={{
+                  display: 'block',
+                  mt: '1px',
+                  fontSize: '0.8125rem',
+                  color: 'text.secondary',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {where}
+              </Box>
+            )}
+          </Box>
         </Box>
 
-        {/* Description, services, facts. */}
-        <Stack spacing={1.25} useFlexGap sx={{ gridArea: 'body', minWidth: 0 }}>
-          {description && (
-            <Typography
-              sx={{
-                fontSize: '0.8125rem',
-                lineHeight: 1.55,
-                color: 'text.secondary',
-                display: '-webkit-box',
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: 'vertical',
-                overflow: 'hidden',
-              }}
-            >
-              {description}
-            </Typography>
-          )}
-
-          {chips.length > 0 && (
-            <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.75, minWidth: 0 }}>
-              {chips.map((x) => {
-                const price = priceLabel(shownPrice(x, materials, lang), t);
-                return (
-                  <Box
-                    key={x.id}
-                    component="span"
-                    sx={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 0.625,
-                      maxWidth: '100%',
-                      minHeight: 26,
-                      px: 1.125,
-                      py: 0.25,
-                      borderRadius: `${radii.chipSm}px`,
-                      bgcolor: s.subtle,
-                      border: 1,
-                      borderColor: s.borderSolid,
-                      fontSize: '0.75rem',
-                      fontWeight: 500,
-                      color: s.chipText,
-                    }}
-                  >
-                    <Box
-                      component="span"
-                      sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                    >
-                      {serviceName(x)}
-                    </Box>
-                    {price && (
-                      <Box
-                        component="span"
-                        sx={{ flexShrink: 0, fontWeight: 600, color: 'text.primary', whiteSpace: 'nowrap' }}
-                      >
-                        {price}
-                      </Box>
-                    )}
-                  </Box>
-                );
-              })}
-              {more > 0 && (
-                <Box
-                  component={RouterLink}
-                  to={profileTo}
-                  tabIndex={-1}
-                  sx={{
-                    ...above,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    minHeight: 26,
-                    px: 1.125,
-                    borderRadius: `${radii.chipSm}px`,
-                    bgcolor: s.subtle,
-                    border: 1,
-                    borderColor: s.borderSolid,
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    color: linkColor,
-                    textDecoration: 'none',
-                    whiteSpace: 'nowrap',
-                    '&:hover': { borderColor: brand.main },
-                  }}
-                >
-                  {t('marketplace.card.moreServices', { n: more })}
-                </Box>
-              )}
-            </Stack>
-          )}
-
-          <Stack
-            direction="row"
-            alignItems="center"
-            sx={{
-              flexWrap: 'wrap',
-              columnGap: 2,
-              rowGap: 0.5,
-              pt: 1.25,
-              mt: 'auto',
-              borderTop: 1,
-              borderColor: 'divider',
-              fontSize: '0.8125rem',
-              color: 'text.secondary',
-            }}
-          >
-            {turnaround && (
-              <Stack direction="row" alignItems="center" spacing={0.625}>
-                <Icon name="schedule" size={16} />
-                <span>
-                  {t('marketplace.card.turnaround')}{' '}
-                  <Box component="b" sx={{ fontWeight: 600, color: 'text.primary' }}>
-                    {turnaround}
-                  </Box>
-                </span>
-              </Stack>
-            )}
-            <Stack direction="row" alignItems="center" spacing={0.625}>
-              <Icon name="category" size={16} />
-              <span>{t('marketplace.servicesCount', { count: lab.services.length })}</span>
-            </Stack>
-            {offersRush && (
-              <Stack direction="row" alignItems="center" spacing={0.625}>
-                <Icon name="bolt" size={16} />
-                <span>{t('marketplace.card.rushAvailable')}</span>
-              </Stack>
-            )}
-          </Stack>
-        </Stack>
-
-        {/* Featured price and the actions. */}
-        <Stack
-          sx={{
-            gridArea: 'side',
-            minWidth: 0,
-            pt: 1.5,
-            borderTop: 1,
-            borderColor: 'divider',
-            gap: 1,
-            [WIDE]: { pt: 0, pl: 2.5, borderTop: 0, borderLeft: 1, borderColor: 'divider' },
-          }}
-        >
-          <Box sx={{ pb: 0.5 }}>
-            {featured && featuredPrice ? (
-              <>
-                <Typography
-                  sx={{
-                    fontSize: '0.6875rem',
-                    fontWeight: 600,
-                    letterSpacing: '0.02em',
-                    color: 'text.secondary',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                  }}
-                >
-                  {serviceName(featured.service)}
-                </Typography>
-                {/* Its own line, so a long service name can never clip it. */}
-                {featured.price.material && (
-                  <Typography
-                    sx={{
-                      fontSize: '0.6875rem',
-                      fontWeight: 600,
-                      letterSpacing: '0.02em',
-                      color: 'text.primary',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {featured.price.material}
-                  </Typography>
-                )}
-                <Typography component="p" sx={{ mt: 0.25, lineHeight: 1.25 }}>
-                  <Box
-                    component="span"
-                    sx={{ fontSize: '1.375rem', fontWeight: 700, letterSpacing: '-0.01em' }}
-                  >
-                    {featuredPrice}
-                  </Box>
-                  {featured.price.per !== 'order' && (
-                    <Box component="span" sx={{ ml: 0.5, fontSize: '0.8125rem', color: 'text.secondary' }}>
-                      {t(`marketplace.per.${featured.price.per}`)}
-                    </Box>
-                  )}
-                </Typography>
-                {featured.service.rush && (
-                  <Typography sx={{ mt: 0.25, fontSize: '0.75rem', color: 'text.secondary' }}>
-                    {rushNote(featured.service.rush, t)}
-                  </Typography>
-                )}
-              </>
-            ) : (
-              <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
-                {t('marketplace.card.pricesOnProfile')}
-              </Typography>
-            )}
-          </Box>
-
+        {stats.length > 0 && (
           <Box
             sx={{
-              mt: 'auto',
-              display: 'flex',
+              display: 'grid',
+              // Sized by their figures, the spare room shared out: "20 ₾-დან / კბილი"
+              // needs three times what "14" does, and equal columns would clip it.
+              gridTemplateColumns: `repeat(${stats.length}, minmax(0, auto))`,
               gap: 1,
-              flexWrap: 'wrap',
-              [WIDE]: { flexDirection: 'column', flexWrap: 'nowrap' },
+              py: 1.5,
+              borderTop: 1,
+              borderBottom: 1,
+              borderColor: 'divider',
+              ...(stats.length === 4 && { [NARROW]: { gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' } }),
             }}
           >
-            {orderable && (
-              <Button
-                component={RouterLink}
-                to={`${profileTo}#lab-services`}
-                variant="contained"
-                aria-label={t('marketplace.card.orderA11y', { name })}
-                sx={{ ...above, flex: { xs: '1 1 140px' }, [WIDE]: { flex: 'none' } }}
-              >
-                {t('labProfile.orderCta')}
-              </Button>
-            )}
-            <Button
-              component={RouterLink}
-              to={profileTo}
-              variant={orderable ? 'outlined' : 'contained'}
-              aria-label={t('marketplace.card.profileA11y', { name })}
-              // No ripple: with the button unpositioned (below), the ripple
-              // layer would spread over the whole card.
-              disableRipple
-              sx={{
-                flex: { xs: '1 1 160px' },
-                [WIDE]: { flex: 'none' },
-                minWidth: 0,
-                // Static, so the ::after below is placed against the card,
-                // not against the button (ButtonBase is position: relative).
-                position: 'static',
-                // Stretched over the whole card: a click anywhere opens the
-                // lab, and it stays a real link for ctrl/middle-click.
-                '&::after': {
-                  content: '""',
-                  position: 'absolute',
-                  inset: 0,
-                  borderRadius: `${radii.card}px`,
-                },
-              }}
-            >
-              {t('marketplace.card.profile')}
-            </Button>
-            {priceListButton}
+            {stats.map(({ key, ...stat }) => (
+              <Stat key={key} {...stat} />
+            ))}
           </Box>
-        </Stack>
+        )}
+
+        {(chips.length > 0 || priceList) && (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, minWidth: 0 }}>
+            {chips.map((x) => {
+              const price = priceLabel(shownPrice(x, materials, lang), t);
+              return (
+                <Box key={x.id} component="span" sx={chipSx}>
+                  <Box
+                    component="span"
+                    sx={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                  >
+                    {serviceName(x)}
+                  </Box>
+                  {price && (
+                    <Box component="b" sx={{ flexShrink: 0, fontWeight: 700, whiteSpace: 'nowrap' }}>
+                      {price}
+                    </Box>
+                  )}
+                </Box>
+              );
+            })}
+            {more > 0 && (
+              <Box component={RouterLink} to={profileTo} tabIndex={-1} sx={linkChipSx}>
+                {t('marketplace.card.moreServices', { n: more })}
+              </Box>
+            )}
+            {priceList && (
+              // Labelled, not an icon alone: the card has to say "price list"
+              // (XNhSe8D6), and a tooltip never shows on touch.
+              <Box
+                component="a"
+                href={priceListUrl(priceList)}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={t('marketplace.priceListFor', { name })}
+                sx={linkChipSx}
+              >
+                <Icon name="receipt_long" size={15} />
+                {t('marketplace.priceList')}
+              </Box>
+            )}
+          </Box>
+        )}
+
+        {!featured && (
+          <Typography sx={{ fontSize: '0.8125rem', color: 'text.secondary' }}>
+            {t('marketplace.card.pricesOnProfile')}
+          </Typography>
+        )}
+
+        {/* `mt: auto`: the footers of a row's cards line up whatever is above them. */}
+        <Box
+          sx={{
+            mt: 'auto',
+            display: 'flex',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            columnGap: 1.25,
+            rowGap: 1,
+            fontSize: '0.78125rem',
+            fontWeight: 600,
+            color: 'text.secondary',
+          }}
+        >
+          {orderable && (
+            <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+              <LiveDot />
+              {t('marketplace.card.accepting')}
+            </Box>
+          )}
+          {offersRush && (
+            <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, fontWeight: 500 }}>
+              <Icon name="bolt" size={15} />
+              {t('marketplace.filters.rushChip')}
+            </Box>
+          )}
+          <Button
+            component={RouterLink}
+            to={orderable ? `${profileTo}#lab-services` : profileTo}
+            variant="contained"
+            size="small"
+            aria-label={t(orderable ? 'marketplace.card.orderA11y' : 'marketplace.card.profileA11y', { name })}
+            sx={{
+              ...pillActionSx(theme.palette.mode),
+              ...pillSize.sm,
+              ...ABOVE,
+              ml: 'auto',
+              flexShrink: 0,
+              [NARROW]: { ml: 0, width: '100%' },
+            }}
+          >
+            {orderable ? t('labProfile.orderCta') : t('marketplace.card.profile')}
+          </Button>
+        </Box>
       </Box>
     </Card>
   );

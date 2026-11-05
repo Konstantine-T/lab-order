@@ -1,16 +1,30 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef } from 'react';
-import { Alert, Box, CircularProgress, Link, Stack, useMediaQuery, useTheme } from '@mui/material';
+import { Alert, Box, CircularProgress, Link, Stack } from '@mui/material';
 import { Link as RouterLink, useLocation, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ActingDoctorChip } from '@/features/clinic/ActingDoctorChip';
 import { catalogPaths } from '@/features/public/publicRoutes';
-import { Callout, SplitLayout } from '@/components/design';
+import { Callout } from '@/components/design';
 import { useLabText } from '@/features/lab/labText';
 import { LabHeaderCard } from '@/features/catalog/labProfile/LabHeaderCard';
 import { ServicesPriceCard } from '@/features/catalog/labProfile/ServicesPriceCard';
-import { LabContactCard, LabOrderCard } from '@/features/catalog/labProfile/LabProfileRail';
+import {
+  LabAboutCard,
+  LabContactCard,
+  LabOrderCard,
+  LabWorksWithCard,
+  ProfileRail,
+} from '@/features/catalog/labProfile/LabProfileRail';
+import { LabProfileTabs } from '@/features/catalog/labProfile/LabProfileTabs';
+import {
+  jumpToSection,
+  labHasContact,
+  SECTION,
+  sectionScrollMargin,
+} from '@/features/catalog/labProfile/format';
 import { serviceOrderHref } from '@/features/catalog/labProfile/orderLink';
 import { catalogueQuery } from '@/features/catalog/useCatalogueFilters';
+import { useLabRating } from '@/features/reviews/useLabRating';
 import {
   localizeProfileServices,
   useProfileLab,
@@ -23,12 +37,16 @@ const LabReviewsCard = lazy(() =>
   import('@/features/reviews/LabReviewsCard').catch(() => ({ default: () => null })),
 );
 
+/** The mockup's right-hand column; wider than `SplitLayout`'s, for its order card. */
+const RAIL_WIDTH = 352;
+
 /**
- * A lab's public profile and its orderable services (design page 4). Shared by
- * the doctor, by a clinic admin ordering for one of their doctors, and by a
- * guest with no account; `basePath` / `guest` decide where the breadcrumb and
- * every order button point. Every query here runs under a policy that admits
- * `anon` (0004, 0034, 0039 — the lab columns are the guest-readable ones).
+ * A lab's public profile and its orderable services (lab.html, with no cover
+ * yet). Shared by the doctor, by a clinic admin ordering for one of their
+ * doctors, and by a guest with no account; `basePath` / `guest` decide where the
+ * breadcrumb and every order button point. Every query here runs under a policy
+ * that admits `anon` (0004, 0034, 0039 — the lab columns are the guest-readable
+ * ones).
  */
 export function LabPublicProfilePage({
   basePath = '/doctor',
@@ -46,10 +64,7 @@ export function LabPublicProfilePage({
   const { labText, lang } = useLabText();
   const [searchParams] = useSearchParams();
   const { hash, key: locationKey } = useLocation();
-  const theme = useTheme();
-  const wide = useMediaQuery(theme.breakpoints.up('lg'));
   const paths = pathsOverride ?? catalogPaths(guest, basePath);
-  const servicesHeading = useRef<HTMLHeadingElement | null>(null);
 
   // Set when the doctor arrived here via "Continue project" — carry them onto
   // the order CTA so the wizard pre-fills + locks the patient and links lineage.
@@ -60,6 +75,7 @@ export function LabPublicProfilePage({
 
   const { data: lab, isLoading: labLoading } = useProfileLab(labId);
   const { data: baseServices, isLoading: servicesLoading } = useProfileServices(labId);
+  const { data: rating } = useLabRating(labId);
   // Every card below reads the services in the reader's language (0042).
   const services = useMemo(
     () => localizeProfileServices(baseServices ?? [], lang),
@@ -76,21 +92,15 @@ export function LabPublicProfilePage({
     [paths.orderNew, labId, doctorParam, continuePatient, continuesOrder],
   );
 
-  const chooseService = useCallback(() => {
-    const el = servicesHeading.current;
-    if (!el) return;
-    const reduce = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    el.closest('#lab-services')?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
-    el.focus({ preventScroll: true });
-  }, []);
+  const chooseService = useCallback(() => jumpToSection(SECTION.services), []);
 
   // A catalogue card's order button lands here on `#lab-services`; React
-  // Router never scrolls to a hash, so do it once the list has rendered (the
-  // heading's ref is null behind the spinner). Once per arrival: keyed to the
-  // navigation, so a later refetch never yanks the page back.
+  // Router never scrolls to a hash, so do it once the list has rendered (it
+  // isn't there behind the spinner). Once per arrival: keyed to the navigation,
+  // so a later refetch never yanks the page back.
   const scrolledFor = useRef<string | null>(null);
   useEffect(() => {
-    if (hash !== '#lab-services' || labLoading || servicesLoading) return;
+    if (hash !== `#${SECTION.services}` || labLoading || servicesLoading) return;
     if (scrolledFor.current === locationKey) return;
     scrolledFor.current = locationKey;
     chooseService();
@@ -109,6 +119,18 @@ export function LabPublicProfilePage({
   // catalogue's filters ride along on the lab's URL.
   const marketplaceHref = `${paths.marketplace}${catalogueQuery(searchParams)}`;
   const anyOrderable = services.some((s) => s.orderable);
+  const labName = labText(lab, 'public_name');
+  const description = labText(lab, 'short_description').trim();
+  const hasAbout = !!description || labHasContact(lab);
+
+  const tabs = [
+    { id: SECTION.services, label: t('labProfile.services'), count: services.length },
+    // The list shows from the first review (J4); only its average waits for three.
+    ...(rating?.count
+      ? [{ id: SECTION.reviews, label: t('reviews.sectionTitle'), count: rating.count }]
+      : []),
+    ...(hasAbout ? [{ id: SECTION.about, label: t('labProfile.tabAbout') }] : []),
+  ];
 
   return (
     <Stack spacing={2.25}>
@@ -139,7 +161,7 @@ export function LabPublicProfilePage({
             aria-current="page"
             sx={{ color: 'text.primary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
           >
-            {labText(lab, 'public_name')}
+            {labName}
           </Box>
         </Stack>
         {!guest && doctorParam && (
@@ -156,27 +178,54 @@ export function LabPublicProfilePage({
         </Callout>
       )}
 
-      <SplitLayout
-        rail={
-          <>
-            {/* Two columns only: on a single column the list is the next thing
-                on the page, and each row has its own order button. */}
-            {wide && <LabOrderCard onChooseService={chooseService} disabled={!anyOrderable} />}
-            <LabContactCard lab={lab} />
-          </>
-        }
+      <LabHeaderCard
+        lab={lab}
+        services={services}
+        rating={rating}
+        onOrder={chooseService}
+        canOrder={anyOrderable}
+      />
+
+      <LabProfileTabs tabs={tabs} label={labName} />
+
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: {
+            xs: 'minmax(0, 1fr)',
+            lg: `minmax(0, 1fr) ${RAIL_WIDTH}px`,
+          },
+          gap: '26px',
+          alignItems: 'start',
+        }}
       >
-        <LabHeaderCard lab={lab} services={services} />
-        <ServicesPriceCard
-          ref={servicesHeading}
-          services={services}
-          loading={servicesLoading}
-          orderHref={orderHref}
-        />
-        <Suspense fallback={null}>
-          <LabReviewsCard labId={lab.id} labName={labText(lab, 'public_name')} />
-        </Suspense>
-      </SplitLayout>
+        <Stack spacing={2.75} sx={{ minWidth: 0 }}>
+          <ServicesPriceCard services={services} loading={servicesLoading} orderHref={orderHref} />
+          <Suspense fallback={null}>
+            <LabReviewsCard labId={lab.id} labName={labName} />
+          </Suspense>
+        </Stack>
+
+        <ProfileRail>
+          <LabOrderCard
+            lab={lab}
+            services={services}
+            onChooseService={chooseService}
+            disabled={!anyOrderable}
+          />
+          <LabWorksWithCard services={services} />
+          {hasAbout && (
+            <Stack
+              id={SECTION.about}
+              spacing={2.25}
+              sx={{ scrollMarginTop: sectionScrollMargin }}
+            >
+              {description && <LabAboutCard description={description} />}
+              <LabContactCard lab={lab} />
+            </Stack>
+          )}
+        </ProfileRail>
+      </Box>
     </Stack>
   );
 }

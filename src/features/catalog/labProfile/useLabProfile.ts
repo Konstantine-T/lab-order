@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
 import { SERVICE_PRICE_EMBED, type ServicePriceEmbed } from '@/features/catalog/servicePrice';
+import { materialKey, materialNamesOf } from '@/features/catalog/catalogue';
 import { serviceCategory, type ServiceCategory } from '@/features/catalog/serviceCategory';
 import { pickText } from '@/features/lab/labText';
 import type { LabRow } from '@/types/database';
@@ -13,7 +14,7 @@ import { priceDisplay, rushOffer, type PriceDisplay, type RushOffer } from './pr
  */
 const LAB_COLUMNS =
   'id, public_name, city, short_description, logo_url, contact_phone, contact_email, ' +
-  'working_address, public_translations, price_lists';
+  'working_address, public_translations, price_lists, created_at';
 
 export type ProfileLab = Pick<
   LabRow,
@@ -27,7 +28,11 @@ export type ProfileLab = Pick<
   | 'working_address'
   | 'public_translations'
   | 'price_lists'
+  | 'created_at'
 >;
+
+/** A material a service lists: its merge key, and its name to show. */
+export type ProfileMaterial = { key: string; label: string; translations?: unknown };
 
 /**
  * One service card. `name` / `description` / `turnaroundLabel`
@@ -51,6 +56,8 @@ export type ProfileService = {
   orderable: boolean;
   price: PriceDisplay;
   rush: RushOffer | null;
+  /** The restoration materials it can be ordered in; empty unless orderable. */
+  materials: ProfileMaterial[];
 };
 
 type ServiceQueryRow = ServicePriceEmbed & {
@@ -67,6 +74,7 @@ function toProfileService(row: ServiceQueryRow): ProfileService {
   const orderable = row.form?.status === 'PUBLISHED';
   const pricing = row.form?.version?.pricing_configuration_json ?? null;
   const templateCode = row.form?.template?.code ?? null;
+  const { names, translations } = materialNamesOf(orderable ? pricing : null, templateCode);
   return {
     id: row.id,
     name: row.name.trim(),
@@ -85,6 +93,11 @@ function toProfileService(row: ServiceQueryRow): ProfileService {
     // Only a service a doctor can order right now advertises its rush: the
     // published version is the one the order form will price from.
     rush: orderable ? rushOffer(pricing) : null,
+    materials: names.map((label, i) => ({
+      key: materialKey(label),
+      label,
+      translations: translations[i],
+    })),
   };
 }
 
@@ -110,6 +123,10 @@ export function localizeProfileServices(
             text: pickText(s.price.text, s.price.translations, 'price_description', lang).trim(),
           }
         : s.price,
+    materials: s.materials.map((m) => ({
+      ...m,
+      label: pickText(m.label, m.translations, 'name', lang),
+    })),
   }));
 }
 

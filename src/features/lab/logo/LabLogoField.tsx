@@ -115,7 +115,7 @@ export function LabLogoField({ lab, canEdit }: { lab: LabRow; canEdit: boolean }
       />
 
       <Stack direction="row" spacing={2} alignItems="center">
-        <LabLogoTile url={url} name={lab.public_name} colorSeed={lab.public_name}>
+        <LabLogoTile url={url} name={lab.public_name}>
           {busy && (
             <Box
               sx={{

@@ -43,8 +43,6 @@
     "daysUnit": "დღე",
     "days_one": "{{count}} დღე",
     "days_other": "{{count}} დღე",
-    "servicesCount_one": "{{count}} სერვისი",
-    "servicesCount_other": "{{count}} სერვისი",
     "priceList": "ფასების სია",
     "priceListFor": "ფასების სია — {{name}} (იხსნება ახალ ჩანართში)",
     "viewServicesFor": "სერვისების ნახვა — {{name}}",
@@ -78,11 +76,13 @@
       "implant": "/ იმპლანტი"
     },
     "card": {
-      "rushNote": "სასწრაფო {{surcharge}} · მინ. {{days}}",
-      "rushNoteDays": "სასწრაფო · მინ. {{days}}",
       "moreServices": "+{{n}} სერვისი",
       "turnaround": "ვადა",
-      "rushAvailable": "სასწრაფო შესაძლებელია",
+      "rushLabel": "სასწრაფო",
+      "servicesLabel_one": "სერვისი",
+      "servicesLabel_other": "სერვისი",
+      "accepting": "იღებს შეკვეთებს",
+      "verified": "დამოწმებულია Dentallabs-ის მიერ",
       "pricesOnProfile": "ფასები — ლაბორატორიის პროფილზე",
       "orderA11y": "სერვისის არჩევა: {{name}}",
       "profile": "პროფილი",
@@ -111,6 +111,18 @@
     },
     "pricesNote": "ფასები საორიენტაციოა და ლაბორატორიის მიერაა გამოქვეყნებული — საბოლოო ფასს ლაბორატორია შეკვეთის განხილვისას ადასტურებს.",
     "showAll": "ყველა სერვისი ({{n}}) →",
+    "acceptingOrders": "იღებს შეკვეთებს",
+    "message": "შეტყობინება",
+    "share": "გაზიარება",
+    "tabAbout": "ლაბორატორიის შესახებ",
+    "about": "ლაბორატორიის შესახებ",
+    "worksWith": "რასთან მუშაობს",
+    "materials": "მასალები",
+    "table": {
+      "photo": "ფოტო",
+      "service": "სერვისი",
+      "price": "ფასი"
+    },
     "orderServiceA11y": "შეკვეთა — {{name}}",
     "orderCard": {
       "title": "შეკვეთა ამ ლაბორატორიაში",
@@ -548,6 +560,8 @@
   },
   "reviews": {
     "sectionTitle": "შეფასებები",
+    "onlyDelivered": "შეფასებას ტოვებს მხოლოდ ექიმი, ვისაც შეკვეთა ჩაჰბარდა",
+    "verifiedOrder": "დადასტურებული შეკვეთა",
     "cardTitle": "შეფასება",
     "yourReview": "თქვენი შეფასება",
     "rate": "შეაფასეთ შეკვეთა",

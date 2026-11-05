@@ -1,26 +1,23 @@
 import { useState, type ReactNode } from 'react';
 import { Box, useTheme } from '@mui/material';
-import { avatarColor, initialsOf, surfaces } from '@/theme/tokens';
+import { initialsOf, palette2026, surfaces } from '@/theme/tokens';
 
 /**
  * A lab's logo as the marketplace card draws it (`LabTile` in LabCard): a
  * square tile, the whole image visible (`contain`, a little padding, on the
- * chip surface), and the lab's initials on its name colour when there is no
+ * chip surface), and the lab's initials on the card's ink when there is no
  * logo or the image fails to load. For the lab's own profile and the admin's
  * review page, so both show what doctors will see.
  */
 export function LabLogoTile({
   url,
   name,
-  colorSeed,
   size = 72,
   children,
 }: {
   url: string | null | undefined;
   /** The name the initials come from. */
   name: string;
-  /** What the initials tile is coloured from — the lab's base name, as the card. */
-  colorSeed: string;
   size?: number;
   /** Drawn over the tile (a busy spinner). */
   children?: ReactNode;
@@ -64,7 +61,7 @@ export function LabLogoTile({
             height: '100%',
             display: 'grid',
             placeItems: 'center',
-            bgcolor: avatarColor(colorSeed),
+            bgcolor: theme.palette.mode === 'light' ? palette2026.ink : surfaces.dark.chip,
             color: 'common.white',
             fontSize: `${Math.round(size / 4)}px`,
             fontWeight: 800,

@@ -1,6 +1,7 @@
 import type { MaterialOption, PricingConfig } from '@/types/database';
 import { labNames, pickText, serviceNames } from '@/features/lab/labText';
 import { TEMPLATE_CODE_PRINT } from '@/features/orderForms/fabTypes';
+import { templateDefaultImageUrl } from '@/utils/serviceDefaults';
 import {
   SERVICE_PRICE_EMBED,
   priceIsExact,
@@ -28,6 +29,7 @@ export const CATALOGUE_SELECT = `
   lab_rating_summary ( review_count, rating_avg ),
   lab_services (
     id, name, translations, is_active, sort_order, created_at, average_turnaround_days,
+    cover_image_url,
     ${SERVICE_PRICE_EMBED}
   )
 `;
@@ -41,6 +43,7 @@ type ServiceRow = ServicePriceEmbed & {
   sort_order: number | null;
   created_at: string | null;
   average_turnaround_days: number | null;
+  cover_image_url: string | null;
 };
 
 /** One row of `CATALOGUE_SELECT`. */
@@ -121,8 +124,10 @@ export type CatalogueLab = {
   pricedCount: number;
   /** Across orderable services with a positive turnaround; null when none says. */
   turnaround: { min: number; max: number } | null;
-  /** 0044's `lab_rating_summary` embed, as is; read by `LabRatingBadge`. */
+  /** 0044's `lab_rating_summary` embed, as is; read through `ratingOf`. */
   ratingSummary: unknown;
+  /** The picture on the lab's card (see `coverOf`); null when it has none. */
+  cover: string | null;
 };
 
 /* ---------------------------------------------------------------------------
@@ -169,7 +174,7 @@ export function materialKey(name: string): string {
   return name.normalize('NFC').toLocaleLowerCase().replace(/\s+/g, '');
 }
 
-function materialNamesOf(
+export function materialNamesOf(
   pricing: PricingConfig | null | undefined,
   templateCode: string | null | undefined,
 ): { names: string[]; translations: unknown[] } {
@@ -299,13 +304,27 @@ function toService(row: ServiceRow): CatalogueService {
   };
 }
 
+/**
+ * A lab has no cover of its own, so its card borrows one from its services: a
+ * photo the lab uploaded for any of them, else the stock picture of the first
+ * one it can take orders for, else of the first one at all.
+ */
+function coverOf(rows: ServiceRow[]): string | null {
+  const stock = (list: ServiceRow[]) =>
+    list.map((r) => templateDefaultImageUrl(r.form?.template?.code)).find(Boolean);
+  return (
+    rows.map((r) => r.cover_image_url?.trim()).find(Boolean) ??
+    stock(rows.filter((r) => r.form?.status === 'PUBLISHED')) ??
+    stock(rows) ??
+    null
+  );
+}
+
 export function toCatalogueLab(row: CatalogueLabRow): CatalogueLab {
   // RLS already hides inactive services from `anon`; filtered again because a
   // signed-in lab owner's own policy would let theirs through.
-  const services = (row.lab_services ?? [])
-    .filter((s) => s.is_active)
-    .sort(byListOrder)
-    .map(toService);
+  const rows = (row.lab_services ?? []).filter((s) => s.is_active).sort(byListOrder);
+  const services = rows.map(toService);
   // Orderable services only — the set the turnaround filter reads, so the
   // card never shows a range the "≤ N days" filter would not honour.
   const days = services
@@ -326,6 +345,7 @@ export function toCatalogueLab(row: CatalogueLabRow): CatalogueLab {
     pricedCount: services.filter((s) => s.from !== null).length,
     turnaround: days.length ? { min: Math.min(...days), max: Math.max(...days) } : null,
     ratingSummary: row.lab_rating_summary ?? null,
+    cover: coverOf(rows),
   };
 }
 

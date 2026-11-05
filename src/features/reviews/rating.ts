@@ -3,7 +3,8 @@
  * marketplace card, the landing card and the lab profile read them.
  *
  * Kept tiny and React-free: the guest catalogue and profile are in the entry
- * chunk, and this is all of the reviews feature they carry eagerly.
+ * chunk, and this and `useLabRating` are all of the reviews feature they carry
+ * eagerly.
  */
 
 export type LabRating = {

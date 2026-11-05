@@ -83,6 +83,9 @@ export const radii = {
   card: 12,
   tile: 10,
   chipSm: 7,
+  /** The catalogue's lab card, and the logo tile overlapping its cover. */
+  labCard: 18,
+  labLogo: 16,
 } as const;
 
 /** The only three durations the mockups use. */
@@ -90,6 +93,12 @@ export const motion = {
   fast: '120ms ease',
   base: '140ms ease',
   slow: '160ms ease',
+} as const;
+
+/** The catalogue lab card's slower hover, from its own mockup (labs.html). */
+export const labCardMotion = {
+  tilt: '400ms cubic-bezier(.22, 1, .36, 1)',
+  zoom: '700ms cubic-bezier(.22, 1, .36, 1)',
 } as const;
 
 /**
@@ -122,6 +131,12 @@ export const lift = {
   card: `0 8px 24px ${alpha(INK, 0.07)}`,
   cardStrong: `0 10px 28px ${alpha(INK, 0.09)}`,
   cta: `0 6px 16px ${alpha(INK, 0.22)}`,
+  /** The catalogue's lab card, at rest and under the pointer. */
+  labCard: `0 2px 10px ${alpha(INK, 0.04)}`,
+  labCardHover: `0 22px 54px ${alpha(INK, 0.18)}`,
+  /** The lab profile's header card, and the logo tile inside it. */
+  labProfile: `0 10px 30px ${alpha(INK, 0.08)}`,
+  labProfileLogo: `0 8px 22px ${alpha(INK, 0.25)}`,
 } as const;
 
 /**
@@ -248,6 +263,9 @@ export const palette2026 = {
   gold: GOLD,
   goldSoft: GOLD_SOFT,
   goldText: GOLD_TEXT,
+  // The dot of "accepting orders" on the lab card (labs.html): the one green
+  // in the system, and only ever this dot. Aqua stays "done".
+  live: '#1FB37A',
 } as const;
 
 const tokens = (mode: PaletteMode) => {

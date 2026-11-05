@@ -6,9 +6,8 @@ import { serviceImageUrl, templateLook } from '@/utils/serviceDefaults';
 import { lift, motion, radii } from '@/theme/tokens';
 
 /**
- * The service tile, shared by the lab's own service list and the public lab
- * profile a doctor orders from: a cover photo, the service name, a
- * description, a row of fact chips and a footer with one action.
+ * The service tile on the lab's own service list: a cover photo, the service
+ * name, a description, a row of fact chips and a footer with one action.
  *
  * The picture leads. It used to be a 42px square beside the name, which made
  * the per-service upload nearly pointless — a crown and a denture are told
@@ -27,7 +26,6 @@ export function ServiceCard({
   chips,
   rush,
   meta,
-  price,
   action,
   headerAction,
   onClick,
@@ -46,10 +44,6 @@ export function ServiceCard({
   rush?: ReactNode;
   /** Muted footer text at the left of the action. */
   meta?: ReactNode;
-  /** The price line on the public lab profile, just above the footer. Its own
-   *  slot, not `meta`: `meta` is a muted one-line caption and would clip a
-   *  lab's own price text. The lab's service list passes none. */
-  price?: ReactNode;
   action?: ReactNode;
   /** Control at the top right — the lab's active toggle. */
   headerAction?: ReactNode;
@@ -188,10 +182,6 @@ export function ServiceCard({
       )}
 
       <Box sx={{ flexGrow: 1 }} />
-
-      {/* Below the spacer, so the prices of a row's cards line up whatever
-          their descriptions' length. */}
-      {price && <Box sx={{ mt: 1.5, minWidth: 0 }}>{price}</Box>}
 
       {(meta || action) && (
         <Stack

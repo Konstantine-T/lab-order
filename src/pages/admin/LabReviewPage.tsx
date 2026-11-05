@@ -184,7 +184,7 @@ export function LabReviewPage() {
           <DetailRow label={t('labs.fields.publicName')} labelWidth={200}>{lab.public_name || '—'}</DetailRow>
           <DetailRow label={t('labs.fields.shortDescription')} labelWidth={200}>{lab.short_description || '—'}</DetailRow>
           <DetailRow label={t('labs.fields.logo')} labelWidth={200}>
-            <LabLogoTile url={lab.logo_url} name={lab.public_name} colorSeed={lab.public_name} size={56} />
+            <LabLogoTile url={lab.logo_url} name={lab.public_name} size={56} />
           </DetailRow>
         </DetailList>
       </SectionCard>

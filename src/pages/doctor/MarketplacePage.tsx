@@ -67,18 +67,28 @@ function useFitsWindow() {
   return { ref, fits };
 }
 
+/**
+ * The cards' grid: as many columns of at least 340px as fit, which is two beside
+ * the filters on a laptop and one on a phone. `auto-fill`, so that a single
+ * result keeps a card's width instead of stretching across the page.
+ */
+const CARD_GRID = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(min(340px, 100%), 1fr))',
+  gap: 2.25,
+} as const;
+
 function LabCardSkeleton() {
   return (
-    <Card sx={{ p: 2.5 }}>
-      <Stack direction="row" spacing={2.5}>
-        <Skeleton variant="rounded" width={72} height={72} sx={{ borderRadius: '14px', flexShrink: 0 }} />
-        <Stack spacing={1} sx={{ flex: 1, minWidth: 0 }}>
-          <Skeleton width="45%" height={26} />
-          <Skeleton width="65%" />
-          <Stack direction="row" spacing={0.75}>
-            <Skeleton variant="rounded" width={140} height={26} />
-            <Skeleton variant="rounded" width={120} height={26} />
-          </Stack>
+    <Card sx={{ borderRadius: `${radii.labCard}px` }}>
+      <Skeleton variant="rectangular" height={190} />
+      <Stack spacing={1.5} sx={{ p: 2.25 }}>
+        <Skeleton width="55%" height={26} />
+        <Skeleton width="75%" />
+        <Skeleton variant="rounded" height={44} />
+        <Stack direction="row" spacing={0.75}>
+          <Skeleton variant="rounded" width={110} height={28} />
+          <Skeleton variant="rounded" width={90} height={28} />
         </Stack>
       </Stack>
     </Card>
@@ -275,10 +285,10 @@ export function MarketplacePage({
           {error && <Alert severity="error">{tc('errors.loadFailed')}</Alert>}
 
           {isLoading ? (
-            <>
+            <Box sx={CARD_GRID}>
               <LabCardSkeleton />
               <LabCardSkeleton />
-            </>
+            </Box>
           ) : error ? null : labs.length === 0 ? (
             <EmptyState icon="store" title={t('marketplace.empty')} />
           ) : results.length === 0 ? (
@@ -293,7 +303,7 @@ export function MarketplacePage({
               }
             />
           ) : (
-            <Stack component="section" spacing={1.75} aria-label={t('marketplace.heading')}>
+            <Box component="section" aria-label={t('marketplace.heading')} sx={CARD_GRID}>
               {results.map((lab) => (
                 <LabCard
                   key={lab.id}
@@ -303,7 +313,7 @@ export function MarketplacePage({
                   materials={effective.materials}
                 />
               ))}
-            </Stack>
+            </Box>
           )}
 
           {loaded && results.length > 1 && (
