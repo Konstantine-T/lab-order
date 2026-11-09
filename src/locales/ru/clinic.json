@@ -103,6 +103,8 @@
       "doctor": "Врач",
       "lab": "Лаборатория",
       "patient": "Пациент",
+      "service": "Услуга",
+      "orderStatus": "Статус",
       "due": "Срок",
       "billed": "Начислено",
       "paid": "Оплачено",
@@ -121,8 +123,9 @@
       "any": "Любой",
       "status": "Статус оплаты",
       "sort": "Сортировка",
-      "from": "С",
-      "to": "По",
+      "orderStatus": "Статус заказа",
+      "completedFrom": "Завершён с",
+      "completedTo": "Завершён по",
       "minAmount": "Мин. долг",
       "maxAmount": "Макс. долг",
       "overdueOnly": "Только просроченные",
@@ -135,7 +138,9 @@
       "outstanding_desc": "Больший долг",
       "outstanding_asc": "Меньший долг",
       "due_asc": "Ближайший срок",
-      "due_desc": "Дальний срок"
+      "due_desc": "Дальний срок",
+      "completed_desc": "Завершённые, сначала новые",
+      "completed_asc": "Завершённые, сначала старые"
     }
   },
   "profile": {

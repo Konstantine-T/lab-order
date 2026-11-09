@@ -63,7 +63,14 @@ export type DueLine = {
  * how many days are left. Once the work has been handed over the countdown
  * means nothing, so only the date remains. Null when the order has no date.
  */
-export function dueLine(row: ListOrderRow, t: TranslateFn, now: Dayjs = dayjs()): DueLine | null {
+export function dueLine(
+  row: Pick<
+    ListOrderRow,
+    'status' | 'confirmed_due_date' | 'requested_due_date' | 'confirmed_due_time' | 'requested_due_time'
+  >,
+  t: TranslateFn,
+  now: Dayjs = dayjs(),
+): DueLine | null {
   const due = dueDateOf(row);
   if (!due) return null;
 

@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import type { OrderStatus } from '@/types/database';
 import { dueDateOf, type DatedOrder } from '@/features/orders/orderDates';
+import { matchesStatusSelection } from '@/features/orders/statusSelection';
 
 /**
  * What a number on the lab's screens means, defined once.
@@ -119,10 +120,11 @@ export const EMPTY_QUEUE_FILTER: QueueFilter = {
   noFinalPrice: false,
 };
 
-/** The orders page's own filtering of those parts — the page calls this. */
+/** The orders page's own filtering of those parts — the page calls this. An
+ *  empty status selection leaves cancelled orders out (statusSelection). */
 export function matchesQueueFilter(row: PresetRow, f: QueueFilter): boolean {
   if (!matchesQueueQuick(row, f.quick)) return false;
-  if (f.statuses.length > 0 && !f.statuses.includes(row.status)) return false;
+  if (!matchesStatusSelection(row.status, f.statuses)) return false;
   if (f.dateFrom || f.dateTo) {
     const due = dueDateOf(row);
     if (due == null) return false;

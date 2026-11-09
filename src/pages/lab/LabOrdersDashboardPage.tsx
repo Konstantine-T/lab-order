@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Box,
   Button,
@@ -32,30 +32,35 @@ import {
   DataRow,
   DataTable,
   Icon,
-  InitialsAvatar,
   PageHeader,
   Pager,
   PillRow,
   StatGrid,
   StatTile,
 } from '@/components/design';
+import { MoreFiltersButton } from '@/components/MoreFiltersButton';
+import {
+  CustomerCell,
+  DueCell,
+  OrderCodeCell,
+  PatientCell,
+  TextCell,
+} from '@/features/orders/table/OrderRowCells';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
+import { CancelledHiddenHint } from '@/features/orders/CancelledHiddenHint';
+import {
+  CANCELLED_ONLY,
+  matchesStatusSelection,
+  withCancelled,
+} from '@/features/orders/statusSelection';
 import { ORDER_TRASH_EMBED } from '@/features/orders/trash/trashFilter';
 import { TrashSelectionBar } from '@/features/orders/trash/TrashSelection';
 import { useOrderSelection } from '@/features/orders/trash/useOrderSelection';
 import { labSideKeeper } from '@/features/orders/trash/trashKeeper';
 import { TrashLink } from '@/features/orders/trash/TrashLink';
 import { useTrashToast } from '@/features/orders/trash/useTrashToast';
-import {
-  appendDueWindow,
-  dueDateOf,
-  dueTimeOf,
-  ORDER_SORTS,
-  type OrderSort,
-  orderComparator,
-} from '@/features/orders/orderDates';
+import { ORDER_SORTS, type OrderSort, orderComparator } from '@/features/orders/orderDates';
 import { useOrderSort } from '@/features/orders/list/useOrderSort';
-import { pastDate, shortDate } from '@/features/orders/list/listFormat';
 import { ClarificationAskDialog } from '@/features/orders/clarifications/ClarificationAskDialog';
 import { formatGEL } from '@/utils/pricing';
 import { radii, tone } from '@/theme/tokens';
@@ -72,7 +77,6 @@ import {
 } from '@/features/lab/orders/queueFilters';
 import { QueueFilterAutocomplete } from '@/features/lab/orders/QueueFilterAutocomplete';
 import { LabInvoiceMark } from '@/features/lab/orders/LabInvoiceMark';
-import { FromLabBadge } from '@/features/lab/orders/FromLabBadge';
 import {
   CUSTOMER_KINDS,
   type CustomerKind,
@@ -81,7 +85,6 @@ import {
   patientLabel,
 } from '@/features/lab/orders/labCustomer';
 import {
-  CLOSED_STATUSES,
   FILTERABLE_STATUSES,
   isOrderPreset,
   matchesPreset,
@@ -225,6 +228,16 @@ export function LabOrdersDashboardPage() {
   );
   const destinationOptions = useMemo(() => destinationOptionsFrom(orders), [orders]);
 
+  // What "More filters" holds, set: the button says so with the panel shut.
+  const hiddenFilterCount = [
+    statuses.length > 0,
+    customerKind !== 'all',
+    !!doctorId,
+    !!destination,
+    !!dateFrom?.isValid(),
+    !!dateTo?.isValid(),
+  ].filter(Boolean).length;
+
   const hasFilters = !!(
     search ||
     quick !== 'all' ||
@@ -237,21 +250,25 @@ export function LabOrdersDashboardPage() {
     customerKind !== 'all'
   );
 
-  const filtered = useMemo(() => {
-    // Quick pill, statuses, due dates and the no-final-price chip go through
-    // the same function the lab dashboard counts with (orderPresets), so the
-    // rows a dashboard number opens onto are the rows it counted.
-    const queueFilter = {
+  // Quick pill, statuses, due dates and the no-final-price chip go through the
+  // same function the lab dashboard counts with (orderPresets), so the rows a
+  // dashboard number opens onto are the rows it counted.
+  const queueFilter = useMemo(
+    () => ({
       quick,
       statuses,
       dateFrom: dateFrom?.isValid() ? dateFrom.format('YYYY-MM-DD') : null,
       dateTo: dateTo?.isValid() ? dateTo.format('YYYY-MM-DD') : null,
       noFinalPrice,
-    };
-    let result = orders.filter((row) => matchesQueueFilter(row, queueFilter));
-    if (search.trim()) {
+    }),
+    [quick, statuses, dateFrom, dateTo, noFinalPrice],
+  );
+
+  // The filters a preset clears: search, doctor, destination, customer kind.
+  const matchesRest = useCallback(
+    (row: Row) => {
       const q = search.trim().toLowerCase();
-      result = result.filter((row) => {
+      if (q) {
         const ds = row.doctor_snapshot ?? {};
         const doctor = [ds.first_name, ds.last_name].filter(Boolean).join(' ').toLowerCase();
         // The buying lab's case reference stands in for a missing patient.
@@ -262,46 +279,62 @@ export function LabOrdersDashboardPage() {
           .join(' ')
           .toLowerCase();
         const service = (row.lab_services?.name ?? row.service_snapshot?.name ?? '').toLowerCase();
-        return (
+        const hit =
           row.order_code.toLowerCase().includes(q) ||
           doctor.includes(q) ||
           patient.includes(q) ||
-          service.includes(q)
-        );
-      });
-    }
-    if (doctorId) {
-      result = result.filter((row) => row.doctor_id === doctorId);
-    }
-    if (destination) {
-      result = result.filter((row) => destinationKeyOf(row) === destination);
-    }
-    if (customerKind !== 'all') {
-      result = result.filter((row) => matchesCustomerKind(row, customerKind));
-    }
-    // The lab's chosen order — newest first unless it picked otherwise. Every
-    // comparator is total, so a background refetch never reshuffles equal rows.
-    return [...result].sort(orderComparator(sort));
-  }, [
-    orders,
-    quick,
-    search,
-    statuses,
-    dateFrom,
-    dateTo,
-    noFinalPrice,
-    doctorId,
-    destination,
-    customerKind,
-    sort,
-  ]);
+          service.includes(q);
+        if (!hit) return false;
+      }
+      if (doctorId && row.doctor_id !== doctorId) return false;
+      if (destination && destinationKeyOf(row) !== destination) return false;
+      if (customerKind !== 'all' && !matchesCustomerKind(row, customerKind)) return false;
+      return true;
+    },
+    [search, doctorId, destination, customerKind],
+  );
 
+  const filtered = useMemo(
+    () =>
+      orders
+        .filter((row) => matchesQueueFilter(row, queueFilter) && matchesRest(row))
+        // The lab's chosen order — newest first unless it picked otherwise.
+        // Every comparator is total, so a background refetch never reshuffles
+        // equal rows.
+        .sort(orderComparator(sort)),
+    [orders, queueFilter, matchesRest, sort],
+  );
+
+  // The cancelled orders every other filter would show, left out only because
+  // no status is selected (statusSelection). "Show" lists exactly these.
+  const hiddenCancelled = useMemo(
+    () =>
+      queueFilter.statuses.length > 0
+        ? 0
+        : orders.filter(
+            (row) =>
+              matchesQueueFilter(row, { ...queueFilter, statuses: CANCELLED_ONLY }) &&
+              matchesRest(row),
+          ).length,
+    [orders, queueFilter, matchesRest],
+  );
+  const showCancelled = () => {
+    setStatuses(withCancelled);
+    setAdvancedOpen(true);
+  };
+
+  // Over every loaded order, under the status selection only: with none, the
+  // list leaves cancelled orders out, so "All" must not count them.
   const quickCounts = useMemo(
     () =>
       Object.fromEntries(
-        QUICK.map((q) => [q, orders.filter((row) => matchesQuick(row, q)).length]),
+        QUICK.map((q) => [
+          q,
+          orders.filter((row) => matchesQuick(row, q) && matchesStatusSelection(row.status, statuses))
+            .length,
+        ]),
       ) as Record<Quick, number>,
-    [orders],
+    [orders, statuses],
   );
 
   const stats = useMemo(() => {
@@ -501,10 +534,11 @@ export function LabOrdersDashboardPage() {
                   </MenuItem>
                 ))}
               </Select>
-              <ChoicePill selected={advancedOpen} onClick={() => setAdvancedOpen((v) => !v)}>
-                <Icon name="tune" size={15} />
-                {t('ordersDashboard.moreFilters')}
-              </ChoicePill>
+              <MoreFiltersButton
+                open={advancedOpen}
+                onToggle={() => setAdvancedOpen((v) => !v)}
+                activeCount={hiddenFilterCount}
+              />
               {/* Bulk "Move to trash" (0054), on finished orders only. */}
               {finishedCount > 0 && (
                 <ChoicePill
@@ -619,99 +653,77 @@ export function LabOrdersDashboardPage() {
         ) : orders.length === 0 ? (
           <OrdersEmptyState title={t('ordersDashboard.empty')} />
         ) : filtered.length === 0 ? (
-          <OrdersEmptyState icon="filter_alt_off" title={t('ordersDashboard.filters.noResults')} />
+          <OrdersEmptyState
+            icon="filter_alt_off"
+            title={t('ordersDashboard.filters.noResults')}
+            action={<CancelledHiddenHint count={hiddenCancelled} onShow={showCancelled} />}
+          />
         ) : (
-          <DataTable
-            columns={columns.map((c) =>
-              c.key === 'go' || c.key === 'select'
-                ? c
-                : { ...c, label: t(`ordersDashboard.columns.${c.key}` as const) },
-            )}
-            footer={
-              <>
-                <Typography variant="body2" color="text.secondary">
-                  {t('ordersDashboard.countFiltered', {
-                    count: filtered.length,
-                    total: orders.length,
-                  })}
-                </Typography>
-                <Box sx={{ ml: 'auto' }}>
-                  <Pager
-                    page={current - 1}
-                    pageCount={pageCount}
-                    onChange={(p) => setPage(p + 1)}
-                  />
-                </Box>
-              </>
-            }
-          >
-            {visible.map((row) => {
-              const ds = row.doctor_snapshot ?? {};
-              const doctorName = [ds.first_name, ds.last_name].filter(Boolean).join(' ') || '—';
-              const patientName = patientLabel(row);
-              const fromLab = isLabPurchase(row);
-              const serviceName = row.lab_services?.name ?? row.service_snapshot?.name ?? '';
-              const total = row.final_total ?? row.generated_total;
-              const dueRaw = dueDateOf(row);
-              const daysOut = dueRaw ? dayjs(dueRaw).diff(dayjs(), 'day') : null;
-              // Red once the date has passed on a case still open: exactly the
-              // rows the "Overdue" preset finds, so the colour and the count
-              // agree. A closed case has no deadline left to miss.
-              const overdue = matchesPreset(row, 'overdue', rowDates);
-              const closed = (CLOSED_STATUSES as readonly OrderStatus[]).includes(row.status);
-              const dueTone = overdue
-                ? 'danger'
-                : daysOut == null || closed
-                  ? 'neutral'
-                  : daysOut <= 1
-                    ? 'warning'
-                    : daysOut <= 4
-                      ? 'info'
-                      : 'neutral';
-
-              const answered = isAnswered(row);
-              const place = destinationLabelOf(row);
-              const pickable = canTrash(row.status);
-              const picked = selection.active && selection.ids.has(row.id);
-
-              return (
-                <DataRow
-                  key={row.id}
-                  columns={columns}
-                  highlight={picked || row.has_unreviewed_edits || answered}
-                  // In select mode a finished row toggles; the rest wait.
-                  onClick={
-                    !selection.active
-                      ? () => navigate(`/lab/orders/${row.id}`)
-                      : pickable
-                        ? () => selection.toggle(row.id)
-                        : undefined
-                  }
-                >
-                  {selection.active && (
-                    <Checkbox
-                      checked={picked}
-                      disabled={!pickable}
-                      size="small"
-                      tabIndex={-1}
-                      disableRipple
-                      inputProps={{ 'aria-label': row.order_code }}
-                      sx={{ p: 0, pointerEvents: 'none' }}
-                    />
-                  )}
-                  <Typography
-                    sx={{ fontSize: '0.78125rem', fontWeight: 700, color: 'primary.dark' }}
-                    noWrap
-                  >
-                    {row.order_code}
+          <>
+            <DataTable
+              columns={columns.map((c) =>
+                c.key === 'go' || c.key === 'select'
+                  ? c
+                  : { ...c, label: t(`ordersDashboard.columns.${c.key}` as const) },
+              )}
+              footer={
+                <>
+                  <Typography variant="body2" color="text.secondary">
+                    {t('ordersDashboard.countFiltered', {
+                      count: filtered.length,
+                      total: orders.length,
+                    })}
                   </Typography>
+                  <Box sx={{ ml: 'auto' }}>
+                    <Pager
+                      page={current - 1}
+                      pageCount={pageCount}
+                      onChange={(p) => setPage(p + 1)}
+                    />
+                  </Box>
+                </>
+              }
+            >
+              {visible.map((row) => {
+                const ds = row.doctor_snapshot ?? {};
+                const doctorName = [ds.first_name, ds.last_name].filter(Boolean).join(' ') || '—';
+                const patientName = patientLabel(row);
+                const fromLab = isLabPurchase(row);
+                const serviceName = row.lab_services?.name ?? row.service_snapshot?.name ?? '';
+                const total = row.final_total ?? row.generated_total;
+                const answered = isAnswered(row);
+                const place = destinationLabelOf(row);
+                const pickable = canTrash(row.status);
+                const picked = selection.active && selection.ids.has(row.id);
 
-                  <Stack direction="row" alignItems="center" spacing={1.125} sx={{ minWidth: 0 }}>
-                    <InitialsAvatar name={patientName} size={28} shape="circle" />
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }} noWrap>
-                        {patientName}
-                      </Typography>
+                return (
+                  <DataRow
+                    key={row.id}
+                    columns={columns}
+                    highlight={picked || row.has_unreviewed_edits || answered}
+                    // In select mode a finished row toggles; the rest wait.
+                    onClick={
+                      !selection.active
+                        ? () => navigate(`/lab/orders/${row.id}`)
+                        : pickable
+                          ? () => selection.toggle(row.id)
+                          : undefined
+                    }
+                  >
+                    {selection.active && (
+                      <Checkbox
+                        checked={picked}
+                        disabled={!pickable}
+                        size="small"
+                        tabIndex={-1}
+                        disableRipple
+                        inputProps={{ 'aria-label': row.order_code }}
+                        sx={{ p: 0, pointerEvents: 'none' }}
+                      />
+                    )}
+                    <OrderCodeCell code={row.order_code} />
+
+                    <PatientCell name={patientName}>
                       {row.has_unreviewed_edits && (
                         <Stack direction="row" alignItems="center" spacing={0.5}>
                           <Box
@@ -759,120 +771,76 @@ export function LabOrdersDashboardPage() {
                         </Stack>
                       )}
                       {invoicedIds.has(row.id) && <LabInvoiceMark />}
-                    </Box>
-                  </Stack>
+                    </PatientCell>
 
-                  {/* The destination under the doctor rather than as a ninth
-                      column: eight is already dense at 1280px. */}
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography variant="body1" color="text.secondary" noWrap>
-                      {doctorName}
-                    </Typography>
-                    {/* On its own line, not beside the name: the column is
-                        narrow at 1280px and a lab's name is long. */}
-                    {fromLab && (
-                      <Box sx={{ mt: 0.375 }}>
-                        <FromLabBadge />
-                      </Box>
-                    )}
-                    {place.clinic && (
-                      <Typography
-                        sx={{ fontSize: '0.6875rem', color: 'text.secondary', opacity: 0.8 }}
-                        noWrap
-                        title={[place.clinic, place.detail].filter(Boolean).join(' · ')}
+                    {/* The destination under the doctor rather than as a ninth
+                        column: eight is already dense at 1280px. */}
+                    <CustomerCell
+                      name={doctorName}
+                      fromLab={fromLab}
+                      detail={place.clinic}
+                      detailTitle={[place.clinic, place.detail].filter(Boolean).join(' · ')}
+                    />
+                    <TextCell>{serviceName}</TextCell>
+
+                    <DueCell order={row} dates={rowDates} side="lab" />
+
+                    {/* The status selector the mockup embeds in the row — a lab
+                        changes status straight from the queue. */}
+                    <Box onClick={(e) => e.stopPropagation()}>
+                      <Select
+                        size="small"
+                        value={row.status}
+                        onChange={(e) => {
+                          const next = e.target.value as OrderStatus;
+                          // Never savable on its own — the doctor needs the
+                          // question, not just the status.
+                          if (next === 'NEEDS_CLARIFICATION' || next === 'NEEDS_DOCTOR_INPUT') {
+                            setAskOrderId(row.id);
+                            setAskKind(next === 'NEEDS_DOCTOR_INPUT' ? 'EDIT' : 'ANSWER');
+                            return;
+                          }
+                          updateStatus.mutate({ orderId: row.id, status: next });
+                        }}
+                        disabled={updateStatus.isPending}
+                        fullWidth
+                        sx={{ fontSize: '0.71875rem', '& .MuiSelect-select': { py: 0.75 } }}
+                        renderValue={(v) => (
+                          <Stack direction="row" alignItems="center" spacing={0.875}>
+                            <Box
+                              sx={(theme) => ({
+                                width: 8,
+                                height: 8,
+                                borderRadius: '50%',
+                                flexShrink: 0,
+                                bgcolor: tone(statusTone(v as OrderStatus), theme.palette.mode).dot,
+                              })}
+                            />
+                            <Typography sx={{ fontSize: '0.71875rem', fontWeight: 600 }} noWrap>
+                              {statusLabel(v as OrderStatus, tc, 'lab')}
+                            </Typography>
+                          </Stack>
+                        )}
                       >
-                        {place.clinic}
-                      </Typography>
-                    )}
-                  </Box>
-                  <Typography variant="body1" color="text.secondary" noWrap>
-                    {serviceName}
-                  </Typography>
-
-                  {/* Created sits under the due date rather than in a column of
-                      its own: the two dates are read against each other, and a
-                      ninth column would squeeze the rest at 1280px. Both in the
-                      locale's short format, as every other list — and created,
-                      which looks back, with its year when not this one's. */}
-                  <Stack spacing={0.375} sx={{ minWidth: 0 }}>
-                    <Box
-                      title={overdue ? t('dashboard.overdue') : undefined}
-                      sx={(theme) => ({
-                        textAlign: 'center',
-                        py: 0.5,
-                        borderRadius: 999,
-                        fontSize: '0.71875rem',
-                        fontWeight: 600,
-                        color: tone(dueTone, theme.palette.mode).fg,
-                        bgcolor: tone(dueTone, theme.palette.mode).bg,
-                      })}
-                    >
-                      {dueRaw
-                        ? appendDueWindow(shortDate(dueRaw, tc), dueTimeOf(row), tc)
-                        : '—'}
+                        {LAB_SELECTABLE_STATUSES.map((s) => (
+                          <MenuItem key={s} value={s}>
+                            {statusLabel(s, tc, 'lab')}
+                          </MenuItem>
+                        ))}
+                      </Select>
                     </Box>
-                    <Typography
-                      sx={{ fontSize: '0.625rem', color: 'text.secondary', textAlign: 'center' }}
-                      noWrap
-                    >
-                      {t('orderSheet.createdOn', { date: pastDate(row.created_at, tc) })}
+
+                    <Typography sx={{ fontSize: '0.78125rem', fontWeight: 700, textAlign: 'right' }}>
+                      {total != null ? formatGEL(total) : '—'}
                     </Typography>
-                  </Stack>
 
-                  {/* The status selector the mockup embeds in the row — a lab
-                      changes status straight from the queue. */}
-                  <Box onClick={(e) => e.stopPropagation()}>
-                    <Select
-                      size="small"
-                      value={row.status}
-                      onChange={(e) => {
-                        const next = e.target.value as OrderStatus;
-                        // Never savable on its own — the doctor needs the
-                        // question, not just the status.
-                        if (next === 'NEEDS_CLARIFICATION' || next === 'NEEDS_DOCTOR_INPUT') {
-                          setAskOrderId(row.id);
-                          setAskKind(next === 'NEEDS_DOCTOR_INPUT' ? 'EDIT' : 'ANSWER');
-                          return;
-                        }
-                        updateStatus.mutate({ orderId: row.id, status: next });
-                      }}
-                      disabled={updateStatus.isPending}
-                      fullWidth
-                      sx={{ fontSize: '0.71875rem', '& .MuiSelect-select': { py: 0.75 } }}
-                      renderValue={(v) => (
-                        <Stack direction="row" alignItems="center" spacing={0.875}>
-                          <Box
-                            sx={(theme) => ({
-                              width: 8,
-                              height: 8,
-                              borderRadius: '50%',
-                              flexShrink: 0,
-                              bgcolor: tone(statusTone(v as OrderStatus), theme.palette.mode).dot,
-                            })}
-                          />
-                          <Typography sx={{ fontSize: '0.71875rem', fontWeight: 600 }} noWrap>
-                            {statusLabel(v as OrderStatus, tc, 'lab')}
-                          </Typography>
-                        </Stack>
-                      )}
-                    >
-                      {LAB_SELECTABLE_STATUSES.map((s) => (
-                        <MenuItem key={s} value={s}>
-                          {statusLabel(s, tc, 'lab')}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </Box>
-
-                  <Typography sx={{ fontSize: '0.78125rem', fontWeight: 700, textAlign: 'right' }}>
-                    {total != null ? formatGEL(total) : '—'}
-                  </Typography>
-
-                  <Icon name="chevron_right" size={17} sx={{ color: 'text.disabled' }} />
-                </DataRow>
-              );
-            })}
-          </DataTable>
+                    <Icon name="chevron_right" size={17} sx={{ color: 'text.disabled' }} />
+                  </DataRow>
+                );
+              })}
+            </DataTable>
+            <CancelledHiddenHint count={hiddenCancelled} onShow={showCancelled} />
+          </>
         )}
         <TrashSelectionBar
           selection={selection}

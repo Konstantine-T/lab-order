@@ -20,6 +20,7 @@ import { supabase } from '@/lib/supabase';
 import { Icon, PageHeader } from '@/components/design';
 import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
+import { CancelledHiddenHint } from '@/features/orders/CancelledHiddenHint';
 import { OrderCompletionActions } from '@/features/orders/completion/OrderCompletionActions';
 import { canComplete, canTrash } from '@/types/database';
 import type { DoctorWorkLocationRow } from '@/types/database';
@@ -429,41 +430,53 @@ export function OrdersListPage({ buyer: buyerProp = false }: { buyer?: boolean }
           <OrderListSkeleton />
         ) : orders.length === 0 && drafts.length === 0 ? (
           <OrdersEmptyState title={t('orders.empty')} action={newOrderButton} />
-        ) : filters.filtered.length === 0 && filters.hasFilters ? (
+        ) : filters.filtered.length === 0 && drafts.length === 0 ? (
+          // Filtered out, or every order is cancelled and hidden by default.
           <OrdersEmptyState
             icon="filter_alt_off"
             title={t('orders.filters.noResults')}
             action={
-              <Button size="small" onClick={filters.clear}>
-                {t('orders.filters.clear')}
-              </Button>
+              <Stack alignItems="center" spacing={1}>
+                <CancelledHiddenHint
+                  count={filters.hiddenCancelled}
+                  onShow={filters.showCancelled}
+                />
+                {filters.hasFilters && (
+                  <Button size="small" onClick={filters.clear}>
+                    {t('orders.filters.clear')}
+                  </Button>
+                )}
+              </Stack>
             }
           />
         ) : (
-          <GroupedOrderList
-            rows={filters.filtered}
-            drafts={drafts}
-            resetKey={filters.resetKey}
-            sort={filters.sort}
-            renderCard={(row, group) => (
-              <OrderCard
-                row={row}
-                group={group}
-                href={`${ordersPath}/${row.id}`}
-                invoiceUnseen={unseenInvoices.has(row.id)}
-                parentCode={parentCodes.get(row.continues_order_id ?? '')}
-                // Select mode hides the card's own buttons: one action at a time.
-                actions={selection.active ? undefined : cardActions(row, group)}
-                select={
-                  !selection.active
-                    ? undefined
-                    : canTrash(row.status)
-                      ? { checked: selection.ids.has(row.id), onToggle: () => selection.toggle(row.id) }
-                      : 'off'
-                }
-              />
-            )}
-          />
+          <>
+            <GroupedOrderList
+              rows={filters.filtered}
+              drafts={drafts}
+              resetKey={filters.resetKey}
+              sort={filters.sort}
+              renderCard={(row, group) => (
+                <OrderCard
+                  row={row}
+                  group={group}
+                  href={`${ordersPath}/${row.id}`}
+                  invoiceUnseen={unseenInvoices.has(row.id)}
+                  parentCode={parentCodes.get(row.continues_order_id ?? '')}
+                  // Select mode hides the card's own buttons: one action at a time.
+                  actions={selection.active ? undefined : cardActions(row, group)}
+                  select={
+                    !selection.active
+                      ? undefined
+                      : canTrash(row.status)
+                        ? { checked: selection.ids.has(row.id), onToggle: () => selection.toggle(row.id) }
+                        : 'off'
+                  }
+                />
+              )}
+            />
+            <CancelledHiddenHint count={filters.hiddenCancelled} onShow={filters.showCancelled} />
+          </>
         )}
         <TrashSelectionBar
           selection={selection}

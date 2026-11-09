@@ -350,7 +350,6 @@
       "needsAction": "საჭიროებს ჩემს რეაქციას",
       "completed": "დასრულებული"
     },
-    "moreFilters": "დამატებითი ფილტრები",
     "pipelineNext": "{{current}} → {{next}}",
     "pipelineDone": "მიწოდებული და დასრულებული",
     "addNewOrder": "ახალი შეკვეთის დამატება",

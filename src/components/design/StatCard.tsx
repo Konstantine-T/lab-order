@@ -1,4 +1,13 @@
-import { Box, Card, CardActionArea, CardContent, Stack, Typography } from '@mui/material';
+import {
+  alpha,
+  Box,
+  Card,
+  CardActionArea,
+  CardContent,
+  Stack,
+  Typography,
+  type Theme,
+} from '@mui/material';
 import type { ReactNode } from 'react';
 import { Icon } from '@/components/design/Icon';
 import { focusRing, lift, motion } from '@/theme/tokens';
@@ -20,6 +29,7 @@ export function StatCard({
   dotColor,
   onClick,
   ariaLabel,
+  selected,
 }: {
   label: ReactNode;
   value: ReactNode;
@@ -29,7 +39,18 @@ export function StatCard({
   onClick?: () => void;
   /** The button's accessible name, e.g. "Show new orders". */
   ariaLabel?: string;
+  /**
+   * The card is a filter and it is the one applied: brand border and tint,
+   * and `aria-pressed`. Leave undefined on a card that only navigates.
+   */
+  selected?: boolean;
 }) {
+  const selectedSx = selected
+    ? {
+        borderColor: 'primary.main',
+        bgcolor: (theme: Theme) => alpha(theme.palette.primary.main, theme.palette.mode === 'light' ? 0.06 : 0.14),
+      }
+    : {};
   const content = (
     <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
       <Stack direction="row" alignItems="center" spacing={1}>
@@ -80,11 +101,12 @@ export function StatCard({
     </CardContent>
   );
 
-  if (!onClick) return <Card>{content}</Card>;
+  if (!onClick) return <Card sx={selectedSx}>{content}</Card>;
 
   return (
     <Card
       sx={{
+        ...selectedSx,
         transition: `border-color ${motion.base}, box-shadow ${motion.base}, transform ${motion.fast}`,
         '&:hover': {
           borderColor: 'primary.main',
@@ -100,6 +122,7 @@ export function StatCard({
       <CardActionArea
         onClick={onClick}
         aria-label={ariaLabel}
+        aria-pressed={selected}
         disableRipple
         sx={{
           height: '100%',

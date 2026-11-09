@@ -304,6 +304,12 @@
     "or": "ან",
     "register": "ანგარიშის შექმნა"
   },
+  "moreFilters": {
+    "label": "დამატებითი ფილტრები",
+    "withCount": "დამატებითი ფილტრები · {{count}}",
+    "ariaActive_one": "დამატებითი ფილტრები, აქტიური: {{count}}",
+    "ariaActive_other": "დამატებითი ფილტრები, აქტიური: {{count}}"
+  },
   "orderList": {
     "dateFormat": "D MMM",
     "searchPlaceholder": "პაციენტი, ნომერი, ლაბორატორია",
@@ -333,6 +339,9 @@
     },
     "showMore": "კიდევ {{count}}",
     "showLess": "ნაკლების ჩვენება",
+    "cancelledHidden_one": "დამალულია {{count}} გაუქმებული შეკვეთა",
+    "cancelledHidden_other": "დამალულია {{count}} გაუქმებული შეკვეთა",
+    "showCancelled": "ჩვენება",
     "tag": {
       "needsChange": "საჭიროებს ცვლილებას",
       "readyToClose": "ელოდება დადასტურებას",

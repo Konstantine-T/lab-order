@@ -1,6 +1,7 @@
 import {
   Button,
   Checkbox,
+  Collapse,
   FormControl,
   FormControlLabel,
   InputAdornment,
@@ -17,8 +18,16 @@ import { DatePicker } from '@mui/x-date-pickers';
 import dayjs from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
-import type { ClinicDoctorRow, InvoiceRecipientType, PaymentStatus } from '@/types/database';
-import { PAYABLE_SORTS, type PayableFilters, type PayableSort } from './financeApi';
+import { MoreFiltersButton } from '@/components/MoreFiltersButton';
+import { statusLabel } from '@/features/orders/statusLabel';
+import type { ClinicDoctorRow, InvoiceRecipientType, OrderStatus, PaymentStatus } from '@/types/database';
+import {
+  hiddenPayableFilterCount,
+  PAYABLE_ORDER_STATUSES,
+  PAYABLE_SORTS,
+  type PayableFilters,
+  type PayableSort,
+} from './financeApi';
 
 const PAYMENT_STATUSES: readonly PaymentStatus[] = ['UNPAID', 'PARTIALLY_PAID', 'PAID'];
 
@@ -31,14 +40,19 @@ type Props = {
   hasFilters: boolean;
   doctors: ClinicDoctorRow[];
   labs: { id: string; name: string }[];
+  /** The "More filters" panel, owned by the page. */
+  moreOpen: boolean;
+  onMoreOpenChange: (open: boolean) => void;
 };
 
 /**
  * The clinic's finance filters.
  *
- * Same two-row shape as the lab's bar, with the dimensions swapped for this
- * side of the transaction: which doctor ran up the charge, and which lab is
- * owed. The lab list is derived from the orders themselves rather than the
+ * The lab's bar with the dimensions swapped for this side of the transaction:
+ * which doctor ran up the charge, and which lab is owed. Search, order status,
+ * payment status and sort are always in view; doctor, lab, billed-to, the
+ * completed dates, the amounts and "overdue only" sit behind "More filters".
+ * The lab list is derived from the orders themselves rather than the
  * marketplace, so it only ever offers labs this clinic has actually used.
  */
 export function ClinicFinanceFilterBar({
@@ -50,6 +64,8 @@ export function ClinicFinanceFilterBar({
   hasFilters,
   doctors,
   labs,
+  moreOpen,
+  onMoreOpenChange,
 }: Props) {
   const { t } = useTranslation('clinic');
   const { t: tc } = useTranslation('common');
@@ -57,7 +73,13 @@ export function ClinicFinanceFilterBar({
 
   return (
     <Stack spacing={1.5}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} flexWrap="wrap" useFlexGap>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={1.5}
+        flexWrap="wrap"
+        useFlexGap
+        alignItems={{ sm: 'center' }}
+      >
         <TextField
           placeholder={t('finances.filters.search')}
           value={filters.search}
@@ -73,39 +95,25 @@ export function ClinicFinanceFilterBar({
           sx={{ flex: 1, minWidth: 220 }}
         />
 
-        <FormControl size="small" sx={{ minWidth: 175 }}>
-          <InputLabel>{t('finances.filters.doctor')}</InputLabel>
+        <FormControl size="small" sx={{ minWidth: 180, maxWidth: { sm: 260 } }}>
+          <InputLabel>{t('finances.filters.orderStatus')}</InputLabel>
           <Select
-            value={filters.doctorId ?? ''}
-            onChange={(e) => set({ doctorId: e.target.value || null })}
-            input={<OutlinedInput label={t('finances.filters.doctor')} />}
+            multiple
+            value={filters.orderStatuses}
+            onChange={(e) => set({ orderStatuses: e.target.value as OrderStatus[] })}
+            input={<OutlinedInput label={t('finances.filters.orderStatus')} />}
+            renderValue={(sel) => sel.map((s) => statusLabel(s, tc)).join(', ')}
           >
-            <MenuItem value="">{t('finances.filters.any')}</MenuItem>
-            {doctors.map((d) => (
-              <MenuItem key={d.doctor_id} value={d.doctor_id}>
-                {d.first_name} {d.last_name}
+            {PAYABLE_ORDER_STATUSES.map((s) => (
+              <MenuItem key={s} value={s}>
+                <Checkbox checked={filters.orderStatuses.includes(s)} size="small" />
+                <ListItemText primary={statusLabel(s, tc)} />
               </MenuItem>
             ))}
           </Select>
         </FormControl>
 
-        <FormControl size="small" sx={{ minWidth: 175 }}>
-          <InputLabel>{t('finances.filters.lab')}</InputLabel>
-          <Select
-            value={filters.labId ?? ''}
-            onChange={(e) => set({ labId: e.target.value || null })}
-            input={<OutlinedInput label={t('finances.filters.lab')} />}
-          >
-            <MenuItem value="">{t('finances.filters.any')}</MenuItem>
-            {labs.map((l) => (
-              <MenuItem key={l.id} value={l.id}>
-                {l.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
-
-        <FormControl size="small" sx={{ minWidth: 190 }}>
+        <FormControl size="small" sx={{ minWidth: 180, maxWidth: { sm: 260 } }}>
           <InputLabel>{t('finances.filters.status')}</InputLabel>
           <Select
             multiple
@@ -137,76 +145,118 @@ export function ClinicFinanceFilterBar({
             ))}
           </Select>
         </FormControl>
+
+        <Stack direction="row" spacing={1} alignItems="center">
+          <MoreFiltersButton
+            open={moreOpen}
+            onToggle={() => onMoreOpenChange(!moreOpen)}
+            activeCount={hiddenPayableFilterCount(filters)}
+          />
+          {hasFilters && (
+            <Button size="small" onClick={onClear} sx={{ whiteSpace: 'nowrap' }}>
+              {t('finances.filters.clear')}
+            </Button>
+          )}
+        </Stack>
       </Stack>
 
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={1.5}
-        flexWrap="wrap"
-        useFlexGap
-        alignItems={{ sm: 'center' }}
-      >
-        <FormControl size="small" sx={{ minWidth: 170 }}>
-          <InputLabel>{t('finances.filters.billedTo')}</InputLabel>
-          <Select
-            value={filters.recipientType ?? ''}
-            onChange={(e) =>
-              set({ recipientType: (e.target.value || null) as InvoiceRecipientType | null })
+      <Collapse in={moreOpen}>
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={1.5}
+          flexWrap="wrap"
+          useFlexGap
+          alignItems={{ sm: 'center' }}
+        >
+          <FormControl size="small" sx={{ minWidth: 175 }}>
+            <InputLabel>{t('finances.filters.doctor')}</InputLabel>
+            <Select
+              value={filters.doctorId ?? ''}
+              onChange={(e) => set({ doctorId: e.target.value || null })}
+              input={<OutlinedInput label={t('finances.filters.doctor')} />}
+            >
+              <MenuItem value="">{t('finances.filters.any')}</MenuItem>
+              {doctors.map((d) => (
+                <MenuItem key={d.doctor_id} value={d.doctor_id}>
+                  {d.first_name} {d.last_name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 175 }}>
+            <InputLabel>{t('finances.filters.lab')}</InputLabel>
+            <Select
+              value={filters.labId ?? ''}
+              onChange={(e) => set({ labId: e.target.value || null })}
+              input={<OutlinedInput label={t('finances.filters.lab')} />}
+            >
+              <MenuItem value="">{t('finances.filters.any')}</MenuItem>
+              {labs.map((l) => (
+                <MenuItem key={l.id} value={l.id}>
+                  {l.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 170 }}>
+            <InputLabel>{t('finances.filters.billedTo')}</InputLabel>
+            <Select
+              value={filters.recipientType ?? ''}
+              onChange={(e) =>
+                set({ recipientType: (e.target.value || null) as InvoiceRecipientType | null })
+              }
+              input={<OutlinedInput label={t('finances.filters.billedTo')} />}
+            >
+              <MenuItem value="">{t('finances.filters.any')}</MenuItem>
+              <MenuItem value="CLINIC">{t('finances.filters.theClinic')}</MenuItem>
+              <MenuItem value="DOCTOR">{t('finances.filters.theDoctor')}</MenuItem>
+            </Select>
+          </FormControl>
+
+          <DatePicker
+            label={t('finances.filters.completedFrom')}
+            value={filters.dateFrom ? dayjs(filters.dateFrom) : null}
+            onChange={(d) => set({ dateFrom: d && d.isValid() ? d.format('YYYY-MM-DD') : null })}
+            format="YYYY-MM-DD"
+            slotProps={{ textField: { size: 'small', sx: { width: { xs: '100%', sm: 170 } } } }}
+          />
+          <DatePicker
+            label={t('finances.filters.completedTo')}
+            value={filters.dateTo ? dayjs(filters.dateTo) : null}
+            onChange={(d) => set({ dateTo: d && d.isValid() ? d.format('YYYY-MM-DD') : null })}
+            format="YYYY-MM-DD"
+            slotProps={{ textField: { size: 'small', sx: { width: { xs: '100%', sm: 170 } } } }}
+          />
+          <TextField
+            type="number"
+            label={t('finances.filters.minAmount')}
+            value={filters.minAmount ?? ''}
+            onChange={(e) => set({ minAmount: e.target.value === '' ? null : Number(e.target.value) })}
+            size="small"
+            sx={{ width: { xs: '100%', sm: 130 } }}
+          />
+          <TextField
+            type="number"
+            label={t('finances.filters.maxAmount')}
+            value={filters.maxAmount ?? ''}
+            onChange={(e) => set({ maxAmount: e.target.value === '' ? null : Number(e.target.value) })}
+            size="small"
+            sx={{ width: { xs: '100%', sm: 130 } }}
+          />
+          <FormControlLabel
+            control={
+              <Switch
+                checked={filters.overdueOnly}
+                onChange={(e) => set({ overdueOnly: e.target.checked })}
+                size="small"
+              />
             }
-            input={<OutlinedInput label={t('finances.filters.billedTo')} />}
-          >
-            <MenuItem value="">{t('finances.filters.any')}</MenuItem>
-            <MenuItem value="CLINIC">{t('finances.filters.theClinic')}</MenuItem>
-            <MenuItem value="DOCTOR">{t('finances.filters.theDoctor')}</MenuItem>
-          </Select>
-        </FormControl>
-
-        <DatePicker
-          label={t('finances.filters.from')}
-          value={filters.dateFrom ? dayjs(filters.dateFrom) : null}
-          onChange={(d) => set({ dateFrom: d && d.isValid() ? d.format('YYYY-MM-DD') : null })}
-          format="YYYY-MM-DD"
-          slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
-        />
-        <DatePicker
-          label={t('finances.filters.to')}
-          value={filters.dateTo ? dayjs(filters.dateTo) : null}
-          onChange={(d) => set({ dateTo: d && d.isValid() ? d.format('YYYY-MM-DD') : null })}
-          format="YYYY-MM-DD"
-          slotProps={{ textField: { size: 'small', sx: { width: 160 } } }}
-        />
-        <TextField
-          type="number"
-          label={t('finances.filters.minAmount')}
-          value={filters.minAmount ?? ''}
-          onChange={(e) => set({ minAmount: e.target.value === '' ? null : Number(e.target.value) })}
-          size="small"
-          sx={{ width: 130 }}
-        />
-        <TextField
-          type="number"
-          label={t('finances.filters.maxAmount')}
-          value={filters.maxAmount ?? ''}
-          onChange={(e) => set({ maxAmount: e.target.value === '' ? null : Number(e.target.value) })}
-          size="small"
-          sx={{ width: 130 }}
-        />
-        <FormControlLabel
-          control={
-            <Switch
-              checked={filters.overdueOnly}
-              onChange={(e) => set({ overdueOnly: e.target.checked })}
-              size="small"
-            />
-          }
-          label={t('finances.filters.overdueOnly')}
-        />
-        {hasFilters && (
-          <Button size="small" onClick={onClear} sx={{ whiteSpace: 'nowrap' }}>
-            {t('finances.filters.clear')}
-          </Button>
-        )}
-      </Stack>
+            label={t('finances.filters.overdueOnly')}
+          />
+        </Stack>
+      </Collapse>
     </Stack>
   );
 }

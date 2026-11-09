@@ -3,8 +3,10 @@ import type {
   InvoiceRecipientType,
   LabReceivableCustomer,
   LabReceivableOrder,
+  OrderStatus,
   PaymentStatus,
 } from '@/types/database';
+import { FILTERABLE_STATUSES } from '@/features/lab/orders/orderPresets';
 
 export type ReceivableSort =
   | 'created_desc'
@@ -12,7 +14,9 @@ export type ReceivableSort =
   | 'outstanding_desc'
   | 'outstanding_asc'
   | 'due_asc'
-  | 'due_desc';
+  | 'due_desc'
+  | 'completed_desc'
+  | 'completed_asc';
 
 export const RECEIVABLE_SORTS: readonly ReceivableSort[] = [
   'created_desc',
@@ -21,14 +25,28 @@ export const RECEIVABLE_SORTS: readonly ReceivableSort[] = [
   'outstanding_asc',
   'due_asc',
   'due_desc',
+  'completed_desc',
+  'completed_asc',
 ] as const;
+
+/**
+ * The order statuses the finance filter offers: the lab orders page's own
+ * list, without CANCELLED (no finance figure includes a cancelled order, 0056).
+ */
+export const RECEIVABLE_ORDER_STATUSES: readonly OrderStatus[] = FILTERABLE_STATUSES.filter(
+  (s) => s !== 'CANCELLED',
+);
 
 /** UI filter state for the finances page. */
 export type ReceivableFilters = {
   search: string;
   recipientType: InvoiceRecipientType | null;
   customerId: string | null;
+  /** Payment status. Empty = every one. */
   statuses: PaymentStatus[];
+  /** Order status (0056). Empty = every one. */
+  orderStatuses: OrderStatus[];
+  /** Completed on or after / before, a Tbilisi date (0056). */
   dateFrom: string | null; // YYYY-MM-DD
   dateTo: string | null; // YYYY-MM-DD
   overdueOnly: boolean;
@@ -47,22 +65,42 @@ export const CUSTOMER_TYPE_LABEL = {
   LAB: 'lab',
 } as const satisfies Record<InvoiceRecipientType, string>;
 
-/** Everything still owed: what the default view and the lab dashboard's
- *  "unpaid" square both show. */
-export const OWED_PAYMENT_STATUSES: readonly PaymentStatus[] = ['UNPAID', 'PARTIALLY_PAID'];
+/** Everything still owed: the "Outstanding" square's filter, and what the lab
+ *  dashboard's "unpaid" square opens. */
+export { OWED_PAYMENT_STATUSES } from '@/features/finances/paymentSquares';
 
-/** Default view: everything still owed (unpaid + partially paid). */
+/**
+ * Default view: every order with a price, whatever its payment status, so the
+ * "Billed" square is the one selected on arrival.
+ */
 export const defaultReceivableFilters: ReceivableFilters = {
   search: '',
   recipientType: null,
   customerId: null,
-  statuses: [...OWED_PAYMENT_STATUSES],
+  statuses: [],
+  orderStatuses: [],
   dateFrom: null,
   dateTo: null,
   overdueOnly: false,
   minAmount: null,
   maxAmount: null,
 };
+
+/**
+ * How many of the filters behind "More filters" are set: customer type, the
+ * completed dates, the amounts, overdue only. The customer picked from the
+ * by-customer table is not one of them: it shows as its own chip.
+ */
+export function hiddenReceivableFilterCount(f: ReceivableFilters): number {
+  return [
+    f.recipientType !== null,
+    f.dateFrom !== null,
+    f.dateTo !== null,
+    f.minAmount !== null,
+    f.maxAmount !== null,
+    f.overdueOnly,
+  ].filter(Boolean).length;
+}
 
 /** Map UI filter state to the shared p_* RPC arguments. */
 function filterParams(labId: string, f: ReceivableFilters) {
@@ -72,6 +110,7 @@ function filterParams(labId: string, f: ReceivableFilters) {
     p_recipient_type: f.recipientType,
     p_customer_id: f.customerId,
     p_statuses: f.statuses.length ? f.statuses : null,
+    p_order_statuses: f.orderStatuses.length ? f.orderStatuses : null,
     p_date_from: f.dateFrom,
     p_date_to: f.dateTo,
     p_overdue_only: f.overdueOnly,

@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { useUnacknowledgedInvoices } from '@/features/orders/orderFiles/useUnacknowledgedInvoices';
 import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
+import { CancelledHiddenHint } from '@/features/orders/CancelledHiddenHint';
 import { clearDraft, loadDraftsByAuthor } from '@/features/doctor/orderCreate/draftStorage';
 import { OrderCard } from '@/features/orders/list/OrderCard';
 import { DraftCard } from '@/features/orders/list/DraftCard';
@@ -227,34 +228,46 @@ export function ClinicOrdersPage() {
           <OrderListSkeleton />
         ) : orders.length === 0 && draftItems.length === 0 ? (
           <OrdersEmptyState title={t('orders.empty')} />
-        ) : filters.filtered.length === 0 && filters.hasFilters && draftItems.length === 0 ? (
+        ) : filters.filtered.length === 0 && draftItems.length === 0 ? (
+          // Filtered out, or every order is cancelled and hidden by default.
           <OrdersEmptyState
             icon="filter_alt_off"
             title={td('orders.filters.noResults')}
             action={
-              <Button size="small" onClick={filters.clear}>
-                {td('orders.filters.clear')}
-              </Button>
+              <Stack alignItems="center" spacing={1}>
+                <CancelledHiddenHint
+                  count={filters.hiddenCancelled}
+                  onShow={filters.showCancelled}
+                />
+                {filters.hasFilters && (
+                  <Button size="small" onClick={filters.clear}>
+                    {td('orders.filters.clear')}
+                  </Button>
+                )}
+              </Stack>
             }
           />
         ) : (
-          <GroupedOrderList
-            rows={filters.filtered}
-            drafts={draftItems}
-            resetKey={filters.resetKey}
-            sort={filters.sort}
-            renderCard={(row, group) => (
-              <OrderCard
-                row={row}
-                group={group}
-                href={`/clinic/orders/${row.id}`}
-                doctorName={doctorOf(row) || undefined}
-                invoiceUnseen={unseenInvoices.has(row.id)}
-                parentCode={parentCodes.get(row.continues_order_id ?? '')}
-                actions={cardActions(row, group)}
-              />
-            )}
-          />
+          <>
+            <GroupedOrderList
+              rows={filters.filtered}
+              drafts={draftItems}
+              resetKey={filters.resetKey}
+              sort={filters.sort}
+              renderCard={(row, group) => (
+                <OrderCard
+                  row={row}
+                  group={group}
+                  href={`/clinic/orders/${row.id}`}
+                  doctorName={doctorOf(row) || undefined}
+                  invoiceUnseen={unseenInvoices.has(row.id)}
+                  parentCode={parentCodes.get(row.continues_order_id ?? '')}
+                  actions={cardActions(row, group)}
+                />
+              )}
+            />
+            <CancelledHiddenHint count={filters.hiddenCancelled} onShow={filters.showCancelled} />
+          </>
         )}
       </Stack>
     </>

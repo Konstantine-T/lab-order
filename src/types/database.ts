@@ -650,13 +650,20 @@ export interface LabReceivableOrder {
   customer_name: string;
   doctor_name: string | null;
   service_name: string;
+  /** The patient's name, else a purchase's case reference (0048); null if neither. 0056. */
+  patient_name: string | null;
   final_total: number;
   paid_total: number;
   outstanding: number;
   payment_status: PaymentStatus;
   confirmed_due_date: string | null;
   requested_due_date: string | null;
+  /** `HH:MM:SS` (0032). 0056. */
+  confirmed_due_time: string | null;
+  requested_due_time: string | null;
   created_at: string;
+  /** When the doctor closed the case; null while it is open. 0056. */
+  completed_at: string | null;
   /** Full filtered size for pagination (identical on every row of a page). */
   total_count: number;
 }
@@ -689,7 +696,12 @@ export interface ClinicPayableOrder {
   payment_status: PaymentStatus;
   confirmed_due_date: string | null;
   requested_due_date: string | null;
+  /** `HH:MM:SS` (0032). 0056. */
+  confirmed_due_time: string | null;
+  requested_due_time: string | null;
   created_at: string;
+  /** When the doctor closed the case; null while it is open. 0056. */
+  completed_at: string | null;
   /** Full filtered size for pagination (identical on every row of a page). */
   total_count: number;
 }

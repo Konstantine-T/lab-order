@@ -306,6 +306,14 @@
     "or": "или",
     "register": "Создать аккаунт"
   },
+  "moreFilters": {
+    "label": "Ещё фильтры",
+    "withCount": "Ещё фильтры · {{count}}",
+    "ariaActive_one": "Ещё фильтры, активен {{count}}",
+    "ariaActive_few": "Ещё фильтры, активно {{count}}",
+    "ariaActive_many": "Ещё фильтры, активно {{count}}",
+    "ariaActive_other": "Ещё фильтры, активно {{count}}"
+  },
   "orderList": {
     "dateFormat": "D MMM",
     "searchPlaceholder": "Пациент, номер, лаборатория",
@@ -337,6 +345,11 @@
     },
     "showMore": "Ещё {{count}}",
     "showLess": "Свернуть",
+    "cancelledHidden_one": "Скрыт {{count}} отменённый заказ",
+    "cancelledHidden_few": "Скрыто {{count}} отменённых заказа",
+    "cancelledHidden_many": "Скрыто {{count}} отменённых заказов",
+    "cancelledHidden_other": "Скрыто {{count}} отменённого заказа",
+    "showCancelled": "Показать",
     "tag": {
       "needsChange": "Нужны правки",
       "readyToClose": "Ждёт подтверждения",

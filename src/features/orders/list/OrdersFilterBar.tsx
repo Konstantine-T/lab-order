@@ -13,31 +13,19 @@ import {
   Select,
   Stack,
   Typography,
+  useMediaQuery,
   useTheme,
 } from '@mui/material';
 import { DatePicker } from '@mui/x-date-pickers';
 import { useTranslation } from 'react-i18next';
 import { statusLabel } from '@/features/orders/statusLabel';
 import { ChoicePill, Icon } from '@/components/design';
+import { MoreFiltersButton } from '@/components/MoreFiltersButton';
 import { focusRing, motion, radii, surfaces, tone } from '@/theme/tokens';
 import type { OrderStatus } from '@/types/database';
 import { DEFAULT_ORDER_SORT, ORDER_SORTS, type OrderSort } from '@/features/orders/orderDates';
-import type { FilterOption, QuickFilter } from './orderListModel';
+import { LIST_FILTER_STATUSES as ALL_STATUSES, type FilterOption, type QuickFilter } from './orderListModel';
 import type { OrderListFilterState } from './useOrderListFilters';
-
-const ALL_STATUSES: readonly OrderStatus[] = [
-  'SUBMITTED',
-  'RECEIVED',
-  'NEEDS_CLARIFICATION',
-  'NEEDS_DOCTOR_INPUT',
-  'IN_PROGRESS',
-  'READY_FOR_DELIVERY',
-  'SENT_TO_CLINIC',
-  'RECEIVED_BY_CLINIC',
-  'TRY_IN_PHASE',
-  'COMPLETED',
-  'CANCELLED',
-];
 
 /**
  * The pill every menu in the bar opens from: control height, hairline border
@@ -306,9 +294,21 @@ export function OrdersFilterBar({
   doctorOptions?: FilterOption[];
 }) {
   const { t } = useTranslation(['common', 'doctor']);
-  const mode = useTheme().palette.mode;
+  const theme = useTheme();
+  const mode = theme.palette.mode;
   const gold = tone('warning', mode);
   const { quick, setQuick, counts } = filters;
+  // What "More filters" holds, set. Below `sm` the Lab / Patient / Doctor
+  // menus live in the panel too, so there they count.
+  const phone = useMediaQuery(theme.breakpoints.down('sm'));
+  const hiddenCount = [
+    filters.statuses.length > 0,
+    !!filters.dateFrom?.isValid(),
+    !!filters.dateTo?.isValid(),
+    phone && !!filters.labId,
+    phone && !!filters.patientId,
+    phone && !!doctorOptions && !!filters.doctorId,
+  ].filter(Boolean).length;
 
   const chip = (key: QuickFilter, extra: { phone?: boolean } = {}) => {
     const selected = quick === key;
@@ -397,13 +397,11 @@ export function OrdersFilterBar({
               "More filters" so the row stays short under the tiles. */}
           <Box sx={{ display: { xs: 'none', sm: 'contents' } }}>{menus}</Box>
           <SortMenu value={filters.sort} onChange={filters.setSort} />
-          <ChoicePill
-            selected={filters.advancedOpen}
-            onClick={() => filters.setAdvancedOpen((v) => !v)}
-          >
-            <Icon name="tune" size={15} />
-            {t('doctor:orders.moreFilters')}
-          </ChoicePill>
+          <MoreFiltersButton
+            open={filters.advancedOpen}
+            onToggle={() => filters.setAdvancedOpen((v) => !v)}
+            activeCount={hiddenCount}
+          />
           {filters.hasFilters && (
             <Button size="small" onClick={filters.clear} sx={{ whiteSpace: 'nowrap' }}>
               {t('doctor:orders.filters.clear')}

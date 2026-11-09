@@ -3,8 +3,10 @@ import type {
   ClinicPayableDoctor,
   ClinicPayableOrder,
   InvoiceRecipientType,
+  OrderStatus,
   PaymentStatus,
 } from '@/types/database';
+import { LIST_FILTER_STATUSES } from '@/features/orders/list/orderListModel';
 
 export type PayableSort =
   | 'created_desc'
@@ -12,7 +14,9 @@ export type PayableSort =
   | 'outstanding_desc'
   | 'outstanding_asc'
   | 'due_asc'
-  | 'due_desc';
+  | 'due_desc'
+  | 'completed_desc'
+  | 'completed_asc';
 
 export const PAYABLE_SORTS: readonly PayableSort[] = [
   'created_desc',
@@ -21,7 +25,17 @@ export const PAYABLE_SORTS: readonly PayableSort[] = [
   'outstanding_asc',
   'due_asc',
   'due_desc',
+  'completed_desc',
+  'completed_asc',
 ] as const;
+
+/**
+ * The order statuses the finance filter offers: the clinic's orders list's
+ * own, without CANCELLED (no finance figure includes a cancelled order, 0056).
+ */
+export const PAYABLE_ORDER_STATUSES: readonly OrderStatus[] = LIST_FILTER_STATUSES.filter(
+  (s) => s !== 'CANCELLED',
+);
 
 /** UI filter state for the clinic's finances page. */
 export type PayableFilters = {
@@ -30,7 +44,11 @@ export type PayableFilters = {
   labId: string | null;
   /** Whose invoice it is: billed to the doctor personally, or to the clinic. */
   recipientType: InvoiceRecipientType | null;
+  /** Payment status. Empty = every one. */
   statuses: PaymentStatus[];
+  /** Order status (0056). Empty = every one. */
+  orderStatuses: OrderStatus[];
+  /** Completed on or after / before, a Tbilisi date (0056). */
   dateFrom: string | null; // YYYY-MM-DD
   dateTo: string | null; // YYYY-MM-DD
   overdueOnly: boolean;
@@ -39,22 +57,36 @@ export type PayableFilters = {
 };
 
 /**
- * Default view: everything still owed. A clinic opening this page is asking
- * "what do we still have to pay", not "show me every order we ever placed" —
- * the same reasoning as the lab's default.
+ * Default view: every order, whatever its payment status, so the "Billed"
+ * square is the one selected on arrival; "Outstanding" is one click away.
  */
 export const defaultPayableFilters: PayableFilters = {
   search: '',
   doctorId: null,
   labId: null,
   recipientType: null,
-  statuses: ['UNPAID', 'PARTIALLY_PAID'],
+  statuses: [],
+  orderStatuses: [],
   dateFrom: null,
   dateTo: null,
   overdueOnly: false,
   minAmount: null,
   maxAmount: null,
 };
+
+/** How many of the filters behind "More filters" are set. */
+export function hiddenPayableFilterCount(f: PayableFilters): number {
+  return [
+    f.doctorId !== null,
+    f.labId !== null,
+    f.recipientType !== null,
+    f.dateFrom !== null,
+    f.dateTo !== null,
+    f.minAmount !== null,
+    f.maxAmount !== null,
+    f.overdueOnly,
+  ].filter(Boolean).length;
+}
 
 /** Map UI filter state onto the shared p_* RPC arguments. */
 function filterParams(f: PayableFilters) {
@@ -64,6 +96,7 @@ function filterParams(f: PayableFilters) {
     p_lab_id: f.labId,
     p_recipient_type: f.recipientType,
     p_statuses: f.statuses.length ? f.statuses : null,
+    p_order_statuses: f.orderStatuses.length ? f.orderStatuses : null,
     p_date_from: f.dateFrom,
     p_date_to: f.dateTo,
     p_overdue_only: f.overdueOnly,

@@ -103,6 +103,8 @@
       "doctor": "Doctor",
       "lab": "Laboratory",
       "patient": "Patient",
+      "service": "Service",
+      "orderStatus": "Status",
       "due": "Due",
       "billed": "Billed",
       "paid": "Paid",
@@ -121,8 +123,9 @@
       "any": "Any",
       "status": "Payment status",
       "sort": "Sort",
-      "from": "From",
-      "to": "To",
+      "orderStatus": "Order status",
+      "completedFrom": "Completed from",
+      "completedTo": "Completed to",
       "minAmount": "Min owed",
       "maxAmount": "Max owed",
       "overdueOnly": "Overdue only",
@@ -135,7 +138,9 @@
       "outstanding_desc": "Most owed",
       "outstanding_asc": "Least owed",
       "due_asc": "Due soonest",
-      "due_desc": "Due latest"
+      "due_desc": "Due latest",
+      "completed_desc": "Completed, newest first",
+      "completed_asc": "Completed, oldest first"
     }
   },
   "profile": {

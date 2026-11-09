@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import dayjs, { type Dayjs } from 'dayjs';
 import type { OrderStatus } from '@/types/database';
+import { CANCELLED_ONLY, withCancelled } from '@/features/orders/statusSelection';
 import { homePresetFilter, isHomePreset, matchesStatusDue } from './homePresets';
 import {
   currentWeek,
@@ -51,30 +52,35 @@ export function useOrderListFilters(
   const to = dateTo?.isValid() ? dateTo.format('YYYY-MM-DD') : null;
   const q = search.trim().toLowerCase();
 
-  // Everything but the quick filter.
+  // Everything but the quick filter, under a status selection: the list's own,
+  // or CANCELLED_ONLY to count the cancelled orders the default hides.
+  const matchesRest = useCallback(
+    (row: ListOrderRow, selected: readonly OrderStatus[]) => {
+      if (labId && row.lab_id !== labId) return false;
+      if (patientId && row.patient_id !== patientId) return false;
+      if (doctorId && row.doctor_id !== doctorId) return false;
+      // The same function the doctor home counts its squares with.
+      if (!matchesStatusDue(row, { statuses: selected, from, to })) return false;
+      if (q) {
+        const haystack = [
+          row.order_code,
+          patientFullName(row),
+          serviceNameOf(row),
+          labNameOf(row),
+          searchText?.(row) ?? '',
+        ]
+          .join(' ')
+          .toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      return true;
+    },
+    [labId, patientId, doctorId, from, to, q, searchText],
+  );
+
   const base = useMemo(
-    () =>
-      rows.filter((row) => {
-        if (labId && row.lab_id !== labId) return false;
-        if (patientId && row.patient_id !== patientId) return false;
-        if (doctorId && row.doctor_id !== doctorId) return false;
-        // The same function the doctor home counts its squares with.
-        if (!matchesStatusDue(row, { statuses, from, to })) return false;
-        if (q) {
-          const haystack = [
-            row.order_code,
-            patientFullName(row),
-            serviceNameOf(row),
-            labNameOf(row),
-            searchText?.(row) ?? '',
-          ]
-            .join(' ')
-            .toLowerCase();
-          if (!haystack.includes(q)) return false;
-        }
-        return true;
-      }),
-    [rows, labId, patientId, doctorId, statuses, from, to, q, searchText],
+    () => rows.filter((row) => matchesRest(row, statuses)),
+    [rows, matchesRest, statuses],
   );
 
   const week = currentWeek();
@@ -94,6 +100,25 @@ export function useOrderListFilters(
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [base, quick, weekKey],
   );
+
+  // The cancelled orders every other filter (the quick one included) would
+  // show, left out only because no status is selected. "Show" lists exactly
+  // these.
+  const hiddenCancelled = useMemo(
+    () =>
+      statuses.length > 0
+        ? 0
+        : rows.filter((row) => matchesRest(row, CANCELLED_ONLY) && matchesQuick(row, quick, week))
+            .length,
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [rows, matchesRest, statuses, quick, weekKey],
+  );
+
+  /** The hint's "Show": select "Cancelled", with the panel that shows it open. */
+  const showCancelled = () => {
+    setStatuses(withCancelled);
+    setAdvancedOpen(true);
+  };
 
   const labOptions = useMemo(
     () => optionsFrom(rows, (row) => ({ value: row.lab_id, label: labNameOf(row) })),
@@ -176,6 +201,8 @@ export function useOrderListFilters(
     setSort,
     counts,
     filtered,
+    hiddenCancelled,
+    showCancelled,
     labOptions,
     patientOptions,
     hasFilters,

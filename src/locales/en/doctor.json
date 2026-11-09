@@ -351,7 +351,6 @@
       "needsAction": "Needs my action",
       "completed": "Completed"
     },
-    "moreFilters": "More filters",
     "pipelineNext": "{{current}} → {{next}}",
     "pipelineDone": "Delivered & completed",
     "addNewOrder": "Add new order",

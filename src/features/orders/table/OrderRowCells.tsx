@@ -1,0 +1,222 @@
+import type { ReactNode } from 'react';
+import { Box, Stack, Typography } from '@mui/material';
+import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
+import { InitialsAvatar } from '@/components/design';
+import { OrderStatusChip } from '@/components/OrderStatusChip';
+import { FromLabBadge } from '@/features/lab/orders/FromLabBadge';
+import { matchesPreset, CLOSED_STATUSES, type QueueDates } from '@/features/lab/orders/orderPresets';
+import { appendDueWindow, dueDateOf, dueTimeOf, type DatedOrder } from '@/features/orders/orderDates';
+import { pastDate, shortDate } from '@/features/orders/list/listFormat';
+import type { StatusSide } from '@/features/orders/statusLabel';
+import { tone } from '@/theme/tokens';
+import type { OrderStatus } from '@/types/database';
+
+/**
+ * The cells of an order row in a `DataTable`: the lab's orders queue and both
+ * finances pages draw their rows from these, so the three cannot drift (J5).
+ * Each is one grid cell; the page owns the columns and their order.
+ */
+
+/** The order code, bold brand. */
+export function OrderCodeCell({ code }: { code: string }) {
+  return (
+    <Typography sx={{ fontSize: '0.78125rem', fontWeight: 700, color: 'primary.dark' }} noWrap>
+      {code}
+    </Typography>
+  );
+}
+
+/** Avatar and name; `children` go under the name (the queue's badges). */
+export function PatientCell({ name, children }: { name: string; children?: ReactNode }) {
+  return (
+    <Stack direction="row" alignItems="center" spacing={1.125} sx={{ minWidth: 0 }}>
+      <InitialsAvatar name={name} size={28} shape="circle" />
+      <Box sx={{ minWidth: 0 }}>
+        <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }} noWrap>
+          {name}
+        </Typography>
+        {children}
+      </Box>
+    </Stack>
+  );
+}
+
+/**
+ * Who the order is from: the name, the "from a lab" mark for a buying lab
+ * (0048) on its own line, and a smaller detail line (the clinic, or on the
+ * finances page the doctor behind a clinic's invoice).
+ */
+export function CustomerCell({
+  name,
+  fromLab,
+  detail,
+  detailTitle,
+}: {
+  name: string;
+  fromLab?: boolean;
+  detail?: string | null;
+  detailTitle?: string;
+}) {
+  return (
+    <Box sx={{ minWidth: 0 }}>
+      <Typography variant="body1" color="text.secondary" noWrap>
+        {name || '—'}
+      </Typography>
+      {/* On its own line, not beside the name: the column is narrow at
+          1280px and a lab's name is long. */}
+      {fromLab && (
+        <Box sx={{ mt: 0.375 }}>
+          <FromLabBadge />
+        </Box>
+      )}
+      {detail && (
+        <Typography
+          sx={{ fontSize: '0.6875rem', color: 'text.secondary', opacity: 0.8 }}
+          noWrap
+          title={detailTitle ?? detail}
+        >
+          {detail}
+        </Typography>
+      )}
+    </Box>
+  );
+}
+
+/** A plain secondary text cell: the service, the lab. */
+export function TextCell({ children }: { children: ReactNode }) {
+  return (
+    <Typography variant="body1" color="text.secondary" noWrap>
+      {children || '—'}
+    </Typography>
+  );
+}
+
+export type DueCellOrder = DatedOrder & {
+  status: OrderStatus;
+  created_at: string;
+  confirmed_due_time?: string | null;
+  requested_due_time?: string | null;
+};
+
+/**
+ * The due date as a tinted pill, with the creation date under it. Red once the
+ * date has passed on a case still open: exactly the rows the "Overdue" preset
+ * finds (orderPresets), so the colour and the lab dashboard's count agree. A
+ * closed case has no deadline left to miss. Created sits here rather than in
+ * a column of its own: the two dates are read against each other.
+ */
+export function DueCell({
+  order,
+  dates,
+  side,
+}: {
+  order: DueCellOrder;
+  /** `queueDates()`, taken once per render of the table. */
+  dates: QueueDates;
+  side: StatusSide;
+}) {
+  const { t } = useTranslation(side === 'lab' ? 'lab' : 'common');
+  const { t: tc } = useTranslation('common');
+  const dueRaw = dueDateOf(order);
+  const daysOut = dueRaw ? dayjs(dueRaw).diff(dayjs(), 'day') : null;
+  const overdue = matchesPreset({ ...order, final_total: null }, 'overdue', dates);
+  const closed = (CLOSED_STATUSES as readonly OrderStatus[]).includes(order.status);
+  const dueTone = overdue
+    ? 'danger'
+    : daysOut == null || closed
+      ? 'neutral'
+      : daysOut <= 1
+        ? 'warning'
+        : daysOut <= 4
+          ? 'info'
+          : 'neutral';
+
+  return (
+    <Stack spacing={0.375} sx={{ minWidth: 0 }}>
+      <Box
+        title={overdue ? (side === 'lab' ? t('dashboard.overdue') : tc('orderList.overdue')) : undefined}
+        sx={(theme) => ({
+          textAlign: 'center',
+          py: 0.5,
+          borderRadius: 999,
+          fontSize: '0.71875rem',
+          fontWeight: 600,
+          color: tone(dueTone, theme.palette.mode).fg,
+          bgcolor: tone(dueTone, theme.palette.mode).bg,
+        })}
+      >
+        {dueRaw ? appendDueWindow(shortDate(dueRaw, tc), dueTimeOf(order), tc) : '—'}
+      </Box>
+      <Typography
+        sx={{ fontSize: '0.625rem', color: 'text.secondary', textAlign: 'center' }}
+        noWrap
+      >
+        {side === 'lab'
+          ? t('orderSheet.createdOn', { date: pastDate(order.created_at, tc) })
+          : tc('orderList.createdOn', { date: pastDate(order.created_at, tc) })}
+      </Typography>
+    </Stack>
+  );
+}
+
+/**
+ * The order's status as a read-only pill, in the side's wording, and when it
+ * was completed under it. The queue has its own inline status select instead.
+ */
+export function OrderStatusCell({
+  status,
+  completedAt,
+  side,
+}: {
+  status: OrderStatus;
+  completedAt: string | null;
+  side: StatusSide;
+}) {
+  const { t } = useTranslation('common');
+  return (
+    <Stack spacing={0.375} alignItems="flex-start" sx={{ minWidth: 0 }}>
+      <OrderStatusChip status={status} side={side} />
+      {completedAt && (
+        <Typography sx={{ fontSize: '0.625rem', color: 'text.secondary' }} noWrap>
+          {t('orderList.completedOn', { date: pastDate(completedAt, t) })}
+        </Typography>
+      )}
+    </Stack>
+  );
+}
+
+/**
+ * A money figure, right-aligned. `owed` paints it red while above 0, and
+ * `children` stack under it (the payment and overdue pills under what is
+ * still owed, so the row keeps to one column for both).
+ */
+export function AmountCell({
+  value,
+  owed,
+  amount,
+  children,
+}: {
+  value: ReactNode;
+  owed?: boolean;
+  amount?: number;
+  children?: ReactNode;
+}) {
+  const red = owed && (amount ?? 0) > 0;
+  return (
+    <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 0 }}>
+      <Typography
+        sx={{
+          fontSize: '0.8125rem',
+          textAlign: 'right',
+          fontWeight: owed ? 700 : 400,
+          color: owed ? (red ? 'error.main' : 'text.secondary') : 'text.primary',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {value}
+      </Typography>
+      {children}
+    </Stack>
+  );
+}

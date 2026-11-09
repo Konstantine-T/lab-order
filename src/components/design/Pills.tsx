@@ -19,6 +19,8 @@ export function ChoicePill({
   size = 'sm',
   swatch,
   sx,
+  ariaLabel,
+  ariaExpanded,
 }: {
   selected?: boolean;
   onClick?: () => void;
@@ -30,6 +32,12 @@ export function ChoicePill({
   /** Colour dot before the label — materials, shades. */
   swatch?: string;
   sx?: SxProps<Theme>;
+  ariaLabel?: string;
+  /**
+   * A pill that opens a panel ("More filters"): it is a disclosure, not a
+   * toggle, so it says `aria-expanded` instead of `aria-pressed`.
+   */
+  ariaExpanded?: boolean;
 }) {
   const md = size === 'md';
 
@@ -39,7 +47,10 @@ export function ChoicePill({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      aria-pressed={selected}
+      aria-label={ariaLabel}
+      {...(ariaExpanded === undefined
+        ? { 'aria-pressed': selected }
+        : { 'aria-expanded': ariaExpanded })}
       sx={[
         {
           display: 'inline-flex',

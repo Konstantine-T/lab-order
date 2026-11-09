@@ -232,6 +232,25 @@ export function groupRows(
   return groups;
 }
 
+// ===== Status filter =========================================================
+
+/** The statuses the doctor's and the clinic's lists offer in their status
+ *  filter, in pipeline order. The clinic's finances offer the same, without
+ *  CANCELLED. */
+export const LIST_FILTER_STATUSES: readonly OrderStatus[] = [
+  'SUBMITTED',
+  'RECEIVED',
+  'NEEDS_CLARIFICATION',
+  'NEEDS_DOCTOR_INPUT',
+  'IN_PROGRESS',
+  'READY_FOR_DELIVERY',
+  'SENT_TO_CLINIC',
+  'RECEIVED_BY_CLINIC',
+  'TRY_IN_PHASE',
+  'COMPLETED',
+  'CANCELLED',
+];
+
 // ===== Quick filters =========================================================
 
 export type QuickFilter = 'all' | 'dueThisWeek' | 'needsAnswer' | 'edited' | 'unpaid' | 'ready';

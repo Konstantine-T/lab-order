@@ -1,6 +1,7 @@
 import dayjs from 'dayjs';
 import type { OrderStatus } from '@/types/database';
 import { dueDateOf, type DatedOrder } from '@/features/orders/orderDates';
+import { matchesStatusSelection } from '@/features/orders/statusSelection';
 
 /**
  * The doctor home's squares, defined once for the square and the list.
@@ -31,12 +32,13 @@ export type StatusDueFilter = {
   to: string | null;
 };
 
-/** The list's filtering on those three — `useOrderListFilters` calls this. */
+/** The list's filtering on those three — `useOrderListFilters` calls this. An
+ *  empty status selection leaves cancelled orders out (statusSelection). */
 export function matchesStatusDue(
   row: DatedOrder & { status: OrderStatus },
   f: StatusDueFilter,
 ): boolean {
-  if (f.statuses.length > 0 && !f.statuses.includes(row.status)) return false;
+  if (!matchesStatusSelection(row.status, f.statuses)) return false;
   if (f.from || f.to) {
     const due = dueDateOf(row);
     if (due == null) return false;

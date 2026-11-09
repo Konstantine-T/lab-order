@@ -362,7 +362,6 @@
       "needsAction": "Требуют действий",
       "completed": "Завершённые"
     },
-    "moreFilters": "Ещё фильтры",
     "pipelineNext": "{{current}} → {{next}}",
     "pipelineDone": "Доставлено и завершено",
     "addNewOrder": "Добавить новый заказ",

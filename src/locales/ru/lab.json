@@ -53,7 +53,7 @@
       "outstanding": "К оплате",
       "billed": "Всего начислено",
       "collected": "Получено",
-      "customers": "Должники"
+      "customers": "Клиенты"
     },
     "filters": {
       "search": "Поиск по № заказа или клиенту",
@@ -62,8 +62,9 @@
       "doctor": "Врач",
       "clinic": "Клиника",
       "status": "Статус оплаты",
-      "from": "С",
-      "to": "По",
+      "orderStatus": "Статус заказа",
+      "completedFrom": "Завершён с",
+      "completedTo": "Завершён по",
       "minAmount": "Мин. сумма",
       "maxAmount": "Макс. сумма",
       "overdueOnly": "Только просроченные",
@@ -73,7 +74,9 @@
     },
     "sort": {
       "outstanding_desc": "Больше долг",
-      "outstanding_asc": "Меньше долг"
+      "outstanding_asc": "Меньше долг",
+      "completed_desc": "Завершённые, сначала новые",
+      "completed_asc": "Завершённые, сначала старые"
     },
     "customers": {
       "title": "По клиентам",
@@ -88,6 +91,8 @@
       "order": "Заказ",
       "customer": "Клиент",
       "service": "Услуга",
+      "patient": "Пациент",
+      "orderStatus": "Статус",
       "due": "Срок",
       "billed": "Итог",
       "paid": "Оплачено",
@@ -500,7 +505,6 @@
     },
     "subtitle": "Всё, что прислали вам врачи",
     "unreviewedEdits": "Непросмотренные правки",
-    "moreFilters": "Ещё фильтры",
     "quick": {
       "all": "Все",
       "new": "Новые",

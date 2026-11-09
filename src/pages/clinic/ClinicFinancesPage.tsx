@@ -21,6 +21,22 @@ import {
 } from '@/components/design';
 import { OrdersPaginator } from '@/features/orders/OrdersPaginator';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
+import {
+  AmountCell,
+  DueCell,
+  OrderCodeCell,
+  OrderStatusCell,
+  PatientCell,
+  TextCell,
+} from '@/features/orders/table/OrderRowCells';
+import { queueDates } from '@/features/lab/orders/orderPresets';
+import { FinanceOrderCard } from '@/features/finances/FinanceOrderCard';
+import {
+  selectedPaymentSquare,
+  SQUARE_PAYMENT_STATUSES,
+  squareTotals,
+  type PaymentSquare,
+} from '@/features/finances/paymentSquares';
 import { ClinicFinanceFilterBar } from '@/features/clinic/finances/ClinicFinanceFilterBar';
 import {
   defaultPayableFilters,
@@ -39,24 +55,27 @@ const DOCTOR_COLUMNS: Column[] = [
   { key: 'outstanding', width: '120px', align: 'right' },
 ];
 
-// Nine columns is a lot for one row, so the fixed ones are trimmed to the
-// width their content actually needs — otherwise the payment chip spills past
-// the card edge at the size most people run this at.
+/**
+ * What the clinic's orders list says about an order (patient, doctor, lab,
+ * service, due, status), then the money: billed, paid, outstanding, payment.
+ */
 const ORDER_COLUMNS: Column[] = [
-  { key: 'order', width: '90px' },
+  { key: 'order', width: '84px' },
+  { key: 'patient', width: 'minmax(0, 1.1fr)' },
   { key: 'doctor', width: 'minmax(0, 1fr)' },
   { key: 'lab', width: 'minmax(0, 1fr)' },
-  { key: 'patient', width: 'minmax(0, 1fr)' },
-  // Wide enough for a date and the overdue pill side by side; the three
-  // name columns are elastic and give this the room.
-  { key: 'due', width: 'minmax(146px, auto)' },
-  { key: 'billed', width: '92px', align: 'right' },
-  { key: 'paid', width: '88px', align: 'right' },
-  { key: 'outstanding', width: '100px', align: 'right' },
-  // "ნაწილობრივ გადახდილი" is a 176px pill in Georgian.
-  { key: 'status', width: 'minmax(108px, auto)' },
+  { key: 'service', width: 'minmax(0, 1fr)' },
+  { key: 'due', width: '120px' },
+  // The status pill, with the completed date under it.
+  { key: 'orderStatus', width: 'minmax(116px, auto)' },
+  { key: 'billed', width: '84px', align: 'right' },
+  { key: 'paid', width: '84px', align: 'right' },
+  // The payment and overdue pills under the amount; "ნაწილობრივ
+  // გადახდილი" is a 176px pill, so `auto` lets it widen the column.
+  { key: 'outstanding', width: 'minmax(108px, auto)', align: 'right' },
 ];
 
+/** Money overdue: past its confirmed date with something still owed. */
 function isOverdue(o: ClinicPayableOrder): boolean {
   return (
     !!o.confirmed_due_date &&
@@ -72,10 +91,12 @@ function isOverdue(o: ClinicPayableOrder): boolean {
  * its own invoices (0024). This side answers "who ran this up, to which lab,
  * and how much is still open" — so the rollup is per doctor, and every filter
  * narrows the totals, the rollup and the list together rather than just the
- * table underneath.
+ * table underneath. The squares take every filter but the payment status, and
+ * clicking one sets it.
  */
 export function ClinicFinancesPage() {
   const { t } = useTranslation('clinic');
+  const { t: tc } = useTranslation('common');
   const { user } = useAuth();
   const clinicId = user?.clinic?.id;
   const navigate = useNavigate();
@@ -84,6 +105,7 @@ export function ClinicFinancesPage() {
   const [sort, setSort] = useState<PayableSort>('outstanding_desc');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
+  const [moreOpen, setMoreOpen] = useState(false);
 
   useEffect(() => {
     setPage(1);
@@ -103,6 +125,14 @@ export function ClinicFinancesPage() {
     queryFn: () => fetchPayablesByDoctor(filters),
   });
 
+  // The squares: every filter but the payment status (J2). Same key prefix as
+  // the rollup, so the live refresh covers it.
+  const squareFilters = useMemo(() => ({ ...filters, statuses: [] }), [filters]);
+  const squaresQuery = useQuery({
+    queryKey: ['clinic-payables-by-doctor', clinicId, squareFilters],
+    queryFn: () => fetchPayablesByDoctor(squareFilters),
+  });
+
   const list = useQuery({
     queryKey: ['clinic-payables-list', clinicId, filters, sort, page, pageSize],
     queryFn: () => fetchPayablesList(filters, sort, page, pageSize),
@@ -114,28 +144,16 @@ export function ClinicFinancesPage() {
   const { data: labOptions = [] } = useQuery({
     queryKey: ['clinic-payable-labs', clinicId],
     queryFn: async () => {
-      const rows = await fetchPayablesList(
-        { ...defaultPayableFilters, statuses: [] },
-        'created_desc',
-        1,
-        500,
-      );
+      const rows = await fetchPayablesList(defaultPayableFilters, 'created_desc', 1, 500);
       const seen = new Map<string, string>();
       for (const r of rows) if (r.lab_id && !seen.has(r.lab_id)) seen.set(r.lab_id, r.lab_name);
       return [...seen].map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name));
     },
   });
 
-  const totals = useMemo(() => {
-    const rows = byDoctor.data ?? [];
-    return {
-      outstanding: rows.reduce((s, r) => s + Number(r.total_outstanding), 0),
-      billed: rows.reduce((s, r) => s + Number(r.total_billed), 0),
-      paid: rows.reduce((s, r) => s + Number(r.total_paid), 0),
-      doctors: rows.length,
-      orders: rows.reduce((s, r) => s + Number(r.order_count), 0),
-    };
-  }, [byDoctor.data]);
+  const totals = useMemo(() => squareTotals(byDoctor.data ?? []), [byDoctor.data]);
+  const squares = useMemo(() => squareTotals(squaresQuery.data ?? []), [squaresQuery.data]);
+  const selectedSquare = selectedPaymentSquare(filters.statuses);
 
   const hasFilters =
     filters.search.trim() !== '' ||
@@ -147,7 +165,8 @@ export function ClinicFinancesPage() {
     filters.overdueOnly ||
     filters.minAmount !== null ||
     filters.maxAmount !== null ||
-    filters.statuses.length !== defaultPayableFilters.statuses.length;
+    filters.statuses.length > 0 ||
+    filters.orderStatuses.length > 0;
 
   const totalCount = list.data?.[0]?.total_count ? Number(list.data[0].total_count) : 0;
   const selectedDoctor =
@@ -155,7 +174,23 @@ export function ClinicFinancesPage() {
       ? (byDoctor.data ?? []).find((d) => d.doctor_id === filters.doctorId)
       : undefined;
 
+  const pickSquare = (square: PaymentSquare) =>
+    setFilters({ ...filters, statuses: [...SQUARE_PAYMENT_STATUSES[square]] });
+  const showLabel = (label: string, value: string) => tc('statCard.show', { label, value });
+
   const loading = byDoctor.isLoading || list.isLoading;
+  const rowDates = queueDates();
+  const moneyLabels = {
+    billed: t('finances.table.billed'),
+    paid: t('finances.table.paid'),
+    outstanding: t('finances.table.outstanding'),
+    overdue: t('finances.table.overdue'),
+  };
+
+  const outstandingLabel = t('finances.totals.outstanding');
+  const billedLabel = t('finances.totals.billed');
+  const paidLabel = t('finances.totals.paid');
+  const ordersLabel = t('finances.totals.orders');
 
   return (
     <>
@@ -165,23 +200,34 @@ export function ClinicFinancesPage() {
         <StatGrid>
           <StatCard
             dotColor="#DC2626"
-            label={t('finances.totals.outstanding')}
-            value={formatGEL(totals.outstanding)}
+            label={outstandingLabel}
+            value={formatGEL(squares.outstanding)}
+            selected={selectedSquare === 'outstanding'}
+            onClick={squares.outstanding > 0 ? () => pickSquare('outstanding') : undefined}
+            ariaLabel={showLabel(outstandingLabel, formatGEL(squares.outstanding))}
           />
           <StatCard
             dotColor="#9292FF"
-            label={t('finances.totals.billed')}
-            value={formatGEL(totals.billed)}
+            label={billedLabel}
+            value={formatGEL(squares.billed)}
+            selected={selectedSquare === 'billed'}
+            onClick={squares.billed > 0 ? () => pickSquare('billed') : undefined}
+            ariaLabel={showLabel(billedLabel, formatGEL(squares.billed))}
           />
           <StatCard
             dotColor="#16A34A"
-            label={t('finances.totals.paid')}
-            value={formatGEL(totals.paid)}
+            label={paidLabel}
+            value={formatGEL(squares.collected)}
+            selected={selectedSquare === 'collected'}
+            onClick={squares.collected > 0 ? () => pickSquare('collected') : undefined}
+            ariaLabel={showLabel(paidLabel, formatGEL(squares.collected))}
           />
           <StatCard
             dotColor="#F59E0B"
-            label={t('finances.totals.orders')}
-            value={String(totals.orders)}
+            label={ordersLabel}
+            value={String(squares.orders)}
+            onClick={squares.orders > 0 ? () => pickSquare('billed') : undefined}
+            ariaLabel={showLabel(ordersLabel, String(squares.orders))}
           />
         </StatGrid>
 
@@ -194,6 +240,8 @@ export function ClinicFinancesPage() {
           hasFilters={hasFilters}
           doctors={doctors}
           labs={labOptions}
+          moreOpen={moreOpen}
+          onMoreOpenChange={setMoreOpen}
         />
 
         {selectedDoctor && (
@@ -263,73 +311,86 @@ export function ClinicFinancesPage() {
               </SectionCard>
             )}
 
-            <DataTable
-              columns={ORDER_COLUMNS.map((c) => ({ ...c, label: t(`finances.table.${c.key}`) }))}
-              minWidth={980}
-              footer={
-                <Box sx={{ width: '100%' }}>
-                  <OrdersPaginator
-                    page={page}
-                    pageSize={pageSize}
-                    total={totalCount}
-                    onPageChange={setPage}
-                    onPageSizeChange={(s) => {
-                      setPageSize(s);
-                      setPage(1);
-                    }}
-                  />
-                </Box>
-              }
-            >
+            {/* A table from `md` up, the orders list's cards below. */}
+            <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+              <DataTable
+                columns={ORDER_COLUMNS.map((c) => ({ ...c, label: t(`finances.table.${c.key}`) }))}
+                minWidth={960}
+                footer={
+                  <Box sx={{ width: '100%' }}>
+                    <OrdersPaginator
+                      page={page}
+                      pageSize={pageSize}
+                      total={totalCount}
+                      onPageChange={setPage}
+                      onPageSizeChange={(s) => {
+                        setPageSize(s);
+                        setPage(1);
+                      }}
+                    />
+                  </Box>
+                }
+              >
+                {(list.data ?? []).map((o) => (
+                  <DataRow
+                    key={o.order_id}
+                    columns={ORDER_COLUMNS}
+                    onClick={() => navigate(`/clinic/orders/${o.order_id}`)}
+                  >
+                    <OrderCodeCell code={o.order_code} />
+                    <PatientCell name={o.patient_name || '—'} />
+                    <TextCell>{o.doctor_name}</TextCell>
+                    <TextCell>{o.lab_name}</TextCell>
+                    <TextCell>{o.service_name}</TextCell>
+                    <DueCell order={{ ...o, status: o.order_status }} dates={rowDates} side="doctor" />
+                    <OrderStatusCell status={o.order_status} completedAt={o.completed_at} side="doctor" />
+                    <AmountCell value={formatGEL(Number(o.billed))} />
+                    <AmountCell value={formatGEL(Number(o.paid_total))} />
+                    <AmountCell
+                      value={formatGEL(Number(o.outstanding))}
+                      owed
+                      amount={Number(o.outstanding)}
+                    >
+                      <PaymentStatusChip status={o.payment_status} />
+                      {isOverdue(o) && (
+                        <StatusPill tone="danger">{t('finances.table.overdue')}</StatusPill>
+                      )}
+                    </AmountCell>
+                  </DataRow>
+                ))}
+              </DataTable>
+            </Box>
+
+            <Stack spacing={1.5} sx={{ display: { xs: 'flex', md: 'none' } }}>
               {(list.data ?? []).map((o) => (
-                <DataRow
+                <FinanceOrderCard
                   key={o.order_id}
-                  columns={ORDER_COLUMNS}
-                  onClick={() => navigate(`/clinic/orders/${o.order_id}`)}
-                >
-                  <Typography
-                    sx={{ fontSize: '0.78125rem', fontWeight: 700, color: 'primary.dark' }}
-                    noWrap
-                  >
-                    {o.order_code}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }} noWrap>
-                    {o.doctor_name}
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary" noWrap>
-                    {o.lab_name || '—'}
-                  </Typography>
-                  <Typography variant="body1" color="text.secondary" noWrap>
-                    {o.patient_name || '—'}
-                  </Typography>
-                  <Stack direction="row" spacing={0.75} alignItems="center">
-                    <Typography variant="body1" noWrap>
-                      {o.confirmed_due_date ? dayjs(o.confirmed_due_date).format('MMM D') : '—'}
-                    </Typography>
-                    {isOverdue(o) && (
-                      <StatusPill tone="danger">{t('finances.table.overdue')}</StatusPill>
-                    )}
-                  </Stack>
-                  <Typography sx={{ fontSize: '0.8125rem', textAlign: 'right' }}>
-                    {formatGEL(Number(o.billed))}
-                  </Typography>
-                  <Typography sx={{ fontSize: '0.8125rem', textAlign: 'right' }}>
-                    {formatGEL(Number(o.paid_total))}
-                  </Typography>
-                  <Typography
-                    sx={{
-                      fontSize: '0.8125rem',
-                      fontWeight: 700,
-                      textAlign: 'right',
-                      color: 'error.main',
-                    }}
-                  >
-                    {formatGEL(Number(o.outstanding))}
-                  </Typography>
-                  <PaymentStatusChip status={o.payment_status} />
-                </DataRow>
+                  order={o}
+                  href={`/clinic/orders/${o.order_id}`}
+                  side="doctor"
+                  service={o.service_name}
+                  who={[o.patient_name, o.lab_name].filter(Boolean).join(' · ')}
+                  doctorName={o.doctor_name}
+                  amounts={{
+                    billed: Number(o.billed),
+                    paid: Number(o.paid_total),
+                    outstanding: Number(o.outstanding),
+                  }}
+                  labels={moneyLabels}
+                  overdue={isOverdue(o)}
+                />
               ))}
-            </DataTable>
+              <OrdersPaginator
+                page={page}
+                pageSize={pageSize}
+                total={totalCount}
+                onPageChange={setPage}
+                onPageSizeChange={(s) => {
+                  setPageSize(s);
+                  setPage(1);
+                }}
+              />
+            </Stack>
 
             {/* Said once, at the bottom, so nobody hunts for a button that is
                 deliberately not here. */}

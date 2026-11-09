@@ -304,6 +304,12 @@
     "or": "or",
     "register": "Create an account"
   },
+  "moreFilters": {
+    "label": "More filters",
+    "withCount": "More filters · {{count}}",
+    "ariaActive_one": "More filters, {{count}} active",
+    "ariaActive_other": "More filters, {{count}} active"
+  },
   "orderList": {
     "dateFormat": "MMM D",
     "searchPlaceholder": "Patient, number, lab",
@@ -333,6 +339,9 @@
     },
     "showMore": "{{count}} more",
     "showLess": "Show less",
+    "cancelledHidden_one": "{{count}} cancelled order hidden",
+    "cancelledHidden_other": "{{count}} cancelled orders hidden",
+    "showCancelled": "Show",
     "tag": {
       "needsChange": "Needs a change",
       "readyToClose": "Awaiting confirmation",

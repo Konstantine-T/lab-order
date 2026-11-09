@@ -53,7 +53,7 @@
       "outstanding": "Outstanding",
       "billed": "Total billed",
       "collected": "Collected",
-      "customers": "Customers with debt"
+      "customers": "Customers"
     },
     "filters": {
       "search": "Search order # or customer",
@@ -62,8 +62,9 @@
       "doctor": "Doctor",
       "clinic": "Clinic",
       "status": "Payment status",
-      "from": "From",
-      "to": "To",
+      "orderStatus": "Order status",
+      "completedFrom": "Completed from",
+      "completedTo": "Completed to",
       "minAmount": "Min owed",
       "maxAmount": "Max owed",
       "overdueOnly": "Overdue only",
@@ -73,7 +74,9 @@
     },
     "sort": {
       "outstanding_desc": "Most owed",
-      "outstanding_asc": "Least owed"
+      "outstanding_asc": "Least owed",
+      "completed_desc": "Completed, newest first",
+      "completed_asc": "Completed, oldest first"
     },
     "customers": {
       "title": "By customer",
@@ -88,6 +91,8 @@
       "order": "Order",
       "customer": "Customer",
       "service": "Service",
+      "patient": "Patient",
+      "orderStatus": "Status",
       "due": "Due",
       "billed": "Final",
       "paid": "Paid",
@@ -500,7 +505,6 @@
     },
     "subtitle": "Everything doctors have sent you",
     "unreviewedEdits": "Unreviewed edits",
-    "moreFilters": "More filters",
     "quick": {
       "all": "All",
       "new": "New",
