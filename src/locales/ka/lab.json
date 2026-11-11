@@ -633,7 +633,7 @@
       }
     },
     "patient": "პაციენტი",
-    "patientDob": "დაბადების თარიღი: {{date}}",
+    "patientBorn": "დაბ. {{year}}",
     "dueConfirmed": "დადასტურებულია",
     "requestedDayHint": "ექიმის მიერ მოთხოვნილი თარიღი",
     "finalPriceNote": {

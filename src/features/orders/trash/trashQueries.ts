@@ -49,15 +49,20 @@ export type TrashListRow = {
     doctor_snapshot: { first_name?: string; last_name?: string } | null;
     lab_name: string | null;
     service_name: string | null;
-    patients: { first_name: string; last_name: string } | null;
+    /** The doctor's side: their own patient record, in full. */
+    patients?: { first_name: string; last_name: string } | null;
+    /** The lab's side: "Irakli K." (0057), all a lab may see. */
+    patient_label?: string | null;
   };
 };
 
-const LIST_SELECT =
+const listSelect = (side: TrashScope['side']) =>
   'id, order_id, deleted_at, purge_after, ' +
   'orders!inner(id, order_code, status, buyer_lab_id, patient_id, patient_reference, doctor_snapshot, ' +
   'lab_name:lab_snapshot->>public_name, service_name:service_snapshot->>name, ' +
-  'patients(first_name, last_name))';
+  // A lab reads no patient rows (0057); the doctor (or a buying lab, for its
+  // own purchases) keeps the full name.
+  (side === 'LAB' ? 'patient_label)' : 'patients(first_name, last_name))');
 
 /** One page (0-based) of the trash, most recently deleted first. */
 export function useTrashList(scope: TrashScope | null, page: number) {
@@ -71,7 +76,7 @@ export function useTrashList(scope: TrashScope | null, page: number) {
       const from = page * TRASH_PAGE_SIZE;
       const { data, error } = await supabase
         .from('order_trash')
-        .select(LIST_SELECT)
+        .select(listSelect(scope!.side))
         .eq('side', scope!.side)
         .eq(f.column, f.value)
         .is('purged_at', null)

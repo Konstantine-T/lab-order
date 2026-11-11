@@ -46,13 +46,14 @@ export async function fetchLabProjects(search: string, page: number): Promise<La
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const isPatientId = (v: string | undefined): v is string => !!v && UUID_RE.test(v);
 
-/** The header of a project: its patient and its latest order's doctor and
- *  clinic, as the list row shows them (snapshots, not live rows). */
-export type LabProjectHead = DestinationColumns & {
-  buyer_lab_id: string | null;
-  doctor_snapshot: OrderRow['doctor_snapshot'] | null;
-  patients: { first_name: string; last_name: string; date_of_birth: string | null } | null;
-};
+/** The header of a project: its patient as the lab sees them (the order's
+ *  label and birth year, 0057) and its latest order's doctor and clinic, as
+ *  the list row shows them (snapshots, not live rows). */
+export type LabProjectHead = DestinationColumns &
+  Pick<OrderRow, 'patient_label' | 'patient_birth_year'> & {
+    buyer_lab_id: string | null;
+    doctor_snapshot: OrderRow['doctor_snapshot'] | null;
+  };
 
 /** Null when this lab has no (untrashed) order for the patient: another
  *  lab's patient, the lab's own purchase, a wrong id, or everything trashed. */
@@ -64,7 +65,7 @@ export async function fetchLabProjectHead(
     .from('orders')
     .select(
       `buyer_lab_id, doctor_snapshot, ${DESTINATION_SELECT}, ` +
-        'patients(first_name, last_name, date_of_birth), order_trash(id)',
+        'patient_label, patient_birth_year, order_trash(id)',
     )
     .eq('lab_id', labId)
     .eq('patient_id', patientId)
@@ -114,9 +115,9 @@ export async function fetchLabProjectOrders(
   return (data ?? []) as unknown as LabProjectOrder[];
 }
 
-/** "Nino Beridze": the two names, trimmed. */
-export const projectPatientName = (p: { first_name?: string | null; last_name?: string | null }) =>
-  [p.first_name?.trim(), p.last_name?.trim()].filter(Boolean).join(' ');
+/** "Nino B.": the patient as the lab sees them (0057), trimmed. */
+export const projectPatientName = (p: { patient_label?: string | null }) =>
+  p.patient_label?.trim() ?? '';
 
 /** "Smile Center · Saburtalo": the clinic, with its branch when there is one. */
 export const projectClinicLine = (clinic: string | null, branch: string | null) =>

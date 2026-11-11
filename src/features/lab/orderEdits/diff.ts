@@ -1,16 +1,18 @@
 import type { OrderEditSnapshot, OrderRow } from '@/types/database';
 
 /**
- * Who the order is for, at one point in its edit history.
+ * Who the order is for, at one point in its edit history, as the lab may see
+ * them (0057): the label ("Irakli K.") and the birth year, never the record.
  *
- * `name` is null when the patient row could not be read (an embed that came
- * back empty, or a snapshot taken before the row existed). That is "unknown",
- * not "no name", and the diff must not read it as a change.
+ * `name` is null when the label could not be read (not selected, or a
+ * snapshot taken before the patient existed). That is "unknown", not "no
+ * name", and the diff must not read it as a change.
  */
 export type EditPatient = {
   id: string | null;
+  /** The label, "Irakli K.". */
   name: string | null;
-  dateOfBirth: string | null;
+  birthYear: number | null;
 };
 
 // Normalized view of an order's editable fields. We diff two of these — a
@@ -47,22 +49,17 @@ export type EditDiff = {
 };
 
 /**
- * The `patient` object edit_order writes into every snapshot (0009 onwards,
- * 0031 at runtime; OrderEditSnapshot.patient). Read field by field as unknown,
- * since snapshot_json is whatever the RPC stored at the time.
+ * The `patient` object edit_order writes into every snapshot, masked by
+ * trigger since 0057 (OrderEditSnapshot.patient): `label`, `birth_year`, the
+ * surname as its initial. Read field by field as unknown, since snapshot_json
+ * is whatever was stored at the time.
  */
 type SnapshotPatient = {
   id?: unknown;
   first_name?: unknown;
   last_name?: unknown;
-  date_of_birth?: unknown;
-};
-
-/** The `patients(first_name, last_name, date_of_birth)` embed on a live order. */
-export type LivePatientEmbed = {
-  first_name: string | null;
-  last_name: string | null;
-  date_of_birth: string | null;
+  label?: unknown;
+  birth_year?: unknown;
 };
 
 // Stable stringify (sorted keys) so answer maps compare equal regardless of
@@ -97,18 +94,28 @@ function workLocationDisplay(snap: Record<string, unknown> | null | undefined): 
 const str = (v: unknown): string | null =>
   typeof v === 'string' && v.trim() !== '' ? v.trim() : null;
 
-/** "First Last", the way the lab's order lists print it. */
-export function patientFullName(
-  first: string | null | undefined,
-  last: string | null | undefined,
-): string {
-  return [first?.trim(), last?.trim()].filter(Boolean).join(' ');
+const year = (v: unknown): number | null => {
+  const n = typeof v === 'number' ? v : typeof v === 'string' ? Number(v) : NaN;
+  return Number.isInteger(n) ? n : null;
+};
+
+/**
+ * "Irakli K.", the label 0057's `_patient_label` writes: the first name, the
+ * surname's initial and a period. Only for a snapshot that predates the label
+ * key; the server's own label wins whenever there is one.
+ */
+function labelOf(first: string | null, last: string | null): string | null {
+  const f = first?.replace(/\s+/g, ' ') ?? '';
+  const initial = last ? [...last][0] : '';
+  if (!f && !initial) return null;
+  if (!initial) return f;
+  return f ? `${f} ${initial}.` : `${initial}.`;
 }
 
-/** Name plus date of birth, so two same-named patients read differently. */
+/** The label plus the birth year, so two same-labelled patients read differently. */
 export function patientDisplay(p: EditPatient | null): string {
   if (!p || p.name === null) return '';
-  return p.dateOfBirth ? `${p.name} · ${p.dateOfBirth}` : p.name;
+  return p.birthYear ? `${p.name} · ${p.birthYear}` : p.name;
 }
 
 /** The patient, else the purchase's case reference (0048), else ''. With
@@ -122,12 +129,10 @@ export function patientOrReference(state: EditState): string {
 function patientFromSnapshot(raw: unknown): EditPatient | null {
   if (!raw || typeof raw !== 'object') return null;
   const p = raw as SnapshotPatient;
-  const first = str(p.first_name);
-  const last = str(p.last_name);
   return {
     id: str(p.id),
-    name: first || last ? patientFullName(first, last) : null,
-    dateOfBirth: str(p.date_of_birth),
+    name: str(p.label) ?? labelOf(str(p.first_name), str(p.last_name)),
+    birthYear: year(p.birth_year),
   };
 }
 
@@ -149,21 +154,15 @@ export function stateFromSnapshot(s: OrderEditSnapshot): EditState {
   };
 }
 
-// Live state = current order + answers. The patient comes from the order's
-// `patients(...)` embed; without one (not selected, or it came back null) the
-// id is still known from the order itself, but the name is not.
-export function stateFromLive(
-  order: OrderRow & { patients?: LivePatientEmbed | null },
-  answersMap: Record<string, unknown>,
-): EditState {
-  const embed = order.patients ?? null;
-  const first = str(embed?.first_name);
-  const last = str(embed?.last_name);
+// Live state = current order + answers. The patient is the order's own label
+// and birth year (0057), the same masked view the snapshots hold, so the two
+// sides compare like for like.
+export function stateFromLive(order: OrderRow, answersMap: Record<string, unknown>): EditState {
   return {
     patient: {
       id: order.patient_id ?? null,
-      name: first || last ? patientFullName(first, last) : null,
-      dateOfBirth: str(embed?.date_of_birth),
+      name: str(order.patient_label),
+      birthYear: year(order.patient_birth_year),
     },
     patientReference: order.patient_reference === undefined ? undefined : str(order.patient_reference),
     // patient_id may be null only on a purchase (0048's CHECK); undefined
@@ -180,7 +179,8 @@ export function stateFromLive(
  *
  * By id first: edit_order can reassign the order to another patient row, and
  * two patients may share a name (the force_new case in 0031), so name alone
- * would miss exactly the switch that matters. Then by name and date of birth.
+ * would miss exactly the switch that matters. Then by label and birth year,
+ * all the lab sees (0057): "Irakli K." → "Irakli M." still shows.
  *
  * A side that could not be read never counts as a change, or a missing embed
  * would flag every edit as "patient changed".
@@ -189,7 +189,7 @@ export function patientChanged(before: EditPatient | null, after: EditPatient | 
   if (!before || !after) return false;
   if (before.id && after.id && before.id !== after.id) return true;
   if (before.name === null || after.name === null) return false;
-  return before.name !== after.name || before.dateOfBirth !== after.dateOfBirth;
+  return before.name !== after.name || before.birthYear !== after.birthYear;
 }
 
 /** A patient that is there: known by id or by name. */

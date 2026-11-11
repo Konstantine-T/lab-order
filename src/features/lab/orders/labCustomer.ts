@@ -36,19 +36,17 @@ export function matchesCustomerKind(row: CustomerSource, kind: CustomerKind): bo
 }
 
 type PatientSource = {
-  patients?: { first_name?: string | null; last_name?: string | null } | null;
+  patient_label?: string | null;
   patient_reference?: string | null;
 };
 
 /**
- * The patient column on the lab's lists: the patient's name, else the buying
- * lab's free-text case reference (a purchase may have no patient), else "—".
+ * The patient column on the lab's lists: the order's patient label ("Irakli
+ * K.", 0057: a lab never reads the patient record), else the buying lab's
+ * free-text case reference (a purchase may have no patient), else "—".
  */
 export function patientLabel(row: PatientSource): string {
-  const name = [row.patients?.first_name?.trim(), row.patients?.last_name?.trim()]
-    .filter(Boolean)
-    .join(' ');
-  return name || row.patient_reference?.trim() || '—';
+  return row.patient_label?.trim() || row.patient_reference?.trim() || '—';
 }
 
 const text = (v: unknown): string | null =>

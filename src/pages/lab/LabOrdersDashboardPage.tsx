@@ -101,7 +101,6 @@ type Row = OrderRow &
   DestinationColumns & {
     lab_services: { name: string } | null;
     service_snapshot: { name?: string } | null;
-    patients: { first_name: string; last_name: string } | null;
     order_clarifications: { answered_at: string | null; resolved_by_edit_at: string | null }[];
   };
 
@@ -193,9 +192,9 @@ export function LabOrdersDashboardPage() {
       const { data, error } = await supabase
         .from('orders')
         .select(
-          'id, order_code, doctor_id, buyer_lab_id, patient_reference, status, generated_total, final_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, service_snapshot, doctor_snapshot, has_unreviewed_edits, ' +
+          'id, order_code, doctor_id, buyer_lab_id, patient_reference, patient_label, status, generated_total, final_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, service_snapshot, doctor_snapshot, has_unreviewed_edits, ' +
             `${DESTINATION_SELECT}, ` +
-            'lab_services(name), patients(first_name, last_name), order_clarifications(answered_at, resolved_by_edit_at), ' +
+            'lab_services(name), order_clarifications(answered_at, resolved_by_edit_at), ' +
             ORDER_TRASH_EMBED,
         )
         // Not left to RLS: from 0048 the lab's owner also reads its own
@@ -271,11 +270,10 @@ export function LabOrdersDashboardPage() {
       if (q) {
         const ds = row.doctor_snapshot ?? {};
         const doctor = [ds.first_name, ds.last_name].filter(Boolean).join(' ').toLowerCase();
-        // The buying lab's case reference stands in for a missing patient.
-        const patient = [
-          row.patients ? `${row.patients.first_name} ${row.patients.last_name}` : '',
-          row.patient_reference ?? '',
-        ]
+        // The patient as the lab sees them, "Irakli K." (0057): a surname the
+        // lab never has cannot match. The buying lab's case reference stands
+        // in for a missing patient.
+        const patient = [row.patient_label ?? '', row.patient_reference ?? '']
           .join(' ')
           .toLowerCase();
         const service = (row.lab_services?.name ?? row.service_snapshot?.name ?? '').toLowerCase();

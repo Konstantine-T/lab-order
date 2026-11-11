@@ -643,7 +643,7 @@
       }
     },
     "patient": "Пациент",
-    "patientDob": "Дата рождения: {{date}}",
+    "patientBorn": "{{year}} г. р.",
     "dueConfirmed": "Подтверждено",
     "requestedDayHint": "Дата, которую запросил врач",
     "finalPriceNote": {

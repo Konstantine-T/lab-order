@@ -207,7 +207,8 @@ export function LabProjectsPage() {
   );
 }
 
-/** The patient's name, and the date of birth that tells two namesakes apart. */
+/** The patient as the lab sees them ("Nino B.", 0057), and the birth year
+ *  that tells two of them apart. */
 function PatientCell({ row }: { row: LabProjectRow }) {
   const { t } = useTranslation('lab');
   const name = projectPatientName(row) || '—';
@@ -218,9 +219,9 @@ function PatientCell({ row }: { row: LabProjectRow }) {
         <Typography sx={{ fontSize: '0.8125rem', fontWeight: 600 }} noWrap>
           {name}
         </Typography>
-        {row.date_of_birth && (
+        {row.patient_birth_year && (
           <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }} noWrap>
-            {t('orderSheet.patientDob', { date: row.date_of_birth })}
+            {t('orderSheet.patientBorn', { year: row.patient_birth_year })}
           </Typography>
         )}
       </Box>
@@ -318,9 +319,9 @@ function ProjectCard({
         <Typography sx={{ fontSize: '0.875rem', fontWeight: 700, overflowWrap: 'anywhere' }}>
           {name}
         </Typography>
-        {row.date_of_birth && (
+        {row.patient_birth_year && (
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-            {t('orderSheet.patientDob', { date: row.date_of_birth })}
+            {t('orderSheet.patientBorn', { year: row.patient_birth_year })}
           </Typography>
         )}
         <Stack

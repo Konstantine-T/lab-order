@@ -51,12 +51,10 @@ import { recordPayment } from '@/features/lab/finances/financeApi';
 import { OrderForm } from '@/features/orderForms/OrderForm';
 import {
   diffStates,
-  patientFullName,
   patientOrReference,
   stateFromLive,
   stateFromSnapshot,
   type EditState,
-  type LivePatientEmbed,
 } from '@/features/lab/orderEdits/diff';
 import {
   initialDueFields,
@@ -99,11 +97,9 @@ import { MoveToTrashButton } from '@/features/orders/trash/MoveToTrashButton';
 import { OrderGoneNotice, TrashedOrderBanner } from '@/features/orders/trash/TrashedOrderNotices';
 import { TrashedSheetRail } from '@/features/lab/orderSheet/TrashedSheetRail';
 
-// The patient is embedded so the sheet can show who the case is for; the lab
-// reads it under patients_lab_via_order (0009), the same grant its order lists
-// already use.
+// Who the case is for comes from the order itself, `patient_label` and
+// `patient_birth_year` (0057): a lab never reads the patient record.
 type DetailRow = OrderRow & {
-  patients: LivePatientEmbed | null;
   /** This lab's trash row, if any (0054; RLS embeds no other side's). */
   order_trash?: OrderTrashStateEmbed;
 };
@@ -162,7 +158,7 @@ export function LabOrderSheetPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select(`*, patients(first_name, last_name, date_of_birth), ${ORDER_TRASH_STATE_EMBED}`)
+        .select(`*, ${ORDER_TRASH_STATE_EMBED}`)
         .eq('id', orderId!)
         // Only this lab's incoming orders. From 0048 the owner can also read
         // its own purchases from other labs (as their buying profile); one
@@ -478,9 +474,8 @@ export function LabOrderSheetPage() {
     needsNoteConfirmation(parseAmount(finalPrice), finalNote, order);
   const dueDirty = isDueDirty({ date: confirmedDue, time: confirmedTime }, order);
   const dueSaved = order.confirmed_due_date != null || order.confirmed_due_time != null;
-  const patientName = order.patients
-    ? patientFullName(order.patients.first_name, order.patients.last_name)
-    : '';
+  // "Irakli K." (0057).
+  const patientName = order.patient_label?.trim() ?? '';
   // A lab's purchase may carry a free-text case reference, with or without a
   // patient (0048).
   const patientReference = order.patient_reference?.trim() ?? '';
@@ -876,7 +871,7 @@ export function LabOrderSheetPage() {
 
         {/* The fact grid across the top of the sheet, led by the patient: the
             case is about them, and every other lab screen leads with them too.
-            The date of birth tells two same-named patients apart. */}
+            The birth year tells two same-labelled patients apart. */}
         <SectionCard>
           <Box
             sx={{
@@ -912,8 +907,8 @@ export function LabOrderSheetPage() {
                 hint={
                   patientName
                     ? [
-                        order.patients?.date_of_birth
-                          ? t('orderSheet.patientDob', { date: order.patients.date_of_birth })
+                        order.patient_birth_year
+                          ? t('orderSheet.patientBorn', { year: order.patient_birth_year })
                           : null,
                         patientReference
                           ? t('orderSheet.patientReference', { ref: patientReference })

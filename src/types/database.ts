@@ -530,6 +530,13 @@ export interface OrderRow {
   patient_id: string | null;
   /** Free-text case reference a buying lab may give instead of a patient (0048). */
   patient_reference: string | null;
+  /**
+   * The patient as a lab sees them, "Irakli K." (0057): labs never read
+   * `patients`, only this and `patient_birth_year`. Trigger-written from the
+   * patient; null without one.
+   */
+  patient_label: string | null;
+  patient_birth_year: number | null;
   patient_case_id: string | null;
   parent_order_id: string | null;
   lab_service_id: string;
@@ -606,9 +613,9 @@ export interface OrderRow {
  */
 export interface LabProjectRow {
   patient_id: string;
-  first_name: string;
-  last_name: string;
-  date_of_birth: string | null;
+  /** "Irakli K." (0057): the lab never gets the patient record. */
+  patient_label: string | null;
+  patient_birth_year: number | null;
   /** The latest order's doctor_snapshot name; a buying lab's name for a purchase. */
   doctor_name: string | null;
   /** The latest order was placed by another lab (its buyer_lab_id, 0048). */
@@ -716,19 +723,25 @@ export type EditReasonCode =
 
 /** The patient as edit_order captured it (0009 onwards, 0031 at runtime).
  * Null when the patient row could not be read at edit time. */
+/**
+ * The patient in an edit snapshot, masked by trigger on write (0057): the
+ * surname cut to its initial ("K."), the date of birth to `birth_year`, no
+ * gender, and `label` as on the order. The lab reads only this.
+ */
 export interface OrderEditSnapshotPatient {
   id: string;
   first_name: string;
-  last_name: string;
-  date_of_birth: string | null;
-  gender: string | null;
+  /** The initial and a period. */
+  last_name: string | null;
+  label?: string | null;
+  birth_year?: number | null;
 }
 
 /** Pre-edit state captured server-side by edit_order before mutating the live
  * order. The lab edit-review reads `patient` to show when an edit moved the
- * order to another patient (the lab may read its orders' patients, see
- * patients_lab_via_order in 0009). Optional because older snapshots may lack
- * it; read it defensively (see features/lab/orderEdits/diff.ts). */
+ * order to another patient, compared with the order's `patient_label` /
+ * `patient_birth_year` (0057). Optional because older snapshots may lack it;
+ * read it defensively (see features/lab/orderEdits/diff.ts). */
 export interface OrderEditSnapshot {
   patient?: OrderEditSnapshotPatient | null;
   doctor_work_location_id: string | null;

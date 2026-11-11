@@ -43,9 +43,11 @@ function shrinkTrashCount(qc: QueryClient, scope: TrashScope, n: number) {
   qc.setQueryData<number>(key, (c) => (c === undefined ? c : Math.max(0, c - n)));
 }
 
+/** The doctor's side names its own patient in full; the lab's side has only
+ *  the order's label (0057). Either way a purchase's reference stands in. */
 function patientOf(row: TrashListRow): string {
   const p = row.orders.patients;
-  const name = p ? `${p.first_name} ${p.last_name}`.trim() : '';
+  const name = p ? `${p.first_name} ${p.last_name}`.trim() : row.orders.patient_label?.trim() ?? '';
   return name || row.orders.patient_reference?.trim() || '—';
 }
 

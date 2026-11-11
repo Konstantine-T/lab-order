@@ -97,14 +97,14 @@ export function LabProjectPage() {
     );
   }
 
-  const patientName = project.patients ? projectPatientName(project.patients) : '';
+  const patientName = projectPatientName(project);
   const ds = project.doctor_snapshot ?? {};
   const doctorName = [ds.first_name?.trim(), ds.last_name?.trim()].filter(Boolean).join(' ');
   const place = destinationLabelOf(project);
   // Who the patient is and who sends their work, from the latest order.
   const facts = [
-    project.patients?.date_of_birth
-      ? t('orderSheet.patientDob', { date: project.patients.date_of_birth })
+    project.patient_birth_year
+      ? t('orderSheet.patientBorn', { year: project.patient_birth_year })
       : null,
     doctorName || null,
     [place.clinic, place.detail].filter(Boolean).join(', ') || null,

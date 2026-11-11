@@ -634,7 +634,7 @@
       }
     },
     "patient": "Patient",
-    "patientDob": "Date of birth: {{date}}",
+    "patientBorn": "Born {{year}}",
     "dueConfirmed": "Confirmed",
     "requestedDayHint": "The date the doctor asked for",
     "finalPriceNote": {
