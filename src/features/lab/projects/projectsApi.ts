@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { DESTINATION_SELECT, type DestinationColumns } from '@/features/lab/orders/queueFilters';
+import { LAB_ORDER_LIST_SELECT, type LabListRow } from '@/features/lab/orders/labOrderList';
 import type { LabProjectRow, OrderRow } from '@/types/database';
 
 /**
@@ -78,21 +79,9 @@ export async function fetchLabProjectHead(
   return (data ?? null) as unknown as LabProjectHead | null;
 }
 
-export type LabProjectOrder = Pick<
-  OrderRow,
-  | 'id'
-  | 'order_code'
-  | 'status'
-  | 'final_total'
-  | 'requested_due_date'
-  | 'confirmed_due_date'
-  | 'requested_due_time'
-  | 'confirmed_due_time'
-  | 'created_at'
-> & {
-  service_snapshot: { name?: string } | null;
-  lab_services: { name: string } | null;
-};
+/** A project's order: the queue's own row (labOrderList), so the project's
+ *  list and cards are the queue's. */
+export type LabProjectOrder = LabListRow;
 
 /** Everything this lab has for the patient, newest first. */
 export async function fetchLabProjectOrders(
@@ -101,11 +90,7 @@ export async function fetchLabProjectOrders(
 ): Promise<LabProjectOrder[]> {
   const { data, error } = await supabase
     .from('orders')
-    .select(
-      'id, order_code, status, final_total, requested_due_date, confirmed_due_date, ' +
-        'requested_due_time, confirmed_due_time, created_at, service_snapshot, ' +
-        'lab_services(name), order_trash(id)',
-    )
+    .select(LAB_ORDER_LIST_SELECT)
     .eq('lab_id', labId)
     .eq('patient_id', patientId)
     .is('order_trash', null)

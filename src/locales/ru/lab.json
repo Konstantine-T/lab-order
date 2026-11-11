@@ -515,14 +515,7 @@
       "completed": "Завершённые"
     },
     "columns": {
-      "code": "Заказ",
-      "doctor": "Врач",
-      "patient": "Пациент",
-      "service": "Услуга",
-      "status": "Статус",
-      "total": "Итого",
-      "due": "Срок",
-      "created": "Создан"
+      "doctor": "Врач"
     },
     "answeredBadge": "Есть ответ",
     "invoiceAttached": "Счёт",

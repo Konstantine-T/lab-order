@@ -248,13 +248,10 @@
   "yes": "Да",
   "no": "Нет",
   "orderCard": {
-    "due": "Срок",
-    "total": "Итого",
     "continuesFrom": "Продолжение проекта",
     "continuation": "Продолжение",
     "dueWindow": "{{start}}–{{end}}",
-    "dueWindowNextDay": "(+1 день)",
-    "created": "Создан"
+    "dueWindowNextDay": "(+1 день)"
   },
   "orderFiles": {
     "title": "Вложения",
@@ -314,6 +311,11 @@
     "ariaActive_many": "Ещё фильтры, активно {{count}}",
     "ariaActive_other": "Ещё фильтры, активно {{count}}"
   },
+  "ordersView": {
+    "list": "Вид списком",
+    "grid": "Вид сеткой",
+    "groupHeader": "{{group}} · {{count}}"
+  },
   "orderList": {
     "dateFormat": "D MMM",
     "searchPlaceholder": "Пациент, номер, лаборатория",
@@ -345,6 +347,16 @@
     },
     "showMore": "Ещё {{count}}",
     "showLess": "Свернуть",
+    "columns": {
+      "code": "Заказ",
+      "patient": "Пациент",
+      "doctor": "Врач",
+      "lab": "Лаборатория",
+      "service": "Услуга",
+      "due": "Срок",
+      "status": "Статус",
+      "total": "Итого"
+    },
     "cancelledHidden_one": "Скрыт {{count}} отменённый заказ",
     "cancelledHidden_few": "Скрыто {{count}} отменённых заказа",
     "cancelledHidden_many": "Скрыто {{count}} отменённых заказов",

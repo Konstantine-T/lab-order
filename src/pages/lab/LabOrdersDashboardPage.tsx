@@ -28,9 +28,6 @@ import { supabase } from '@/lib/supabase';
 import { statusTone } from '@/components/OrderStatusChip';
 import {
   ChoicePill,
-  type Column,
-  DataRow,
-  DataTable,
   Icon,
   PageHeader,
   Pager,
@@ -39,13 +36,22 @@ import {
   StatTile,
 } from '@/components/design';
 import { MoreFiltersButton } from '@/components/MoreFiltersButton';
+import { OrderCard } from '@/features/orders/list/OrderCard';
+import { OrderCardGrid, OrderListTable } from '@/features/orders/list/view/OrderListTable';
 import {
-  CustomerCell,
-  DueCell,
-  OrderCodeCell,
-  PatientCell,
-  TextCell,
-} from '@/features/orders/table/OrderRowCells';
+  labCustomerName,
+  labListColumns,
+  labListRow,
+} from '@/features/orders/list/view/listRows';
+import { LabRowBadges } from '@/features/orders/list/view/RowBadges';
+import { OrdersViewToggle } from '@/features/orders/list/view/OrdersViewToggle';
+import { useOrdersView } from '@/features/orders/list/view/useOrdersView';
+import {
+  isAnswered,
+  labCardRow,
+  LAB_ORDER_LIST_SELECT,
+  type LabListRow,
+} from '@/features/lab/orders/labOrderList';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { CancelledHiddenHint } from '@/features/orders/CancelledHiddenHint';
 import {
@@ -53,7 +59,6 @@ import {
   matchesStatusSelection,
   withCancelled,
 } from '@/features/orders/statusSelection';
-import { ORDER_TRASH_EMBED } from '@/features/orders/trash/trashFilter';
 import { TrashSelectionBar } from '@/features/orders/trash/TrashSelection';
 import { useOrderSelection } from '@/features/orders/trash/useOrderSelection';
 import { labSideKeeper } from '@/features/orders/trash/trashKeeper';
@@ -62,27 +67,21 @@ import { useTrashToast } from '@/features/orders/trash/useTrashToast';
 import { ORDER_SORTS, type OrderSort, orderComparator } from '@/features/orders/orderDates';
 import { useOrderSort } from '@/features/orders/list/useOrderSort';
 import { ClarificationAskDialog } from '@/features/orders/clarifications/ClarificationAskDialog';
-import { formatGEL } from '@/utils/pricing';
 import { radii, tone } from '@/theme/tokens';
-import type { OrderRow, OrderStatus } from '@/types/database';
+import type { OrderStatus } from '@/types/database';
 import { canTrash, LAB_SELECTABLE_STATUSES } from '@/types/database';
 import { useInvoiceOrderIds } from '@/features/orders/orderFiles/useInvoiceOrderIds';
 import {
-  DESTINATION_SELECT,
-  type DestinationColumns,
   destinationKeyOf,
-  destinationLabelOf,
   destinationOptionsFrom,
   doctorOptionsFrom,
 } from '@/features/lab/orders/queueFilters';
 import { QueueFilterAutocomplete } from '@/features/lab/orders/QueueFilterAutocomplete';
-import { LabInvoiceMark } from '@/features/lab/orders/LabInvoiceMark';
 import {
   CUSTOMER_KINDS,
   type CustomerKind,
   isLabPurchase,
   matchesCustomerKind,
-  patientLabel,
 } from '@/features/lab/orders/labCustomer';
 import {
   FILTERABLE_STATUSES,
@@ -97,39 +96,8 @@ import {
   type QueueQuick as Quick,
 } from '@/features/lab/orders/orderPresets';
 
-type Row = OrderRow &
-  DestinationColumns & {
-    lab_services: { name: string } | null;
-    service_snapshot: { name?: string } | null;
-    order_clarifications: { answered_at: string | null; resolved_by_edit_at: string | null }[];
-  };
-
-/**
- * The doctor answered and the case is still parked in NEEDS_CLARIFICATION —
- * i.e. it is waiting on the lab, not on the doctor (0029).
- */
-const isAnswered = (row: Row) =>
-  row.status === 'NEEDS_CLARIFICATION' &&
-  row.order_clarifications.length > 0 &&
-  row.order_clarifications.every(
-    // Resolved-by-edit counts as closed too, or this highlight never lights
-    // up again on an order that once carried an edit request.
-    (c) => c.answered_at !== null || c.resolved_by_edit_at !== null,
-  );
-
-/** Select mode's checkbox column (0054), in front of the rest. */
-const SELECT_COLUMN: Column = { key: 'select', width: '28px' };
-
-const COLUMNS: Column[] = [
-  { key: 'code', width: '92px' },
-  { key: 'patient', width: 'minmax(0, 1.25fr)' },
-  { key: 'doctor', width: 'minmax(0, 1fr)' },
-  { key: 'service', width: 'minmax(0, 1.35fr)' },
-  { key: 'due', width: '132px' },
-  { key: 'status', width: '184px' },
-  { key: 'total', width: '76px', align: 'right' },
-  { key: 'go', width: '24px' },
-];
+/** One queue row: the shape every lab orders page reads (labOrderList). */
+type Row = LabListRow;
 
 export function LabOrdersDashboardPage() {
   const { t } = useTranslation('lab');
@@ -191,12 +159,8 @@ export function LabOrdersDashboardPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select(
-          'id, order_code, doctor_id, buyer_lab_id, patient_reference, patient_label, status, generated_total, final_total, requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, service_snapshot, doctor_snapshot, has_unreviewed_edits, ' +
-            `${DESTINATION_SELECT}, ` +
-            'lab_services(name), order_clarifications(answered_at, resolved_by_edit_at), ' +
-            ORDER_TRASH_EMBED,
-        )
+        // What both views draw, the row and the card (labOrderList).
+        .select(LAB_ORDER_LIST_SELECT)
         // Not left to RLS: from 0048 the lab's owner also reads its own
         // purchases from other labs (as their buying profile), and those
         // belong under "My orders to labs", never in this queue.
@@ -356,7 +320,8 @@ export function LabOrdersDashboardPage() {
     () => filtered.filter((o) => canTrash(o.status)).map((o) => o.id),
     [filtered],
   );
-  const columns = selection.active ? [SELECT_COLUMN, ...COLUMNS] : COLUMNS;
+  // List or cards, remembered per person (always cards on a phone).
+  const { view, setView, canSwitch } = useOrdersView('lab-orders');
 
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   // The list can shrink under a later page without a filter changing: a bulk
@@ -428,6 +393,73 @@ export function LabOrdersDashboardPage() {
     setAdvancedOpen(true);
     setPage(1);
   };
+
+  // The status selector the mockup embeds in the row: a lab changes status
+  // straight from the queue. Its own click target, so it never opens the order.
+  const statusSelect = (row: Row) => (
+    <Box onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+      <Select
+        size="small"
+        value={row.status}
+        onChange={(e) => {
+          const next = e.target.value as OrderStatus;
+          // Never savable on its own — the doctor needs the question, not
+          // just the status.
+          if (next === 'NEEDS_CLARIFICATION' || next === 'NEEDS_DOCTOR_INPUT') {
+            setAskOrderId(row.id);
+            setAskKind(next === 'NEEDS_DOCTOR_INPUT' ? 'EDIT' : 'ANSWER');
+            return;
+          }
+          updateStatus.mutate({ orderId: row.id, status: next });
+        }}
+        disabled={updateStatus.isPending}
+        fullWidth
+        sx={{ fontSize: '0.71875rem', '& .MuiSelect-select': { py: 0.75 } }}
+        renderValue={(v) => (
+          <Stack direction="row" alignItems="center" spacing={0.875}>
+            <Box
+              sx={(theme) => ({
+                width: 8,
+                height: 8,
+                borderRadius: '50%',
+                flexShrink: 0,
+                bgcolor: tone(statusTone(v as OrderStatus), theme.palette.mode).dot,
+              })}
+            />
+            <Typography sx={{ fontSize: '0.71875rem', fontWeight: 600 }} noWrap>
+              {statusLabel(v as OrderStatus, tc, 'lab')}
+            </Typography>
+          </Stack>
+        )}
+      >
+        {LAB_SELECTABLE_STATUSES.map((s) => (
+          <MenuItem key={s} value={s}>
+            {statusLabel(s, tc, 'lab')}
+          </MenuItem>
+        ))}
+      </Select>
+    </Box>
+  );
+
+  // In select mode a finished row toggles; the rest wait. Otherwise it opens.
+  const openOrToggle = (row: Row) =>
+    !selection.active
+      ? () => navigate(`/lab/orders/${row.id}`)
+      : canTrash(row.status)
+        ? () => selection.toggle(row.id)
+        : undefined;
+
+  // "12 of 40 orders" and the pager: the table's footer, or under the cards.
+  const pageFooter = (
+    <>
+      <Typography variant="body2" color="text.secondary">
+        {t('ordersDashboard.countFiltered', { count: filtered.length, total: orders.length })}
+      </Typography>
+      <Box sx={{ ml: 'auto' }}>
+        <Pager page={current - 1} pageCount={pageCount} onChange={(p) => setPage(p + 1)} />
+      </Box>
+    </>
+  );
 
   return (
     <>
@@ -532,6 +564,7 @@ export function LabOrdersDashboardPage() {
                   </MenuItem>
                 ))}
               </Select>
+              <OrdersViewToggle view={view} onChange={setView} canSwitch={canSwitch} />
               <MoreFiltersButton
                 open={advancedOpen}
                 onToggle={() => setAdvancedOpen((v) => !v)}
@@ -658,185 +691,50 @@ export function LabOrdersDashboardPage() {
           />
         ) : (
           <>
-            <DataTable
-              columns={columns.map((c) =>
-                c.key === 'go' || c.key === 'select'
-                  ? c
-                  : { ...c, label: t(`ordersDashboard.columns.${c.key}` as const) },
-              )}
-              footer={
-                <>
-                  <Typography variant="body2" color="text.secondary">
-                    {t('ordersDashboard.countFiltered', {
-                      count: filtered.length,
-                      total: orders.length,
-                    })}
-                  </Typography>
-                  <Box sx={{ ml: 'auto' }}>
-                    <Pager
-                      page={current - 1}
-                      pageCount={pageCount}
-                      onChange={(p) => setPage(p + 1)}
+            {/* Both views draw the same page of the same rows. */}
+            {view === 'list' ? (
+              <OrderListTable
+                columns={labListColumns({ t: tc }, selection.active)}
+                rows={visible.map((row) =>
+                  labListRow(row, {
+                    dates: rowDates,
+                    invoiced: invoicedIds.has(row.id),
+                    statusCell: statusSelect(row),
+                    onOpen: openOrToggle(row),
+                    select: selection.active
+                      ? { checked: selection.ids.has(row.id), disabled: !canTrash(row.status) }
+                      : undefined,
+                  }),
+                )}
+                footer={pageFooter}
+              />
+            ) : (
+              <Stack spacing={1.5}>
+                <OrderCardGrid>
+                  {visible.map((row) => (
+                    <OrderCard
+                      key={row.id}
+                      row={labCardRow(row)}
+                      perspective="lab"
+                      customer={{ name: labCustomerName(row), fromLab: isLabPurchase(row) }}
+                      highlight={row.has_unreviewed_edits || isAnswered(row)}
+                      extraBadges={<LabRowBadges row={row} invoiced={invoicedIds.has(row.id)} />}
+                      href={`/lab/orders/${row.id}`}
+                      select={
+                        !selection.active
+                          ? undefined
+                          : canTrash(row.status)
+                            ? { checked: selection.ids.has(row.id), onToggle: () => selection.toggle(row.id) }
+                            : 'off'
+                      }
                     />
-                  </Box>
-                </>
-              }
-            >
-              {visible.map((row) => {
-                const ds = row.doctor_snapshot ?? {};
-                const doctorName = [ds.first_name, ds.last_name].filter(Boolean).join(' ') || '—';
-                const patientName = patientLabel(row);
-                const fromLab = isLabPurchase(row);
-                const serviceName = row.lab_services?.name ?? row.service_snapshot?.name ?? '';
-                const total = row.final_total ?? row.generated_total;
-                const answered = isAnswered(row);
-                const place = destinationLabelOf(row);
-                const pickable = canTrash(row.status);
-                const picked = selection.active && selection.ids.has(row.id);
-
-                return (
-                  <DataRow
-                    key={row.id}
-                    columns={columns}
-                    highlight={picked || row.has_unreviewed_edits || answered}
-                    // In select mode a finished row toggles; the rest wait.
-                    onClick={
-                      !selection.active
-                        ? () => navigate(`/lab/orders/${row.id}`)
-                        : pickable
-                          ? () => selection.toggle(row.id)
-                          : undefined
-                    }
-                  >
-                    {selection.active && (
-                      <Checkbox
-                        checked={picked}
-                        disabled={!pickable}
-                        size="small"
-                        tabIndex={-1}
-                        disableRipple
-                        inputProps={{ 'aria-label': row.order_code }}
-                        sx={{ p: 0, pointerEvents: 'none' }}
-                      />
-                    )}
-                    <OrderCodeCell code={row.order_code} />
-
-                    <PatientCell name={patientName}>
-                      {row.has_unreviewed_edits && (
-                        <Stack direction="row" alignItems="center" spacing={0.5}>
-                          <Box
-                            sx={{
-                              width: 6,
-                              height: 6,
-                              borderRadius: '50%',
-                              bgcolor: 'warning.main',
-                            }}
-                          />
-                          <Typography
-                            sx={{
-                              fontSize: '0.625rem',
-                              fontWeight: 700,
-                              color: 'warning.dark',
-                            }}
-                            noWrap
-                          >
-                            {t('editedOrders.unconfirmedBadge')}
-                          </Typography>
-                        </Stack>
-                      )}
-                      {/* Same treatment as an unreviewed edit: this row is
-                          waiting on the lab, not on the doctor. */}
-                      {answered && (
-                        <Stack direction="row" alignItems="center" spacing={0.5}>
-                          <Box
-                            sx={{
-                              width: 6,
-                              height: 6,
-                              borderRadius: '50%',
-                              bgcolor: 'warning.main',
-                            }}
-                          />
-                          <Typography
-                            sx={{
-                              fontSize: '0.625rem',
-                              fontWeight: 700,
-                              color: 'warning.dark',
-                            }}
-                            noWrap
-                          >
-                            {t('ordersDashboard.answeredBadge')}
-                          </Typography>
-                        </Stack>
-                      )}
-                      {invoicedIds.has(row.id) && <LabInvoiceMark />}
-                    </PatientCell>
-
-                    {/* The destination under the doctor rather than as a ninth
-                        column: eight is already dense at 1280px. */}
-                    <CustomerCell
-                      name={doctorName}
-                      fromLab={fromLab}
-                      detail={place.clinic}
-                      detailTitle={[place.clinic, place.detail].filter(Boolean).join(' · ')}
-                    />
-                    <TextCell>{serviceName}</TextCell>
-
-                    <DueCell order={row} dates={rowDates} side="lab" />
-
-                    {/* The status selector the mockup embeds in the row — a lab
-                        changes status straight from the queue. */}
-                    <Box onClick={(e) => e.stopPropagation()}>
-                      <Select
-                        size="small"
-                        value={row.status}
-                        onChange={(e) => {
-                          const next = e.target.value as OrderStatus;
-                          // Never savable on its own — the doctor needs the
-                          // question, not just the status.
-                          if (next === 'NEEDS_CLARIFICATION' || next === 'NEEDS_DOCTOR_INPUT') {
-                            setAskOrderId(row.id);
-                            setAskKind(next === 'NEEDS_DOCTOR_INPUT' ? 'EDIT' : 'ANSWER');
-                            return;
-                          }
-                          updateStatus.mutate({ orderId: row.id, status: next });
-                        }}
-                        disabled={updateStatus.isPending}
-                        fullWidth
-                        sx={{ fontSize: '0.71875rem', '& .MuiSelect-select': { py: 0.75 } }}
-                        renderValue={(v) => (
-                          <Stack direction="row" alignItems="center" spacing={0.875}>
-                            <Box
-                              sx={(theme) => ({
-                                width: 8,
-                                height: 8,
-                                borderRadius: '50%',
-                                flexShrink: 0,
-                                bgcolor: tone(statusTone(v as OrderStatus), theme.palette.mode).dot,
-                              })}
-                            />
-                            <Typography sx={{ fontSize: '0.71875rem', fontWeight: 600 }} noWrap>
-                              {statusLabel(v as OrderStatus, tc, 'lab')}
-                            </Typography>
-                          </Stack>
-                        )}
-                      >
-                        {LAB_SELECTABLE_STATUSES.map((s) => (
-                          <MenuItem key={s} value={s}>
-                            {statusLabel(s, tc, 'lab')}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </Box>
-
-                    <Typography sx={{ fontSize: '0.78125rem', fontWeight: 700, textAlign: 'right' }}>
-                      {total != null ? formatGEL(total) : '—'}
-                    </Typography>
-
-                    <Icon name="chevron_right" size={17} sx={{ color: 'text.disabled' }} />
-                  </DataRow>
-                );
-              })}
-            </DataTable>
+                  ))}
+                </OrderCardGrid>
+                <Stack direction="row" alignItems="center" spacing={1.5} sx={{ px: 0.5 }}>
+                  {pageFooter}
+                </Stack>
+              </Stack>
+            )}
             <CancelledHiddenHint count={hiddenCancelled} onShow={showCancelled} />
           </>
         )}

@@ -1,34 +1,44 @@
-import { Box, CircularProgress, Stack } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { PageHeader, StatusPill } from '@/components/design';
+import { PageHeader } from '@/components/design';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { appendDueWindow, dueTimeOf } from '@/features/orders/orderDates';
-import { pastDate, shortDate } from '@/features/orders/list/listFormat';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { OrderStatusChip } from '@/components/OrderStatusChip';
-import { formatGEL } from '@/utils/pricing';
-import { OrderRowCard } from '@/features/orders/OrderRowCard';
-import { LineageBadge } from '@/features/orders/LineageBadge';
 import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
-import { ORDER_TRASH_EMBED } from '@/features/orders/trash/trashFilter';
-import { FromLabBadge } from '@/features/lab/orders/FromLabBadge';
+import { useInvoiceOrderIds } from '@/features/orders/orderFiles/useInvoiceOrderIds';
+import { OrderCard } from '@/features/orders/list/OrderCard';
+import { OrderCardGrid, OrderListTable } from '@/features/orders/list/view/OrderListTable';
+import {
+  labCustomerName,
+  labListColumns,
+  labListRow,
+} from '@/features/orders/list/view/listRows';
+import { LabRowBadges } from '@/features/orders/list/view/RowBadges';
+import { OrdersViewToggle } from '@/features/orders/list/view/OrdersViewToggle';
+import { useOrdersView } from '@/features/orders/list/view/useOrdersView';
 import { isLabPurchase } from '@/features/lab/orders/labCustomer';
-import type { OrderRow } from '@/types/database';
+import {
+  isAnswered,
+  labCardRow,
+  LAB_ORDER_LIST_SELECT,
+  type LabListRow,
+} from '@/features/lab/orders/labOrderList';
+import { queueDates } from '@/features/lab/orders/orderPresets';
 
-type Row = OrderRow & {
-  lab_services: { name: string } | null;
-  service_snapshot: { name?: string } | null;
-};
-
+/**
+ * Every order a doctor has edited, unconfirmed edits first. The queue's own
+ * row or card (labOrderList), with its status read-only: the sheet is where
+ * the lab reviews the edit and moves the order on.
+ */
 export function LabEditedOrdersPage() {
   const { t } = useTranslation('lab');
   const { t: tc } = useTranslation('common');
   const { user } = useAuth();
   const labId = user?.lab?.id;
   const navigate = useNavigate();
+  const { view, setView, canSwitch } = useOrdersView('lab-edited');
 
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ['lab-edited-orders', labId],
@@ -36,13 +46,7 @@ export function LabEditedOrdersPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select(
-          'id, order_code, status, generated_total, final_total, requested_due_date, ' +
-            'confirmed_due_date, requested_due_time, confirmed_due_time, ' +
-            'created_at, service_snapshot, doctor_snapshot, continues_order_id, ' +
-            'has_unreviewed_edits, last_edited_at, edit_count, buyer_lab_id, lab_services(name), ' +
-            ORDER_TRASH_EMBED,
-        )
+        .select(LAB_ORDER_LIST_SELECT)
         // Not left to RLS: from 0048 the owner also reads its own purchases
         // from other labs, and edits it made to those are not this list's.
         .eq('lab_id', labId!)
@@ -54,7 +58,7 @@ export function LabEditedOrdersPage() {
         .order('has_unreviewed_edits', { ascending: false })
         .order('last_edited_at', { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as Row[];
+      return (data ?? []) as unknown as LabListRow[];
     },
   });
 
@@ -62,10 +66,17 @@ export function LabEditedOrdersPage() {
   // already loaded, with one batched query for any parent this page didn't
   // fetch — never a query per row.
   const parentCodes = useParentOrderCodes(orders);
+  // The queue's invoice mark, from one query for the page. Fails soft.
+  const invoicedIds = useInvoiceOrderIds({ labId, unacknowledgedOnly: false, enabled: !!labId });
+  const rowDates = queueDates();
 
   return (
     <>
-      <PageHeader title={t('editedOrders.title')} subtitle={t('editedOrders.subtitle')} />
+      <PageHeader
+        title={t('editedOrders.title')}
+        subtitle={t('editedOrders.subtitle')}
+        actions={<OrdersViewToggle view={view} onChange={setView} canSwitch={canSwitch} />}
+      />
 
       {isLoading ? (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -73,50 +84,33 @@ export function LabEditedOrdersPage() {
         </Box>
       ) : orders.length === 0 ? (
         <OrdersEmptyState icon="difference" title={t('editedOrders.empty')} />
+      ) : view === 'list' ? (
+        <OrderListTable
+          columns={labListColumns({ t: tc })}
+          rows={orders.map((row) =>
+            labListRow(row, {
+              dates: rowDates,
+              invoiced: invoicedIds.has(row.id),
+              onOpen: () => navigate(`/lab/orders/${row.id}`),
+              lineage: { parentCode: parentCodes.get(row.continues_order_id ?? '') },
+            }),
+          )}
+        />
       ) : (
-        <Stack spacing={1.25}>
-          {orders.map((row) => {
-            const ds = row.doctor_snapshot ?? {};
-            const doctorName = [ds.first_name, ds.last_name].filter(Boolean).join(' ') || '—';
-            const serviceName = row.lab_services?.name ?? row.service_snapshot?.name ?? '';
-            const total = row.final_total ?? row.generated_total;
-            const dueRaw = row.confirmed_due_date ?? row.requested_due_date;
-            const due = dueRaw
-              ? appendDueWindow(shortDate(dueRaw, tc), dueTimeOf(row), tc)
-              : undefined;
-            return (
-              <OrderRowCard
-                key={row.id}
-                lineage={
-                  <LineageBadge
-                    continuesOrderId={row.continues_order_id}
-                    parentCode={parentCodes.get(row.continues_order_id ?? '')}
-                  />
-                }
-                code={row.order_code}
-                primary={doctorName}
-                secondary={serviceName}
-                highlight={row.has_unreviewed_edits}
-                flag={
-                  row.has_unreviewed_edits || isLabPurchase(row) ? (
-                    <>
-                      {row.has_unreviewed_edits && (
-                        <StatusPill tone="warning">{t('editedOrders.unconfirmedBadge')}</StatusPill>
-                      )}
-                      {isLabPurchase(row) && <FromLabBadge />}
-                    </>
-                  ) : undefined
-                }
-                status={<OrderStatusChip status={row.status} side="lab" />}
-                total={total != null ? formatGEL(total) : '—'}
-                createdDate={pastDate(row.created_at, tc)}
-                dueDate={due}
-                avatarText={doctorName}
-                onClick={() => navigate(`/lab/orders/${row.id}`)}
-              />
-            );
-          })}
-        </Stack>
+        <OrderCardGrid>
+          {orders.map((row) => (
+            <OrderCard
+              key={row.id}
+              row={labCardRow(row)}
+              perspective="lab"
+              customer={{ name: labCustomerName(row), fromLab: isLabPurchase(row) }}
+              highlight={row.has_unreviewed_edits || isAnswered(row)}
+              extraBadges={<LabRowBadges row={row} invoiced={invoicedIds.has(row.id)} />}
+              parentCode={parentCodes.get(row.continues_order_id ?? '')}
+              href={`/lab/orders/${row.id}`}
+            />
+          ))}
+        </OrderCardGrid>
       )}
     </>
   );

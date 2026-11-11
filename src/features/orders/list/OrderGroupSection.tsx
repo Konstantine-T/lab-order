@@ -3,31 +3,12 @@ import { Box, Button, Stack, Typography, useTheme } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
 import { brand, DARK, palette2026, surfaces, tone } from '@/theme/tokens';
-import type { OrderGroupKey } from './orderListModel';
+import { INITIAL, STEP, type GroupKey } from './groupPaging';
 
-export type GroupKey = OrderGroupKey | 'drafts';
-
-/**
- * How many cards a group shows before "N more". The waiting-on-you group is
- * never cut — every card in it is something to do. Live stages show two rows
- * of the desktop grid; the archive groups only their newest few.
- */
-const INITIAL: Record<GroupKey, number> = {
-  drafts: Infinity,
-  needsYou: Infinity,
-  sent: 6,
-  inProgress: 6,
-  ready: 6,
-  delivered: 6,
-  completed: 3,
-  cancelled: 3,
-};
-
-/** Each "N more" reveals at most this many — the list's paging. */
-const STEP = 12;
+export type { GroupKey };
 
 /** The dot before each heading, in the redesign's colour story. */
-function GroupDot({ group }: { group: GroupKey }) {
+export function GroupDot({ group }: { group: GroupKey }) {
   const mode = useTheme().palette.mode;
   const base = { width: 8, height: 8, borderRadius: '50%', flexShrink: 0, boxSizing: 'border-box' } as const;
   switch (group) {

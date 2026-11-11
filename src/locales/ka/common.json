@@ -246,13 +246,10 @@
   "yes": "კი",
   "no": "არა",
   "orderCard": {
-    "due": "ვადა",
-    "total": "ჯამი",
     "continuesFrom": "გაგრძელება პროექტიდან",
     "continuation": "გაგრძელება",
     "dueWindow": "{{start}}–{{end}}",
-    "dueWindowNextDay": "(+1 დღე)",
-    "created": "შექმნილია"
+    "dueWindowNextDay": "(+1 დღე)"
   },
   "orderFiles": {
     "title": "მიმაგრებული ფაილები",
@@ -310,6 +307,11 @@
     "ariaActive_one": "დამატებითი ფილტრები, აქტიური: {{count}}",
     "ariaActive_other": "დამატებითი ფილტრები, აქტიური: {{count}}"
   },
+  "ordersView": {
+    "list": "სიის ხედი",
+    "grid": "ბადის ხედი",
+    "groupHeader": "{{group}} · {{count}}"
+  },
   "orderList": {
     "dateFormat": "D MMM",
     "searchPlaceholder": "პაციენტი, ნომერი, ლაბორატორია",
@@ -339,6 +341,16 @@
     },
     "showMore": "კიდევ {{count}}",
     "showLess": "ნაკლების ჩვენება",
+    "columns": {
+      "code": "შეკვეთა",
+      "patient": "პაციენტი",
+      "doctor": "ექიმი",
+      "lab": "ლაბორატორია",
+      "service": "სერვისი",
+      "due": "ვადა",
+      "status": "სტატუსი",
+      "total": "ჯამი"
+    },
     "cancelledHidden_one": "დამალულია {{count}} გაუქმებული შეკვეთა",
     "cancelledHidden_other": "დამალულია {{count}} გაუქმებული შეკვეთა",
     "showCancelled": "ჩვენება",

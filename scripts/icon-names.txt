@@ -62,6 +62,7 @@ folder_open
 folder_shared
 forum
 grid_on
+grid_view
 group_add
 groups
 help
@@ -135,6 +136,7 @@ unfold_more
 upload
 upload_file
 verified
+view_list
 visibility
 visibility_off
 volume_off

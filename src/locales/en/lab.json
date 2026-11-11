@@ -494,14 +494,7 @@
       }
     },
     "columns": {
-      "code": "Order",
-      "doctor": "Doctor",
-      "patient": "Patient",
-      "service": "Service",
-      "status": "Status",
-      "total": "Total",
-      "due": "Due",
-      "created": "Created"
+      "doctor": "Doctor"
     },
     "subtitle": "Everything doctors have sent you",
     "unreviewedEdits": "Unreviewed edits",

@@ -31,7 +31,13 @@ import {
 } from '@/features/doctor/orderCreate/draftStorage';
 import { useContinueProject } from '@/features/doctor/orderCreate/useContinueProject';
 import { useUnacknowledgedInvoices } from '@/features/orders/orderFiles/useUnacknowledgedInvoices';
-import { OrderCard } from '@/features/orders/list/OrderCard';
+import { OrderCard, type CardSelect } from '@/features/orders/list/OrderCard';
+import { OrderGroupSection } from '@/features/orders/list/OrderGroupSection';
+import { GroupedOrderTable } from '@/features/orders/list/view/OrderListTable';
+import { orderListColumns, orderListRow } from '@/features/orders/list/view/listRows';
+import { OrdersViewToggle } from '@/features/orders/list/view/OrdersViewToggle';
+import { useOrdersView } from '@/features/orders/list/view/useOrdersView';
+import { queueDates } from '@/features/lab/orders/orderPresets';
 import { DraftCard } from '@/features/orders/list/DraftCard';
 import { GroupedOrderList, OrderListSkeleton } from '@/features/orders/list/GroupedOrderList';
 import { OrdersFilterBar } from '@/features/orders/list/OrdersFilterBar';
@@ -322,6 +328,27 @@ export function OrdersListPage({ buyer: buyerProp = false }: { buyer?: boolean }
     return edit;
   };
 
+  // List or cards, per person; a lab's purchases are the lab's own page.
+  const { view, setView, canSwitch } = useOrdersView(buyer ? 'lab-purchases' : 'doctor-orders');
+  const rowDates = queueDates();
+  // Select mode (0054): finished orders toggle, the rest sit out.
+  const selectOf = (row: ListOrderRow): CardSelect | undefined =>
+    !selection.active
+      ? undefined
+      : canTrash(row.status)
+        ? { checked: selection.ids.has(row.id), onToggle: () => selection.toggle(row.id) }
+        : 'off';
+  // The drafts stay cards above the list: they are not orders yet.
+  const draftsSection =
+    drafts.length > 0 ? (
+      <OrderGroupSection
+        group="drafts"
+        items={drafts}
+        itemKey={(d) => d.key}
+        renderItem={(d) => d.node}
+      />
+    ) : undefined;
+
   const newOrderButton = (
     <Button
       variant="contained"
@@ -419,7 +446,12 @@ export function OrdersListPage({ buyer: buyerProp = false }: { buyer?: boolean }
       </Dialog>
 
       <Stack spacing={2.5}>
-        {!isLoading && orders.length > 0 && <OrdersFilterBar filters={filters} />}
+        {!isLoading && orders.length > 0 && (
+          <OrdersFilterBar
+            filters={filters}
+            viewToggle={<OrdersViewToggle view={view} onChange={setView} canSwitch={canSwitch} />}
+          />
+        )}
         {!isLoading && finishedCount > 0 && !selection.active && (
           <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: -1 }}>
             <SelectModeButton selection={selection} available={finishedCount} />
@@ -451,30 +483,47 @@ export function OrdersListPage({ buyer: buyerProp = false }: { buyer?: boolean }
           />
         ) : (
           <>
-            <GroupedOrderList
-              rows={filters.filtered}
-              drafts={drafts}
-              resetKey={filters.resetKey}
-              sort={filters.sort}
-              renderCard={(row, group) => (
-                <OrderCard
-                  row={row}
-                  group={group}
-                  href={`${ordersPath}/${row.id}`}
-                  invoiceUnseen={unseenInvoices.has(row.id)}
-                  parentCode={parentCodes.get(row.continues_order_id ?? '')}
-                  // Select mode hides the card's own buttons: one action at a time.
-                  actions={selection.active ? undefined : cardActions(row, group)}
-                  select={
-                    !selection.active
-                      ? undefined
-                      : canTrash(row.status)
-                        ? { checked: selection.ids.has(row.id), onToggle: () => selection.toggle(row.id) }
-                        : 'off'
-                  }
-                />
-              )}
-            />
+            {/* Both views: the same rows, groups and per-group paging. */}
+            {view === 'list' ? (
+              <GroupedOrderTable
+                rows={filters.filtered}
+                sort={filters.sort}
+                resetKey={filters.resetKey}
+                columns={orderListColumns('doctor', { t: tc }, selection.active)}
+                drafts={draftsSection}
+                renderRow={(row, group) =>
+                  orderListRow(row, {
+                    perspective: 'doctor',
+                    group,
+                    dates: rowDates,
+                    onOpen: () => navigate(`${ordersPath}/${row.id}`),
+                    invoiceUnseen: unseenInvoices.has(row.id),
+                    parentCode: parentCodes.get(row.continues_order_id ?? ''),
+                    actions: selection.active ? undefined : cardActions(row, group),
+                    select: selectOf(row),
+                  })
+                }
+              />
+            ) : (
+              <GroupedOrderList
+                rows={filters.filtered}
+                drafts={drafts}
+                resetKey={filters.resetKey}
+                sort={filters.sort}
+                renderCard={(row, group) => (
+                  <OrderCard
+                    row={row}
+                    group={group}
+                    href={`${ordersPath}/${row.id}`}
+                    invoiceUnseen={unseenInvoices.has(row.id)}
+                    parentCode={parentCodes.get(row.continues_order_id ?? '')}
+                    // Select mode hides the card's own buttons: one action at a time.
+                    actions={selection.active ? undefined : cardActions(row, group)}
+                    select={selectOf(row)}
+                  />
+                )}
+              />
+            )}
             <CancelledHiddenHint count={filters.hiddenCancelled} onShow={filters.showCancelled} />
           </>
         )}

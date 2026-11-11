@@ -288,10 +288,13 @@ function QuickTiles({
 export function OrdersFilterBar({
   filters,
   doctorOptions,
+  viewToggle,
 }: {
   filters: OrderListFilterState;
   /** The clinic's doctors; leave out on the doctor's own list. */
   doctorOptions?: FilterOption[];
+  /** The list / grid switch, beside the sort. */
+  viewToggle?: ReactNode;
 }) {
   const { t } = useTranslation(['common', 'doctor']);
   const theme = useTheme();
@@ -397,6 +400,7 @@ export function OrdersFilterBar({
               "More filters" so the row stays short under the tiles. */}
           <Box sx={{ display: { xs: 'none', sm: 'contents' } }}>{menus}</Box>
           <SortMenu value={filters.sort} onChange={filters.setSort} />
+          {viewToggle}
           <MoreFiltersButton
             open={filters.advancedOpen}
             onToggle={() => filters.setAdvancedOpen((v) => !v)}

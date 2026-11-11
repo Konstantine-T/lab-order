@@ -246,13 +246,10 @@
   "yes": "Yes",
   "no": "No",
   "orderCard": {
-    "due": "Due",
-    "total": "Total",
     "continuesFrom": "Continues from",
     "continuation": "Continuation",
     "dueWindow": "{{start}}–{{end}}",
-    "dueWindowNextDay": "(+1 day)",
-    "created": "Created"
+    "dueWindowNextDay": "(+1 day)"
   },
   "orderFiles": {
     "title": "Attachments",
@@ -310,6 +307,11 @@
     "ariaActive_one": "More filters, {{count}} active",
     "ariaActive_other": "More filters, {{count}} active"
   },
+  "ordersView": {
+    "list": "List view",
+    "grid": "Grid view",
+    "groupHeader": "{{group}} · {{count}}"
+  },
   "orderList": {
     "dateFormat": "MMM D",
     "searchPlaceholder": "Patient, number, lab",
@@ -339,6 +341,16 @@
     },
     "showMore": "{{count}} more",
     "showLess": "Show less",
+    "columns": {
+      "code": "Order",
+      "patient": "Patient",
+      "doctor": "Doctor",
+      "lab": "Laboratory",
+      "service": "Service",
+      "due": "Due",
+      "status": "Status",
+      "total": "Total"
+    },
     "cancelledHidden_one": "{{count}} cancelled order hidden",
     "cancelledHidden_other": "{{count}} cancelled orders hidden",
     "showCancelled": "Show",

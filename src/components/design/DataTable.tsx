@@ -103,12 +103,19 @@ export function DataRow({
   children,
   onClick,
   highlight,
+  accent,
 }: {
   columns: Column[];
   children: ReactNode;
   onClick?: () => void;
   /** Tints the row — an unreviewed edit in the lab queue. */
   highlight?: boolean;
+  /**
+   * A 3px bar down the row's left edge, in any theme or CSS colour: the order
+   * card's gold "waiting on you" / aqua "ready" frame, carried into a list.
+   * Drawn as an inset shadow, so the row's columns do not move.
+   */
+  accent?: string;
 }) {
   return (
     <Box
@@ -134,6 +141,7 @@ export function DataRow({
         borderColor: 'divider',
         '&:last-of-type': { borderBottom: 0 },
         bgcolor: highlight ? alpha(brand.main, 0.045) : 'transparent',
+        ...(accent && { boxShadow: `inset 3px 0 0 ${accent}` }),
         ...(onClick && {
           cursor: 'pointer',
           transition: `background-color ${motion.fast}`,

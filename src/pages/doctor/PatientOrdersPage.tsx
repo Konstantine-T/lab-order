@@ -1,27 +1,22 @@
-import { Box, Button, CircularProgress, Stack } from '@mui/material';
+import { Box, Button, CircularProgress } from '@mui/material';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Icon, PageHeader } from '@/components/design';
 import { useQuery } from '@tanstack/react-query';
 import { useContinueProject } from '@/features/doctor/orderCreate/useContinueProject';
 import { useTranslation } from 'react-i18next';
-import { appendDueWindow, dueTimeOf } from '@/features/orders/orderDates';
-import { pastDate, shortDate } from '@/features/orders/list/listFormat';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
-import { OrderRowCard } from '@/features/orders/OrderRowCard';
-import { LineageBadge } from '@/features/orders/LineageBadge';
+import { OrderCard } from '@/features/orders/list/OrderCard';
+import { LIST_ORDER_SELECT, type ListOrderRow } from '@/features/orders/list/orderListModel';
+import { OrderCardGrid, OrderListTable } from '@/features/orders/list/view/OrderListTable';
+import { orderListColumns, orderListRow } from '@/features/orders/list/view/listRows';
+import { OrdersViewToggle } from '@/features/orders/list/view/OrdersViewToggle';
+import { useOrdersView } from '@/features/orders/list/view/useOrdersView';
+import { queueDates } from '@/features/lab/orders/orderPresets';
 import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
-import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
-import { formatGEL } from '@/utils/pricing';
 import { ORDER_TRASH_EMBED } from '@/features/orders/trash/trashFilter';
-import type { OrderRow, PatientRow } from '@/types/database';
-
-type OrderRow_ = OrderRow & {
-  labs: { public_name: string } | null;
-  lab_services: { name: string } | null;
-  service_snapshot: { name?: string } | null;
-};
+import type { PatientRow } from '@/types/database';
 
 export function PatientOrdersPage() {
   const { t } = useTranslation('doctor');
@@ -53,20 +48,15 @@ export function PatientOrdersPage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
-        .select(
-          'id, order_code, status, payment_status, generated_total, final_total, ' +
-            'requested_due_date, confirmed_due_date, requested_due_time, confirmed_due_time, created_at, service_snapshot, lab_id, continues_order_id, ' +
-            // The lab's key, by name: orders has a second one to labs (0048).
-            'labs!orders_lab_id_fkey(public_name), lab_services(name), ' +
-            ORDER_TRASH_EMBED,
-        )
+        // The orders list's own row, so the list and the cards read one shape.
+        .select(`${LIST_ORDER_SELECT}, ${ORDER_TRASH_EMBED}`)
         .eq('doctor_id', doctorId!)
         .eq('patient_id', patientId!)
         // Not what the doctor deleted (0054).
         .is('order_trash', null)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return (data ?? []) as unknown as OrderRow_[];
+      return (data ?? []) as unknown as ListOrderRow[];
     },
   });
 
@@ -84,6 +74,45 @@ export function PatientOrdersPage() {
   // fetch — never a query per row.
   const parentCodes = useParentOrderCodes(orders);
 
+  // List or cards, per person (the list by default here).
+  const { view, setView, canSwitch } = useOrdersView('doctor-patient');
+  const rowDates = queueDates();
+
+  /** The old row footer's buttons, for the card and the list alike. */
+  const actionsOf = (row: ListOrderRow) =>
+    row.status === 'CANCELLED' ? undefined : (
+      <>
+        {row.status !== 'COMPLETED' && (
+          <Button
+            size="small"
+            startIcon={<Icon name="edit" size={16} />}
+            onClick={() => navigate(`/doctor/orders/${row.id}/edit`)}
+          >
+            {t('orders.editButton')}
+          </Button>
+        )}
+        {patientId && (
+          <Button
+            size="small"
+            startIcon={<Icon name="add" size={16} />}
+            onClick={() => continueProject.startForPatient(row.lab_id, patientId)}
+          >
+            {t('orders.addAnotherService')}
+          </Button>
+        )}
+        {row.status === 'COMPLETED' && patientId && (
+          <Button
+            size="small"
+            variant="contained"
+            startIcon={<Icon name="add" size={16} />}
+            onClick={() => continueProject.start(row.lab_id, patientId, row.id)}
+          >
+            {t('orders.continueProject')}
+          </Button>
+        )}
+      </>
+    );
+
   return (
     <>
       <PageHeader
@@ -91,15 +120,18 @@ export function PatientOrdersPage() {
         title={patientName}
         subtitle={t('patientOrders.title')}
         actions={
-          latestLabId && patientId ? (
-            <Button
-              variant="contained"
-              startIcon={<Icon name="add" size={18} />}
-              onClick={() => continueProject.startForPatient(latestLabId, patientId)}
-            >
-              {t('orders.addNewOrder')}
-            </Button>
-          ) : undefined
+          <>
+            <OrdersViewToggle view={view} onChange={setView} canSwitch={canSwitch} />
+            {latestLabId && patientId && (
+              <Button
+                variant="contained"
+                startIcon={<Icon name="add" size={18} />}
+                onClick={() => continueProject.startForPatient(latestLabId, patientId)}
+              >
+                {t('orders.addNewOrder')}
+              </Button>
+            )}
+          </>
         }
       />
 
@@ -109,79 +141,31 @@ export function PatientOrdersPage() {
         </Box>
       ) : orders.length === 0 ? (
         <OrdersEmptyState title={t('patientOrders.empty')} />
+      ) : view === 'list' ? (
+        <OrderListTable
+          columns={orderListColumns('doctor', { t: tc })}
+          rows={orders.map((row) =>
+            orderListRow(row, {
+              perspective: 'doctor',
+              dates: rowDates,
+              onOpen: () => navigate(`/doctor/orders/${row.id}`),
+              parentCode: parentCodes.get(row.continues_order_id ?? ''),
+              actions: actionsOf(row),
+            }),
+          )}
+        />
       ) : (
-        <Stack spacing={1.25}>
-          {orders.map((row) => {
-            const serviceName =
-              row.lab_services?.name ?? row.service_snapshot?.name ?? '';
-            const labName = row.labs?.public_name ?? '';
-            const hasDiscount =
-              row.final_total != null &&
-              row.generated_total != null &&
-              row.final_total < row.generated_total;
-            const total = row.final_total ?? row.generated_total;
-            const dueRaw = row.confirmed_due_date ?? row.requested_due_date;
-            const due = dueRaw
-              ? appendDueWindow(shortDate(dueRaw, tc), dueTimeOf(row), tc)
-              : undefined;
-            return (
-              <OrderRowCard
-                key={row.id}
-                lineage={
-                  <LineageBadge
-                    continuesOrderId={row.continues_order_id}
-                    parentCode={parentCodes.get(row.continues_order_id ?? '')}
-                  />
-                }
-                code={row.order_code}
-                primary={serviceName || '—'}
-                secondary={labName}
-                status={<OrderStatusChip status={row.status} />}
-                paymentStatus={<PaymentStatusChip status={row.payment_status} />}
-                total={total != null ? formatGEL(total) : '—'}
-                originalTotal={hasDiscount ? formatGEL(row.generated_total!) : undefined}
-                createdDate={pastDate(row.created_at, tc)}
-                dueDate={due}
-                avatarText={serviceName || '?'}
-                onClick={() => navigate(`/doctor/orders/${row.id}`)}
-                footer={
-                  row.status === 'CANCELLED' ? undefined : (
-                    <Stack direction="row" spacing={1} sx={{ px: 2.5, py: 1.25 }}>
-                      {row.status !== 'COMPLETED' && (
-                        <Button
-                          size="small"
-                          startIcon={<Icon name="edit" size={16} />}
-                          onClick={() => navigate(`/doctor/orders/${row.id}/edit`)}
-                        >
-                          {t('orders.editButton')}
-                        </Button>
-                      )}
-                      {patientId && (
-                        <Button
-                          size="small"
-                          startIcon={<Icon name="add" size={16} />}
-                          onClick={() => continueProject.startForPatient(row.lab_id, patientId)}
-                        >
-                          {t('orders.addAnotherService')}
-                        </Button>
-                      )}
-                      {row.status === 'COMPLETED' && patientId && (
-                        <Button
-                          size="small"
-                          variant="contained"
-                          startIcon={<Icon name="add" size={16} />}
-                          onClick={() => continueProject.start(row.lab_id, patientId, row.id)}
-                        >
-                          {t('orders.continueProject')}
-                        </Button>
-                      )}
-                    </Stack>
-                  )
-                }
-              />
-            );
-          })}
-        </Stack>
+        <OrderCardGrid>
+          {orders.map((row) => (
+            <OrderCard
+              key={row.id}
+              row={row}
+              href={`/doctor/orders/${row.id}`}
+              parentCode={parentCodes.get(row.continues_order_id ?? '')}
+              actions={actionsOf(row)}
+            />
+          ))}
+        </OrderCardGrid>
       )}
       {continueProject.modal}
     </>

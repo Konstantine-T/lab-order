@@ -12,6 +12,12 @@ import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { CancelledHiddenHint } from '@/features/orders/CancelledHiddenHint';
 import { clearDraft, loadDraftsByAuthor } from '@/features/doctor/orderCreate/draftStorage';
 import { OrderCard } from '@/features/orders/list/OrderCard';
+import { OrderGroupSection } from '@/features/orders/list/OrderGroupSection';
+import { GroupedOrderTable } from '@/features/orders/list/view/OrderListTable';
+import { orderListColumns, orderListRow } from '@/features/orders/list/view/listRows';
+import { OrdersViewToggle } from '@/features/orders/list/view/OrdersViewToggle';
+import { useOrdersView } from '@/features/orders/list/view/useOrdersView';
+import { queueDates } from '@/features/lab/orders/orderPresets';
 import { DraftCard } from '@/features/orders/list/DraftCard';
 import { GroupedOrderList, OrderListSkeleton } from '@/features/orders/list/GroupedOrderList';
 import { OrdersFilterBar } from '@/features/orders/list/OrdersFilterBar';
@@ -109,6 +115,10 @@ export function ClinicOrdersPage() {
   const parentCodes = useParentOrderCodes(orders);
   // No doctor filter: RLS already scopes the clinic to its own doctors.
   const unseenInvoices = useUnacknowledgedInvoices();
+
+  // List or cards, per person (the owner's default for the clinic: the list).
+  const { view, setView, canSwitch } = useOrdersView('clinic-orders');
+  const rowDates = queueDates();
 
   const subtitle = [
     user?.clinic?.public_name,
@@ -221,7 +231,11 @@ export function ClinicOrdersPage() {
 
       <Stack spacing={2.5}>
         {!isLoading && orders.length > 0 && (
-          <OrdersFilterBar filters={filters} doctorOptions={doctorOptions} />
+          <OrdersFilterBar
+            filters={filters}
+            doctorOptions={doctorOptions}
+            viewToggle={<OrdersViewToggle view={view} onChange={setView} canSwitch={canSwitch} />}
+          />
         )}
 
         {isLoading ? (
@@ -249,23 +263,55 @@ export function ClinicOrdersPage() {
           />
         ) : (
           <>
-            <GroupedOrderList
-              rows={filters.filtered}
-              drafts={draftItems}
-              resetKey={filters.resetKey}
-              sort={filters.sort}
-              renderCard={(row, group) => (
-                <OrderCard
-                  row={row}
-                  group={group}
-                  href={`/clinic/orders/${row.id}`}
-                  doctorName={doctorOf(row) || undefined}
-                  invoiceUnseen={unseenInvoices.has(row.id)}
-                  parentCode={parentCodes.get(row.continues_order_id ?? '')}
-                  actions={cardActions(row, group)}
-                />
-              )}
-            />
+            {/* Both views: the same rows, groups and per-group paging. */}
+            {view === 'list' ? (
+              <GroupedOrderTable
+                rows={filters.filtered}
+                sort={filters.sort}
+                resetKey={filters.resetKey}
+                columns={orderListColumns('clinic', { t: tc })}
+                drafts={
+                  draftItems.length > 0 ? (
+                    <OrderGroupSection
+                      group="drafts"
+                      items={draftItems}
+                      itemKey={(d) => d.key}
+                      renderItem={(d) => d.node}
+                    />
+                  ) : undefined
+                }
+                renderRow={(row, group) =>
+                  orderListRow(row, {
+                    perspective: 'clinic',
+                    group,
+                    dates: rowDates,
+                    onOpen: () => navigate(`/clinic/orders/${row.id}`),
+                    doctorName: doctorOf(row) || undefined,
+                    invoiceUnseen: unseenInvoices.has(row.id),
+                    parentCode: parentCodes.get(row.continues_order_id ?? ''),
+                    actions: cardActions(row, group),
+                  })
+                }
+              />
+            ) : (
+              <GroupedOrderList
+                rows={filters.filtered}
+                drafts={draftItems}
+                resetKey={filters.resetKey}
+                sort={filters.sort}
+                renderCard={(row, group) => (
+                  <OrderCard
+                    row={row}
+                    group={group}
+                    href={`/clinic/orders/${row.id}`}
+                    doctorName={doctorOf(row) || undefined}
+                    invoiceUnseen={unseenInvoices.has(row.id)}
+                    parentCode={parentCodes.get(row.continues_order_id ?? '')}
+                    actions={cardActions(row, group)}
+                  />
+                )}
+              />
+            )}
             <CancelledHiddenHint count={filters.hiddenCancelled} onShow={filters.showCancelled} />
           </>
         )}

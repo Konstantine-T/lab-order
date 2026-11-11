@@ -60,6 +60,8 @@ export type ListOrderRow = Pick<
   /** A lab's purchase only (0048): its free-text case reference, which may
    *  stand in for a patient. Selected only by the purchases list. */
   patient_reference?: string | null;
+  /** "Irakli K." (0057): what a lab's card shows instead of the patient. */
+  patient_label?: string | null;
   // The live joins stay as fallbacks for a snapshot written before the column
   // carried a name.
   labs: { public_name: string } | null;

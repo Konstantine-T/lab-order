@@ -505,14 +505,7 @@
       "completed": "დასრულებული"
     },
     "columns": {
-      "code": "შეკვეთა",
-      "doctor": "ექიმი",
-      "patient": "პაციენტი",
-      "service": "სერვისი",
-      "status": "სტატუსი",
-      "total": "ჯამი",
-      "due": "ვადა",
-      "created": "შექმნილია"
+      "doctor": "ექიმი"
     },
     "answeredBadge": "პასუხი გაცემულია",
     "invoiceAttached": "ინვოისი",

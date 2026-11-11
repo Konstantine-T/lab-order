@@ -2,7 +2,9 @@ import type { ReactNode } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
-import { InitialsAvatar } from '@/components/design';
+import { Icon, InitialsAvatar } from '@/components/design';
+import { formatGELShort } from '@/utils/pricing';
+import type { ListPrice } from '@/features/orders/list/orderListModel';
 import { OrderStatusChip } from '@/components/OrderStatusChip';
 import { FromLabBadge } from '@/features/lab/orders/FromLabBadge';
 import { matchesPreset, CLOSED_STATUSES, type QueueDates } from '@/features/lab/orders/orderPresets';
@@ -184,6 +186,50 @@ export function OrderStatusCell({
       )}
     </Stack>
   );
+}
+
+/**
+ * The order's price, right-aligned, as the card states it (orderListModel's
+ * priceOf): the lab's final figure in bold, an estimate as "≈", the estimate
+ * struck through when the lab settled below it, "—" when there is none.
+ */
+export function TotalCell({ price }: { price: ListPrice | null }) {
+  const { t } = useTranslation('common');
+  if (!price) {
+    return (
+      <Typography sx={{ fontSize: '0.78125rem', color: 'text.secondary', textAlign: 'right' }}>—</Typography>
+    );
+  }
+  return (
+    <Stack alignItems="flex-end" sx={{ minWidth: 0 }}>
+      {price.was != null && (
+        <Typography
+          sx={{ fontSize: '0.6875rem', color: 'text.secondary', textDecoration: 'line-through', whiteSpace: 'nowrap' }}
+        >
+          {formatGELShort(price.was)}
+        </Typography>
+      )}
+      <Typography
+        title={
+          price.kind === 'estimate' ? t('priceBreakdown.estimatedTotal') : t('priceBreakdown.labFinalTotal')
+        }
+        sx={{
+          fontSize: '0.78125rem',
+          fontWeight: price.kind === 'final' ? 700 : 600,
+          color: price.kind === 'final' ? 'text.primary' : 'text.secondary',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {price.kind === 'estimate' ? '≈ ' : ''}
+        {formatGELShort(price.amount)}
+      </Typography>
+    </Stack>
+  );
+}
+
+/** The queue's chevron: the row opens the order. */
+export function GoCell() {
+  return <Icon name="chevron_right" size={17} sx={{ color: 'text.disabled' }} />;
 }
 
 /**

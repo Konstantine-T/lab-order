@@ -10,7 +10,9 @@ import { InvoiceBadge } from '@/features/orders/orderFiles/InvoiceBadge';
 import { pipelineIndex } from '@/features/orders/pipeline';
 import { formatGELShort } from '@/utils/pricing';
 import { brand, lift, motion, palette2026, radii, surfaces, tone } from '@/theme/tokens';
+import { FromLabBadge } from '@/features/lab/orders/FromLabBadge';
 import {
+  groupOf,
   isEdited,
   labNameOf,
   openQuestion,
@@ -31,8 +33,22 @@ type Tag = { label: string; tone: 'gold' | 'aqua' | 'muted' };
 type Props = {
   row: ListOrderRow;
   /** Which group the card sits in — `groupOf(row)`, passed so the list and the
-   *  card cannot disagree. Sets the frame (gold / aqua) and the corner tag. */
-  group: OrderGroupKey;
+   *  card cannot disagree. Sets the frame (gold / aqua) and the corner tag.
+   *  Derived when left out (an ungrouped list). */
+  group?: OrderGroupKey;
+  /**
+   * Whose list it is. `lab`: the patient's label and the customer (doctor or
+   * buying lab, with its mark) instead of the lab, the status in the lab's
+   * words in the corner, a gold frame for the lab's own highlight, and no
+   * doctor-side question or edit pills (the lab's marks come in `extraBadges`).
+   */
+  perspective?: 'doctor' | 'clinic' | 'lab';
+  /** The lab's card: who sent the order. */
+  customer?: { name: string; fromLab: boolean };
+  /** The lab's card: an unreviewed edit or an answer waiting on the lab. */
+  highlight?: boolean;
+  /** More pills in the badge row (the lab queue's marks). */
+  extraBadges?: ReactNode;
   /** Where the card goes. The whole body is one link. */
   href: string;
   /** Clinic list: the doctor the order was placed for. */
@@ -68,7 +84,11 @@ export type CardSelect = { checked: boolean; onToggle: () => void } | 'off';
  */
 export function OrderCard({
   row,
-  group,
+  group: groupProp,
+  perspective = 'doctor',
+  customer,
+  highlight = false,
+  extraBadges,
   href,
   doctorName,
   invoiceUnseen,
@@ -81,14 +101,38 @@ export function OrderCard({
   const mode = useTheme().palette.mode;
   const gold = tone('warning', mode);
   const aqua = tone('success', mode);
+  const lab = perspective === 'lab';
+  const group = groupProp ?? groupOf(row);
 
-  const tag = stateTag(row, group, t, now);
-  const question = openQuestion(row);
+  const tag: Tag | null = lab
+    ? { label: statusLabel(row.status, t, 'lab'), tone: highlight ? 'gold' : 'muted' }
+    : stateTag(row, group, t, now);
+  // The lab's card does not quote the lab its own question.
+  const question = lab ? undefined : openQuestion(row);
   // A cancelled order owes nothing; its old estimate would read as a bill.
   const price = row.status === 'CANCELLED' ? null : priceOf(row);
   const stage = pipelineIndex(row.status);
   const service = serviceNameOf(row);
-  const who = [patientOrReference(row), labNameOf(row)].filter(Boolean).join(' · ');
+  const who = (
+    lab
+      ? // "Irakli K." (0057), else a purchase's reference; then who sent it.
+        [row.patient_label?.trim() || row.patient_reference?.trim() || '—', customer?.name]
+      : [patientOrReference(row), labNameOf(row)]
+  )
+    .filter(Boolean)
+    .join(' · ');
+  // The doctor's frame: gold waiting on them, aqua ready. The lab's: gold for
+  // its own highlight, nothing else.
+  const frame = lab
+    ? highlight
+      ? gold.border
+      : surfaces[mode].borderSolid
+    : group === 'needsYou'
+      ? gold.border
+      : group === 'ready'
+        ? aqua.border
+        : surfaces[mode].borderSolid;
+  const readyTint = !lab && group === 'ready';
 
   const due =
     row.status === 'COMPLETED'
@@ -106,9 +150,11 @@ export function OrderCard({
   // the change yet, then "changed <date>" for good — the fact the "Changed"
   // filter matches on.
   const editedAt = row.last_edited_at ? pastDate(row.last_edited_at, t, now) : null;
-  const edited = isEdited(row) || row.has_unreviewed_edits;
+  // The lab's edit marks are its own (extraBadges).
+  const edited = !lab && (isEdited(row) || row.has_unreviewed_edits);
+  const fromLab = lab && !!customer?.fromLab;
 
-  const hasBadges = !!row.continues_order_id || invoiceUnseen || edited;
+  const hasBadges = !!row.continues_order_id || invoiceUnseen || edited || fromLab || !!extraBadges;
 
   return (
     <Box
@@ -118,19 +164,11 @@ export function OrderCard({
         flexDirection: 'column',
         borderRadius: `${radii.card}px`,
         border: 1,
-        borderColor:
-          select && select !== 'off' && select.checked
-            ? brand.main
-            : group === 'needsYou'
-              ? gold.border
-              : group === 'ready'
-                ? aqua.border
-                : surfaces[mode].borderSolid,
+        borderColor: select && select !== 'off' && select.checked ? brand.main : frame,
         opacity: select === 'off' ? 0.5 : 1,
-        bgcolor:
-          group === 'ready'
-            ? alpha(palette2026.aqua, mode === 'light' ? 0.06 : 0.08)
-            : 'background.paper',
+        bgcolor: readyTint
+          ? alpha(palette2026.aqua, mode === 'light' ? 0.06 : 0.08)
+          : 'background.paper',
         overflow: 'hidden',
         transition: `border-color ${motion.base}, box-shadow ${motion.base}`,
         '&:hover': { borderColor: alpha(brand.main, 0.6), boxShadow: lift.card },
@@ -225,11 +263,13 @@ export function OrderCard({
         </Box>
 
         {hasBadges && (
-          <Stack direction="row" sx={{ flexWrap: 'wrap', gap: 0.75 }}>
+          <Stack direction="row" alignItems="center" sx={{ flexWrap: 'wrap', gap: 0.75 }}>
+            {fromLab && <FromLabBadge />}
             <LineageBadge continuesOrderId={row.continues_order_id} parentCode={parentCode} />
             {invoiceUnseen && <InvoiceBadge />}
+            {extraBadges}
             {/* The doctor's edit has not been looked at by the lab yet. */}
-            {row.has_unreviewed_edits ? (
+            {lab ? null : row.has_unreviewed_edits ? (
               <Box
                 component="span"
                 title={editedAt ? t('orderList.editedOn', { date: editedAt }) : undefined}
