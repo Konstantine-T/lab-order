@@ -159,7 +159,6 @@ export function ClinicFinancesPage() {
     filters.search.trim() !== '' ||
     filters.doctorId !== null ||
     filters.labId !== null ||
-    filters.recipientType !== null ||
     filters.dateFrom !== null ||
     filters.dateTo !== null ||
     filters.overdueOnly ||

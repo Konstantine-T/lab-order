@@ -2,7 +2,6 @@ import { supabase } from '@/lib/supabase';
 import type {
   ClinicPayableDoctor,
   ClinicPayableOrder,
-  InvoiceRecipientType,
   OrderStatus,
   PaymentStatus,
 } from '@/types/database';
@@ -42,8 +41,6 @@ export type PayableFilters = {
   search: string;
   doctorId: string | null;
   labId: string | null;
-  /** Whose invoice it is: billed to the doctor personally, or to the clinic. */
-  recipientType: InvoiceRecipientType | null;
   /** Payment status. Empty = every one. */
   statuses: PaymentStatus[];
   /** Order status (0056). Empty = every one. */
@@ -64,7 +61,6 @@ export const defaultPayableFilters: PayableFilters = {
   search: '',
   doctorId: null,
   labId: null,
-  recipientType: null,
   statuses: [],
   orderStatuses: [],
   dateFrom: null,
@@ -79,7 +75,6 @@ export function hiddenPayableFilterCount(f: PayableFilters): number {
   return [
     f.doctorId !== null,
     f.labId !== null,
-    f.recipientType !== null,
     f.dateFrom !== null,
     f.dateTo !== null,
     f.minAmount !== null,
@@ -94,7 +89,9 @@ function filterParams(f: PayableFilters) {
     p_search: f.search.trim() || null,
     p_doctor_id: f.doctorId,
     p_lab_id: f.labId,
-    p_recipient_type: f.recipientType,
+    // Every clinic order is invoiced to the clinic (0050), so the clinic has
+    // no "billed to" to filter by.
+    p_recipient_type: null,
     p_statuses: f.statuses.length ? f.statuses : null,
     p_order_statuses: f.orderStatuses.length ? f.orderStatuses : null,
     p_date_from: f.dateFrom,

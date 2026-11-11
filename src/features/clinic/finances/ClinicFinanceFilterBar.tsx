@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
 import { MoreFiltersButton } from '@/components/MoreFiltersButton';
 import { statusLabel } from '@/features/orders/statusLabel';
-import type { ClinicDoctorRow, InvoiceRecipientType, OrderStatus, PaymentStatus } from '@/types/database';
+import type { ClinicDoctorRow, OrderStatus, PaymentStatus } from '@/types/database';
 import {
   hiddenPayableFilterCount,
   PAYABLE_ORDER_STATUSES,
@@ -50,7 +50,7 @@ type Props = {
  *
  * The lab's bar with the dimensions swapped for this side of the transaction:
  * which doctor ran up the charge, and which lab is owed. Search, order status,
- * payment status and sort are always in view; doctor, lab, billed-to, the
+ * payment status and sort are always in view; doctor, lab, the
  * completed dates, the amounts and "overdue only" sit behind "More filters".
  * The lab list is derived from the orders themselves rather than the
  * marketplace, so it only ever offers labs this clinic has actually used.
@@ -197,21 +197,6 @@ export function ClinicFinanceFilterBar({
                   {l.name}
                 </MenuItem>
               ))}
-            </Select>
-          </FormControl>
-
-          <FormControl size="small" sx={{ minWidth: 170 }}>
-            <InputLabel>{t('finances.filters.billedTo')}</InputLabel>
-            <Select
-              value={filters.recipientType ?? ''}
-              onChange={(e) =>
-                set({ recipientType: (e.target.value || null) as InvoiceRecipientType | null })
-              }
-              input={<OutlinedInput label={t('finances.filters.billedTo')} />}
-            >
-              <MenuItem value="">{t('finances.filters.any')}</MenuItem>
-              <MenuItem value="CLINIC">{t('finances.filters.theClinic')}</MenuItem>
-              <MenuItem value="DOCTOR">{t('finances.filters.theDoctor')}</MenuItem>
             </Select>
           </FormControl>
 
