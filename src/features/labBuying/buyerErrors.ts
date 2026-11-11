@@ -51,6 +51,8 @@ const RPC_MESSAGES: Record<string, string> = {
   // 0050: ordering for a clinic.
   not_in_clinic: 'notInClinic',
   clinic_address_missing: 'clinicAddressMissing',
+  // 0058: the clinic's profile is not complete.
+  clinic_details_missing: 'clinicDetailsMissing',
   'this doctor is not in your clinic': 'doctorNotInClinic',
 };
 

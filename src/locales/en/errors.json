@@ -48,6 +48,7 @@
     "referenceTooLong": "The reference can be at most 200 characters.",
     "notInClinic": "You are not a member of this clinic any more. Choose another clinic or order for yourself.",
     "clinicAddressMissing": "The clinic has not added its delivery address yet, so this order cannot be sent.",
+    "clinicDetailsMissing": "The clinic hasn't entered its details yet, so this order cannot be sent.",
     "doctorNotInClinic": "This doctor is no longer in your clinic."
   }
 }

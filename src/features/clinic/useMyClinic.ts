@@ -18,6 +18,8 @@ type MyClinicRpcRow = {
   legal_name: string;
   identification_code: string | null;
   joined_at: string;
+  /** 0058; absent from a database that has not had it yet. */
+  ready?: boolean | null;
 };
 
 /** "Clinic: A" / "Clinics: A, B", or null with none. `tc` is `common`'s. */
@@ -50,6 +52,8 @@ export function useMyClinics() {
         workingAddress: r.working_address?.trim() || null,
         legalName: r.legal_name,
         identificationCode: r.identification_code,
+        // Before 0058 the server gated on the address alone, and so does this.
+        ready: r.ready ?? !!r.working_address?.trim(),
         joinedAt: r.joined_at,
       }));
     },

@@ -341,7 +341,7 @@ export function OrderCreateWizard({
       return;
     }
     if (choice || !lastClinicLoaded) return;
-    const last = myClinics.find((c) => c.id === lastClinicId && c.workingAddress);
+    const last = myClinics.find((c) => c.id === lastClinicId && c.ready);
     update({ clinic_choice: last ? last.id : PRIVATE_ORDER });
   }, [doctorMode, myClinics, state.clinic_choice, lastClinicLoaded, lastClinicId]);
 
@@ -351,8 +351,9 @@ export function OrderCreateWizard({
       : null
     : (myClinics.find((c) => c.id === state.clinic_choice) ?? null);
   const clinicOrder = !!chosenClinic;
-  // Nobody can order for a clinic that has not said where to deliver (owner).
-  const clinicAddressMissing = !!chosenClinic && !chosenClinic.workingAddress;
+  // Nobody can order for a clinic whose profile is incomplete (owner, 0058):
+  // the server refuses it too, with clinic_details_missing.
+  const clinicNotReady = !!chosenClinic && !chosenClinic.ready;
 
   // ----- Data queries -------------------------------------------------------
   const { data: locations = [] } = useQuery({
@@ -792,7 +793,7 @@ export function OrderCreateWizard({
     (!!buyer && !state.with_patient) ||
     (!!state.patient.first_name.trim() && !!state.patient.last_name.trim() && !matchPending);
   const dueDone = !hasProblem(currentProblems, 'dueDate');
-  const locationDone = !!state.doctor_work_location_id || (clinicOrder && !clinicAddressMissing);
+  const locationDone = !!state.doctor_work_location_id || (clinicOrder && !clinicNotReady);
 
   const resolveSection = useCallback(
     (e: SectionEntry) => {
@@ -942,7 +943,7 @@ export function OrderCreateWizard({
               problems={liveProblems}
               patientName={patientName}
               submitting={submit.isPending}
-              disabled={isBroken || clinicAddressMissing || clinicsPending}
+              disabled={isBroken || clinicNotReady || clinicsPending}
               showError={submitAttempted && !!error}
               onSubmit={handleSubmit}
               guest={guest}
@@ -964,10 +965,10 @@ export function OrderCreateWizard({
                     : undefined
               }
               deliveryWarning={
-                clinicAddressMissing && chosenClinic
+                clinicNotReady && chosenClinic
                   ? isClinic
-                    ? t('orderCreate.forClinic.noAddressAdmin')
-                    : t('orderCreate.forClinic.noAddress', { clinic: chosenClinic.name })
+                    ? t('orderCreate.forClinic.noDetailsAdmin')
+                    : t('orderCreate.forClinic.noDetails', { clinic: chosenClinic.name })
                   : undefined
               }
               forChoice={

@@ -12,24 +12,27 @@ import { CardStack, PageHeader, SectionCard } from '@/components/design';
 const optional = z.string().trim().optional().or(z.literal(''));
 const optionalEmail = z.string().trim().email().optional().or(z.literal(''));
 
+// Required: everything an order for the clinic is delivered and invoiced
+// with (0058's `_clinic_ready_for_orders`, the same list).
 const schema = z.object({
   public_name: z.string().trim().min(2),
   working_address: z.string().trim().min(3),
   city: z.string().trim().min(2),
   contact_phone: optional,
   contact_email: optionalEmail,
-  legal_name: optional,
-  identification_code: optional,
+  legal_name: z.string().trim().min(2),
+  identification_code: z.string().trim().min(2),
   legal_address: optional,
-  invoice_email: optionalEmail,
+  invoice_email: z.string().trim().email(),
 });
 type FormValues = z.infer<typeof schema>;
 
 /**
  * The clinic's own details (0050). Its doctors' orders for it are delivered
  * to the working address and invoiced to the legal entity, both filled in
- * automatically from here, so the working address is required: nobody can
- * order for a clinic that has none.
+ * automatically from here. Nobody can order for the clinic until the required
+ * fields are filled (0058): name, address, city, legal name, ს/კ and invoice
+ * email. The legal address falls back to the delivery address on the invoice.
  *
  * Saved through the owner policy on `clinics` (0011); the session's clinic
  * row is refreshed after, which is what the order wizard reads.
@@ -85,10 +88,10 @@ export function ClinicProfilePage() {
         city: v.city.trim(),
         contact_phone: blank(v.contact_phone),
         contact_email: blank(v.contact_email),
-        legal_name: blank(v.legal_name),
-        identification_code: blank(v.identification_code),
+        legal_name: v.legal_name.trim(),
+        identification_code: v.identification_code.trim(),
         legal_address: blank(v.legal_address),
-        invoice_email: blank(v.invoice_email),
+        invoice_email: v.invoice_email.trim(),
       })
       .eq('id', clinic.id);
     if (error) {
@@ -131,14 +134,24 @@ export function ClinicProfilePage() {
                   name="legal_name"
                   label={t('profile.fields.legalName')}
                   helperText={t('profile.fields.legalNameHelp')}
+                  required
                 />
-                <RHFTextField name="identification_code" label={t('profile.fields.identificationCode')} />
-                <RHFTextField name="legal_address" label={t('profile.fields.legalAddress')} />
+                <RHFTextField
+                  name="identification_code"
+                  label={t('profile.fields.identificationCode')}
+                  required
+                />
+                <RHFTextField
+                  name="legal_address"
+                  label={t('profile.fields.legalAddress')}
+                  helperText={t('profile.fields.legalAddressHelp')}
+                />
                 <RHFTextField
                   name="invoice_email"
                   label={t('profile.fields.invoiceEmail')}
                   helperText={t('profile.fields.invoiceEmailHelp')}
                   type="email"
+                  required
                 />
               </Stack>
             </SectionCard>

@@ -17,7 +17,32 @@ export type ClinicForOrder = {
   /** Legal name, else the public one: who the invoice is made out to. */
   legalName: string;
   identificationCode: string | null;
+  /**
+   * The profile is complete, so it can be ordered for (0058): name, delivery
+   * address, city, legal name, ს/კ and invoice email. Until then the wizard
+   * disables it and the server refuses with clinic_details_missing.
+   */
+  ready: boolean;
 };
+
+const filled = (v: string | null | undefined) => !!v && v.trim() !== '';
+
+/** 0058's `_clinic_ready_for_orders`, for the clinic's own row. */
+export function clinicReadyForOrders(
+  row: Pick<
+    ClinicRow,
+    'public_name' | 'working_address' | 'city' | 'legal_name' | 'identification_code' | 'invoice_email'
+  >,
+): boolean {
+  return (
+    filled(row.public_name) &&
+    filled(row.working_address) &&
+    filled(row.city) &&
+    filled(row.legal_name) &&
+    filled(row.identification_code) &&
+    filled(row.invoice_email)
+  );
+}
 
 /** The clinic admin's own clinic, from the session's row. */
 export function clinicForOrder(row: ClinicRow): ClinicForOrder {
@@ -28,6 +53,7 @@ export function clinicForOrder(row: ClinicRow): ClinicForOrder {
     workingAddress: row.working_address?.trim() || null,
     legalName: row.legal_name?.trim() || row.public_name,
     identificationCode: row.identification_code?.trim() || null,
+    ready: clinicReadyForOrders(row),
   };
 }
 

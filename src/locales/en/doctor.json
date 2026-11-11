@@ -290,8 +290,8 @@
       "label": "Order for",
       "private": "Myself (private)",
       "hint": "A clinic sees, edits and pays for the orders placed for it. Delivery and invoice come from the clinic.",
-      "noAddress": "{{clinic}} has not added its delivery address yet, so orders for it cannot be sent. Ask the clinic to add it, or order for yourself.",
-      "noAddressAdmin": "Add your clinic's delivery address in the clinic profile before placing orders."
+      "noDetails": "{{clinic}} hasn't entered its details yet, so orders for it cannot be sent. Ask the clinic to complete its profile, or order for yourself.",
+      "noDetailsAdmin": "Complete the clinic profile (delivery address, city, legal name, identification code, invoice email) before placing orders."
     }
   },
   "orders": {

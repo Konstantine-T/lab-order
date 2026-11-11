@@ -6,6 +6,7 @@ import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { Callout, Icon, PageHeader, StatGrid, StatTile } from '@/components/design';
 import type { ClinicDoctorRow } from '@/types/database';
+import { clinicReadyForOrders } from '@/features/clinic/clinicOrder';
 
 export function ClinicHomePage() {
   const { t } = useTranslation('clinic');
@@ -64,19 +65,19 @@ export function ClinicHomePage() {
         }
       />
 
-      {/* Nobody can order for a clinic without a delivery address (0050). */}
-      {user?.clinic && !user.clinic.working_address?.trim() && (
+      {/* Nobody can order for a clinic until its profile is complete (0058). */}
+      {user?.clinic && !clinicReadyForOrders(user.clinic) && (
         <Callout
           tone="warning"
-          title={t('home.noAddressTitle')}
+          title={t('home.incompleteTitle')}
           sx={{ mb: 2 }}
           action={
             <Button component={RouterLink} to="/clinic/profile" size="small" variant="outlined">
-              {t('home.noAddressCta')}
+              {t('home.incompleteCta')}
             </Button>
           }
         >
-          {t('home.noAddressBody')}
+          {t('home.incompleteBody')}
         </Callout>
       )}
 

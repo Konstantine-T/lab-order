@@ -14,9 +14,9 @@
       "pendingInvites": "Pending invites"
     },
     "subtitle": "Your doctors, their orders and pending invitations",
-    "noAddressTitle": "Add your delivery address",
-    "noAddressBody": "Your doctors cannot place orders for the clinic until it has a delivery address.",
-    "noAddressCta": "Add address"
+    "incompleteTitle": "Complete your clinic profile",
+    "incompleteBody": "Your doctors cannot place orders for the clinic until its profile has a delivery address, city, legal name, identification code and invoice email.",
+    "incompleteCta": "Complete profile"
   },
   "doctors": {
     "title": "Doctors",
@@ -145,7 +145,7 @@
   },
   "profile": {
     "title": "Clinic profile",
-    "subtitle": "Orders placed for the clinic are delivered and invoiced with these details.",
+    "subtitle": "Used on every order placed for the clinic, for delivery and the invoice. Changes apply to new orders.",
     "saved": "Saved.",
     "delivery": "Delivery and contact",
     "invoicing": "Invoicing",
@@ -157,11 +157,12 @@
       "phone": "Phone",
       "email": "Email",
       "legalName": "Legal name",
-      "legalNameHelp": "The company invoices are made out to. The clinic name is used when empty.",
+      "legalNameHelp": "The company invoices are made out to.",
       "identificationCode": "Identification code",
       "legalAddress": "Legal address",
+      "legalAddressHelp": "The delivery address is used when empty.",
       "invoiceEmail": "Invoice email",
-      "invoiceEmailHelp": "Where invoices go. The email above is used when empty."
+      "invoiceEmailHelp": "Where invoices go."
     }
   }
 }
