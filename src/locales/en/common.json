@@ -593,6 +593,7 @@
   "statusHistory": {
     "show": "Show status history",
     "title": "Status history",
+    "currentSet": "Status set {{date}}",
     "empty": "No status changes recorded yet.",
     "reason": "Reason: {{reason}}",
     "backfilled": "Changes before {{date}} were not recorded; only the dates of creation, completion and cancellation are known.",

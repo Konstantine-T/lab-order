@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ProgressSteps, SectionCard, type Step } from '@/components/design';
 import { statusLabel } from '@/features/orders/statusLabel';
 import { StatusHistoryButton } from '@/features/orders/statusHistory/StatusHistoryButton';
+import { CurrentStatusSince } from '@/features/orders/statusHistory/CurrentStatusSince';
 import { ORDER_PIPELINE, PIPELINE_ICONS, pipelineIndex } from '@/features/orders/pipeline';
 import { dueDateOf } from '@/features/orders/orderDates';
 import { formatGELShort } from '@/utils/pricing';
@@ -17,10 +18,12 @@ import type { DetailOrder } from './types';
  * timestamp only where a column records one — `created_at` for sending,
  * `completed_at` for closing — and the rest carry facts instead: what the lab
  * confirmed, who is on the case now, and when it is due. The full timeline is
- * behind "Show status history" (0052). The mockups' "expected on the 30th" has
- * no source here and is not drawn.
+ * behind "Show status history" (0052), with its newest row (when and by whom
+ * the current status was set) above the button. The mockups' "expected on the
+ * 30th" has no source here and is not drawn.
  *
- * A cancelled order has no position on the pipeline: only the history button.
+ * A cancelled order has no position on the pipeline: only that line and the
+ * history button.
  */
 export function OrderStepperCard({
   order,
@@ -33,8 +36,14 @@ export function OrderStepperCard({
   const { t: tc } = useTranslation('common');
 
   const current = pipelineIndex(order.status);
+  // When and by whom the current status was set, then the whole history.
   // The doctor's side: a lab's own purchases (0048) are read here too.
-  const history = <StatusHistoryButton orderId={order.id} side="doctor" />;
+  const history = (
+    <>
+      <CurrentStatusSince orderId={order.id} status={order.status} sx={{ mb: 0.5 }} />
+      <StatusHistoryButton orderId={order.id} side="doctor" />
+    </>
+  );
   if (current == null) {
     return <SectionCard>{history}</SectionCard>;
   }

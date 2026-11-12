@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { FactCell, SectionCard } from '@/components/design';
 import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
 import { StatusHistoryButton } from '@/features/orders/statusHistory/StatusHistoryButton';
+import { CurrentStatusSince } from '@/features/orders/statusHistory/CurrentStatusSince';
 import { formatGEL } from '@/utils/pricing';
 import type { OrderRow } from '@/types/database';
 
@@ -21,9 +22,12 @@ export function TrashedSheetRail({
   return (
     <SectionCard title={t('orderSheet.statusTitle')} meta={tc('trash.readOnly')}>
       <Stack spacing={1.75}>
-        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
-          <OrderStatusChip status={order.status} side="lab" />
-          <PaymentStatusChip status={order.payment_status} />
+        <Stack spacing={0.75}>
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
+            <OrderStatusChip status={order.status} side="lab" />
+            <PaymentStatusChip status={order.payment_status} />
+          </Stack>
+          <CurrentStatusSince orderId={order.id} status={order.status} />
         </Stack>
         <FactCell
           label={t('orderSheet.finalPriceLabel')}

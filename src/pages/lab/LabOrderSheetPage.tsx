@@ -24,6 +24,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { statusLabel } from '@/features/orders/statusLabel';
 import { StatusHistoryButton } from '@/features/orders/statusHistory/StatusHistoryButton';
+import { CurrentStatusSince } from '@/features/orders/statusHistory/CurrentStatusSince';
 import { DatePicker, TimePicker } from '@mui/x-date-pickers';
 import { formatDueWindow } from '@/features/orders/orderDates';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -545,6 +546,8 @@ export function LabOrderSheetPage() {
                   </ChoicePill>
                 ))}
               </PillRow>
+              {/* When and by whom the saved status was set (0052's newest row). */}
+              <CurrentStatusSince orderId={order.id} status={order.status} sx={{ mt: 1.25 }} />
               {/* COMPLETED is no longer a pill (0022) — say so, rather than
                   leaving the lab hunting for a status that used to be here. */}
               <Callout tone="info" sx={{ mt: 1.75 }}>
