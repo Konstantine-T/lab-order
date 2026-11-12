@@ -182,10 +182,10 @@ export function ClinicOrdersPage() {
         </Button>
       );
     }
-    // Handed over by the lab: "Mark as received" (while SENT_TO_CLINIC) and
-    // "Mark completed", the doctor's list's buttons, so the home's "sent to
-    // the clinic" alert can be dealt with from the list it opens.
-    if (canComplete(row.status)) {
+    // The clinic's status powers are the doctor's: on a handed-over order
+    // "Mark as received" (while SENT_TO_CLINIC) and "Mark completed", on a
+    // completed one "Reopen". Cancel stays on the order page, as for doctors.
+    if (canComplete(row.status) || row.status === 'COMPLETED') {
       return <OrderCompletionActions orderId={row.id} status={row.status} />;
     }
     return undefined;

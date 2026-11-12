@@ -515,6 +515,22 @@
         "title": "ექიმმა შეკვეთა გააუქმა",
         "body": "შეკვეთა {{code}}"
       },
+      "order_cancelled_by_clinic": {
+        "title": "კლინიკამ შეკვეთა გააუქმა",
+        "body": "შეკვეთა {{code}}, {{clinic}}"
+      },
+      "order_completed_by_clinic": {
+        "title": "შეკვეთა დასრულდა",
+        "body": "კლინიკამ ({{clinic}}) დახურა შეკვეთა {{code}}"
+      },
+      "order_reopened_by_clinic": {
+        "title": "შეკვეთა ხელახლა გაიხსნა",
+        "body": "კლინიკამ ({{clinic}}) გახსნა შეკვეთა {{code}}"
+      },
+      "order_received_at_clinic": {
+        "title": "შეკვეთა კლინიკაში მიღებულია",
+        "body": "შეკვეთა {{code}}"
+      },
       "lab_approved": {
         "title": "ლაბორატორია დადასტურდა",
         "body": "თქვენ უკვე იღებთ შეკვეთებს"

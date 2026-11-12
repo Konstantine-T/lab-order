@@ -525,6 +525,22 @@
         "title": "Врач отменил заказ",
         "body": "Заказ {{code}}"
       },
+      "order_cancelled_by_clinic": {
+        "title": "Клиника отменила заказ",
+        "body": "Заказ {{code}}, {{clinic}}"
+      },
+      "order_completed_by_clinic": {
+        "title": "Заказ завершён",
+        "body": "{{clinic}} закрыла заказ {{code}}"
+      },
+      "order_reopened_by_clinic": {
+        "title": "Заказ открыт повторно",
+        "body": "{{clinic}} снова открыла заказ {{code}}"
+      },
+      "order_received_at_clinic": {
+        "title": "Заказ получен в клинике",
+        "body": "Заказ {{code}}"
+      },
       "lab_approved": {
         "title": "Лаборатория подтверждена",
         "body": "Теперь вы можете принимать заказы"

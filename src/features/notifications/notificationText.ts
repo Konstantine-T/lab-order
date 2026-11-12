@@ -36,6 +36,11 @@ const KINDS: Record<NotificationKind, true> = {
   admin_new_feedback: true,
   lab_review_new: true,
   lab_review_reply: true,
+  // 0060: lab-side, so they open /lab/orders/<id> (the default target).
+  order_cancelled_by_clinic: true,
+  order_completed_by_clinic: true,
+  order_reopened_by_clinic: true,
+  order_received_at_clinic: true,
 };
 const KNOWN = new Set<string>(Object.keys(KINDS));
 

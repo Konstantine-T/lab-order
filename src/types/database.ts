@@ -874,7 +874,12 @@ export type NotificationKind =
   | 'admin_new_feedback'
   // 0044
   | 'lab_review_new'
-  | 'lab_review_reply';
+  | 'lab_review_reply'
+  // 0060: to the lab, the clinic acted, or the work arrived at the clinic
+  | 'order_cancelled_by_clinic'
+  | 'order_completed_by_clinic'
+  | 'order_reopened_by_clinic'
+  | 'order_received_at_clinic';
 
 /** Raw values captured by the trigger; never a patient's name. */
 export type NotificationParams = {

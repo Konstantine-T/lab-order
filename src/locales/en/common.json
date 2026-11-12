@@ -515,6 +515,22 @@
         "title": "The doctor cancelled the order",
         "body": "Order {{code}}"
       },
+      "order_cancelled_by_clinic": {
+        "title": "The clinic cancelled the order",
+        "body": "Order {{code}}, {{clinic}}"
+      },
+      "order_completed_by_clinic": {
+        "title": "Order completed",
+        "body": "{{clinic}} closed order {{code}}"
+      },
+      "order_reopened_by_clinic": {
+        "title": "Order reopened",
+        "body": "{{clinic}} reopened order {{code}}"
+      },
+      "order_received_at_clinic": {
+        "title": "Order received at the clinic",
+        "body": "Order {{code}}"
+      },
       "lab_approved": {
         "title": "Lab approved",
         "body": "You can now receive orders"
