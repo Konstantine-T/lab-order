@@ -186,6 +186,7 @@ function TopNavFrame({ homeTo, nav, tabs, menuLinks, newOrder }: TopNavShellProp
                     >
                       {entry.label}
                       {entry.badge}
+                      {entry.alert}
                     </Box>
                   );
                 })}
@@ -297,6 +298,20 @@ function TopNavFrame({ homeTo, nav, tabs, menuLinks, newOrder }: TopNavShellProp
                       }}
                     >
                       {entry.badge}
+                    </Box>
+                  )}
+                  {/* The second count at the icon's other corner. */}
+                  {entry.alert && (
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        top: -6,
+                        right: 14,
+                        display: 'flex',
+                        '& > *': { ml: 0 },
+                      }}
+                    >
+                      {entry.alert}
                     </Box>
                   )}
                 </Box>

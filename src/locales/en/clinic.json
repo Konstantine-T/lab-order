@@ -4,15 +4,21 @@
     "doctors": "Doctors",
     "orders": "Orders",
     "finances": "Finances",
-    "profile": "Clinic profile"
+    "profile": "Clinic profile",
+    "toMarkReceived_one": "{{count}} order to mark as received",
+    "toMarkReceived_other": "{{count}} orders to mark as received"
   },
   "home": {
     "fallbackName": "Clinic",
     "stats": {
       "doctors": "Doctors",
       "orders": "Orders",
-      "pendingInvites": "Pending invites"
+      "pendingInvites": "Pending invites",
+      "sentToClinic": "Sent to the clinic"
     },
+    "sentToClinicAlert_one": "{{count}} order was sent to your clinic. Mark it as received so the lab knows.",
+    "sentToClinicAlert_other": "{{count}} orders were sent to your clinic. Mark them as received so the lab knows.",
+    "showOrders": "Show orders",
     "subtitle": "Your doctors, their orders and pending invitations",
     "incompleteTitle": "Complete your clinic profile",
     "incompleteBody": "Your doctors cannot place orders for the clinic until its profile has a delivery address, city, legal name, identification code and invoice email.",

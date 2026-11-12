@@ -40,6 +40,12 @@ export type NavEntry = {
   end?: boolean;
   /** Optional count pill rendered at the right of the row. */
   badge?: ReactNode;
+  /**
+   * A second, different count beside the first (the clinic's orders sent to
+   * it, to mark received). Inline after `badge`; on a phone tab it sits at the
+   * icon's other corner, so two counts never run into the next tab.
+   */
+  alert?: ReactNode;
   /** Other path prefixes this entry owns, for the top-nav shell's active
    *  state — e.g. a lab's profile belongs to "Labs". */
   also?: string[];
@@ -187,6 +193,7 @@ function SidebarShell({ navEntries }: { navEntries: NavEntry[] }) {
                 </ListItemIcon>
                 <ListItemText primary={entry.label} />
                 {entry.badge}
+                {entry.alert}
               </ListItemButton>
             </ListItem>
           ))}

@@ -48,7 +48,7 @@ export function matchesStatusDue(
   return true;
 }
 
-export const HOME_PRESETS = ['submitted', 'open', 'dueThisWeek'] as const;
+export const HOME_PRESETS = ['submitted', 'open', 'dueThisWeek', 'sentToClinic'] as const;
 export type HomePreset = (typeof HOME_PRESETS)[number];
 
 export const isHomePreset = (v: unknown): v is HomePreset =>
@@ -72,6 +72,10 @@ export function homePresetFilter(preset: HomePreset, now: dayjs.Dayjs = dayjs())
         from: null,
         to: now.startOf('day').add(7, 'day').format('YYYY-MM-DD'),
       };
+    // The clinic home's "sent to the clinic": handed over by the lab, waiting
+    // to be marked received.
+    case 'sentToClinic':
+      return { statuses: ['SENT_TO_CLINIC'], from: null, to: null };
   }
 }
 

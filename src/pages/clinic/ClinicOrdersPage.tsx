@@ -31,7 +31,8 @@ import {
   type ListOrderRow,
   type OrderGroupKey,
 } from '@/features/orders/list/orderListModel';
-import type { ClinicDoctorRow } from '@/types/database';
+import { canComplete, type ClinicDoctorRow } from '@/types/database';
+import { OrderCompletionActions } from '@/features/orders/completion/OrderCompletionActions';
 
 export function ClinicOrdersPage() {
   const { t } = useTranslation('clinic');
@@ -180,6 +181,12 @@ export function ClinicOrdersPage() {
           {tc('orderList.reply')}
         </Button>
       );
+    }
+    // Handed over by the lab: "Mark as received" (while SENT_TO_CLINIC) and
+    // "Mark completed", the doctor's list's buttons, so the home's "sent to
+    // the clinic" alert can be dealt with from the list it opens.
+    if (canComplete(row.status)) {
+      return <OrderCompletionActions orderId={row.id} status={row.status} />;
     }
     return undefined;
   };

@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase';
 import { Callout, Icon, PageHeader, StatGrid, StatTile } from '@/components/design';
 import type { ClinicDoctorRow } from '@/types/database';
 import { clinicReadyForOrders } from '@/features/clinic/clinicOrder';
+import { useClinicNavAlerts } from '@/features/notifications/useNavAlerts';
 
 export function ClinicHomePage() {
   const { t } = useTranslation('clinic');
@@ -47,6 +48,10 @@ export function ClinicHomePage() {
     },
   });
 
+  // The nav's query: one count for the badge, the alert and the square.
+  const { sentToClinic } = useClinicNavAlerts(clinicId);
+  const showSentToClinic = () => navigate('/clinic/orders', { state: { preset: 'sentToClinic' } });
+
   return (
     <>
       <PageHeader
@@ -81,7 +86,24 @@ export function ClinicHomePage() {
         </Callout>
       )}
 
-      <StatGrid columns={3}>
+      {/* What the lab has handed over: to mark received, or the lab never
+          learns it arrived. The same count as the nav badge (one query). */}
+      {sentToClinic > 0 && (
+        <Callout
+          tone="warning"
+          icon="local_shipping"
+          sx={{ mb: 2 }}
+          action={
+            <Button size="small" variant="outlined" onClick={showSentToClinic}>
+              {t('home.showOrders')}
+            </Button>
+          }
+        >
+          {t('home.sentToClinicAlert', { count: sentToClinic })}
+        </Callout>
+      )}
+
+      <StatGrid columns={4}>
         <StatTile
           icon="groups"
           tone="brand"
@@ -95,6 +117,15 @@ export function ClinicHomePage() {
           value={orderCount}
           label={t('home.stats.orders')}
           onClick={() => navigate('/clinic/orders')}
+        />
+        {/* Counted with the preset its click applies (homePresets), so the
+            number is the rows it opens; plain text at 0 (StatTile). */}
+        <StatTile
+          icon="local_shipping"
+          tone={sentToClinic > 0 ? 'warning' : 'neutral'}
+          value={sentToClinic}
+          label={t('home.stats.sentToClinic')}
+          onClick={sentToClinic > 0 ? showSentToClinic : undefined}
         />
         <StatTile
           icon="mail"

@@ -184,8 +184,18 @@ export function useDoctorNavAlerts(doctorId: string | undefined) {
 }
 
 /**
- * Clinic: the same waiting-on-a-doctor orders, across every doctor under the
- * clinic. RLS already limits the read to those doctors, so there is no filter.
+ * The clinic's "needs attention": waiting on a doctor, but not SENT_TO_CLINIC,
+ * which the clinic counts on its own (`sentToClinic`), so no order is counted
+ * twice. What is left is the clinic list's "waiting on you" group.
+ */
+const CLINIC_AWAITING: OrderStatus[] = AWAITING_DOCTOR.filter((s) => s !== 'SENT_TO_CLINIC');
+
+/**
+ * Clinic: the orders waiting on one of its doctors, and separately the ones
+ * the lab has sent to the clinic, to mark as received (they have to be, or
+ * the lab never learns the work arrived). RLS limits every read to the
+ * clinic's own orders (0050), so there is no filter. The clinic home reads the
+ * same query.
  */
 export function useClinicNavAlerts(clinicId: string | undefined) {
   const shared = useShared();
@@ -194,18 +204,20 @@ export function useClinicNavAlerts(clinicId: string | undefined) {
     enabled: !!clinicId,
     ...shared,
     queryFn: async () => {
-      const [waiting, answered, invoices] = await Promise.all([
-        orderCount().in('status', AWAITING_DOCTOR),
+      const [waiting, answered, invoices, sent] = await Promise.all([
+        orderCount().in('status', CLINIC_AWAITING),
         answeredClarificationCount(null),
         unacknowledgedInvoiceCount(null),
+        orderCount().eq('status', 'SENT_TO_CLINIC'),
       ]);
       return {
         orders: Math.max(0, (waiting.count ?? 0) - answered) + invoices,
         invoices,
+        sentToClinic: sent.count ?? 0,
       };
     },
   });
-  return data ?? { orders: 0, invoices: 0 };
+  return data ?? { orders: 0, invoices: 0, sentToClinic: 0 };
 }
 
 /**

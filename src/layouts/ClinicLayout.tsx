@@ -16,9 +16,18 @@ export function ClinicLayout() {
     to: '/clinic/orders',
     label: t('nav.orders'),
     icon: 'assignment',
-    // Anything waiting on one of the clinic's doctors, across all of them.
+    // Anything waiting on one of the clinic's doctors, across all of them; and,
+    // apart, what the lab has sent to the clinic, to mark as received.
     badge: (
       <NavBadge count={alerts.orders} label={tc('nav.needsAttention', { count: alerts.orders })} />
+    ),
+    alert: (
+      <NavBadge
+        count={alerts.sentToClinic}
+        tone="warning"
+        icon="local_shipping"
+        label={t('nav.toMarkReceived', { count: alerts.sentToClinic })}
+      />
     ),
   };
 
