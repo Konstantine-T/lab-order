@@ -22,6 +22,7 @@ import { formatGEL } from '@/utils/pricing';
 import type { OrderRow } from '@/types/database';
 import {
   CLOSED_STATUSES,
+  LAB_ACTIVE_STATUSES,
   matchesPreset,
   type OrderPreset,
   queueDates,
@@ -136,7 +137,9 @@ export function LabDashboardPage() {
     const d = queueDates();
     const count = (p: OrderPreset) => openOrders.filter((o) => matchesPreset(o, p, d)).length;
     const due = (o: DueRow) => o.confirmed_due_date ?? o.requested_due_date;
-    const dated = openOrders.filter((o) => due(o) != null);
+    // What the lab still has to finish: an order already at the clinic has
+    // met its date as far as the lab is concerned (LAB_ACTIVE_STATUSES).
+    const dated = openOrders.filter((o) => LAB_ACTIVE_STATUSES.includes(o.status) && due(o) != null);
     return {
       fresh: count('new'),
       inProgress: count('inProgress'),

@@ -106,7 +106,8 @@ export function labListRow(
       detailTitle={[place.clinic, place.detail].filter(Boolean).join(' · ')}
     />,
     <TextCell>{labServiceName(row)}</TextCell>,
-    <DueCell order={row} dates={opts.dates} side="lab" />,
+    // The lab's work: neutral once the case is at the clinic (LAB_ACTIVE_STATUSES).
+    <DueCell order={row} dates={opts.dates} side="lab" labWork />,
     opts.statusCell ?? (
       <OrderStatusCell status={row.status} completedAt={row.completed_at} side="lab" />
     ),

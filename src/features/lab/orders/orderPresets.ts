@@ -45,6 +45,18 @@ export const OPEN_STATUSES: readonly OrderStatus[] = FILTERABLE_STATUSES.filter(
   (s) => !(CLOSED_STATUSES as readonly OrderStatus[]).includes(s),
 );
 
+/**
+ * Statuses the lab is still working on; due dates only matter for these.
+ * Once the work is at the clinic (sent, or marked received, which is also
+ * where a reopened order lands) the deadline is met as far as the lab is
+ * concerned: it leaves the lab's due counts, its upcoming list and its
+ * nearing / overdue colours, until the lab moves it back into work. The
+ * doctor's and clinic's screens keep it open until they complete it.
+ */
+export const LAB_ACTIVE_STATUSES: readonly OrderStatus[] = OPEN_STATUSES.filter(
+  (s) => s !== 'SENT_TO_CLINIC' && s !== 'RECEIVED_BY_CLINIC',
+);
+
 /** The mockup's quick filters across the top of the queue. */
 export const QUEUE_QUICK = [
   'all',
@@ -154,8 +166,11 @@ export const isOrderPreset = (v: unknown): v is OrderPreset =>
  * that holds the status and date filters, so a preset that sets them is
  * visibly applied rather than hidden behind "More filters".
  *
- * Every date preset also filters to the open statuses: the dates alone would
- * take in completed and cancelled orders the count never included.
+ * Every date preset also filters by status: the dates alone would take in
+ * completed and cancelled orders the count never included. The due-date ones
+ * take only what the lab is still working on (`LAB_ACTIVE_STATUSES`), so a
+ * crown already at the clinic is not "due soon"; "no final price" keeps every
+ * open status, since a delivered order can still need its price.
  */
 export function presetFilter(
   preset: OrderPreset,
@@ -168,11 +183,11 @@ export function presetFilter(
     case 'clarification':
       return { ...base, quick: preset };
     case 'dueThisWeek':
-      return { ...base, statuses: OPEN_STATUSES, dateFrom: d.today, dateTo: d.weekEnd, advancedOpen: true };
+      return { ...base, statuses: LAB_ACTIVE_STATUSES, dateFrom: d.today, dateTo: d.weekEnd, advancedOpen: true };
     case 'overdue':
-      return { ...base, statuses: OPEN_STATUSES, dateTo: d.yesterday, advancedOpen: true };
+      return { ...base, statuses: LAB_ACTIVE_STATUSES, dateTo: d.yesterday, advancedOpen: true };
     case 'dueSoon':
-      return { ...base, statuses: OPEN_STATUSES, dateFrom: d.today, dateTo: d.dayPlus2, advancedOpen: true };
+      return { ...base, statuses: LAB_ACTIVE_STATUSES, dateFrom: d.today, dateTo: d.dayPlus2, advancedOpen: true };
     case 'noFinalPrice':
       return { ...base, statuses: OPEN_STATUSES, noFinalPrice: true, advancedOpen: true };
   }
@@ -181,6 +196,21 @@ export function presetFilter(
 /** Does this order count towards the preset's number? */
 export const matchesPreset = (row: PresetRow, preset: OrderPreset, d: QueueDates = queueDates()) =>
   matchesQueueFilter(row, presetFilter(preset, d));
+
+/**
+ * Past its due date (before today) while in one of `statuses`. With
+ * `LAB_ACTIVE_STATUSES` it is exactly the "Overdue" preset; with
+ * `OPEN_STATUSES`, an order still open for the doctor or clinic.
+ */
+export const isPastDue = (
+  row: DatedOrder & { status: OrderStatus },
+  statuses: readonly OrderStatus[],
+  d: QueueDates = queueDates(),
+) =>
+  matchesQueueFilter(
+    { ...row, final_total: null },
+    { ...EMPTY_QUEUE_FILTER, statuses, dateTo: d.yesterday },
+  );
 
 /** The router state a dashboard link hands the orders page. */
 export type QueuePresetState = { preset: OrderPreset };

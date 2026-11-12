@@ -7,7 +7,13 @@ import { formatGELShort } from '@/utils/pricing';
 import type { ListPrice } from '@/features/orders/list/orderListModel';
 import { OrderStatusChip } from '@/components/OrderStatusChip';
 import { FromLabBadge } from '@/features/lab/orders/FromLabBadge';
-import { matchesPreset, CLOSED_STATUSES, type QueueDates } from '@/features/lab/orders/orderPresets';
+import {
+  CLOSED_STATUSES,
+  isPastDue,
+  LAB_ACTIVE_STATUSES,
+  OPEN_STATUSES,
+  type QueueDates,
+} from '@/features/lab/orders/orderPresets';
 import { appendDueWindow, dueDateOf, dueTimeOf, type DatedOrder } from '@/features/orders/orderDates';
 import { pastDate, shortDate } from '@/features/orders/list/listFormat';
 import type { StatusSide } from '@/features/orders/statusLabel';
@@ -103,30 +109,43 @@ export type DueCellOrder = DatedOrder & {
 
 /**
  * The due date as a tinted pill, with the creation date under it. Red once the
- * date has passed on a case still open: exactly the rows the "Overdue" preset
- * finds (orderPresets), so the colour and the lab dashboard's count agree. A
- * closed case has no deadline left to miss. Created sits here rather than in
- * a column of its own: the two dates are read against each other.
+ * date has passed on a case still open, amber and blue as it nears. A closed
+ * case has no deadline left to miss.
+ *
+ * `labWork`: the lab's own order lists. There the deadline is the lab's work,
+ * so it counts only while the lab still has the case (`LAB_ACTIVE_STATUSES`):
+ * red is exactly the rows the "Overdue" preset finds, so the colour and the lab
+ * dashboard's count agree, and an order sent to (or received at) the clinic is
+ * neutral. Without it (the doctor's and clinic's lists, the finance pages) an
+ * order stays open until it is completed.
+ *
+ * Created sits here rather than in a column of its own: the two dates are read
+ * against each other.
  */
 export function DueCell({
   order,
   dates,
   side,
+  labWork = false,
 }: {
   order: DueCellOrder;
   /** `queueDates()`, taken once per render of the table. */
   dates: QueueDates;
   side: StatusSide;
+  labWork?: boolean;
 }) {
   const { t } = useTranslation(side === 'lab' ? 'lab' : 'common');
   const { t: tc } = useTranslation('common');
   const dueRaw = dueDateOf(order);
   const daysOut = dueRaw ? dayjs(dueRaw).diff(dayjs(), 'day') : null;
-  const overdue = matchesPreset({ ...order, final_total: null }, 'overdue', dates);
-  const closed = (CLOSED_STATUSES as readonly OrderStatus[]).includes(order.status);
+  const overdue = isPastDue(order, labWork ? LAB_ACTIVE_STATUSES : OPEN_STATUSES, dates);
+  // No deadline left: closed, or, for the lab, already at the clinic.
+  const noDeadline =
+    (CLOSED_STATUSES as readonly OrderStatus[]).includes(order.status) ||
+    (labWork && (order.status === 'SENT_TO_CLINIC' || order.status === 'RECEIVED_BY_CLINIC'));
   const dueTone = overdue
     ? 'danger'
-    : daysOut == null || closed
+    : daysOut == null || noDeadline
       ? 'neutral'
       : daysOut <= 1
         ? 'warning'
