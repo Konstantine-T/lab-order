@@ -3,13 +3,14 @@ import { alpha, Box, Link, Skeleton, Stack, Typography, type SxProps, type Theme
 import { Link as RouterLink } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { PUBLIC_ROUTES } from '@/features/public/publicRoutes';
-import { initialsOf, lift, motion, palette2026, radii } from '@/theme/tokens';
+import { initialsOf, lift, palette2026, radii } from '@/theme/tokens';
 import { formatGELShort } from '@/utils/pricing';
 import { pickText, useLabText } from '@/features/lab/labText';
 import { LabRatingBadge } from '@/features/reviews/LabRatingBadge';
 import { useLandingLabs, type LandingLab } from './useLandingLabs';
 import { ArrowLink, Container, SectionHead } from './primitives';
 import { landingRadii, useLandingTones } from './helpers';
+import { hoverLift, reveal } from './motion';
 
 /** How many real labs the teaser shows before the "your lab here" card. */
 // One, as in the design — and the owner's call (2026-09-30): the second live
@@ -50,13 +51,16 @@ export function LandingCatalog() {
         }}
       >
         <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', sm: 'row' },
-            alignItems: { xs: 'flex-start', sm: 'flex-end' },
-            justifyContent: 'space-between',
-            gap: { xs: '8px', sm: '24px' },
-          }}
+          sx={[
+            {
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'flex-start', sm: 'flex-end' },
+              justifyContent: 'space-between',
+              gap: { xs: '8px', sm: '24px' },
+            },
+            reveal(),
+          ]}
         >
           <SectionHead
             id="landing-catalog-title"
@@ -84,7 +88,7 @@ export function LandingCatalog() {
             ? Array.from({ length: LAB_COUNT }, (_, i) => <LabCardSkeleton key={i} />)
             : shown.map((lab) => <LabCard key={lab.id} lab={lab} />)}
           {/* With no lab to show, the dashed card takes the whole row. */}
-          <YourLabCard sx={{ gridColumn: { sm: count === 0 ? 'span 2' : 'auto' } }} />
+          <YourLabCard sx={[{ gridColumn: { sm: count === 0 ? 'span 2' : 'auto' } }, reveal(1)]} />
         </Box>
       </Container>
     </Box>
@@ -130,7 +134,6 @@ function LabCard({ lab }: { lab: LandingLab }) {
         {
           color: 'text.primary',
           fontWeight: 400,
-          transition: `border-color ${motion.slow}, box-shadow ${motion.slow}`,
           '&:hover': {
             color: 'text.primary',
             borderColor: alpha(palette2026.peri, 0.6),
@@ -138,6 +141,9 @@ function LabCard({ lab }: { lab: LandingLab }) {
           },
           '&:focus-visible': { outline: `2px solid ${tones.accent}`, outlineOffset: '3px' },
         },
+        // The design's tile hover (a lift with the shadow), and its arrival.
+        hoverLift,
+        reveal(),
       ]}
     >
       <Stack direction="row" alignItems="center" sx={{ gap: '12px', minWidth: 0 }}>
@@ -279,7 +285,7 @@ function LabAvatar({ lab, name }: { lab: LandingLab; name: string }) {
 function LabCardSkeleton() {
   const tones = useLandingTones();
   return (
-    <Box aria-hidden sx={[cardSx(tones.border), { minHeight: 196 }]}>
+    <Box aria-hidden sx={[cardSx(tones.border), { minHeight: 196 }, reveal()]}>
       <Stack direction="row" alignItems="center" sx={{ gap: '12px' }}>
         <Skeleton variant="rounded" width={44} height={44} sx={{ borderRadius: `${radii.card}px` }} />
         <Box sx={{ flex: 1 }}>

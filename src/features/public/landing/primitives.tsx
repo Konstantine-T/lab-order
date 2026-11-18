@@ -1,9 +1,10 @@
-import { Box, Button, Link, Stack, Typography, type SxProps, type Theme } from '@mui/material';
+import { alpha, Box, Button, Link, Stack, Typography, type SxProps, type Theme } from '@mui/material';
 import type { ReactNode } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { Icon } from '@/components/design';
 import { brand, palette2026, radii, surfaces } from '@/theme/tokens';
 import { scrollToAnchor, useLandingTones } from './helpers';
+import { colorFade, EASE, MOTION } from './motion';
 
 /**
  * Building blocks for the landing page, from the 2026-09 redesign
@@ -35,19 +36,30 @@ export function Container({ children, sx }: { children: ReactNode; sx?: SxProps<
 }
 
 /** Small periwinkle label above a title. Georgian has no case, so the uppercase only shows in en/ru. */
-export function Eyebrow({ children, color }: { children: ReactNode; color?: string }) {
+export function Eyebrow({
+  children,
+  color,
+  sx,
+}: {
+  children: ReactNode;
+  color?: string;
+  sx?: SxProps<Theme>;
+}) {
   const tones = useLandingTones();
   return (
     <Typography
       component="p"
-      sx={{
-        fontSize: '0.75rem',
-        fontWeight: 600,
-        lineHeight: 1.5,
-        letterSpacing: '0.08em',
-        textTransform: 'uppercase',
-        color: color ?? tones.accentText,
-      }}
+      sx={[
+        {
+          fontSize: '0.75rem',
+          fontWeight: 600,
+          lineHeight: 1.5,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          color: color ?? tones.accentText,
+        },
+        ...asArray(sx),
+      ]}
     >
       {children}
     </Typography>
@@ -97,9 +109,19 @@ export function SectionTitle({
 }
 
 /** Eyebrow over title, the head of most sections. */
-export function SectionHead({ eyebrow, title, id }: { eyebrow: string; title: string; id?: string }) {
+export function SectionHead({
+  eyebrow,
+  title,
+  id,
+  sx,
+}: {
+  eyebrow: string;
+  title: string;
+  id?: string;
+  sx?: SxProps<Theme>;
+}) {
   return (
-    <Stack sx={{ gap: '10px', maxWidth: 720, minWidth: 0 }}>
+    <Stack sx={[{ gap: '10px', maxWidth: 720, minWidth: 0 }, ...asArray(sx)]}>
       <Eyebrow>{eyebrow}</Eyebrow>
       <SectionTitle id={id}>{title}</SectionTitle>
     </Stack>
@@ -133,9 +155,14 @@ export function ArrowLink({
     fontWeight: 600,
     color: tones.accentText,
     whiteSpace: 'nowrap',
+    ...colorFade,
     '&:hover': { color: tones.accentTextHover },
+    // The arrow steps forward under the pointer.
+    [MOTION]: { '&:hover > :last-child': { transform: 'translateX(4px)' } },
   } as const;
-  const arrow = <Icon name="arrow_forward" size={small ? 15 : 17} />;
+  const arrow = (
+    <Icon name="arrow_forward" size={small ? 15 : 17} sx={{ transition: `transform .25s ${EASE}` }} />
+  );
   if (isHash(to) || isMail(to) || isWeb(to)) {
     return (
       <Link href={to} onClick={isHash(to) ? scrollToAnchor : undefined} underline="none" sx={sx}>
@@ -187,18 +214,20 @@ export function LinkButton({ to, children, variant = 'ink', size = 'md', sx }: L
     },
   }[size];
 
+  // The filled buttons settle a soft shadow under their hover lift.
+  const inkShadow = `0 10px 24px -12px ${alpha(palette2026.ink, 0.55)}`;
   const looks: Record<NonNullable<LinkButtonProps['variant']>, SxProps<Theme>> = {
     primary: {
       bgcolor: palette2026.peri,
       color: '#fff',
       // The design sets its periwinkle button a size up and bolder.
       ...(size !== 'sm' && { fontSize: { xs: '1rem', sm: '1.0625rem' }, fontWeight: 700 }),
-      '&:hover': { bgcolor: brand.strong },
+      '&:hover': { bgcolor: brand.strong, boxShadow: inkShadow },
     },
     ink: {
       bgcolor: 'primary.main',
       color: 'primary.contrastText',
-      '&:hover': { bgcolor: 'primary.light' },
+      '&:hover': { bgcolor: 'primary.light', boxShadow: inkShadow },
     },
     outlined: {
       bgcolor: 'background.paper',
@@ -212,7 +241,11 @@ export function LinkButton({ to, children, variant = 'ink', size = 'md', sx }: L
       color: palette2026.ink,
       border: 1,
       borderColor: '#fff',
-      '&:hover': { bgcolor: surfaces.light.chip, borderColor: surfaces.light.chip },
+      '&:hover': {
+        bgcolor: surfaces.light.chip,
+        borderColor: surfaces.light.chip,
+        boxShadow: `0 10px 24px -12px ${alpha('#000', 0.6)}`,
+      },
     },
   };
 
@@ -230,6 +263,9 @@ export function LinkButton({ to, children, variant = 'ink', size = 'md', sx }: L
         whiteSpace: { xs: 'normal', sm: 'nowrap' },
         textTransform: 'none',
         '&.Mui-focusVisible': { outline: `2px solid ${tones.accent}`, outlineOffset: '3px' },
+        // The design's button hover: a 1px lift on its own easing.
+        transition: `transform .25s ${EASE}, background-color .2s, box-shadow .25s, color .2s, border-color .2s`,
+        [MOTION]: { '&:hover': { transform: 'translateY(-1px)' } },
       },
       looks[variant],
       ...asArray(sx),

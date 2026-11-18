@@ -6,6 +6,7 @@ import { BrandWordmark } from '@/components/BrandMark';
 import { PUBLIC_ROUTES } from '@/features/public/publicRoutes';
 import { radii } from '@/theme/tokens';
 import { Container, LinkButton } from './primitives';
+import { colorFade, reveal } from './motion';
 import {
   CHAIN_SITES,
   CONTACT_EMAIL,
@@ -48,14 +49,19 @@ export function LandingFooter() {
           gap: { xs: '40px', sm: '64px' },
         }}
       >
+        {/* The closing call to action rises and grows into place, as the
+            design's CTA band does. */}
         <Box
-          sx={{
-            display: 'flex',
-            flexDirection: { xs: 'column', md: 'row' },
-            alignItems: { xs: 'flex-start', md: 'center' },
-            justifyContent: 'space-between',
-            gap: { xs: '24px', md: '40px' },
-          }}
+          sx={[
+            {
+              display: 'flex',
+              flexDirection: { xs: 'column', md: 'row' },
+              alignItems: { xs: 'flex-start', md: 'center' },
+              justifyContent: 'space-between',
+              gap: { xs: '24px', md: '40px' },
+            },
+            reveal(0, true),
+          ]}
         >
           <Stack sx={{ gap: '10px', maxWidth: 560, minWidth: 0 }}>
             <Typography
@@ -167,6 +173,7 @@ function FooterLink({ to, children, small }: { to: string; children: string; sma
     fontSize: small ? '0.8125rem' : '0.875rem',
     fontWeight: 400,
     color: tones.inkText,
+    ...colorFade,
     '&:hover': { color: '#fff' },
   } as const;
   if (to.startsWith('#')) {

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { Box, Link, Stack, Typography } from '@mui/material';
+import { alpha, Box, GlobalStyles, Link, Stack, Typography, type SxProps, type Theme } from '@mui/material';
 import { Trans, useTranslation } from 'react-i18next';
 import { BrandMark } from '@/components/BrandMark';
 import { Icon } from '@/components/design';
@@ -26,6 +26,21 @@ import {
   useInitialHashScroll,
   useLandingTones,
 } from '@/features/public/landing/helpers';
+import {
+  cardFloat,
+  cardIn,
+  colorFade,
+  DRAW,
+  heroIn,
+  hoverLift,
+  LANDING_KEYFRAMES,
+  MOTION,
+  reveal,
+  RULE_DRAW,
+  scrollProgress,
+  UNDERLINE,
+  VIEW,
+} from '@/features/public/landing/motion';
 import { palette2026, radii } from '@/theme/tokens';
 
 type Step = { title: string; body: string };
@@ -40,6 +55,24 @@ const WHY_ICONS = ['dentistry', 'sell', 'timeline', 'forum'] as const;
  * none to spare.
  */
 const edgeShadow = (edge: string) => (edge === 'transparent' ? 'none' : `inset 0 0 0 1px ${edge}`);
+
+/** The tiles' hover shadow, under the lift (landing/motion.ts). */
+const TILE_HOVER_SHADOW = `0 24px 40px -28px ${alpha(palette2026.ink, 0.35)}`;
+
+/**
+ * The headline's accent ("in 5 minutes"): periwinkle over an aqua underline
+ * that draws itself in from the left. A background rather than a positioned
+ * bar, so on a phone it follows the words across a line break.
+ */
+const accentSx = (color: string): SxProps<Theme> => ({
+  color,
+  backgroundImage: `linear-gradient(${palette2026.aqua}, ${palette2026.aqua})`,
+  backgroundRepeat: 'no-repeat',
+  backgroundPosition: '0 100%',
+  backgroundSize: `100% ${UNDERLINE}`,
+  pb: '0.04em',
+  [MOTION]: { animation: `lp-underline 1s ${DRAW} .7s backwards` },
+});
 
 /**
  * The front door for anyone without a session — the 2026-09 redesign's
@@ -74,6 +107,25 @@ export function LandingPage() {
         overflowX: 'clip',
       }}
     >
+      {/* The motion's keyframes (landing/motion.ts), and the hairline along
+          the top that follows the scroll. */}
+      <GlobalStyles styles={LANDING_KEYFRAMES} />
+      <Box
+        aria-hidden
+        sx={[
+          {
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 2,
+            bgcolor: tones.accent,
+            zIndex: (theme) => theme.zIndex.appBar + 1,
+            pointerEvents: 'none',
+          },
+          scrollProgress,
+        ]}
+      />
       <LandingNav />
       <Box component="main">
         <Hero />
@@ -106,39 +158,46 @@ function Hero() {
         }}
       >
         <Stack sx={{ gap: { xs: '16px', sm: '22px' }, maxWidth: { sm: 640, lg: 'none' }, minWidth: 0 }}>
-          <Eyebrow>{t('hero.eyebrow')}</Eyebrow>
+          {/* Each line rises in after the one before (landing/motion.ts). */}
+          <Eyebrow sx={heroIn(0)}>{t('hero.eyebrow')}</Eyebrow>
           <Typography
             component="h1"
-            sx={{
-              // The design's clamp(32px, 4.2vw, 48px), with a phone floor low
-              // enough that "ლაბორატორიული" still fits a 320px screen.
-              fontSize: { xs: 'clamp(1.75rem, 8.2vw, 3rem)', lg: '3rem' },
-              lineHeight: 1.15,
-              fontWeight: 700,
-              letterSpacing: '-0.02em',
-              overflowWrap: 'break-word',
-            }}
+            sx={[
+              {
+                // The design's clamp(32px, 4.2vw, 48px), with a phone floor low
+                // enough that "ლაბორატორიული" still fits a 320px screen.
+                fontSize: { xs: 'clamp(1.75rem, 8.2vw, 3rem)', lg: '3rem' },
+                lineHeight: 1.15,
+                fontWeight: 700,
+                letterSpacing: '-0.02em',
+                overflowWrap: 'break-word',
+              },
+              heroIn(1),
+            ]}
           >
             <Trans
               ns="landing"
               i18nKey="hero.title"
-              components={{ accent: <Box component="span" sx={{ color: tones.accent }} /> }}
+              components={{ accent: <Box component="span" sx={accentSx(tones.accent)} /> }}
             />
           </Typography>
           <Typography
-            sx={{
-              maxWidth: 520,
-              fontSize: { xs: '1rem', sm: '1.125rem' },
-              lineHeight: 1.6,
-              color: 'text.secondary',
-              textWrap: 'pretty',
-            }}
+            sx={[
+              {
+                maxWidth: 520,
+                fontSize: { xs: '1rem', sm: '1.125rem' },
+                lineHeight: 1.6,
+                color: 'text.secondary',
+                textWrap: 'pretty',
+              },
+              heroIn(2),
+            ]}
           >
             {t('hero.subtitle')}
           </Typography>
           <Stack
             direction={{ xs: 'column', sm: 'row' }}
-            sx={{ gap: { xs: '10px', sm: '12px' }, pt: '6px', flexWrap: 'wrap' }}
+            sx={[{ gap: { xs: '10px', sm: '12px' }, pt: '6px', flexWrap: 'wrap' }, heroIn(3)]}
           >
             <LinkButton to={PUBLIC_ROUTES.marketplace} variant="primary" size="lg">
               {t('hero.primaryCta')}
@@ -149,12 +208,15 @@ function Hero() {
           </Stack>
           {/* The design drops the language list on phones to keep this to one line. */}
           <Typography
-            sx={{
-              pt: '2px',
-              fontSize: '0.8125rem',
-              color: 'text.secondary',
-              textAlign: { xs: 'center', sm: 'left' },
-            }}
+            sx={[
+              {
+                pt: '2px',
+                fontSize: '0.8125rem',
+                color: 'text.secondary',
+                textAlign: { xs: 'center', sm: 'left' },
+              },
+              heroIn(4),
+            ]}
           >
             {t('hero.trust')}
             <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
@@ -163,8 +225,12 @@ function Hero() {
           </Typography>
         </Stack>
 
-        <Box sx={{ minWidth: 0, width: '100%', maxWidth: { sm: 600, lg: 'none' } }}>
-          <HeroOrderCard />
+        {/* The card comes up into place, then floats; one box for each, so
+            the float never fights the arrival. */}
+        <Box sx={[{ minWidth: 0, width: '100%', maxWidth: { sm: 600, lg: 'none' } }, cardIn]}>
+          <Box sx={cardFloat}>
+            <HeroOrderCard />
+          </Box>
         </Box>
       </Container>
     </Box>
@@ -270,7 +336,7 @@ function ChainItem({
       target="_blank"
       rel="noopener noreferrer"
       underline="none"
-      sx={{ ...sx, '&:hover': { color: tones.accent } }}
+      sx={{ ...sx, ...colorFade, '&:hover': { color: tones.accent } }}
     >
       {body}
     </Link>
@@ -293,9 +359,11 @@ function HowItWorks() {
           gap: { xs: '20px', sm: '44px' },
         }}
       >
-        <SectionHead eyebrow={t('how.eyebrow')} title={t('how.title')} />
+        <SectionHead eyebrow={t('how.eyebrow')} title={t('how.title')} sx={reveal()} />
         {/* Desktop: three columns under a heavy ink rule. Phones and small
-            tablets: a numbered list with hairlines between the rows. */}
+            tablets: a numbered list with hairlines between the rows. Each step
+            rises in after the one before, and on desktop its rule draws
+            itself over a pale track as it scrolls in. */}
         <Box
           component="ol"
           sx={{
@@ -311,16 +379,41 @@ function HowItWorks() {
             <Box
               component="li"
               key={s.title}
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'row', md: 'column' },
-                gap: { xs: '16px', md: '14px' },
-                py: { xs: '16px', md: 0 },
-                pt: { md: '22px' },
-                borderTop: { xs: '1px solid', md: '2px solid' },
-                borderColor: { xs: 'divider', md: 'text.primary' },
-                minWidth: 0,
-              }}
+              sx={[
+                {
+                  display: 'flex',
+                  flexDirection: { xs: 'row', md: 'column' },
+                  gap: { xs: '16px', md: '14px' },
+                  py: { xs: '16px', md: 0 },
+                  pt: { md: '22px' },
+                  borderTop: { xs: '1px solid', md: '2px solid' },
+                  borderColor: { xs: 'divider', md: 'text.primary' },
+                  minWidth: 0,
+                },
+                reveal(i),
+                (theme) => ({
+                  [MOTION]: {
+                    [VIEW]: {
+                      [theme.breakpoints.up('md')]: {
+                        // The border becomes the track; the ink rule draws
+                        // over it and ends exactly where the border was.
+                        position: 'relative',
+                        borderTopColor: theme.palette.divider,
+                        '&::before': {
+                          content: '""',
+                          position: 'absolute',
+                          top: -2,
+                          left: 0,
+                          right: 0,
+                          height: 2,
+                          bgcolor: 'text.primary',
+                          ...RULE_DRAW,
+                        },
+                      },
+                    },
+                  },
+                }),
+              ]}
             >
               <Typography
                 aria-hidden
@@ -376,7 +469,7 @@ function Why() {
           gap: { xs: '16px', sm: '36px' },
         }}
       >
-        <SectionHead eyebrow={t('why.eyebrow')} title={t('why.title')} />
+        <SectionHead eyebrow={t('why.eyebrow')} title={t('why.title')} sx={reveal()} />
         <Box
           sx={{
             display: 'grid',
@@ -391,17 +484,26 @@ function Why() {
           {items.map((it, i) => (
             <Box
               key={it.title}
-              sx={{
-                display: 'flex',
-                flexDirection: { xs: 'row', sm: 'column' },
-                alignItems: 'flex-start',
-                gap: '14px',
-                minWidth: 0,
-                p: { xs: '16px', sm: '26px 24px' },
-                bgcolor: tones.subtle,
-                boxShadow: edgeShadow(tones.subtleEdge),
-                borderRadius: `${landingRadii.card}px`,
-              }}
+              sx={[
+                {
+                  display: 'flex',
+                  flexDirection: { xs: 'row', sm: 'column' },
+                  alignItems: 'flex-start',
+                  gap: '14px',
+                  minWidth: 0,
+                  p: { xs: '16px', sm: '26px 24px' },
+                  bgcolor: tones.subtle,
+                  boxShadow: edgeShadow(tones.subtleEdge),
+                  borderRadius: `${landingRadii.card}px`,
+                  '&:hover': {
+                    boxShadow: [edgeShadow(tones.subtleEdge), TILE_HOVER_SHADOW]
+                      .filter((s) => s !== 'none')
+                      .join(', '),
+                  },
+                },
+                hoverLift,
+                reveal(i),
+              ]}
             >
               <Box
                 sx={{
@@ -547,18 +649,22 @@ function Panel({
   return (
     <Box
       id={id}
-      sx={{
-        ...anchoredSx,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: { xs: '12px', sm: '20px' },
-        minWidth: 0,
-        p: { xs: '24px', sm: '40px' },
-        bgcolor: bg,
-        color,
-        boxShadow: edgeShadow(edge),
-        borderRadius: { xs: `${landingRadii.card}px`, sm: `${landingRadii.panel}px` },
-      }}
+      sx={[
+        {
+          ...anchoredSx,
+          display: 'flex',
+          flexDirection: 'column',
+          gap: { xs: '12px', sm: '20px' },
+          minWidth: 0,
+          p: { xs: '24px', sm: '40px' },
+          bgcolor: bg,
+          color,
+          boxShadow: edgeShadow(edge),
+          borderRadius: { xs: `${landingRadii.card}px`, sm: `${landingRadii.panel}px` },
+        },
+        // Rises and grows a little into place as it scrolls in.
+        reveal(0, true),
+      ]}
     >
       {children}
     </Box>
@@ -617,7 +723,7 @@ function FaqSection() {
           alignItems: 'start',
         }}
       >
-        <Stack sx={{ gap: '12px', minWidth: 0 }}>
+        <Stack sx={[{ gap: '12px', minWidth: 0 }, reveal()]}>
           <Eyebrow>{t('faq.eyebrow')}</Eyebrow>
           <SectionTitle>{t('faq.title')}</SectionTitle>
           <Typography sx={{ fontSize: '0.9375rem', color: 'text.secondary' }}>

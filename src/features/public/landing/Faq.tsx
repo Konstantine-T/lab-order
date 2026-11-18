@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Icon } from '@/components/design';
 import { motion } from '@/theme/tokens';
 import { listOf, useLandingTones } from './helpers';
+import { EASE, MOTION, reveal } from './motion';
 
 type Item = { q: string; a: string };
 
@@ -25,7 +26,7 @@ export function Faq() {
         const isOpen = open === i;
         const id = `faq-${i}`;
         return (
-          <Box key={item.q} sx={{ borderTop: 1, borderColor: 'divider' }}>
+          <Box key={item.q} sx={[{ borderTop: 1, borderColor: 'divider' }, reveal(i)]}>
             <Typography component="h3" sx={{ m: 0 }}>
               <Box
                 component="button"
@@ -52,6 +53,8 @@ export function Faq() {
                   textAlign: 'left',
                   cursor: 'pointer',
                   borderRadius: '6px',
+                  transition: 'color .2s',
+                  '&:hover': { color: tones.accentText },
                   '&:focus-visible': { outline: `2px solid ${tones.accent}`, outlineOffset: '3px' },
                 }}
               >
@@ -78,6 +81,8 @@ export function Faq() {
                   fontSize: { xs: '0.875rem', sm: '0.9375rem' },
                   lineHeight: 1.6,
                   color: 'text.secondary',
+                  // The answer eases in as its row opens.
+                  ...(isOpen && { [MOTION]: { animation: `lp-faq-in .45s ${EASE}` } }),
                 }}
               >
                 {item.a}

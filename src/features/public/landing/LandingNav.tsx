@@ -22,6 +22,7 @@ import { Icon } from '@/components/design';
 import { LANGUAGES } from '@/i18n';
 import { PUBLIC_ROUTES } from '@/features/public/publicRoutes';
 import { Container, LinkButton } from './primitives';
+import { colorFade } from './motion';
 import {
   NAV_HEIGHT,
   scrollToAnchor,
@@ -75,6 +76,7 @@ export function LandingNav() {
     fontWeight: 500,
     color: 'text.primary',
     whiteSpace: 'nowrap',
+    ...colorFade,
     '&:hover': { color: tones.accent },
   } as const;
 

@@ -7,6 +7,7 @@ import { ToothMap, toDisplayLabel } from '@/components/ToothMap';
 import { palette2026, radii, surfaces, tone } from '@/theme/tokens';
 import { formatGELShort } from '@/utils/pricing';
 import { landingRadii } from './helpers';
+import { blink, MOTION, POP } from './motion';
 
 /**
  * The hero's sample order: one case as a doctor sees it after sending it —
@@ -54,6 +55,44 @@ const UPPER_ARCH_HEIGHT = 311;
 // step name and breaks the title after its "·". So this is a container query
 // on the card's own width; below 440px the full layout no longer fits.
 const COMPACT = '@container hero-order-card (max-width: 439px)';
+
+// The card fills itself in once it has come up (landing/motion.ts): the
+// teeth, one after another, from 1.0s; the stage bar from 1.2s, a segment at
+// a time; then "confirmed" pops in and the current stage starts to pulse.
+const TOOTH_START = 1.0;
+const TOOTH_STEP = 0.15;
+const FILL_START = 1.2;
+const FILL_STEP = 0.45;
+const CONFIRM_AT = 2.4;
+const PULSE_AT = FILL_START + (CURRENT_STEP + 1) * FILL_STEP;
+/** Each filled segment's share of one smooth fill: eased in, steady, eased out. */
+const fillEase = (i: number) =>
+  i === 0 ? 'cubic-bezier(.6,0,1,1)' : i === CURRENT_STEP ? 'cubic-bezier(0,0,.2,1)' : 'linear';
+
+/**
+ * The selected teeth fill in, from an unselected tooth's colours into the
+ * ones ToothMap gives them, 16 first. Done from out here, by CSS alone: the
+ * chart itself is not touched. A selected tooth is the shape ToothMap fills
+ * aqua; `:nth-child(n of …)` counts only those, in the chart's own order
+ * (Universal 3, 4, 5 = FDI 16, 15, 14). Should ToothMap ever paint selection
+ * another way, nothing matches and the chart simply shows, still.
+ *
+ * The "from" colours are ToothMap's for an unselected tooth: the card's paper
+ * and its outline grey.
+ */
+function toothFillSx(paper: string, light: boolean) {
+  const selected = `[fill="${palette2026.aqua}"]`;
+  return {
+    '--lp-tooth-fill': paper,
+    '--lp-tooth-stroke': light ? 'rgba(15, 23, 42, 0.55)' : 'rgba(229, 231, 240, 0.7)',
+    [MOTION]: Object.fromEntries(
+      SELECTED_TEETH.map((_, i) => [
+        `& svg > :nth-child(${i + 1} of ${selected})`,
+        { animation: `lp-tooth .6s ease-out ${(TOOTH_START + i * TOOTH_STEP).toFixed(2)}s backwards` },
+      ]),
+    ),
+  };
+}
 
 export function HeroOrderCard() {
   const { t, i18n } = useTranslation('landing');
@@ -133,7 +172,7 @@ export function HeroOrderCard() {
           >
             <Box
               component="span"
-              sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: success.dot, flexShrink: 0 }}
+              sx={[{ width: 8, height: 8, borderRadius: '50%', bgcolor: success.dot, flexShrink: 0 }, blink]}
             />
             {steps[CURRENT_STEP]}
           </Tag>
@@ -173,17 +212,20 @@ export function HeroOrderCard() {
           <Box
             role="img"
             aria-label={t('heroCard.chartLabel')}
-            sx={{
-              width: '100%',
-              // Must stay under ToothMap's own 340px cap, or its SVG stops
-              // filling the window and the crop no longer lines up.
-              maxWidth: 320,
-              aspectRatio: `${VIEWBOX_WIDTH} / ${UPPER_ARCH_HEIGHT}`,
-              overflow: 'hidden',
-              pointerEvents: 'none',
-              userSelect: 'none',
-              [COMPACT]: { maxWidth: 280 },
-            }}
+            sx={[
+              {
+                width: '100%',
+                // Must stay under ToothMap's own 340px cap, or its SVG stops
+                // filling the window and the crop no longer lines up.
+                maxWidth: 320,
+                aspectRatio: `${VIEWBOX_WIDTH} / ${UPPER_ARCH_HEIGHT}`,
+                overflow: 'hidden',
+                pointerEvents: 'none',
+                userSelect: 'none',
+                [COMPACT]: { maxWidth: 280 },
+              },
+              toothFillSx(theme.palette.background.paper, mode === 'light'),
+            ]}
           >
             <ToothMap value={SELECTED_TEETH} readOnly notation="FDI" />
           </Box>
@@ -211,20 +253,36 @@ export function HeroOrderCard() {
         {/* Progress: aqua is done (and the stage in hand), dashed grey is not yet. */}
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           <Box aria-hidden sx={{ display: 'flex', gap: '5px' }}>
-            {Array.from({ length: STEP_COUNT }, (_, i) => (
-              <Box
-                key={i}
-                sx={{
-                  flex: 1,
-                  height: 6,
-                  borderRadius: '3px',
-                  background:
-                    i <= CURRENT_STEP
-                      ? palette2026.aqua
-                      : `repeating-linear-gradient(90deg, ${surfaces[mode].dashed} 0 6px, transparent 6px 11px)`,
-                }}
-              />
-            ))}
+            {Array.from({ length: STEP_COUNT }, (_, i) => {
+              const dashed = `repeating-linear-gradient(90deg, ${surfaces[mode].dashed} 0 6px, transparent 6px 11px)`;
+              const done = i <= CURRENT_STEP;
+              return (
+                <Box
+                  key={i}
+                  sx={{
+                    flex: 1,
+                    height: 6,
+                    borderRadius: '3px',
+                    background: done ? palette2026.aqua : dashed,
+                    // A done segment fills with aqua over its own "not yet"
+                    // dashes, in turn, as one bar filling; the current stage
+                    // then pulses. It ends solid aqua, as it is drawn still.
+                    ...(done && {
+                      [MOTION]: {
+                        '--lp-pulse': alpha(palette2026.aqua, 0.45),
+                        background: `linear-gradient(${palette2026.aqua}, ${palette2026.aqua}) 0 0 / 100% 100% no-repeat, ${dashed}`,
+                        animation: [
+                          `lp-fill ${FILL_STEP}s ${fillEase(i)} ${(FILL_START + i * FILL_STEP).toFixed(2)}s backwards`,
+                          ...(i === CURRENT_STEP
+                            ? [`lp-pulse 2.2s ease-out ${PULSE_AT.toFixed(2)}s infinite`]
+                            : []),
+                        ].join(', '),
+                      },
+                    }),
+                  }}
+                />
+              );
+            })}
           </Box>
           <Box
             sx={{
@@ -287,8 +345,15 @@ export function HeroOrderCard() {
               {formatGELShort(PRICE)}
             </Box>
           </Box>
-          {/* Compact, the pill wraps under the two figures, flush left. */}
-          <Tag sx={{ ml: 'auto', [COMPACT]: { ml: 0 } }}>
+          {/* Compact, the pill wraps under the two figures, flush left. It
+              pops in once the card has filled itself in. */}
+          <Tag
+            sx={{
+              ml: 'auto',
+              [COMPACT]: { ml: 0 },
+              [MOTION]: { animation: `lp-pop .6s ${POP} ${CONFIRM_AT}s backwards` },
+            }}
+          >
             <Icon
               name="check"
               size={14}
