@@ -24,8 +24,10 @@ import { OrdersFilterBar } from '@/features/orders/list/OrdersFilterBar';
 import { PHONE_ADD_SX } from '@/features/orders/list/listStyles';
 import { useOrderListFilters } from '@/features/orders/list/useOrderListFilters';
 import { relativeAge } from '@/features/orders/list/listFormat';
+import { ExportOrdersButton } from '@/features/orders/export/ExportOrdersButton';
 import {
   activeCount,
+  inListOrder,
   LIST_ORDER_SELECT,
   shortName,
   type ListOrderRow,
@@ -212,6 +214,14 @@ export function ClinicOrdersPage() {
                   </InputAdornment>
                 ),
               }}
+            />
+            {/* Every order the filters leave, group by group as listed. The
+                clinic's RLS is exactly its orders (0050), as for the list. */}
+            <ExportOrdersButton
+              scope={{ kind: 'clinic' }}
+              count={filters.filtered.length}
+              orderIds={() => inListOrder(filters.filtered, filters.sort).map((o) => o.id)}
+              fileTag="clinic"
             />
             {/* The top bar carries "New order" from `md` up; below it the bar
                 has none, so the page keeps its own — a square on a phone, so

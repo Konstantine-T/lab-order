@@ -44,12 +44,14 @@ import { OrdersFilterBar } from '@/features/orders/list/OrdersFilterBar';
 import { useOrderListFilters } from '@/features/orders/list/useOrderListFilters';
 import {
   activeCount,
+  inListOrder,
   LIST_ORDER_SELECT,
   shortName,
   type ListOrderRow,
   type OrderGroupKey,
 } from '@/features/orders/list/orderListModel';
 import { PHONE_ADD_SX } from '@/features/orders/list/listStyles';
+import { ExportOrdersButton } from '@/features/orders/export/ExportOrdersButton';
 import { PURCHASE_PATHS, useBuyerMode } from '@/features/labBuying/buyerMode';
 import { ORDER_TRASH_EMBED } from '@/features/orders/trash/trashFilter';
 import { SelectModeButton, TrashSelectionBar } from '@/features/orders/trash/TrashSelection';
@@ -381,6 +383,15 @@ export function OrdersListPage({ buyer: buyerProp = false }: { buyer?: boolean }
                   </InputAdornment>
                 ),
               }}
+            />
+            {/* Every order the filters leave, group by group as listed. A
+                buying lab's file is its purchases only (doctorId is the
+                buying profile), never the orders it receives. */}
+            <ExportOrdersButton
+              scope={doctorId ? { kind: 'doctor', doctorId } : null}
+              count={filters.filtered.length}
+              orderIds={() => inListOrder(filters.filtered, filters.sort).map((o) => o.id)}
+              fileTag={buyerProp ? 'purchases' : 'doctor'}
             />
             {/* The top bar carries "New order" from `md` up; below it the bar
                 has none, so the page keeps its own — a square on a phone, so

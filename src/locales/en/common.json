@@ -312,6 +312,42 @@
     "grid": "Grid view",
     "groupHeader": "{{group}} · {{count}}"
   },
+  "orderExport": {
+    "button": "Export",
+    "sheet": "Orders",
+    "confirmTitle": "Export {{n}} orders?",
+    "confirmBody": "A file this large can take a minute to prepare.",
+    "error": "The export failed. Please try again.",
+    "fromLab": "{{name}} (Laboratory)",
+    "invoiceTo": {
+      "DOCTOR": "Doctor",
+      "CLINIC": "Clinic",
+      "LAB": "Laboratory"
+    },
+    "columns": {
+      "code": "Order number",
+      "created": "Created",
+      "status": "Status",
+      "patient": "Patient",
+      "doctor": "Doctor",
+      "lab": "Laboratory",
+      "clinic": "Clinic",
+      "service": "Service",
+      "requestedDue": "Requested due",
+      "confirmedDue": "Confirmed due",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "estimate": "Estimate",
+      "finalPrice": "Final price",
+      "priceNote": "Price explanation",
+      "paid": "Paid",
+      "outstanding": "Outstanding",
+      "paymentStatus": "Payment status",
+      "invoiceTo": "Invoice to",
+      "edited": "Edited",
+      "editCount": "Edits"
+    }
+  },
   "orderList": {
     "dateFormat": "MMM D",
     "searchPlaceholder": "Patient, number, lab",

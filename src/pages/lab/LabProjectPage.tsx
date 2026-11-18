@@ -21,6 +21,8 @@ import { queueDates } from '@/features/lab/orders/orderPresets';
 import { FromLabBadge } from '@/features/lab/orders/FromLabBadge';
 import { isLabPurchase } from '@/features/lab/orders/labCustomer';
 import { destinationLabelOf } from '@/features/lab/orders/queueFilters';
+import { ExportOrdersButton } from '@/features/orders/export/ExportOrdersButton';
+import { patientFileTag } from '@/features/orders/export/exportTypes';
 import {
   fetchLabProjectHead,
   fetchLabProjectOrders,
@@ -134,7 +136,17 @@ export function LabProjectPage() {
         backTo="/lab/projects"
         title={patientName || '—'}
         chips={isLabPurchase(project) ? <FromLabBadge /> : undefined}
-        actions={<OrdersViewToggle view={view} onChange={setView} canSwitch={canSwitch} />}
+        actions={
+          <>
+            <ExportOrdersButton
+              scope={labId ? { kind: 'lab', labId } : null}
+              count={rows.length}
+              orderIds={() => rows.map((o) => o.id)}
+              fileTag={patientFileTag('project', patientId!)}
+            />
+            <OrdersViewToggle view={view} onChange={setView} canSwitch={canSwitch} />
+          </>
+        }
         subtitle={
           <>
             {/* The breadcrumb, as the wizard's header draws one: the list

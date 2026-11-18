@@ -67,6 +67,7 @@ import { useTrashToast } from '@/features/orders/trash/useTrashToast';
 import { ORDER_SORTS, type OrderSort, orderComparator } from '@/features/orders/orderDates';
 import { useOrderSort } from '@/features/orders/list/useOrderSort';
 import { ClarificationAskDialog } from '@/features/orders/clarifications/ClarificationAskDialog';
+import { ExportOrdersButton } from '@/features/orders/export/ExportOrdersButton';
 import { radii, tone } from '@/theme/tokens';
 import type { OrderStatus } from '@/types/database';
 import { canTrash, LAB_SELECTABLE_STATUSES } from '@/types/database';
@@ -467,20 +468,29 @@ export function LabOrdersDashboardPage() {
         title={t('ordersDashboard.title')}
         subtitle={t('ordersDashboard.subtitle')}
         actions={
-          <TextField
-            placeholder={t('ordersDashboard.filters.search')}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            size="small"
-            sx={{ width: { sm: 280 } }}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Icon name="search" size={18} sx={{ color: 'text.secondary' }} />
-                </InputAdornment>
-              ),
-            }}
-          />
+          <>
+            <TextField
+              placeholder={t('ordersDashboard.filters.search')}
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              size="small"
+              sx={{ width: { sm: 280 } }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Icon name="search" size={18} sx={{ color: 'text.secondary' }} />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            {/* Every row the filters leave, in this sort, not just this page. */}
+            <ExportOrdersButton
+              scope={labId ? { kind: 'lab', labId } : null}
+              count={filtered.length}
+              orderIds={() => filtered.map((o) => o.id)}
+              fileTag="lab"
+            />
+          </>
         }
       />
 

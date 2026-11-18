@@ -26,6 +26,7 @@ import {
   type LabListRow,
 } from '@/features/lab/orders/labOrderList';
 import { queueDates } from '@/features/lab/orders/orderPresets';
+import { ExportOrdersButton } from '@/features/orders/export/ExportOrdersButton';
 
 /**
  * Every order a doctor has edited, unconfirmed edits first. The queue's own
@@ -75,7 +76,17 @@ export function LabEditedOrdersPage() {
       <PageHeader
         title={t('editedOrders.title')}
         subtitle={t('editedOrders.subtitle')}
-        actions={<OrdersViewToggle view={view} onChange={setView} canSwitch={canSwitch} />}
+        actions={
+          <>
+            <ExportOrdersButton
+              scope={labId ? { kind: 'lab', labId } : null}
+              count={orders.length}
+              orderIds={() => orders.map((o) => o.id)}
+              fileTag="edited"
+            />
+            <OrdersViewToggle view={view} onChange={setView} canSwitch={canSwitch} />
+          </>
+        }
       />
 
       {isLoading ? (

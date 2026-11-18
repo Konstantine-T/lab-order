@@ -312,6 +312,42 @@
     "grid": "ბადის ხედი",
     "groupHeader": "{{group}} · {{count}}"
   },
+  "orderExport": {
+    "button": "ექსპორტი",
+    "sheet": "შეკვეთები",
+    "confirmTitle": "{{n}} შეკვეთის ექსპორტი?",
+    "confirmBody": "ამხელა ფაილის მომზადებას შეიძლება ერთი წუთი დასჭირდეს.",
+    "error": "ექსპორტი ვერ მოხერხდა. სცადეთ ხელახლა.",
+    "fromLab": "{{name}} (ლაბორატორია)",
+    "invoiceTo": {
+      "DOCTOR": "ექიმი",
+      "CLINIC": "კლინიკა",
+      "LAB": "ლაბორატორია"
+    },
+    "columns": {
+      "code": "შეკვეთის ნომერი",
+      "created": "შექმნის თარიღი",
+      "status": "სტატუსი",
+      "patient": "პაციენტი",
+      "doctor": "ექიმი",
+      "lab": "ლაბორატორია",
+      "clinic": "კლინიკა",
+      "service": "სერვისი",
+      "requestedDue": "მოთხოვნილი ვადა",
+      "confirmedDue": "დადასტურებული ვადა",
+      "completed": "დასრულების თარიღი",
+      "cancelled": "გაუქმების თარიღი",
+      "estimate": "სავარაუდო ფასი",
+      "finalPrice": "საბოლოო ფასი",
+      "priceNote": "ფასის განმარტება",
+      "paid": "გადახდილი",
+      "outstanding": "დარჩენილი",
+      "paymentStatus": "გადახდის სტატუსი",
+      "invoiceTo": "ინვოისი",
+      "edited": "შეცვლილი",
+      "editCount": "ცვლილებების რაოდენობა"
+    }
+  },
   "orderList": {
     "dateFormat": "D MMM",
     "searchPlaceholder": "პაციენტი, ნომერი, ლაბორატორია",

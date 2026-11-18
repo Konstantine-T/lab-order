@@ -316,6 +316,42 @@
     "grid": "Вид сеткой",
     "groupHeader": "{{group}} · {{count}}"
   },
+  "orderExport": {
+    "button": "Экспорт",
+    "sheet": "Заказы",
+    "confirmTitle": "Экспортировать все заказы ({{n}})?",
+    "confirmBody": "Подготовка такого большого файла может занять около минуты.",
+    "error": "Не удалось выполнить экспорт. Попробуйте ещё раз.",
+    "fromLab": "{{name}} (лаборатория)",
+    "invoiceTo": {
+      "DOCTOR": "Врач",
+      "CLINIC": "Клиника",
+      "LAB": "Лаборатория"
+    },
+    "columns": {
+      "code": "Номер заказа",
+      "created": "Дата создания",
+      "status": "Статус",
+      "patient": "Пациент",
+      "doctor": "Врач",
+      "lab": "Лаборатория",
+      "clinic": "Клиника",
+      "service": "Услуга",
+      "requestedDue": "Запрошенный срок",
+      "confirmedDue": "Подтверждённый срок",
+      "completed": "Дата завершения",
+      "cancelled": "Дата отмены",
+      "estimate": "Предварительная цена",
+      "finalPrice": "Итоговая цена",
+      "priceNote": "Пояснение к цене",
+      "paid": "Оплачено",
+      "outstanding": "Остаток к оплате",
+      "paymentStatus": "Статус оплаты",
+      "invoiceTo": "Счёт на",
+      "edited": "Изменён",
+      "editCount": "Число изменений"
+    }
+  },
   "orderList": {
     "dateFormat": "D MMM",
     "searchPlaceholder": "Пациент, номер, лаборатория",

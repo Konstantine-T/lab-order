@@ -16,6 +16,8 @@ import { queueDates } from '@/features/lab/orders/orderPresets';
 import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
 import { ORDER_TRASH_EMBED } from '@/features/orders/trash/trashFilter';
+import { ExportOrdersButton } from '@/features/orders/export/ExportOrdersButton';
+import { patientFileTag } from '@/features/orders/export/exportTypes';
 import type { PatientRow } from '@/types/database';
 
 export function PatientOrdersPage() {
@@ -121,6 +123,12 @@ export function PatientOrdersPage() {
         subtitle={t('patientOrders.title')}
         actions={
           <>
+            <ExportOrdersButton
+              scope={doctorId ? { kind: 'doctor', doctorId } : null}
+              count={orders.length}
+              orderIds={() => orders.map((o) => o.id)}
+              fileTag={patientFileTag('patient', patientId ?? '')}
+            />
             <OrdersViewToggle view={view} onChange={setView} canSwitch={canSwitch} />
             {latestLabId && patientId && (
               <Button

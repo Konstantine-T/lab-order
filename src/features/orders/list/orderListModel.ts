@@ -234,6 +234,18 @@ export function groupRows(
   return groups;
 }
 
+/**
+ * The rows top to bottom as both views draw them: group by group, each in the
+ * chosen sort. What the export writes, so the file reads like the screen.
+ */
+export function inListOrder(
+  rows: ListOrderRow[],
+  sort: OrderSort = DEFAULT_ORDER_SORT,
+): ListOrderRow[] {
+  const groups = groupRows(rows, sort);
+  return GROUP_ORDER.flatMap((group) => groups.get(group) ?? []);
+}
+
 // ===== Status filter =========================================================
 
 /** The statuses the doctor's and the clinic's lists offer in their status
