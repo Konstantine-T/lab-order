@@ -5,11 +5,13 @@ import {
   CustomerCell,
   DueCell,
   GoCell,
+  MoneyCell,
   OrderCodeCell,
   OrderStatusCell,
   PatientCell,
   TextCell,
   TotalCell,
+  type RowMoney,
 } from '@/features/orders/table/OrderRowCells';
 import { isLabPurchase, patientLabel } from '@/features/lab/orders/labCustomer';
 import { destinationLabelOf } from '@/features/lab/orders/queueFilters';
@@ -38,6 +40,10 @@ import { LabLineage, LabRowBadges, OrderRowBadges } from './RowBadges';
  *   clinic  code, patient, doctor, lab, service, due, status, total, actions
  *
  * Column labels come from `common:orderList.columns`.
+ *
+ * The finances pages draw the same rows with `money`: everything up to the
+ * status as the list has it, column for column, then one money cell in place
+ * of the total and the actions (`labFinanceColumns`, `orderFinanceColumns`).
  */
 
 type Labelled = { t: (key: string) => string };
@@ -51,6 +57,29 @@ const withLabels = (cols: Column[], { t }: Labelled, select: boolean): Column[] 
     c.key === 'go' || c.key === 'actions' ? c : { ...c, label: t(`orderList.columns.${c.key}`) },
   ),
 ];
+
+// ── Finances ────────────────────────────────────────────────────────────
+
+export type { MoneyLabels, RowMoney } from '@/features/orders/table/OrderRowCells';
+
+/**
+ * One money column (MoneyCell), not three. The lab's content column is 1080px at most:
+ * the list's columns at the list's widths plus billed, paid, outstanding and
+ * a button column left its patient, customer and service about 60px each,
+ * where the list gives them about 110. In one column they keep the list's.
+ *
+ * 140px on every row, the pills wrapping inside it, so the rows' columns line
+ * up (each row is its own grid). Only a single pill wider than that, the
+ * 176px "ნაწილობრივ გადახდილი", widens its own row: `min-content` is never cut.
+ */
+const MONEY_COLUMN: Column = { key: 'money', width: 'minmax(min-content, 140px)', align: 'right' };
+
+/** A list's columns through the status, then the money's. */
+const financeColumns = (list: Column[], l: Labelled, label: string): Column[] => [
+  ...withLabels(list.slice(0, list.findIndex((c) => c.key === 'status') + 1), l, false),
+  { ...MONEY_COLUMN, label },
+];
+
 
 // ── Lab ─────────────────────────────────────────────────────────────────
 
@@ -66,6 +95,10 @@ const LAB_COLUMNS: Column[] = [
 ];
 
 export const labListColumns = (l: Labelled, select = false) => withLabels(LAB_COLUMNS, l, select);
+
+/** The lab's finances: the queue's columns through the status, then the money. */
+export const labFinanceColumns = (l: Labelled, moneyLabel: string): Column[] =>
+  financeColumns(LAB_COLUMNS, l, moneyLabel);
 
 /** The doctor, or the buying lab, as the lab knows them. */
 export const labCustomerName = (row: Pick<LabListRow, 'doctor_snapshot'>) => {
@@ -85,6 +118,8 @@ export function labListRow(
     select?: { checked: boolean; disabled: boolean };
     /** Show what the order continues (pages that resolve parent codes). */
     lineage?: { parentCode: string | undefined };
+    /** The finances page: the money in place of the total (`labFinanceColumns`). */
+    money?: RowMoney;
   },
 ): ListRow {
   const place = destinationLabelOf(row);
@@ -111,10 +146,14 @@ export function labListRow(
     opts.statusCell ?? (
       <OrderStatusCell status={row.status} completedAt={row.completed_at} side="lab" />
     ),
-    <Typography sx={{ fontSize: '0.78125rem', fontWeight: 700, textAlign: 'right' }}>
-      {total != null ? formatGEL(total) : '—'}
-    </Typography>,
-    <GoCell />,
+    ...(opts.money
+      ? [<MoneyCell m={opts.money} />]
+      : [
+          <Typography sx={{ fontSize: '0.78125rem', fontWeight: 700, textAlign: 'right' }}>
+            {total != null ? formatGEL(total) : '—'}
+          </Typography>,
+          <GoCell />,
+        ]),
   ];
   if (opts.select) {
     cells.unshift(
@@ -151,6 +190,14 @@ const CLINIC_COLUMNS: Column[] = [
 export const orderListColumns = (perspective: 'doctor' | 'clinic', l: Labelled, select = false) =>
   withLabels(perspective === 'clinic' ? CLINIC_COLUMNS : DOCTOR_COLUMNS, l, select);
 
+/** A finances page: the list's columns through the status, then the money. */
+export const orderFinanceColumns = (
+  perspective: 'doctor' | 'clinic',
+  l: Labelled,
+  moneyLabel: string,
+): Column[] =>
+  financeColumns(perspective === 'clinic' ? CLINIC_COLUMNS : DOCTOR_COLUMNS, l, moneyLabel);
+
 export function orderListRow(
   row: ListOrderRow,
   opts: {
@@ -167,6 +214,9 @@ export function orderListRow(
     actions?: ReactNode;
     /** Select mode (0054), as OrderCard takes it. */
     select?: CardSelect;
+    /** A finances page: the money in place of the total and the actions
+     *  (`orderFinanceColumns`). */
+    money?: RowMoney;
   },
 ): ListRow {
   const group = opts.group ?? groupOf(row);
@@ -181,9 +231,13 @@ export function orderListRow(
     <TextCell>{serviceNameOf(row)}</TextCell>,
     <DueCell order={row} dates={opts.dates} side="doctor" />,
     <OrderStatusCell status={row.status} completedAt={row.completed_at} side="doctor" />,
-    // A cancelled order owes nothing; its old estimate would read as a bill.
-    <TotalCell price={row.status === 'CANCELLED' ? null : priceOf(row)} />,
-    <ActionsCell>{opts.actions}</ActionsCell>,
+    ...(opts.money
+      ? [<MoneyCell m={opts.money} />]
+      : [
+          // A cancelled order owes nothing; its old estimate would read as a bill.
+          <TotalCell price={row.status === 'CANCELLED' ? null : priceOf(row)} />,
+          <ActionsCell>{opts.actions}</ActionsCell>,
+        ]),
   ];
   let onOpen = opts.onOpen;
   let checked = false;

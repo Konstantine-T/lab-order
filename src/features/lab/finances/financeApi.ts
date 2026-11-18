@@ -7,6 +7,7 @@ import type {
   PaymentStatus,
 } from '@/types/database';
 import { FILTERABLE_STATUSES } from '@/features/lab/orders/orderPresets';
+import { LAB_ORDER_LIST_SELECT, type LabListRow } from '@/features/lab/orders/labOrderList';
 
 export type ReceivableSort =
   | 'created_desc'
@@ -148,6 +149,48 @@ export async function fetchReceivablesList(
   });
   if (error) throw error;
   return (data ?? []) as LabReceivableOrder[];
+}
+
+/** One row of the finances table: the order as the orders list has it, and its money. */
+export type ReceivableRow = { order: LabListRow; money: LabReceivableOrder };
+
+/**
+ * A page of the finances table. The RPC decides which orders, in what order,
+ * and their money (filters, sort, pagination, what counts); the orders
+ * themselves are then read with the orders list's own select, so each row is
+ * the list's row (badges, destination, highlight). One request per page.
+ *
+ * Filtered on `lab_id` as well as the ids: since 0048 the lab's owner also
+ * reads its own purchases, which are never this lab's receivables. Not on the
+ * trash: finances keep counting what the lab put in its trash (0054).
+ */
+export async function fetchReceivableRows(
+  labId: string,
+  f: ReceivableFilters,
+  sort: ReceivableSort,
+  page: number,
+  pageSize: number,
+): Promise<{ rows: ReceivableRow[]; total: number }> {
+  const money = await fetchReceivablesList(labId, f, sort, page, pageSize);
+  if (money.length === 0) return { rows: [], total: 0 };
+  const { data, error } = await supabase
+    .from('orders')
+    .select(LAB_ORDER_LIST_SELECT)
+    .in(
+      'id',
+      money.map((m) => m.order_id),
+    )
+    .eq('lab_id', labId);
+  if (error) throw error;
+  const byId = new Map(((data ?? []) as unknown as LabListRow[]).map((o) => [o.id, o]));
+  return {
+    // The RPC's order, each order with its money.
+    rows: money.flatMap((m) => {
+      const order = byId.get(m.order_id);
+      return order ? [{ order, money: m }] : [];
+    }),
+    total: Number(money[0].total_count),
+  };
 }
 
 /** Set the absolute amount paid on one order; status is derived server-side. */

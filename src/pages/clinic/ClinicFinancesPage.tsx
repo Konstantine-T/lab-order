@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Box, Chip, CircularProgress, Link, Stack, Typography } from '@mui/material';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
@@ -7,7 +7,6 @@ import dayjs from 'dayjs';
 import { useAuth } from '@/auth/AuthProvider';
 import { supabase } from '@/lib/supabase';
 import { formatGEL } from '@/utils/pricing';
-import { PaymentStatusChip } from '@/components/OrderStatusChip';
 import {
   type Column,
   Callout,
@@ -17,20 +16,21 @@ import {
   SectionCard,
   StatCard,
   StatGrid,
-  StatusPill,
 } from '@/components/design';
 import { OrdersPaginator } from '@/features/orders/OrdersPaginator';
 import { OrdersEmptyState } from '@/features/orders/OrdersEmptyState';
+import { OrderCard } from '@/features/orders/list/OrderCard';
+import { OrderListTable } from '@/features/orders/list/view/OrderListTable';
 import {
-  AmountCell,
-  DueCell,
-  OrderCodeCell,
-  OrderStatusCell,
-  PatientCell,
-  TextCell,
-} from '@/features/orders/table/OrderRowCells';
+  orderFinanceColumns,
+  orderListRow,
+  type RowMoney,
+} from '@/features/orders/list/view/listRows';
+import type { ListOrderRow } from '@/features/orders/list/orderListModel';
+import { useUnacknowledgedInvoices } from '@/features/orders/orderFiles/useUnacknowledgedInvoices';
+import { useParentOrderCodes } from '@/features/orders/useParentOrderCodes';
 import { queueDates } from '@/features/lab/orders/orderPresets';
-import { FinanceOrderCard } from '@/features/finances/FinanceOrderCard';
+import { FinanceMoneyLine } from '@/features/finances/FinanceMoneyLine';
 import {
   selectedPaymentSquare,
   SQUARE_PAYMENT_STATUSES,
@@ -40,6 +40,7 @@ import {
 import { ClinicFinanceFilterBar } from '@/features/clinic/finances/ClinicFinanceFilterBar';
 import {
   defaultPayableFilters,
+  fetchPayableRows,
   fetchPayablesByDoctor,
   fetchPayablesList,
   type PayableFilters,
@@ -53,26 +54,6 @@ const DOCTOR_COLUMNS: Column[] = [
   { key: 'billed', width: '110px', align: 'right' },
   { key: 'paid', width: '110px', align: 'right' },
   { key: 'outstanding', width: '120px', align: 'right' },
-];
-
-/**
- * What the clinic's orders list says about an order (patient, doctor, lab,
- * service, due, status), then the money: billed, paid, outstanding, payment.
- */
-const ORDER_COLUMNS: Column[] = [
-  { key: 'order', width: '84px' },
-  { key: 'patient', width: 'minmax(0, 1.1fr)' },
-  { key: 'doctor', width: 'minmax(0, 1fr)' },
-  { key: 'lab', width: 'minmax(0, 1fr)' },
-  { key: 'service', width: 'minmax(0, 1fr)' },
-  { key: 'due', width: '120px' },
-  // The status pill, with the completed date under it.
-  { key: 'orderStatus', width: 'minmax(116px, auto)' },
-  { key: 'billed', width: '84px', align: 'right' },
-  { key: 'paid', width: '84px', align: 'right' },
-  // The payment and overdue pills under the amount; "ნაწილობრივ
-  // გადახდილი" is a 176px pill, so `auto` lets it widen the column.
-  { key: 'outstanding', width: 'minmax(108px, auto)', align: 'right' },
 ];
 
 /** Money overdue: past its confirmed date with something still owed. */
@@ -133,10 +114,33 @@ export function ClinicFinancesPage() {
     queryFn: () => fetchPayablesByDoctor(squareFilters),
   });
 
+  // The page of orders, each as the clinic's orders list reads it with its
+  // money (fetchPayableRows). One key, so the live refresh (liveQueries,
+  // under orders) covers both halves.
   const list = useQuery({
     queryKey: ['clinic-payables-list', clinicId, filters, sort, page, pageSize],
-    queryFn: () => fetchPayablesList(filters, sort, page, pageSize),
+    queryFn: () => fetchPayableRows(filters, sort, page, pageSize),
   });
+  const rows = useMemo(() => list.data?.rows ?? [], [list.data]);
+  const orders = useMemo(() => rows.map((r) => r.order), [rows]);
+  // The list's marks: an invoice not yet acknowledged, the code of the order
+  // one continues.
+  const unseenInvoices = useUnacknowledgedInvoices();
+  const parentCodes = useParentOrderCodes(orders);
+
+  // Who an order was placed for, as the clinic's orders list names them: the
+  // roster first, the order's own snapshot for a doctor no longer on it.
+  const doctorName = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const d of doctors) m.set(d.doctor_id, `${d.first_name} ${d.last_name}`);
+    return m;
+  }, [doctors]);
+  const doctorOf = useCallback(
+    (row: ListOrderRow) =>
+      doctorName.get(row.doctor_id) ??
+      [row.doctor_snapshot?.first_name, row.doctor_snapshot?.last_name].filter(Boolean).join(' '),
+    [doctorName],
+  );
 
   // The lab options come from the orders themselves, so the dropdown only ever
   // offers labs this clinic has actually ordered from. Unfiltered by design —
@@ -167,7 +171,7 @@ export function ClinicFinancesPage() {
     filters.statuses.length > 0 ||
     filters.orderStatuses.length > 0;
 
-  const totalCount = list.data?.[0]?.total_count ? Number(list.data[0].total_count) : 0;
+  const totalCount = list.data?.total ?? 0;
   const selectedDoctor =
     filters.doctorId != null
       ? (byDoctor.data ?? []).find((d) => d.doctor_id === filters.doctorId)
@@ -183,8 +187,29 @@ export function ClinicFinancesPage() {
     billed: t('finances.table.billed'),
     paid: t('finances.table.paid'),
     outstanding: t('finances.table.outstanding'),
-    overdue: t('finances.table.overdue'),
   };
+  // The money the row ends with, after the orders list's own columns. No
+  // order actions here (J1): finances is for money; they stay on the order.
+  const moneyOf = (o: ClinicPayableOrder): RowMoney => ({
+    billed: Number(o.billed),
+    paid: Number(o.paid_total),
+    outstanding: Number(o.outstanding),
+    paymentStatus: o.payment_status,
+    overdue: isOverdue(o) ? t('finances.table.overdue') : undefined,
+    labels: moneyLabels,
+  });
+  const paginator = (
+    <OrdersPaginator
+      page={page}
+      pageSize={pageSize}
+      total={totalCount}
+      onPageChange={setPage}
+      onPageSizeChange={(s) => {
+        setPageSize(s);
+        setPage(1);
+      }}
+    />
+  );
 
   const outstandingLabel = t('finances.totals.outstanding');
   const billedLabel = t('finances.totals.billed');
@@ -310,85 +335,41 @@ export function ClinicFinancesPage() {
               </SectionCard>
             )}
 
-            {/* A table from `md` up, the orders list's cards below. */}
+            {/* The clinic's orders list view from `md` up (its own row, the
+                money after the status), its cards below. */}
             <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-              <DataTable
-                columns={ORDER_COLUMNS.map((c) => ({ ...c, label: t(`finances.table.${c.key}`) }))}
+              <OrderListTable
+                columns={orderFinanceColumns('clinic', { t: tc }, moneyLabels.outstanding)}
                 minWidth={960}
-                footer={
-                  <Box sx={{ width: '100%' }}>
-                    <OrdersPaginator
-                      page={page}
-                      pageSize={pageSize}
-                      total={totalCount}
-                      onPageChange={setPage}
-                      onPageSizeChange={(s) => {
-                        setPageSize(s);
-                        setPage(1);
-                      }}
-                    />
-                  </Box>
-                }
-              >
-                {(list.data ?? []).map((o) => (
-                  <DataRow
-                    key={o.order_id}
-                    columns={ORDER_COLUMNS}
-                    onClick={() => navigate(`/clinic/orders/${o.order_id}`)}
-                  >
-                    <OrderCodeCell code={o.order_code} />
-                    <PatientCell name={o.patient_name || '—'} />
-                    <TextCell>{o.doctor_name}</TextCell>
-                    <TextCell>{o.lab_name}</TextCell>
-                    <TextCell>{o.service_name}</TextCell>
-                    <DueCell order={{ ...o, status: o.order_status }} dates={rowDates} side="doctor" />
-                    <OrderStatusCell status={o.order_status} completedAt={o.completed_at} side="doctor" />
-                    <AmountCell value={formatGEL(Number(o.billed))} />
-                    <AmountCell value={formatGEL(Number(o.paid_total))} />
-                    <AmountCell
-                      value={formatGEL(Number(o.outstanding))}
-                      owed
-                      amount={Number(o.outstanding)}
-                    >
-                      <PaymentStatusChip status={o.payment_status} />
-                      {isOverdue(o) && (
-                        <StatusPill tone="danger">{t('finances.table.overdue')}</StatusPill>
-                      )}
-                    </AmountCell>
-                  </DataRow>
-                ))}
-              </DataTable>
+                rows={rows.map(({ order, money }) =>
+                  orderListRow(order, {
+                    perspective: 'clinic',
+                    dates: rowDates,
+                    onOpen: () => navigate(`/clinic/orders/${order.id}`),
+                    doctorName: doctorOf(order) || undefined,
+                    invoiceUnseen: unseenInvoices.has(order.id),
+                    parentCode: parentCodes.get(order.continues_order_id ?? ''),
+                    money: moneyOf(money),
+                  }),
+                )}
+                footer={<Box sx={{ width: '100%' }}>{paginator}</Box>}
+              />
             </Box>
 
             <Stack spacing={1.5} sx={{ display: { xs: 'flex', md: 'none' } }}>
-              {(list.data ?? []).map((o) => (
-                <FinanceOrderCard
-                  key={o.order_id}
-                  order={o}
-                  href={`/clinic/orders/${o.order_id}`}
-                  side="doctor"
-                  service={o.service_name}
-                  who={[o.patient_name, o.lab_name].filter(Boolean).join(' · ')}
-                  doctorName={o.doctor_name}
-                  amounts={{
-                    billed: Number(o.billed),
-                    paid: Number(o.paid_total),
-                    outstanding: Number(o.outstanding),
-                  }}
-                  labels={moneyLabels}
-                  overdue={isOverdue(o)}
+              {rows.map(({ order, money }) => (
+                <OrderCard
+                  key={order.id}
+                  row={order}
+                  perspective="clinic"
+                  href={`/clinic/orders/${order.id}`}
+                  doctorName={doctorOf(order) || undefined}
+                  invoiceUnseen={unseenInvoices.has(order.id)}
+                  parentCode={parentCodes.get(order.continues_order_id ?? '')}
+                  footer={<FinanceMoneyLine money={moneyOf(money)} />}
                 />
               ))}
-              <OrdersPaginator
-                page={page}
-                pageSize={pageSize}
-                total={totalCount}
-                onPageChange={setPage}
-                onPageSizeChange={(s) => {
-                  setPageSize(s);
-                  setPage(1);
-                }}
-              />
+              {paginator}
             </Stack>
 
             {/* Said once, at the bottom, so nobody hunts for a button that is

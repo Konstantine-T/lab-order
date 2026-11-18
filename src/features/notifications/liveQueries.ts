@@ -161,6 +161,10 @@ export function keysForRow(table: LiveTable, row: Row): QueryKey[] {
         ['doctor-orders'],
         ['doctor-home-orders'],
         ['clinic-orders'],
+        // The finances tables draw the lists' rows: the lab's "answered"
+        // highlight, the clinic's gold "waiting on you" bar.
+        ['lab-receivables-list'],
+        ['clinic-payables-list'],
         ...(orderId ? [['order-clarifications', orderId], ...orderPage(orderId)] : []),
       ];
     }

@@ -2,10 +2,10 @@ import type { ReactNode } from 'react';
 import { Box, Stack, Typography } from '@mui/material';
 import { useTranslation } from 'react-i18next';
 import dayjs from 'dayjs';
-import { Icon, InitialsAvatar } from '@/components/design';
-import { formatGELShort } from '@/utils/pricing';
+import { Icon, InitialsAvatar, StatusPill } from '@/components/design';
+import { formatGEL, formatGELShort } from '@/utils/pricing';
 import type { ListPrice } from '@/features/orders/list/orderListModel';
-import { OrderStatusChip } from '@/components/OrderStatusChip';
+import { OrderStatusChip, PaymentStatusChip } from '@/components/OrderStatusChip';
 import { FromLabBadge } from '@/features/lab/orders/FromLabBadge';
 import {
   CLOSED_STATUSES,
@@ -18,7 +18,7 @@ import { appendDueWindow, dueDateOf, dueTimeOf, type DatedOrder } from '@/featur
 import { pastDate, shortDate } from '@/features/orders/list/listFormat';
 import type { StatusSide } from '@/features/orders/statusLabel';
 import { tone } from '@/theme/tokens';
-import type { OrderStatus } from '@/types/database';
+import type { OrderStatus, PaymentStatus } from '@/types/database';
 
 /**
  * The cells of an order row in a `DataTable`: the lab's orders queue and both
@@ -251,37 +251,56 @@ export function GoCell() {
   return <Icon name="chevron_right" size={17} sx={{ color: 'text.disabled' }} />;
 }
 
+/** The finances pages' words for the three figures. */
+export type MoneyLabels = { billed: string; paid: string; outstanding: string };
+
+/** A finances page's money for one order, from its finance RPC. */
+export type RowMoney = {
+  billed: number;
+  paid: number;
+  outstanding: number;
+  paymentStatus: PaymentStatus;
+  /** The overdue pill's words, when the money is past its date; else nothing. */
+  overdue?: string;
+  /** The lab's "Record payment", its own click target. Leave out for none. */
+  record?: ReactNode;
+  labels: MoneyLabels;
+};
+
 /**
- * A money figure, right-aligned. `owed` paints it red while above 0, and
- * `children` stack under it (the payment and overdue pills under what is
- * still owed, so the row keeps to one column for both).
+ * A finances page's money, in the one column that follows the orders list's
+ * own (listRows' `money`): what is still owed (red while above 0) with "Record
+ * payment" beside it on the lab's page, the payment and overdue pills under
+ * it, then the bill and what has been paid of it.
  */
-export function AmountCell({
-  value,
-  owed,
-  amount,
-  children,
-}: {
-  value: ReactNode;
-  owed?: boolean;
-  amount?: number;
-  children?: ReactNode;
-}) {
-  const red = owed && (amount ?? 0) > 0;
+export function MoneyCell({ m }: { m: RowMoney }) {
   return (
     <Stack spacing={0.5} alignItems="flex-end" sx={{ minWidth: 0 }}>
+      <Stack direction="row" alignItems="center" spacing={0.5}>
+        {m.record}
+        <Typography
+          sx={{
+            fontSize: '0.8125rem',
+            fontWeight: 700,
+            color: m.outstanding > 0 ? 'error.main' : 'text.secondary',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {formatGEL(m.outstanding)}
+        </Typography>
+      </Stack>
+      <Stack direction="row" sx={{ flexWrap: 'wrap', justifyContent: 'flex-end', gap: 0.5 }}>
+        <PaymentStatusChip status={m.paymentStatus} />
+        {m.overdue && <StatusPill tone="danger">{m.overdue}</StatusPill>}
+      </Stack>
       <Typography
-        sx={{
-          fontSize: '0.8125rem',
-          textAlign: 'right',
-          fontWeight: owed ? 700 : 400,
-          color: owed ? (red ? 'error.main' : 'text.secondary') : 'text.primary',
-          whiteSpace: 'nowrap',
-        }}
+        sx={{ fontSize: '0.6875rem', lineHeight: 1.45, color: 'text.secondary', textAlign: 'right' }}
       >
-        {value}
+        {`${m.labels.billed} ${formatGEL(m.billed)}`}
+        <br />
+        {`${m.labels.paid} ${formatGEL(m.paid)}`}
       </Typography>
-      {children}
     </Stack>
   );
 }
+

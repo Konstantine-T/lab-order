@@ -5,7 +5,11 @@ import type {
   OrderStatus,
   PaymentStatus,
 } from '@/types/database';
-import { LIST_FILTER_STATUSES } from '@/features/orders/list/orderListModel';
+import {
+  LIST_FILTER_STATUSES,
+  LIST_ORDER_SELECT,
+  type ListOrderRow,
+} from '@/features/orders/list/orderListModel';
 
 export type PayableSort =
   | 'created_desc'
@@ -124,4 +128,41 @@ export async function fetchPayablesList(
   });
   if (error) throw error;
   return (data ?? []) as ClinicPayableOrder[];
+}
+
+/** One row of the finances table: the order as the orders list has it, and its money. */
+export type PayableRow = { order: ListOrderRow; money: ClinicPayableOrder };
+
+/**
+ * A page of the finances table. The RPC decides which orders, in what order,
+ * and their money; the orders themselves are then read with the clinic's
+ * orders list's own select, so each row is the list's row (badges, the gold /
+ * aqua bar). One request per page; the clinic's RLS is exactly its orders
+ * (0050), as for the list.
+ */
+export async function fetchPayableRows(
+  f: PayableFilters,
+  sort: PayableSort,
+  page: number,
+  pageSize: number,
+): Promise<{ rows: PayableRow[]; total: number }> {
+  const money = await fetchPayablesList(f, sort, page, pageSize);
+  if (money.length === 0) return { rows: [], total: 0 };
+  const { data, error } = await supabase
+    .from('orders')
+    .select(LIST_ORDER_SELECT)
+    .in(
+      'id',
+      money.map((m) => m.order_id),
+    );
+  if (error) throw error;
+  const byId = new Map(((data ?? []) as unknown as ListOrderRow[]).map((o) => [o.id, o]));
+  return {
+    // The RPC's order, each order with its money.
+    rows: money.flatMap((m) => {
+      const order = byId.get(m.order_id);
+      return order ? [{ order, money: m }] : [];
+    }),
+    total: Number(money[0].total_count),
+  };
 }

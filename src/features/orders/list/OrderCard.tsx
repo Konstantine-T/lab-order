@@ -62,6 +62,9 @@ type Props = {
    * button press never also opens the order.
    */
   actions?: ReactNode;
+  /** Under the body, above the actions, outside the link: a finances page's
+   *  money line. */
+  footer?: ReactNode;
   /** "Now", for a fixture preview; the live list leaves it out. */
   now?: Dayjs;
   /**
@@ -94,6 +97,7 @@ export function OrderCard({
   invoiceUnseen,
   parentCode,
   actions,
+  footer,
   now = dayjs(),
   select,
 }: Props) {
@@ -383,6 +387,8 @@ export function OrderCard({
           </Stack>
         )}
       </CardBody>
+
+      {footer}
 
       {actions && (
         <Stack
