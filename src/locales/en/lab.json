@@ -636,7 +636,8 @@
       "required": "Explain how the price was calculated",
       "priceChanged": "Check that the explanation matches the new price",
       "stillCorrect": "The explanation is still correct",
-      "confirmRequired": "Update the explanation or confirm that it is still correct."
+      "confirmRequired": "Update the explanation or confirm that it is still correct.",
+      "optionalAtEstimate": "Matches the calculated estimate, an explanation is optional"
     },
     "laboratory": "Laboratory",
     "labIdCode": "ID code {{code}}",

@@ -16,8 +16,10 @@ import { FINAL_PRICE_NOTE_MAX } from './finalPriceNote';
 /**
  * "How the price was calculated", under the lab's final price input: the text
  * the doctor reads next to the price, in the "price set" notification and in
- * their orders list. Required whenever a price is entered; when the price
- * changes and the text does not, the lab confirms the text still holds.
+ * their orders list. Required whenever a price is entered, unless it is the
+ * calculated estimate (0061), where the field says it is optional instead;
+ * when the price changes and the text does not, the lab confirms the text
+ * still holds.
  *
  * Controlled: the order sheet owns the values, saves them with the price in
  * one update, and keeps them in step with live refetches (useLiveFormSync).
@@ -26,6 +28,7 @@ export function FinalPriceNoteField({
   value,
   onChange,
   required,
+  atEstimate,
   error,
   confirmNeeded,
   confirmed,
@@ -34,8 +37,11 @@ export function FinalPriceNoteField({
 }: {
   value: string;
   onChange: (next: string) => void;
-  /** A price is entered, so the note must be too. */
+  /** A price is entered and it is not the estimate, so the note must be too. */
   required: boolean;
+  /** The price typed is the calculated estimate: the note is optional, and
+   *  the helper line says so. */
+  atEstimate: boolean;
   /** The note's own error (empty when a price needs one), shown on the field. */
   error: string | null;
   /** The price differs from the saved one and the text is unchanged. */
@@ -58,7 +64,12 @@ export function FinalPriceNoteField({
         error={!!error}
         helperText={
           <Stack component="span" direction="row" justifyContent="space-between" spacing={1}>
-            <span>{error ?? t('orderSheet.finalPriceNote.helper')}</span>
+            <span>
+              {error ??
+                (atEstimate
+                  ? t('orderSheet.finalPriceNote.optionalAtEstimate')
+                  : t('orderSheet.finalPriceNote.helper'))}
+            </span>
             <span style={{ flexShrink: 0 }}>{counter}</span>
           </Stack>
         }

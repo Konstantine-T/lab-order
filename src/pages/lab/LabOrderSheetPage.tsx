@@ -86,6 +86,7 @@ import { FinalPriceNoteField } from '@/features/lab/orderSheet/FinalPriceNoteFie
 import { FromLabBadge } from '@/features/lab/orders/FromLabBadge';
 import { isLabPurchase, labCustomerIdentity } from '@/features/lab/orders/labCustomer';
 import {
+  isNoteRequired,
   isNoteRequiredError,
   needsNoteConfirmation,
 } from '@/features/lab/orderSheet/finalPriceNote';
@@ -469,10 +470,14 @@ export function LabOrderSheetPage() {
     city?: string;
   };
   const statusDirty = !!pendingStatus && pendingStatus !== order.status;
+  // Live as the lab types: at the calculated estimate the explanation is
+  // optional (0061); any other price, or no estimate, needs one.
+  const priceTyped = finalPrice.trim() !== '';
+  const noteRequired = priceTyped && isNoteRequired(parseAmount(finalPrice), order.generated_total);
+  const noteAtEstimate = priceTyped && !noteRequired;
   // The typed price moved off the saved one and the explanation did not.
   const noteConfirmNeeded =
-    finalPrice.trim() !== '' &&
-    needsNoteConfirmation(parseAmount(finalPrice), finalNote, order);
+    priceTyped && needsNoteConfirmation(parseAmount(finalPrice), finalNote, order);
   const dueDirty = isDueDirty({ date: confirmedDue, time: confirmedTime }, order);
   const dueSaved = order.confirmed_due_date != null || order.confirmed_due_time != null;
   // "Irakli K." (0057).
@@ -637,8 +642,11 @@ export function LabOrderSheetPage() {
                         setFinalNote(next);
                         setNoteError(null);
                       }}
-                      required={finalPrice.trim() !== ''}
-                      error={noteError}
+                      required={noteRequired}
+                      atEstimate={noteAtEstimate}
+                      // No error on a note that is not required (a price moved
+                      // to the estimate after a refused save).
+                      error={noteRequired ? noteError : null}
                       confirmNeeded={noteConfirmNeeded}
                       confirmed={noteConfirmed}
                       onConfirmedChange={setNoteConfirmed}
@@ -672,11 +680,12 @@ export function LabOrderSheetPage() {
                           setPriceError(t('orderSheet.finalPriceInvalid'));
                           return;
                         }
-                        // Every price carries its explanation (0046 refuses one
-                        // without), and a changed price needs the text updated
-                        // or confirmed as still correct.
+                        // A price carries its explanation (0046 refuses one
+                        // without) unless it is the estimate (0061), and a
+                        // changed price needs the text updated or confirmed as
+                        // still correct.
                         const note = finalNote.trim();
-                        if (note === '') {
+                        if (note === '' && isNoteRequired(amount, order.generated_total)) {
                           setNoteError(t('orderSheet.finalPriceNote.required'));
                           return;
                         }
@@ -684,9 +693,11 @@ export function LabOrderSheetPage() {
                           setNoteConfirmError(true);
                           return;
                         }
-                        // As the database stores it, so the refetch reads as our own save.
+                        // As the database stores it, so the refetch reads as our
+                        // own save. An empty note at the estimate is no note: the
+                        // lab may clear an old one there.
                         setFinalNote(note);
-                        savePrice.mutate({ final_total: amount, final_price_note: note });
+                        savePrice.mutate({ final_total: amount, final_price_note: note || null });
                       }}
                       disabled={savePrice.isPending}
                     >
