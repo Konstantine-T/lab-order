@@ -46,6 +46,9 @@ import {
   snapshotInvoiceLine,
 } from '@/features/labBuying/buyerOrder';
 import { orderErrorText } from '@/features/labBuying/buyerErrors';
+import { useMyClinics } from '@/features/clinic/useMyClinic';
+import { INVOICE_SECTION_ID } from '@/features/orderForms/wizard/SummaryRail';
+import { SelfInvoiceConfirmDialog } from '@/features/doctor/orderCreate/SelfInvoiceConfirmDialog';
 import type {
   DoctorWorkLocationRow,
   EditReasonCode,
@@ -141,6 +144,20 @@ export function OrderEditPage({
   // backfilled to a clinic, and the doctor still edits it as before.
   const clinicFixed = !!order?.clinic_id && !order.doctor_work_location_id && !order.buyer_lab_id;
   const deliveryReadOnly = clinicFixed || user?.role === 'CLINIC_ADMIN';
+
+  // The wizard's self-invoice question, asked when this edit moves the invoice
+  // to the doctor (from the clinic of their work location). An order already
+  // invoiced to them saves without it, and a doctor with no clinic they can
+  // order for is never asked. `useMyClinics` reads nothing for other roles.
+  const myClinicsQuery = useMyClinics();
+  const [selfInvoiceDialogOpen, setSelfInvoiceDialogOpen] = useState(false);
+  const confirmSelfInvoice =
+    user?.role === 'DOCTOR' &&
+    !buyerProp &&
+    !deliveryReadOnly &&
+    !!myClinicsQuery.data?.some((c) => c.ready) &&
+    order?.invoice_recipient_type !== 'DOCTOR' &&
+    state.invoice_recipient_type === 'DOCTOR';
 
   const { data: answers = [], isSuccess: answersLoaded } = useQuery({
     queryKey: ['order-answers', orderId],
@@ -355,6 +372,10 @@ export function OrderEditPage({
       // return without scrolling, so the banner named a field the doctor then
       // had to go and find.
       scrollToFirstError();
+      return;
+    }
+    if (confirmSelfInvoice) {
+      setSelfInvoiceDialogOpen(true);
       return;
     }
     save.mutate();
@@ -576,7 +597,7 @@ export function OrderEditPage({
                 </TextField>
               )}
 
-              <Box>
+              <Box id={INVOICE_SECTION_ID}>
                 <FieldLabel sx={{ mb: 0.75 }}>{t('orderCreate.review.invoiceRecipient')}</FieldLabel>
                 <Segmented
                   value={state.invoice_recipient_type}
@@ -615,6 +636,16 @@ export function OrderEditPage({
         pricing={version?.pricing_configuration_json}
         answers={state.answers}
         rush={rush}
+      />
+
+      <SelfInvoiceConfirmDialog
+        open={selfInvoiceDialogOpen}
+        onCancel={() => setSelfInvoiceDialogOpen(false)}
+        onConfirm={() => {
+          setSelfInvoiceDialogOpen(false);
+          save.mutate();
+        }}
+        revealId={INVOICE_SECTION_ID}
       />
     </>
   );

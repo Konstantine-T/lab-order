@@ -68,7 +68,12 @@ import { SectionNavigator } from '@/features/orderForms/wizard/SectionNavigator'
 import { WizardHeader, type DraftStatus } from '@/features/orderForms/wizard/WizardHeader';
 import { PatientStep } from '@/features/orderForms/wizard/PatientCard';
 import { FilesCard } from '@/features/orderForms/wizard/FilesCard';
-import { DUE_SECTION_ID, SummaryRail } from '@/features/orderForms/wizard/SummaryRail';
+import {
+  DUE_SECTION_ID,
+  INVOICE_SECTION_ID,
+  SummaryRail,
+} from '@/features/orderForms/wizard/SummaryRail';
+import { SelfInvoiceConfirmDialog } from '@/features/doctor/orderCreate/SelfInvoiceConfirmDialog';
 import { minTurnaroundDays } from '@/features/orderForms/wizard/dueDate';
 import { useServerDraftAutosave } from '@/features/orderForms/wizard/useServerDraftAutosave';
 import { useStickyChromeHeight } from '@/features/orderForms/wizard/scroll';
@@ -191,6 +196,7 @@ export function OrderCreateWizard({
   const [dismissedBroken, setDismissedBroken] = useState(false);
   const [guestDialogOpen, setGuestDialogOpen] = useState(false);
   const [locationDialogOpen, setLocationDialogOpen] = useState(false);
+  const [selfInvoiceDialogOpen, setSelfInvoiceDialogOpen] = useState(false);
   // A duplicate-patient match on screen and not yet answered (inline now, a
   // dialog before): sending waits for the answer, as the dialog made it.
   const [matchPending, setMatchPending] = useState(false);
@@ -315,10 +321,19 @@ export function OrderCreateWizard({
   // order as their own. A failed read leaves them with private orders only.
   const clinicsPending = doctorMode && myClinicsQuery.isLoading;
 
-  // The default: the clinic of the doctor's latest order, else private.
-  const { data: lastClinicId, isSuccess: lastClinicLoaded } = useQuery({
+  // The default is a clinic, never private while one can be ordered for: of
+  // several, the one of the doctor's latest order, else the oldest membership.
+  // Only a clinic profile still incomplete (0058) leaves them private. A draft
+  // keeps what the doctor chose; the default fills only an unset choice.
+  const readyClinicCount = myClinics.filter((c) => c.ready).length;
+  const {
+    data: lastClinicId,
+    isSuccess: lastClinicLoaded,
+    isError: lastClinicFailed,
+  } = useQuery({
     queryKey: ['doctor-last-order-clinic', doctorId],
-    enabled: doctorMode && !!doctorId && myClinics.length > 0,
+    // Only a choice between clinics needs the history.
+    enabled: doctorMode && !!doctorId && readyClinicCount > 1,
     queryFn: async () => {
       const { data, error } = await supabase
         .from('orders')
@@ -331,6 +346,8 @@ export function OrderCreateWizard({
       return ((data as { clinic_id: string | null } | null)?.clinic_id ?? null) as string | null;
     },
   });
+  // A failed read still defaults to a clinic, just not by history.
+  const lastClinicSettled = readyClinicCount <= 1 || lastClinicLoaded || lastClinicFailed;
 
   useEffect(() => {
     if (!doctorMode || myClinics.length === 0) return;
@@ -340,10 +357,11 @@ export function OrderCreateWizard({
       update({ clinic_choice: PRIVATE_ORDER });
       return;
     }
-    if (choice || !lastClinicLoaded) return;
-    const last = myClinics.find((c) => c.id === lastClinicId && c.ready);
-    update({ clinic_choice: last ? last.id : PRIVATE_ORDER });
-  }, [doctorMode, myClinics, state.clinic_choice, lastClinicLoaded, lastClinicId]);
+    if (choice || !lastClinicSettled) return;
+    const ready = myClinics.filter((c) => c.ready);
+    const pick = ready.find((c) => c.id === lastClinicId) ?? ready[0];
+    update({ clinic_choice: pick ? pick.id : PRIVATE_ORDER });
+  }, [doctorMode, myClinics, state.clinic_choice, lastClinicSettled, lastClinicId]);
 
   const chosenClinic: ClinicForOrder | null = isClinic
     ? user?.clinic
@@ -354,6 +372,14 @@ export function OrderCreateWizard({
   // Nobody can order for a clinic whose profile is incomplete (owner, 0058):
   // the server refuses it too, with clinic_details_missing.
   const clinicNotReady = !!chosenClinic && !chosenClinic.ready;
+  // A doctor who could have sent this to a clinic but is invoicing themselves
+  // is asked to confirm it on Send. Not when no clinic of theirs can be
+  // ordered for yet: they had no other choice.
+  const confirmSelfInvoice =
+    doctorMode &&
+    myClinics.some((c) => c.ready) &&
+    !clinicOrder &&
+    state.invoice_recipient_type === 'DOCTOR';
 
   // ----- Data queries -------------------------------------------------------
   const { data: locations = [] } = useQuery({
@@ -573,6 +599,11 @@ export function OrderCreateWizard({
       // navigation to register — so what the dialog says about it is true.
       guestSave.saveNow();
       setGuestDialogOpen(true);
+      return;
+    }
+    // Asked on every such Send: there is no "don't ask again".
+    if (confirmSelfInvoice) {
+      setSelfInvoiceDialogOpen(true);
       return;
     }
     submit.mutate();
@@ -971,6 +1002,9 @@ export function OrderCreateWizard({
                     : t('orderCreate.forClinic.noDetails', { clinic: chosenClinic.name })
                   : undefined
               }
+              fixedDeliveryNote={
+                doctorMode && chosenClinic ? t('orderCreate.invoice.lockedHint') : undefined
+              }
               forChoice={
                 myClinics.length > 0
                   ? {
@@ -1166,6 +1200,18 @@ export function OrderCreateWizard({
           open={locationDialogOpen}
           onClose={() => setLocationDialogOpen(false)}
           onSubmit={(values) => addLocation.mutateAsync(values).then(() => undefined)}
+        />
+      )}
+
+      {doctorMode && (
+        <SelfInvoiceConfirmDialog
+          open={selfInvoiceDialogOpen}
+          onCancel={() => setSelfInvoiceDialogOpen(false)}
+          onConfirm={() => {
+            setSelfInvoiceDialogOpen(false);
+            submit.mutate();
+          }}
+          revealId={INVOICE_SECTION_ID}
         />
       )}
     </>

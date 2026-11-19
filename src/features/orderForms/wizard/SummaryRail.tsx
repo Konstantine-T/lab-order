@@ -14,7 +14,7 @@ import {
 import { DateCalendar, TimePicker } from '@mui/x-date-pickers';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useTranslation } from 'react-i18next';
-import { Callout } from '@/components/design';
+import { Callout, Icon } from '@/components/design';
 import { PriceBreakdown } from '@/components/PriceBreakdown';
 import { calculatePrice, formatGELShort, pricingShape } from '@/utils/pricing';
 import { useUiLang } from '@/features/lab/labText';
@@ -37,6 +37,9 @@ import { InkSegmented, PeriLink, WizLabel } from './ui';
 
 /** The rail's due-and-send block — the navigator's last stop. */
 export const DUE_SECTION_ID = 'order-due';
+
+/** Who gets the invoice: where the self-invoice dialog's Cancel brings the doctor back to. */
+export const INVOICE_SECTION_ID = 'order-invoice';
 
 /**
  * The sticky right rail from the redesign: what the order adds up to so far,
@@ -62,6 +65,7 @@ export function SummaryRail({
   sendDone,
   fixedDelivery,
   deliveryWarning,
+  fixedDeliveryNote,
   forChoice,
 }: {
   state: WizardState;
@@ -94,6 +98,11 @@ export function SummaryRail({
   fixedDelivery?: { deliveredTo: string; invoiceTo: string };
   /** Under the fixed delivery line: why this order cannot be sent yet. */
   deliveryWarning?: string;
+  /**
+   * Under the fixed delivery line, when there is no warning: why it cannot be
+   * changed. A doctor's order for a clinic only.
+   */
+  fixedDeliveryNote?: string;
   /**
    * A doctor in one or more clinics (0050): whom the order is for, each of
    * their clinics or their own private work. Absent for everyone else.
@@ -309,10 +318,25 @@ export function SummaryRail({
             {fixedDelivery ? (
               <>
                 <FixedLine>{fixedDelivery.deliveredTo}</FixedLine>
-                {deliveryWarning && (
+                {deliveryWarning ? (
                   <Callout tone="warning" sx={{ mt: 0.5 }}>
                     {deliveryWarning}
                   </Callout>
+                ) : (
+                  fixedDeliveryNote && (
+                    <Stack direction="row" spacing={0.75} alignItems="flex-start">
+                      <Icon
+                        name="info"
+                        size={14}
+                        sx={{ color: 'text.secondary', mt: '2px', flexShrink: 0 }}
+                      />
+                      <Typography
+                        sx={{ fontSize: '0.75rem', color: 'text.secondary', lineHeight: 1.45 }}
+                      >
+                        {fixedDeliveryNote}
+                      </Typography>
+                    </Stack>
+                  )
                 )}
               </>
             ) : guest ? (
@@ -361,12 +385,12 @@ export function SummaryRail({
         </Box>
 
         {fixedDelivery ? (
-          <Stack spacing={0.625}>
+          <Stack id={INVOICE_SECTION_ID} spacing={0.625}>
             <WizLabel>{t('labBuyer.invoiceTo')}</WizLabel>
             <FixedLine>{fixedDelivery.invoiceTo}</FixedLine>
           </Stack>
         ) : (
-          <Stack spacing={0.625}>
+          <Stack id={INVOICE_SECTION_ID} spacing={0.625}>
             <WizLabel>{t('orderCreate.review.invoiceRecipient')}</WizLabel>
             <InkSegmented
               value={state.invoice_recipient_type}

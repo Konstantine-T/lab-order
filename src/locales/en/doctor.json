@@ -292,6 +292,11 @@
       "hint": "A clinic sees, edits and pays for the orders placed for it. Delivery and invoice come from the clinic.",
       "noDetails": "{{clinic}} hasn't entered its details yet, so orders for it cannot be sent. Ask the clinic to complete its profile, or order for yourself.",
       "noDetailsAdmin": "Complete the clinic profile (delivery address, city, legal name, identification code, invoice email) before placing orders."
+    },
+    "invoice": {
+      "lockedHint": "You can't change the clinic's address because the invoice is made out to the clinic.",
+      "confirmSelf": "Are you sure you want the invoice made out to you?",
+      "confirm": "Confirm"
     }
   },
   "orders": {

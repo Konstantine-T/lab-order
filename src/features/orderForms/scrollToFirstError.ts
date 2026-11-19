@@ -45,6 +45,8 @@ function stickyChromeHeight(): number {
   for (const x of probes) {
     for (const el of document.elementsFromPoint(x, 1)) {
       if (!(el instanceof HTMLElement)) continue;
+      // A dialog still fading out is fixed and full-window: not chrome.
+      if (el.closest('.MuiModal-root')) continue;
       const pos = getComputedStyle(el).position;
       if (pos === 'sticky' || pos === 'fixed') {
         bottom = Math.max(bottom, el.getBoundingClientRect().bottom);
@@ -79,6 +81,23 @@ function topmostError(root: ParentNode): HTMLElement | null {
     }
   }
   return best;
+}
+
+/**
+ * Bring `target` into view below the sticky chrome, unless it is already
+ * wholly on screen: a field in a pinned rail always is, and scrolling the page
+ * to it would only move the form under the doctor. For the field a doctor
+ * comes back to after backing out of a dialog.
+ */
+export function revealElement(target: HTMLElement): void {
+  requestAnimationFrame(() => {
+    const rect = target.getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) return;
+    const chrome = stickyChromeHeight();
+    if (rect.top >= chrome && rect.bottom <= window.innerHeight) return;
+    const top = rect.top + window.scrollY - chrome - GAP;
+    window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' });
+  });
 }
 
 export function scrollToFirstError(root: ParentNode = document): void {
